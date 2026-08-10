@@ -1,5 +1,6 @@
-import type { BodyRegion, Exercise, MovementPattern } from './types'
+import type { BodyRegion, Exercise, ExerciseMuscleMapping, MovementPattern } from './types'
 import { findExerciseDuplicatePairs, type ExerciseDuplicatePair } from './history-engine'
+import { exerciseMuscleMappingError } from './muscle-dose'
 
 export interface ExerciseCatalogInput {
   name: string
@@ -9,6 +10,7 @@ export interface ExerciseCatalogInput {
   primaryRegion: BodyRegion
   equipment: string[]
   description: string
+  muscleMapping?: ExerciseMuscleMapping | null
 }
 
 export interface ExerciseCatalogProjection {
@@ -55,6 +57,11 @@ export function projectExerciseCatalogEdit(exercises: Exercise[], exerciseId: st
   if (aliases.length > 20) throw new Error('Use no more than 20 aliases for one movement.')
   if (current.custom && equipment.length === 0) throw new Error('Add at least one available equipment option.')
   if (requestedDescription.length > 500) throw new Error('Keep the movement note under 500 characters.')
+  const muscleMapping = input.muscleMapping === undefined ? current.muscleMapping : input.muscleMapping ?? undefined
+  if (current.custom && muscleMapping) {
+    const mappingError = exerciseMuscleMappingError(muscleMapping)
+    if (mappingError) throw new Error(mappingError)
+  }
 
   const exercise: Exercise = current.custom ? {
     ...current,
@@ -65,7 +72,8 @@ export function projectExerciseCatalogEdit(exercises: Exercise[], exerciseId: st
     regions: [input.primaryRegion],
     primaryRegion: input.primaryRegion,
     equipment,
-    description: requestedDescription || current.description
+    description: requestedDescription || current.description,
+    muscleMapping
   } : { ...current, aliases }
 
   const projected = exercises.map((candidate) => candidate.id === exerciseId ? exercise : candidate)

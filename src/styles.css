@@ -535,6 +535,18 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .muscle-unmapped { display: flex; gap: 9px; margin-top: 12px; padding: 11px 13px; border: 1px solid rgb(255 122 69 / 28%); border-radius: 9px; background: rgb(255 122 69 / 6%); font-size: .68rem; }
 .muscle-unmapped strong { flex: none; color: var(--orange); }
 .muscle-unmapped span { color: var(--muted); }
+.muscle-plan-panel { margin-top: 16px; }
+.muscle-plan-panel .panel__header > svg { color: var(--orange); }
+.muscle-plan-list { display: grid; margin-top: 12px; }
+.muscle-plan-list > div { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(220px, 1.5fr) minmax(105px, auto); align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
+.muscle-plan-list > div:first-child { border-top: 0; }
+.muscle-plan-list strong, .muscle-plan-list small { display: block; }
+.muscle-plan-list small { margin-top: 3px; color: var(--muted); font-size: .63rem; }
+.muscle-plan-meter > span { color: var(--muted); font-size: .68rem; }
+.muscle-plan-meter > span b { color: var(--text); }
+.muscle-plan-meter i { display: flex; height: 6px; margin-top: 7px; overflow: hidden; border-radius: 999px; background: var(--line); }
+.muscle-plan-meter i b { display: block; height: 100%; }
+.dose-status--no-planned-dose b { color: var(--muted); }
 .compact-empty { display: grid; min-height: 180px; place-items: center; align-content: center; gap: 7px; padding: 20px; text-align: center; color: var(--muted); }
 .compact-empty svg { color: var(--dim); }
 .compact-empty p { margin: 0; font-size: .76rem; }
@@ -610,6 +622,15 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .catalog-control > span > svg { flex: none; color: var(--blue); }
 .catalog-control > span > span { display: grid; gap: 3px; }
 .catalog-control small { max-width: 580px; color: var(--muted); font-size: .7rem; }
+.exercise-muscle-map { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px; margin-bottom: 12px; border: 1px solid rgb(231 255 88 / 24%); border-radius: 11px; background: rgb(231 255 88 / 5%); }
+.exercise-muscle-map > span:first-child { display: flex; align-items: flex-start; gap: 9px; }
+.exercise-muscle-map > span:first-child svg { flex: none; color: var(--lime); }
+.exercise-muscle-map strong, .exercise-muscle-map small, .exercise-muscle-map__credits b { display: block; }
+.exercise-muscle-map small { margin-top: 3px; color: var(--muted); font-size: .67rem; }
+.exercise-muscle-map__credits { min-width: 210px; text-align: right; }
+.exercise-muscle-map__credits b { color: var(--lime); }
+.exercise-muscle-map.is-unmapped { border-color: rgb(255 122 69 / 28%); background: rgb(255 122 69 / 6%); }
+.exercise-muscle-map.is-unmapped > span:first-child svg, .exercise-muscle-map.is-unmapped > b { color: var(--orange); }
 .history-table { border-top: 1px solid var(--line); }
 .history-table > div { display: grid; grid-template-columns: 125px 1fr auto; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: .72rem; }
 .history-table span { display: flex; align-items: center; gap: 6px; color: var(--muted); }
@@ -633,6 +654,13 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .catalog-edit-grid { margin-bottom: 12px; }
 .catalog-edit-grid__wide { grid-column: 1 / -1; }
+.muscle-map-toggle { margin-top: 12px; }
+.muscle-map-editor { display: grid; gap: 12px; margin-top: 10px; padding: 14px; border: 1px solid rgb(231 255 88 / 25%); border-radius: 11px; background: rgb(231 255 88 / 4%); }
+.muscle-map-editor fieldset { min-width: 0; padding: 0; border: 0; }
+.muscle-map-editor legend { margin-bottom: 8px; color: var(--muted); font-size: .67rem; font-weight: 750; }
+.muscle-map-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.muscle-map-options label { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 7px; background: #11150f; color: var(--muted); font-size: .65rem; }
+.muscle-map-options input { flex: none; }
 .protected-taxonomy { display: flex; gap: 11px; margin-bottom: 14px; padding: 14px; border: 1px solid rgb(91 166 255 / 26%); border-radius: 10px; background: rgb(91 166 255 / 6%); }
 .protected-taxonomy > svg { flex: none; color: var(--blue); }
 .protected-taxonomy p { margin: 4px 0 0; color: var(--muted); font-size: .75rem; }
@@ -952,9 +980,14 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .muscle-dose-list > button { grid-template-columns: minmax(0, 1fr) auto; }
   .muscle-dose-list > button i { grid-column: 1 / -1; grid-row: 2; }
   .muscle-unmapped { display: grid; }
+  .muscle-plan-list > div { grid-template-columns: 1fr auto; }
+  .muscle-plan-meter { grid-column: 1 / -1; grid-row: 2; }
   .catalog-edit-grid__wide { grid-column: auto; }
   .catalog-control { align-items: stretch; flex-direction: column; }
   .catalog-control .button { width: 100%; }
+  .exercise-muscle-map { align-items: flex-start; flex-direction: column; }
+  .exercise-muscle-map__credits { min-width: 0; text-align: left; }
+  .muscle-map-options { grid-template-columns: 1fr 1fr; }
   .import-controls { align-items: stretch; flex-direction: column; }
   .import-controls > * { width: 100%; }
   .import-summary { grid-template-columns: 1fr 1fr; }

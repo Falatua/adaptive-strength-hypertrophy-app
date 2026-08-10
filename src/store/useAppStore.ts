@@ -384,9 +384,13 @@ export const useAppStore = create<AppState>()(
           const projection = projectExerciseCatalogEdit(state.exercises, exerciseId, input)
           const exercises = state.exercises.map((exercise) => exercise.id === exerciseId ? projection.exercise : exercise)
           const affectedSetIds = state.history.filter((workSet) => workSet.exerciseId === exerciseId).map((workSet) => workSet.id)
+          const priorExercise = state.exercises.find((exercise) => exercise.id === exerciseId)
+          const mappingChanged = JSON.stringify(priorExercise?.muscleMapping ?? null) !== JSON.stringify(projection.exercise.muscleMapping ?? null)
           const event: HistoryMutationEvent = {
             id: nanoid(), type: 'exercise-edited', createdAt: new Date().toISOString(), reason: reason.trim(),
-            description: `${state.exercises.find((exercise) => exercise.id === exerciseId)?.name ?? 'Movement'} catalog identity updated to ${projection.exercise.name}.`,
+            description: mappingChanged
+              ? `${priorExercise?.name ?? 'Movement'} muscle-dose mapping ${projection.exercise.muscleMapping ? 'reviewed and updated' : 'removed'} with its catalog identity preserved.`
+              : `${priorExercise?.name ?? 'Movement'} catalog identity updated to ${projection.exercise.name}.`,
             affectedSetIds,
             before: { history: state.history, exercises: state.exercises, sessions: state.sessions, athlete: state.athlete, substitutionEvents: state.substitutionEvents },
             after: { history: state.history, exercises, sessions: state.sessions, athlete: state.athlete, substitutionEvents: state.substitutionEvents },
@@ -396,7 +400,7 @@ export const useAppStore = create<AppState>()(
           set({
             exercises,
             historyMutations: [...state.historyMutations, event],
-            notice: `${projection.exercise.name} saved with its stable history ID. Prior completed-set names remain unchanged.${projection.probableDuplicates.length ? ' A possible related variation remains in Data quality.' : ''}`
+            notice: `${projection.exercise.name} saved with its stable history ID.${mappingChanged ? ' Completed and planned muscle dose replayed from the reviewed mapping.' : ' Prior completed-set names remain unchanged.'}${projection.probableDuplicates.length ? ' A possible related variation remains in Data quality.' : ''}`
           })
           return { ok: true, exercise: projection.exercise }
         } catch (error) {

@@ -4,7 +4,8 @@ import { nanoid } from 'nanoid'
 import { duplicateCandidates, volumeLoad } from '../domain/training-engine'
 import { findExerciseDuplicateGroups } from '../domain/catalog-engine'
 import { buildTrainingHistoryImport, parseTrainingHistoryCsv, type ImportUnit, type TrainingHistoryImportPreview } from '../domain/import-engine'
-import type { BodyRegion, CompletedSetRecord, Exercise, MovementPattern } from '../domain/types'
+import type { BodyRegion, CompletedSetRecord, Exercise, MuscleId, MovementPattern } from '../domain/types'
+import { muscleCreditsFor, muscleDefinitions } from '../domain/muscle-dose'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
 
@@ -12,6 +13,7 @@ const regionFilters: { id: BodyRegion | 'all'; label: string }[] = [
   { id: 'all', label: 'All' }, { id: 'chest', label: 'Chest' }, { id: 'back', label: 'Back' }, { id: 'shoulders', label: 'Shoulders' },
   { id: 'quadriceps', label: 'Quads' }, { id: 'hamstrings', label: 'Hamstrings' }, { id: 'glutes', label: 'Glutes' }, { id: 'biceps', label: 'Biceps' }, { id: 'triceps', label: 'Triceps' }
 ]
+const muscleLabel = new Map(muscleDefinitions.map((muscle) => [muscle.id, muscle.label]))
 
 export function LibraryScreen() {
   const { exercises, history, historyMutations, substitutionEvents, settings, toggleFavorite, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, undoLatestHistoryMutation, setNotice } = useAppStore()
@@ -23,6 +25,9 @@ export function LibraryScreen() {
   const [customPattern, setCustomPattern] = useState<MovementPattern>('horizontal-push')
   const [customRegion, setCustomRegion] = useState<BodyRegion>('chest')
   const [customDistinction, setCustomDistinction] = useState('')
+  const [customMappingEnabled, setCustomMappingEnabled] = useState(false)
+  const [customDirectMuscle, setCustomDirectMuscle] = useState<MuscleId | ''>('')
+  const [customSecondaryMuscles, setCustomSecondaryMuscles] = useState<MuscleId[]>([])
   const [qualityOpen, setQualityOpen] = useState(false)
   const [editingSet, setEditingSet] = useState<CompletedSetRecord | null>(null)
   const [editValues, setEditValues] = useState({ load: '', reps: '', rir: '', technique: '', pain: '', qualityConfirmed: false, completedAt: '', reason: '' })
@@ -32,7 +37,7 @@ export function LibraryScreen() {
   const [mergeTargetId, setMergeTargetId] = useState('')
   const [mergeReason, setMergeReason] = useState('Duplicate movement identity')
   const [catalogEdit, setCatalogEdit] = useState<Exercise | null>(null)
-  const [catalogValues, setCatalogValues] = useState({ name: '', family: '', aliases: '', pattern: 'horizontal-push' as MovementPattern, primaryRegion: 'chest' as BodyRegion, equipment: '', description: '', reason: '' })
+  const [catalogValues, setCatalogValues] = useState({ name: '', family: '', aliases: '', pattern: 'horizontal-push' as MovementPattern, primaryRegion: 'chest' as BodyRegion, equipment: '', description: '', reason: '', muscleMappingEnabled: false, directMuscle: '' as MuscleId | '', secondaryMuscles: [] as MuscleId[] })
   const [formError, setFormError] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [importUnits, setImportUnits] = useState<ImportUnit>(settings.units)
@@ -64,6 +69,7 @@ export function LibraryScreen() {
     return [...byId.values()].sort((a, b) => b.score - a.score).slice(0, 3)
   }, [activeExercises, catalogEdit, catalogValues.aliases, catalogValues.name])
   const selectedHistory = selected ? history.filter((set) => set.exerciseId === selected.id).sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()) : []
+  const selectedMuscleCredits = selected ? muscleCreditsFor(selected.id, exercises) : undefined
   const groupedDates = selectedHistory.reduce<Record<string, typeof selectedHistory>>((groups, set) => {
     const key = set.completedAt.slice(0, 10)
     groups[key] = [...(groups[key] ?? []), set]
@@ -124,13 +130,15 @@ export function LibraryScreen() {
     setCatalogEdit(exercise)
     setCatalogValues({
       name: exercise.name, family: exercise.family, aliases: exercise.aliases.join(', '), pattern: exercise.pattern,
-      primaryRegion: exercise.primaryRegion, equipment: exercise.equipment.join(', '), description: exercise.description, reason: ''
+      primaryRegion: exercise.primaryRegion, equipment: exercise.equipment.join(', '), description: exercise.description, reason: '',
+      muscleMappingEnabled: Boolean(exercise.muscleMapping), directMuscle: exercise.muscleMapping?.direct ?? '', secondaryMuscles: exercise.muscleMapping?.secondary ?? []
     })
     setFormError(null)
   }
 
   const submitCatalogEdit = () => {
     if (!catalogEdit) return
+    if (catalogEdit.custom && catalogValues.muscleMappingEnabled && !catalogValues.directMuscle) return setFormError('Choose one direct muscle or leave this movement unmapped.')
     const result = updateExerciseCatalog(catalogEdit.id, {
       name: catalogValues.name,
       family: catalogValues.family,
@@ -138,7 +146,12 @@ export function LibraryScreen() {
       pattern: catalogValues.pattern,
       primaryRegion: catalogValues.primaryRegion,
       equipment: catalogValues.equipment.split(','),
-      description: catalogValues.description
+      description: catalogValues.description,
+      muscleMapping: catalogEdit.custom && catalogValues.muscleMappingEnabled && catalogValues.directMuscle ? {
+        ruleVersion: 'exercise-muscle-map-v1', direct: catalogValues.directMuscle,
+        secondary: catalogValues.secondaryMuscles.filter((muscle) => muscle !== catalogValues.directMuscle),
+        source: 'athlete', reviewedAt: new Date().toISOString()
+      } : catalogEdit.custom ? null : undefined
     }, catalogValues.reason)
     if (!result.ok) return setFormError(result.error ?? 'The movement could not be updated.')
     setCatalogEdit(null)
@@ -147,13 +160,22 @@ export function LibraryScreen() {
 
   const createCustom = () => {
     if (!customName.trim()) return
+    if (customMappingEnabled && !customDirectMuscle) return setFormError('Choose one direct muscle or leave this movement unmapped.')
     addCustomExercise({
       id: nanoid(), name: customName.trim(), family: customName.trim(), aliases: [], pattern: customPattern,
       regions: [customRegion], primaryRegion: customRegion, equipment: ['custom'], description: customDistinction.trim() ? `Athlete-created movement. Distinct because: ${customDistinction.trim()}` : 'Athlete-created movement. Add setup and history as you train it.',
-      roleTags: ['custom'], favorite: false, jointFeeling: 'neutral', custom: true
+      roleTags: ['custom'], favorite: false, jointFeeling: 'neutral', custom: true,
+      muscleMapping: customMappingEnabled && customDirectMuscle ? {
+        ruleVersion: 'exercise-muscle-map-v1', direct: customDirectMuscle,
+        secondary: customSecondaryMuscles.filter((muscle) => muscle !== customDirectMuscle),
+        source: 'athlete', reviewedAt: new Date().toISOString()
+      } : undefined
     })
     setCustomName('')
     setCustomDistinction('')
+    setCustomMappingEnabled(false)
+    setCustomDirectMuscle('')
+    setCustomSecondaryMuscles([])
     setAddOpen(false)
     setNotice('Custom movement added with its own canonical history.')
   }
@@ -210,7 +232,7 @@ export function LibraryScreen() {
     <div className="screen">
       <header className="screen-header">
         <div><p className="eyebrow">Canonical exercise knowledge</p><h1>One movement. One history.</h1><p>Browse by body part, movement type, role, goal, equipment, and personal response without fragmenting progression.</p></div>
-        <div className="screen-header__actions"><button className="button button--secondary" onClick={openImport}><Upload size={17} /> Import history</button><button className="button button--secondary" onClick={() => setQualityOpen(true)}><ListChecks size={17} /> Data quality {duplicateGroups.length ? `(${duplicateGroups.length})` : ''}</button><button className="button button--primary" onClick={() => setAddOpen(true)}><Plus size={17} /> Add movement</button></div>
+        <div className="screen-header__actions"><button className="button button--secondary" onClick={openImport}><Upload size={17} /> Import history</button><button className="button button--secondary" onClick={() => setQualityOpen(true)}><ListChecks size={17} /> Data quality {duplicateGroups.length ? `(${duplicateGroups.length})` : ''}</button><button className="button button--primary" onClick={() => { setFormError(null); setAddOpen(true) }}><Plus size={17} /> Add movement</button></div>
       </header>
 
       <section className="library-categories">
@@ -260,6 +282,10 @@ export function LibraryScreen() {
               <div><small>Exact volume load</small><strong>{volumeLoad(selectedHistory).toLocaleString()}</strong></div>
               <div><small>Completed sets</small><strong>{selectedHistory.length}</strong></div>
               <div><small>Joint response</small><strong>{selected.jointFeeling}</strong></div>
+            </div>
+            <div className={`exercise-muscle-map ${selectedMuscleCredits ? '' : 'is-unmapped'}`}>
+              <span><Target size={18} /><span><strong>{selected.custom ? selected.muscleMapping ? 'Athlete-reviewed muscle dose' : 'Muscle dose unmapped' : 'Built-in muscle-dose-v1 mapping'}</strong><small>{selected.custom && selected.muscleMapping ? `Reviewed ${new Date(selected.muscleMapping.reviewedAt).toLocaleDateString()} · editable and undoable` : selected.custom ? 'Completed and planned sets receive no muscle credit until you review a mapping.' : 'Protected product heuristic · editable mappings are limited to custom movements.'}</small></span></span>
+              {selectedMuscleCredits ? <span className="exercise-muscle-map__credits"><b>Direct · {muscleLabel.get(Object.entries(selectedMuscleCredits).find(([, credit]) => credit === 1)?.[0] as MuscleId) ?? 'Unknown'}</b><small>Secondary · {Object.entries(selectedMuscleCredits).filter(([, credit]) => credit === 0.5).map(([muscle]) => muscleLabel.get(muscle as MuscleId)).join(', ') || 'None'}</small></span> : <b>No inferred credit</b>}
             </div>
             <div className="catalog-control"><span><Pencil size={17} /><span><strong>{selected.custom ? 'Edit movement identity' : 'Manage search aliases'}</strong><small>{selected.custom ? 'Name, family, equipment, and body-part metadata can change without changing this movement’s history ID.' : 'The built-in taxonomy stays protected, but you can add the names you personally use.'}</small></span></span><button className="button button--secondary" onClick={() => openCatalogEdit(selected)}>Edit catalog</button></div>
             <div className="joint-picker"><span><Heart size={17} /><strong>How this feels on your joints</strong></span><div>{(['great', 'good', 'neutral', 'irritating', 'avoid'] as const).map((feeling) => <button key={feeling} className={selected.jointFeeling === feeling ? 'selected' : ''} onClick={() => { setJointFeeling(selected.id, feeling); setSelected({ ...selected, jointFeeling: feeling }) }}>{feeling}</button>)}</div></div>
@@ -321,7 +347,10 @@ export function LibraryScreen() {
         {duplicates.length > 0 && <div className="duplicate-warning"><AlertTriangle size={18} /><div><strong>Possible existing movement{duplicates.length > 1 ? 's' : ''}</strong>{duplicates.slice(0, 3).map(({ exercise, score }) => <button key={exercise.id} onClick={() => { setAddOpen(false); setSelected(exercise) }}><span>{exercise.name}</span><small>{Math.round(score * 100)}% match · use existing history</small></button>)}</div></div>}
         {exactCreationDuplicate && <label><span className="field-label">Why is this a distinct movement?</span><textarea aria-label="Distinct movement reason" rows={3} value={customDistinction} onChange={(event) => setCustomDistinction(event.target.value)} placeholder="Example: Fixed 30-degree bench with a different grip and setup" /><small className="field-help">An exact name match can create a separate history only when you record the meaningful setup difference.</small></label>}
         <div className="form-grid"><label><span className="field-label">Movement type</span><select value={customPattern} onChange={(event) => setCustomPattern(event.target.value as MovementPattern)}>{['squat', 'hinge', 'horizontal-push', 'vertical-push', 'horizontal-pull', 'vertical-pull', 'isolation', 'carry'].map((item) => <option key={item} value={item}>{item}</option>)}</select></label><label><span className="field-label">Primary body part</span><select value={customRegion} onChange={(event) => setCustomRegion(event.target.value as BodyRegion)}>{regionFilters.filter((item) => item.id !== 'all').map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label></div>
-        <div className="modal__actions"><button className="button button--ghost" onClick={() => setAddOpen(false)}>Cancel</button><button className="button button--primary" disabled={!customName.trim() || (exactCreationDuplicate && customDistinction.trim().length < 10)} onClick={createCustom}><ShieldCheck size={17} /> {exactCreationDuplicate ? 'Create documented variation' : 'Create separate history'}</button></div>
+        <label className="toggle-row muscle-map-toggle"><span><strong>Map muscle dose now</strong><small>Optional. Your explicit choices apply to completed and planned sets. No selection is inferred from the body-part field.</small></span><input aria-label="Map custom muscle dose" type="checkbox" checked={customMappingEnabled} onChange={(event) => { setCustomMappingEnabled(event.target.checked); if (!event.target.checked) { setCustomDirectMuscle(''); setCustomSecondaryMuscles([]) } }} /></label>
+        {customMappingEnabled && <div className="muscle-map-editor"><label><span className="field-label">Direct muscle · 1.0 credit</span><select aria-label="Custom direct muscle" value={customDirectMuscle} onChange={(event) => { const direct = event.target.value as MuscleId; setCustomDirectMuscle(direct); setCustomSecondaryMuscles((current) => current.filter((muscle) => muscle !== direct)) }}><option value="">Choose one direct muscle</option>{muscleDefinitions.map((muscle) => <option key={muscle.id} value={muscle.id}>{muscle.label}</option>)}</select></label><fieldset><legend>Secondary muscles · 0.5 credit each · {customSecondaryMuscles.length}/8</legend><div className="muscle-map-options">{muscleDefinitions.filter((muscle) => muscle.id !== customDirectMuscle).map((muscle) => <label key={muscle.id}><input aria-label={`Custom secondary ${muscle.label}`} type="checkbox" checked={customSecondaryMuscles.includes(muscle.id)} disabled={!customSecondaryMuscles.includes(muscle.id) && customSecondaryMuscles.length >= 8} onChange={(event) => setCustomSecondaryMuscles((current) => event.target.checked ? [...current, muscle.id] : current.filter((item) => item !== muscle.id))} /><span>{muscle.label}</span></label>)}</div></fieldset></div>}
+        {formError && <p className="form-error" role="alert">{formError}</p>}
+        <div className="modal__actions"><button className="button button--ghost" onClick={() => setAddOpen(false)}>Cancel</button><button className="button button--primary" disabled={!customName.trim() || (exactCreationDuplicate && customDistinction.trim().length < 10) || (customMappingEnabled && !customDirectMuscle)} onClick={createCustom}><ShieldCheck size={17} /> {exactCreationDuplicate ? 'Create documented variation' : 'Create separate history'}</button></div>
       </Modal>
 
       <Modal open={qualityOpen} onClose={() => setQualityOpen(false)} title="Exercise data quality" description="Connected duplicate suggestions are grouped so several accidental copies can be reviewed in one decision. Nothing changes until you confirm." wide>
@@ -339,6 +368,7 @@ export function LibraryScreen() {
             <label className="catalog-edit-grid__wide"><span className="field-label">Equipment, separated by commas</span><input aria-label="Catalog equipment" value={catalogValues.equipment} onChange={(event) => setCatalogValues({ ...catalogValues, equipment: event.target.value })} /></label>
             <label className="catalog-edit-grid__wide"><span className="field-label">Setup or distinction note</span><textarea aria-label="Catalog movement description" rows={3} value={catalogValues.description} onChange={(event) => setCatalogValues({ ...catalogValues, description: event.target.value })} /></label>
           </div> : <div className="protected-taxonomy"><ShieldCheck size={20} /><span><strong>{catalogEdit.name} stays canonical</strong><p>Its name, family, movement type, body part, equipment, and history ID are protected. Add only the alternate names you use when searching or importing.</p></span></div>}
+          {catalogEdit.custom && <><label className="toggle-row muscle-map-toggle"><span><strong>Use an athlete-reviewed muscle mapping</strong><small>Turn this off to keep the movement visibly unmapped. Existing volume and exercise history remain unchanged.</small></span><input aria-label="Use athlete-reviewed muscle mapping" type="checkbox" checked={catalogValues.muscleMappingEnabled} onChange={(event) => setCatalogValues({ ...catalogValues, muscleMappingEnabled: event.target.checked, directMuscle: event.target.checked ? catalogValues.directMuscle : '', secondaryMuscles: event.target.checked ? catalogValues.secondaryMuscles : [] })} /></label>{catalogValues.muscleMappingEnabled && <div className="muscle-map-editor"><label><span className="field-label">Direct muscle · 1.0 credit</span><select aria-label="Catalog direct muscle" value={catalogValues.directMuscle} onChange={(event) => { const directMuscle = event.target.value as MuscleId; setCatalogValues({ ...catalogValues, directMuscle, secondaryMuscles: catalogValues.secondaryMuscles.filter((muscle) => muscle !== directMuscle) }) }}><option value="">Choose one direct muscle</option>{muscleDefinitions.map((muscle) => <option key={muscle.id} value={muscle.id}>{muscle.label}</option>)}</select></label><fieldset><legend>Secondary muscles · 0.5 credit each · {catalogValues.secondaryMuscles.length}/8</legend><div className="muscle-map-options">{muscleDefinitions.filter((muscle) => muscle.id !== catalogValues.directMuscle).map((muscle) => <label key={muscle.id}><input aria-label={`Catalog secondary ${muscle.label}`} type="checkbox" checked={catalogValues.secondaryMuscles.includes(muscle.id)} disabled={!catalogValues.secondaryMuscles.includes(muscle.id) && catalogValues.secondaryMuscles.length >= 8} onChange={(event) => setCatalogValues({ ...catalogValues, secondaryMuscles: event.target.checked ? [...catalogValues.secondaryMuscles, muscle.id] : catalogValues.secondaryMuscles.filter((item) => item !== muscle.id) })} /><span>{muscle.label}</span></label>)}</div></fieldset></div>}</>}
           <label><span className="field-label">Search aliases, separated by commas</span><input aria-label="Catalog aliases" value={catalogValues.aliases} onChange={(event) => setCatalogValues({ ...catalogValues, aliases: event.target.value })} placeholder="Example: Low incline, 30 degree bench" /></label>
           {catalogCandidates.length > 0 && <div className="duplicate-warning"><AlertTriangle size={18} /><div><strong>Check these related movements before saving</strong>{catalogCandidates.map(({ exercise, score }) => <button key={exercise.id} onClick={() => { setCatalogEdit(null); setSelected(exercise) }}><span>{exercise.name}</span><small>{Math.round(score * 100)}% match · review existing history</small></button>)}</div></div>}
           <label><span className="field-label">Reason for catalog change</span><input aria-label="Catalog edit reason" value={catalogValues.reason} onChange={(event) => setCatalogValues({ ...catalogValues, reason: event.target.value })} placeholder="Example: Added the name I use in my notebook" /></label>

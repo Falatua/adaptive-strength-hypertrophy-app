@@ -241,6 +241,20 @@ describe('versioned backup and restore', () => {
     expect(parsed.backup.data.exercises.find((exercise) => exercise.id === 'competition-bench')?.aliases).toContain('Meet Bench')
   })
 
+  it('round-trips a reviewed custom muscle mapping and rejects invalid mapping provenance', () => {
+    const current = state()
+    const custom = {
+      ...structuredClone(current.exercises[0]), id: 'custom-mapped', name: 'Mapped Custom Press', custom: true,
+      muscleMapping: { ruleVersion: 'exercise-muscle-map-v1' as const, direct: 'pectorals' as const, secondary: ['triceps' as const], source: 'athlete' as const, reviewedAt: '2026-08-10T12:00:00.000Z' }
+    }
+    current.exercises.push(custom)
+    const parsed = parseBackup(JSON.stringify(createBackup(current)))
+    expect(parsed.backup.data.exercises.at(-1)?.muscleMapping).toMatchObject({ direct: 'pectorals', secondary: ['triceps'], source: 'athlete' })
+
+    current.exercises.at(-1)!.muscleMapping!.secondary = ['pectorals']
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/invalid muscle mapping/i)
+  })
+
   it('round-trips an imported source set and rejects incomplete import provenance', () => {
     const current = state()
     const beforeHistory = structuredClone(current.history)

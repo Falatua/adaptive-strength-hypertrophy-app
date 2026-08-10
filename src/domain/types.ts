@@ -3,6 +3,7 @@ export type NavKey = 'today' | 'plan' | 'progress' | 'library' | 'you'
 export type ExerciseRole = 'primary' | 'secondary' | 'priority' | 'maintenance' | 'optional'
 export type MovementPattern = 'squat' | 'hinge' | 'horizontal-push' | 'vertical-push' | 'horizontal-pull' | 'vertical-pull' | 'isolation' | 'carry'
 export type BodyRegion = 'chest' | 'back' | 'shoulders' | 'quadriceps' | 'hamstrings' | 'glutes' | 'biceps' | 'triceps' | 'forearms' | 'calves' | 'trunk'
+export type MuscleId = 'pectorals' | 'anterior-deltoids' | 'lateral-deltoids' | 'posterior-deltoids' | 'triceps' | 'biceps' | 'forearms' | 'latissimus' | 'upper-back' | 'spinal-erectors' | 'quadriceps' | 'hamstrings' | 'gluteals' | 'adductors' | 'calves' | 'abdominals' | 'obliques'
 export type JointFeeling = 'great' | 'good' | 'neutral' | 'irritating' | 'avoid'
 export type SessionStatus = 'planned' | 'active' | 'completed' | 'partial-primary' | 'partial-no-primary' | 'deferred' | 'expired' | 'stopped'
 export type ContinuityState = 'stable' | 'interrupted' | 'returning'
@@ -37,6 +38,15 @@ export interface Exercise {
   custom?: boolean
   retired?: boolean
   mergedIntoId?: string
+  muscleMapping?: ExerciseMuscleMapping
+}
+
+export interface ExerciseMuscleMapping {
+  ruleVersion: 'exercise-muscle-map-v1'
+  direct: MuscleId
+  secondary: MuscleId[]
+  source: 'athlete'
+  reviewedAt: string
 }
 
 export interface SetPrescription {

@@ -14,10 +14,11 @@ import type {
 } from './types'
 import { derivePersonalRecords } from './history-engine'
 import { summarizeSurveyEvidence } from './survey-engine'
+import { exerciseMuscleMappingError } from './muscle-dose'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
 export const BACKUP_SCHEMA_VERSION = 10
-export const BACKUP_APP_VERSION = '0.15.0'
+export const BACKUP_APP_VERSION = '0.16.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode'> = {
   celebrationLevel: 'subtle',
@@ -183,6 +184,12 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   exercises.forEach((exercise) => {
     if (!isRecord(exercise) || typeof exercise.name !== 'string' || !Array.isArray(exercise.aliases) || !Array.isArray(exercise.equipment)) {
       errors.push('An exercise is missing required identity fields.')
+      return
+    }
+    if (exercise.muscleMapping !== undefined && exercise.custom !== true) errors.push('Only a custom exercise can store an athlete-reviewed muscle mapping.')
+    if (exercise.muscleMapping !== undefined) {
+      const mappingError = exerciseMuscleMappingError(exercise.muscleMapping)
+      if (mappingError) errors.push(`An exercise has an invalid muscle mapping: ${mappingError}`)
     }
   })
 
@@ -263,6 +270,15 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
     if (!isRecord(event) || !['set-corrected', 'set-deleted', 'exercise-merged', 'exercise-edited', 'history-imported'].includes(String(event.type)) || !isValidDate(event.createdAt) || typeof event.reason !== 'string' || !Array.isArray(event.affectedSetIds) || !isRecord(event.before) || !isRecord(event.after) || !Array.isArray(event.recordsBefore) || !Array.isArray(event.recordsAfter) || !isFiniteNonNegative(event.volumeBefore) || !isFiniteNonNegative(event.volumeAfter)) errors.push('A history change is invalid.')
     if (isRecord(event) && event.undoneAt !== undefined && !isValidDate(event.undoneAt)) errors.push('A history change has an invalid undo date.')
     if (isRecord(event) && isRecord(event.before) && isRecord(event.after) && Array.isArray(event.before.history) && Array.isArray(event.after.history) && (stableStringify(event.recordsBefore) !== stableStringify(derivePersonalRecords(event.before.history as CompletedSetRecord[])) || stableStringify(event.recordsAfter) !== stableStringify(derivePersonalRecords(event.after.history as CompletedSetRecord[])))) errors.push('A history change record projection does not match its source snapshots.')
+    if (isRecord(event) && isRecord(event.before) && isRecord(event.after)) {
+      ;[event.before.exercises, event.after.exercises].forEach((snapshotExercises) => {
+        if (!Array.isArray(snapshotExercises)) return
+        snapshotExercises.forEach((exercise) => {
+          if (!isRecord(exercise) || exercise.muscleMapping === undefined) return
+          if (exercise.custom !== true || exerciseMuscleMappingError(exercise.muscleMapping)) errors.push('A history change contains an invalid exercise muscle mapping snapshot.')
+        })
+      })
+    }
   })
 
   cycleReviews.forEach((review) => {

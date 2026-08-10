@@ -45,6 +45,9 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Goal-relative priority attention with represented, outside-window, and no-history states. The app does not label neglect without a versioned planned-dose model.
 - Versioned dose-v1 plan comparison using dated stored sessions, intended set count, known planned volume, explicit unknown-load sets, linked completed source sets, and separately preserved completed history with no stored plan.
 - Primary-region plan status for below plan, within plan, above plan, unplanned completed, and no dose. These are execution states, not neglect labels or catch-up-volume instructions.
+- Explicit muscle-dose-v1 mappings for every built-in movement assign 1.0 direct and 0.5 secondary set credit while giving stabilizers no credit. Individual muscle rows expose contributing exercises and exact completed source-set identifiers, while upper, lower, arms, trunk, and whole-body parents conserve each source set at its highest child credit.
+- Optional athlete-reviewed custom-movement mappings assign one direct muscle and up to eight distinct secondary muscles. They are never inferred from a body-part label, remain visibly unmapped when omitted, retain review source, timestamp, and rule version, and participate in the reason-required catalog ledger and one-step undo.
+- Muscle-plan-dose-v1 compares intended set credit with only completed source sets linked to those stored sessions. Composite plan identifiers preserve repeated raw set IDs across exercise slots, unmapped plan gaps remain visible, and completed history without a stored plan stays outside compliance.
 - Exact all-time record definitions for absolute load, repetitions at load, load for repetitions, exact set scheme, Epley estimated strength for one through twelve repetitions, exact-movement session volume, and workout session volume.
 - Deterministic achievement replay for personal records, load and repetition micro wins, quality wins, baselines, returns, and consistency, with completed source-set provenance.
 - Opportunity prompts calculated only from prescribed targets. Athlete-entered actuals can never be reclassified as an app-prescribed record attempt.
@@ -79,6 +82,8 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Confirm a planned hold remains a hold after an athlete edits actual load, then log, provisionally recognize, save, and replay a source-backed exact-movement load record.
 - Turn quiet mode on, reload, and confirm the preference persists without changing training or record calculations.
 - Verify the achievement and settings surfaces on desktop and phone with no browser errors or horizontal overflow.
+- Review a custom movement's direct and secondary muscle mapping, confirm the replay notice and audit description, inspect its explicit mapping in the movement detail, and undo the review without changing completed history or the stable canonical ID.
+- Reconcile a stored fifteen-set plan to fifteen mapped intended sets, preserve repeated raw planned-set IDs as distinct exercise-slot evidence, and keep all unlinked completed work separate from linked muscle-plan completion.
 
 ## Deliberately Deferred
 
@@ -99,3 +104,4 @@ The first implementation is governed by the complete R-001 through R-295 registe
 7. The deterministic engine must function offline and without an AI provider.
 8. Changes to rules, calculations, exercise identity, or evidence semantics must remain versionable and testable.
 9. Deferred feedback can enrich completed evidence but cannot change whether the workout counted or block another workout.
+10. Muscle-dose mappings are explicit, versioned heuristics. They are not tonnage, measured stimulus, neglect diagnoses, or automatic catch-up instructions.

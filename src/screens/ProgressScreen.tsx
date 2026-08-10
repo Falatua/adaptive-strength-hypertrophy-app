@@ -19,8 +19,8 @@ import { useAppStore } from '../store/useAppStore'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { StatCard } from '../components/StatCard'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
-import { filterMuscleDose, muscleDoseFor, type MuscleDoseLens, type MuscleId } from '../domain/muscle-dose'
-import type { RecordCategory } from '../domain/types'
+import { filterMuscleDose, filterPlannedMuscleDose, muscleDoseFor, plannedMuscleDoseFor, type MuscleDoseLens } from '../domain/muscle-dose'
+import type { MuscleId, RecordCategory } from '../domain/types'
 
 export function ProgressScreen() {
   const { history, records, athlete, settings, sessions, exercises: exerciseCatalog } = useAppStore()
@@ -57,8 +57,10 @@ export function ProgressScreen() {
   }).filter((opportunity) => opportunity.eligible).slice(0, 3) ?? []
   const priorityCoverage = useMemo(() => priorityAttentionFor({ selectedHistory: summary.history, allHistory: history, priorityRegions: athlete.priorityRegions }), [athlete.priorityRegions, history, summary.history])
   const plannedDose = useMemo(() => plannedVsCompletedDoseFor({ sessions, history, exercises: exerciseCatalog, range, focusRegions: athlete.priorityRegions }), [athlete.priorityRegions, exerciseCatalog, history, range, sessions])
-  const muscleDose = useMemo(() => muscleDoseFor(summary.history), [summary.history])
+  const muscleDose = useMemo(() => muscleDoseFor(summary.history, exerciseCatalog), [exerciseCatalog, summary.history])
   const visibleMuscles = useMemo(() => filterMuscleDose(muscleDose.muscles, muscleLens), [muscleDose.muscles, muscleLens])
+  const plannedMuscleDose = useMemo(() => plannedMuscleDoseFor({ sessions, history, exercises: exerciseCatalog, range }), [exerciseCatalog, history, range, sessions])
+  const visiblePlannedMuscles = useMemo(() => filterPlannedMuscleDose(plannedMuscleDose.points, muscleLens).filter((point) => point.plannedTotal > 0 || point.completedTotal > 0), [muscleLens, plannedMuscleDose.points])
   const muscleDetail = selectedMuscle ? visibleMuscles.find((point) => point.muscle === selectedMuscle) ?? null : null
   const maxMuscleDose = Math.max(1, ...visibleMuscles.map((point) => point.totalDose))
   const trend = summary.comparisonPercent
@@ -155,6 +157,25 @@ export function ProgressScreen() {
         </div> : <div className="compact-empty"><Layers3 size={24} /><strong>No mapped muscle dose in this lens</strong><p>Choose another area or complete a built-in movement. Unknown mappings remain unknown.</p></div>}
         {muscleDose.unmappedSourceSetCount > 0 && <div className="muscle-unmapped" role="note"><strong>{muscleDose.unmappedSourceSetCount} unmapped source {muscleDose.unmappedSourceSetCount === 1 ? 'set' : 'sets'}</strong><span>{muscleDose.unmappedExerciseNames.join(', ')}. These sets remain in completed volume but receive no inferred muscle credit.</span></div>}
         <p className="chart-note">Muscle totals are non-additive across rows: one source set can credit several muscles. Direct means 1.0, secondary means 0.5, stabilizers receive no credit, and parent areas conserve each source set at its highest child credit. This is an unadjusted programming heuristic, not measured activation, recovery cost, or exact hypertrophy stimulus.</p>
+      </section>
+
+      <section className="panel muscle-plan-panel">
+        <div className="panel__header"><div><p className="eyebrow">Planned muscle dose · {plannedMuscleDose.ruleVersion}</p><h3>Intended set credit versus linked completion</h3></div><Target size={20} /></div>
+        <div className="muscle-dose-summary">
+          <div><small>Stored plans in window</small><strong>{plannedMuscleDose.plannedSessionIds.length}</strong><span>{plannedMuscleDose.plannedSourceSetCount} intended source sets</span></div>
+          <div><small>Mapped planned sets</small><strong>{plannedMuscleDose.plannedMappedSetCount}</strong><span>{plannedMuscleDose.plannedUnmappedSetCount} planned sets unmapped</span></div>
+          <div><small>Linked mapped completion</small><strong>{plannedMuscleDose.linkedCompletedMappedSetCount}</strong><span>{plannedMuscleDose.linkedCompletedSetCount} total linked source sets</span></div>
+          <div><small>Completed without stored plan</small><strong>{plannedMuscleDose.unlinkedCompletedSetCount}</strong><span>Preserved outside compliance</span></div>
+        </div>
+        {visiblePlannedMuscles.length ? <div className="muscle-plan-list" aria-label={`${muscleLens} planned muscle dose`}>
+          {visiblePlannedMuscles.map((point) => <div key={point.muscle}>
+            <span><strong>{point.label}</strong><small>{point.plannedDirect.toFixed(1)} direct + {point.plannedSecondary.toFixed(1)} secondary planned</small></span>
+            <span className="muscle-plan-meter"><span><b>{point.completedTotal.toFixed(1)}</b> linked completed / <b>{point.plannedTotal.toFixed(1)}</b> planned set-equivalents</span><i aria-hidden="true"><b className="muscle-dose-bar--direct" style={{ width: `${point.plannedTotal ? Math.min(100, point.completedDirect / point.plannedTotal * 100) : point.completedDirect ? 100 : 0}%` }} /><b className="muscle-dose-bar--fractional" style={{ width: `${point.plannedTotal ? Math.min(Math.max(0, 100 - point.completedDirect / point.plannedTotal * 100), point.completedSecondary / point.plannedTotal * 100) : 0}%` }} /></i><small>{point.completedDirect.toFixed(1)} direct + {point.completedSecondary.toFixed(1)} secondary completed · {point.plannedSetIds.length} planned credit links · {point.completedSetIds.length} completed credit links</small></span>
+            <span className={`dose-status dose-status--${point.status}`}><b>{point.completionRate === null ? 'No plan' : `${Math.round(point.completionRate * 100)}%`}</b><small>{point.status.replaceAll('-', ' ')}</small></span>
+          </div>)}
+        </div> : <div className="compact-empty"><Target size={24} /><strong>No planned or linked muscle dose in this lens</strong><p>Choose another body-area lens or a range containing stored sessions.</p></div>}
+        {(plannedMuscleDose.plannedUnmappedSetCount > 0 || plannedMuscleDose.linkedCompletedUnmappedSetCount > 0) && <div className="muscle-unmapped" role="note"><strong>Mapping gap</strong><span>{plannedMuscleDose.plannedUnmappedSetCount} planned and {plannedMuscleDose.linkedCompletedUnmappedSetCount} linked completed source {plannedMuscleDose.plannedUnmappedSetCount + plannedMuscleDose.linkedCompletedUnmappedSetCount === 1 ? 'set is' : 'sets are'} excluded from muscle credit.{plannedMuscleDose.plannedUnmappedExerciseNames.length ? ` Review: ${plannedMuscleDose.plannedUnmappedExerciseNames.join(', ')}.` : ''}</span></div>}
+        <p className="chart-note">This comparison uses stored planned sets and completed source sets linked to those exact sessions. Ratios compare versioned muscle set-equivalents, not volume load or measured stimulus. Unlinked history remains valid progress evidence, and below-plan dose never creates neglect labels or catch-up work.</p>
       </section>
 
       <div className="insight-grid">

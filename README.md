@@ -1,4 +1,4 @@
-# ForgePath Private Alpha 0.15.0
+# ForgePath Private Alpha 0.16.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
@@ -31,7 +31,7 @@ npm run test:e2e
 
 ## Current verification
 
-- 89 deterministic domain tests
+- 93 deterministic domain tests
 - twenty-two desktop and phone browser journeys for source-backed records, validated CSV history import, in-workout achievement feedback, quiet controls, explainable substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, persistence, console integrity, and horizontal containment
 - lint clean
 - production PWA build clean
@@ -64,5 +64,9 @@ npm run test:e2e
 - region status can report below plan, within plan, above plan, unplanned completed, or no dose, but one below-plan window is never called neglect or converted into catch-up volume
 - muscle-dose-v1 gives every built-in exercise an explicit conservative mapping, separates 1.0 direct from 0.5 secondary set credit, gives stabilizers no credit, and leaves custom or unknown movements visibly unmapped
 - individual-muscle rows expose exact exercise and source-set provenance; upper, lower, arms, trunk, and whole-body parents conserve each source set at its highest child credit while cross-muscle totals remain explicitly non-additive
+- custom movements can receive an optional athlete-reviewed mapping with one direct muscle and up to eight distinct secondary muscles; the review source, rule version, and timestamp survive backup, catalog edits, audit history, and one-step undo
+- mapping choices are never inferred from a custom movement's body-part label, and built-in mappings remain protected product rules
+- muscle-plan-dose-v1 compares mapped intended set credit with completed source sets linked to the exact stored session; repeated raw planned-set IDs remain distinct by exercise slot, unmapped plan gaps stay visible, and unlinked history remains separate
+- planned muscle status is descriptive evidence only: it never labels a muscle neglected, fabricates stimulus from tonnage, or prescribes catch-up work
 
 Read [docs/BUILD_REFERENCE.md](docs/BUILD_REFERENCE.md) before changing product behavior.
