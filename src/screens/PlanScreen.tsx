@@ -1,43 +1,145 @@
-import { useState } from 'react'
-import { CalendarDays, Check, ChevronRight, CircleDashed, Clock3, Flag, Layers3, MoveRight, Pin, RefreshCcw, Shield, Target } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import {
+  AlertCircle,
+  CalendarDays,
+  Check,
+  ChevronRight,
+  CircleDashed,
+  Clock3,
+  Dumbbell,
+  Edit3,
+  Flag,
+  History,
+  Layers3,
+  MoveRight,
+  Pin,
+  RefreshCcw,
+  Shield,
+  Sparkles,
+  Target
+} from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
+import { buildMesocyclePreview, draftFromPlan } from '../domain/mesocycle-engine'
+import type { BodyRegion, MesocycleDraft } from '../domain/types'
+
+const regions: BodyRegion[] = ['chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']
+
+const readable = (value: string) => value.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 
 export function PlanScreen() {
-  const { sessions, exercises, athlete, startSession, updateAthlete, setNotice } = useAppStore()
-  const [goalOpen, setGoalOpen] = useState(false)
-  const [goal, setGoal] = useState(athlete.goal)
-  const completed = sessions.filter((session) => session.status === 'completed').length
+  const {
+    sessions, exercises, athlete, history, mesocycles, activeMesocycleId, activeSessionId,
+    startSession, applyMesocycleRevision, setNotice
+  } = useAppStore()
+  const activePlan = mesocycles.find((plan) => plan.id === activeMesocycleId)
+  const nextVersion = Math.max(0, ...mesocycles.map((plan) => plan.version)) + 1
+  const blankDraft = (): MesocycleDraft => ({
+    title: 'Adaptive Powerbuilding Block',
+    objective: athlete.goal,
+    dominantAdaptation: athlete.continuity === 'returning' ? 'reacclimation' : 'powerbuilding',
+    revisionReason: '',
+    entryCriteria: 'Current athlete profile, available equipment, recent continuity, and usable training history reviewed.',
+    progressionModel: 'Progress load first, then repetitions, then a working set only when recovery and continuity support more dose.',
+    targetMicrocycles: 4,
+    minimumProductiveExposures: Math.max(6, athlete.strengthAnchors.length * 3),
+    successCriteria: 'Complete productive exposure rounds with stable technique, manageable pain, and recoverable fatigue.',
+    exitPlan: 'Review performance and recovery, then continue, recover, pivot, or enter a more specific phase.',
+    weeklyOpportunities: athlete.weeklyOpportunities,
+    defaultMinutes: athlete.defaultMinutes,
+    strengthAnchors: [...athlete.strengthAnchors],
+    priorityRegions: [...athlete.priorityRegions],
+    maintenanceRegions: ['hamstrings', 'shoulders', 'biceps']
+  })
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [draft, setDraft] = useState<MesocycleDraft>(() => activePlan ? draftFromPlan(activePlan) : blankDraft())
+  const [editorError, setEditorError] = useState<string | null>(null)
+
+  const openEditor = () => {
+    setDraft(activePlan ? draftFromPlan(activePlan) : blankDraft())
+    setEditorError(null)
+    setEditorOpen(true)
+  }
+
+  const preview = useMemo(() => buildMesocyclePreview(draft, {
+    exercises,
+    currentSessions: sessions,
+    history,
+    planId: 'preview',
+    planVersion: nextVersion
+  }), [draft, exercises, sessions, history, nextVersion])
+
+  const planSessions = activePlan
+    ? sessions.filter((session) => session.mesocycleId === activePlan.id || activePlan.sessionIds.includes(session.id))
+    : sessions
+  const completed = planSessions.filter((session) => ['completed', 'partial-primary'].includes(session.status)).length
+  const required = Math.max(1, activePlan?.sessionIds.length ?? planSessions.length)
+  const activeAnchors = (activePlan?.strengthAnchors ?? athlete.strengthAnchors)
+    .map((id) => exercises.find((exercise) => exercise.id === id)?.name)
+    .filter(Boolean)
+
+  const updateAnchor = (slot: number, exerciseId: string) => setDraft((current) => {
+    const anchors = [...current.strengthAnchors]
+    anchors[slot] = exerciseId
+    return { ...current, strengthAnchors: [...new Set(anchors.filter(Boolean))] }
+  })
+
+  const toggleRegion = (field: 'priorityRegions' | 'maintenanceRegions', region: BodyRegion) => setDraft((current) => {
+    const selected = current[field]
+    if (selected.includes(region)) return { ...current, [field]: selected.filter((item) => item !== region) }
+    if (selected.length >= 3) return current
+    const otherField = field === 'priorityRegions' ? 'maintenanceRegions' : 'priorityRegions'
+    return { ...current, [field]: [...selected, region], [otherField]: current[otherField].filter((item) => item !== region) }
+  })
+
+  const saveRevision = () => {
+    const result = applyMesocycleRevision(draft)
+    if (!result.ok) {
+      setEditorError(result.error ?? 'The plan could not be revised.')
+      return
+    }
+    setEditorOpen(false)
+  }
+
+  const anchorGroups = [
+    { label: 'Squat anchor', options: exercises.filter((exercise) => exercise.pattern === 'squat') },
+    { label: 'Press anchor', options: exercises.filter((exercise) => exercise.pattern === 'horizontal-push' || exercise.pattern === 'vertical-push') },
+    { label: 'Hinge anchor', options: exercises.filter((exercise) => exercise.pattern === 'hinge') }
+  ]
 
   return (
     <div className="screen">
       <header className="screen-header">
         <div><p className="eyebrow">Exposure-based planning</p><h1>The plan bends. The goal stays visible.</h1><p>Required training roles complete the microcycle. Weekdays are planning tools, not progression authority.</p></div>
-        <button className="button button--secondary" onClick={() => setGoalOpen(true)}><Target size={17} /> Change goal</button>
+        <div className="header-actions">
+          <button className="button button--secondary" onClick={() => setHistoryOpen(true)}><History size={17} /> Versions</button>
+          <button className="button button--primary" onClick={openEditor}><Edit3 size={17} /> Edit mesocycle</button>
+        </div>
       </header>
 
       <section className="cycle-hero">
         <div className="cycle-hero__copy">
-          <span className="status-chip status-chip--orange">Microcycle extended</span>
-          <p className="eyebrow">Powerbuilding foundation · Cycle 01</p>
-          <h2>Restore rhythm. Protect all three anchors.</h2>
-          <p>Bench, squat, and sumo each need one qualified exposure. Accessory work is allocated from current muscle priorities and available time.</p>
-          <div className="cycle-progress"><span><b style={{ width: `${Math.max(8, (completed / Math.max(1, sessions.length)) * 100)}%` }} /></span><small>{completed} of {sessions.length} required roles completed</small></div>
+          <span className="status-chip status-chip--orange">{completed < required ? 'Exposure cycle active' : 'Ready for review'}</span>
+          <p className="eyebrow">{activePlan ? `${readable(activePlan.dominantAdaptation)} · Plan v${activePlan.version}` : 'Legacy plan · Create first version'}</p>
+          <h2>{activePlan?.title ?? 'Protect the next useful exposure.'}</h2>
+          <p>{activePlan?.objective ?? athlete.goal}</p>
+          <div className="cycle-progress"><span><b style={{ width: `${Math.max(8, (completed / required) * 100)}%` }} /></span><small>{completed} of {required} required roles completed in this exposure round</small></div>
         </div>
         <div className="cycle-map" aria-label="Training cycle map">
           <div className="cycle-node cycle-node--done"><Check size={18} /><span>Entry<small>Profile built</small></span></div>
           <MoveRight />
           <div className="cycle-node cycle-node--active"><CircleDashed size={18} /><span>Build<small>Active now</small></span></div>
           <MoveRight />
-          <div className="cycle-node"><Layers3 size={18} /><span>Strength<small>Next phase</small></span></div>
+          <div className="cycle-node"><Layers3 size={18} /><span>Review<small>Criteria based</small></span></div>
           <MoveRight />
-          <div className="cycle-node"><Flag size={18} /><span>Review<small>Criteria based</small></span></div>
+          <div className="cycle-node"><Flag size={18} /><span>Next<small>Continue or pivot</small></span></div>
         </div>
       </section>
 
       <div className="plan-layout">
         <section className="panel panel--flush">
-          <div className="panel__header panel__header--padded"><div><p className="eyebrow">Rolling priority queue</p><h3>Next sessions</h3></div><span>{athlete.weeklyOpportunities} opportunities / week</span></div>
+          <div className="panel__header panel__header--padded"><div><p className="eyebrow">Rolling priority queue</p><h3>Next sessions</h3></div><span>{activePlan?.weeklyOpportunities ?? athlete.weeklyOpportunities} opportunities / week</span></div>
           <div className="queue-list">
             {sessions.map((session, index) => {
               const primary = session.exercises.find((exercise) => exercise.role === 'primary')
@@ -52,7 +154,7 @@ export function PlanScreen() {
                     <div className="queue-meta"><span><Shield size={14} /> {exercise?.name}</span><span><Clock3 size={14} /> {session.durationMinutes} min</span><span><Layers3 size={14} /> {session.exercises.length} movements</span></div>
                   </div>
                   <div className="queue-actions">
-                    {session.status !== 'completed' && <button className="button button--small button--secondary" onClick={() => startSession(session.id)}>Start</button>}
+                    {(session.status === 'planned' || session.status === 'deferred') && <button className="button button--small button--secondary" onClick={() => startSession(session.id)}>Start</button>}
                     <button className="icon-button" onClick={() => setNotice(`${exercise?.name} pinned as a protected next priority.`)} aria-label={`Pin ${session.title}`}><Pin size={17} /></button>
                   </div>
                 </article>
@@ -65,28 +167,68 @@ export function PlanScreen() {
           <section className="panel">
             <div className="panel__header"><div><p className="eyebrow">Dual clocks</p><h3>Calendar vs. exposure</h3></div><CalendarDays size={19} /></div>
             <div className="clock-comparison">
-              <div><span>Calendar clock</span><strong>Week 2</strong><small>Planning and reporting</small></div>
-              <div><span>Exposure clock</span><strong>1 / 3</strong><small>Progression authority</small></div>
+              <div><span>Calendar estimate</span><strong>{activePlan?.targetMicrocycles ?? 4} rounds</strong><small>Planning and reporting</small></div>
+              <div><span>Exposure clock</span><strong>{completed} / {required}</strong><small>Progression authority</small></div>
             </div>
             <p className="callout-copy">A passed Wednesday does not become a completed bench exposure. Only completed qualified work advances the second clock.</p>
           </section>
           <section className="panel">
             <div className="panel__header"><div><p className="eyebrow">Protected qualities</p><h3>Current contract</h3></div><Target size={19} /></div>
             <ul className="priority-list">
-              <li><span>Develop</span><strong>Squat, bench, sumo strength</strong></li>
-              <li><span>Develop</span><strong>Chest, back, triceps size</strong></li>
-              <li><span>Maintain</span><strong>Hamstrings, shoulders, arms</strong></li>
-              <li><span>Constraint</span><strong>Irregular weekly schedule</strong></li>
+              <li><span>Anchors</span><strong>{activeAnchors.join(', ') || 'Choose anchors'}</strong></li>
+              <li><span>Develop</span><strong>{(activePlan?.priorityRegions ?? athlete.priorityRegions).map(readable).join(', ')}</strong></li>
+              <li><span>Maintain</span><strong>{(activePlan?.maintenanceRegions ?? []).map(readable).join(', ') || 'Set in next plan version'}</strong></li>
+              <li><span>Constraint</span><strong>{activePlan?.defaultMinutes ?? athlete.defaultMinutes} minutes, irregular schedule</strong></li>
             </ul>
           </section>
-          <button className="full-row-button full-row-button--accent" onClick={() => setNotice('The week was rebuilt from the current exposure queue.')}><RefreshCcw size={17} /> Rebuild my week <ChevronRight size={18} /></button>
+          <button className="full-row-button full-row-button--accent" onClick={openEditor}><RefreshCcw size={17} /> Rebuild from a revision <ChevronRight size={18} /></button>
         </aside>
       </div>
 
-      <Modal open={goalOpen} onClose={() => setGoalOpen(false)} title="Version the training goal" description="Changing direction creates a new goal version. Prior cycles and records remain intact.">
-        <label className="field-label" htmlFor="goal">Current priority</label>
-        <textarea id="goal" value={goal} onChange={(event) => setGoal(event.target.value)} />
-        <div className="modal__actions"><button className="button button--ghost" onClick={() => setGoalOpen(false)}>Cancel</button><button className="button button--primary" onClick={() => { updateAthlete({ goal }); setGoalOpen(false); setNotice('Goal version updated. Existing history was preserved.') }}>Save new goal version</button></div>
+      <Modal open={editorOpen} onClose={() => setEditorOpen(false)} title={`Preview mesocycle version ${nextVersion}`} description="Adjust the training contract, inspect the generated exposure queue, then apply it. Completed work never changes." wide>
+        <div className="plan-editor">
+          <div className="plan-editor__form">
+            {activeSessionId && <div className="plan-editor__warning"><AlertCircle size={18} /><span><strong>Revision paused</strong>Finish or leave the active workout before applying a new plan.</span></div>}
+            <div className="form-grid">
+              <label><span className="field-label">Plan title</span><input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
+              <label><span className="field-label">Dominant adaptation</span><select value={draft.dominantAdaptation} onChange={(event) => setDraft({ ...draft, dominantAdaptation: event.target.value as MesocycleDraft['dominantAdaptation'] })}><option value="powerbuilding">Powerbuilding</option><option value="strength">Strength</option><option value="hypertrophy">Hypertrophy</option><option value="reacclimation">Reacclimation</option></select></label>
+            </div>
+            <label><span className="field-label">Objective</span><textarea value={draft.objective} onChange={(event) => setDraft({ ...draft, objective: event.target.value })} /></label>
+            <div className="plan-editor__numbers">
+              <label><span className="field-label">Opportunities / week</span><input type="number" min="2" max="5" value={draft.weeklyOpportunities} onChange={(event) => setDraft({ ...draft, weeklyOpportunities: Math.min(5, Math.max(2, Number(event.target.value))) })} /></label>
+              <label><span className="field-label">Minutes / session</span><select value={draft.defaultMinutes} onChange={(event) => setDraft({ ...draft, defaultMinutes: Number(event.target.value) })}>{[30, 45, 60, 75, 90].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}</select></label>
+              <label><span className="field-label">Target exposure rounds</span><input type="number" min="3" max="8" value={draft.targetMicrocycles} onChange={(event) => setDraft({ ...draft, targetMicrocycles: Math.min(8, Math.max(3, Number(event.target.value))) })} /></label>
+            </div>
+
+            <fieldset className="plan-fieldset"><legend>Protected strength anchors</legend><div className="anchor-selects">{anchorGroups.map((group, index) => <label key={group.label}><span>{group.label}</span><select value={draft.strengthAnchors[index] ?? ''} onChange={(event) => updateAnchor(index, event.target.value)}>{group.options.map((exercise) => <option value={exercise.id} key={exercise.id}>{exercise.name}</option>)}</select></label>)}</div></fieldset>
+
+            <fieldset className="plan-fieldset"><legend>Priority regions <small>Choose up to 3</small></legend><div className="region-chips">{regions.map((region) => <button type="button" key={region} aria-pressed={draft.priorityRegions.includes(region)} onClick={() => toggleRegion('priorityRegions', region)}>{readable(region)}</button>)}</div></fieldset>
+            <fieldset className="plan-fieldset"><legend>Maintenance regions <small>Choose up to 3</small></legend><div className="region-chips region-chips--maintenance">{regions.map((region) => <button type="button" key={region} aria-pressed={draft.maintenanceRegions.includes(region)} onClick={() => toggleRegion('maintenanceRegions', region)}>{readable(region)}</button>)}</div></fieldset>
+
+            <details className="criteria-details"><summary>Entry, success, and exit criteria</summary><label><span className="field-label">Entry criteria</span><textarea value={draft.entryCriteria} onChange={(event) => setDraft({ ...draft, entryCriteria: event.target.value })} /></label><label><span className="field-label">Success criteria</span><textarea value={draft.successCriteria} onChange={(event) => setDraft({ ...draft, successCriteria: event.target.value })} /></label><label><span className="field-label">Recovery or exit plan</span><textarea value={draft.exitPlan} onChange={(event) => setDraft({ ...draft, exitPlan: event.target.value })} /></label></details>
+            <label><span className="field-label">Why are you changing the plan?</span><textarea value={draft.revisionReason} placeholder="Example: My schedule is stable again and I can protect three 60-minute sessions." onChange={(event) => setDraft({ ...draft, revisionReason: event.target.value })} /></label>
+            {editorError && <div className="import-error" role="alert"><AlertCircle size={17} /><span><strong>Plan not changed</strong>{editorError}</span></div>}
+          </div>
+
+          <aside className="plan-preview">
+            <div className="plan-preview__header"><div><p className="eyebrow">Deterministic preview</p><h3>Next exposure queue</h3></div><Sparkles size={19} /></div>
+            <div className="plan-preview__stats"><div><span>Required sessions</span><strong>{preview.requiredExposureCount}</strong></div><div><span>Projected sets</span><strong>{preview.projectedSets}</strong></div><div><span>Total minutes</span><strong>{preview.projectedMinutes}</strong></div></div>
+            <div className="preview-session-list">{preview.sessions.map((session, index) => <article key={session.id}><span>{String(index + 1).padStart(2, '0')}</span><div><strong>{session.title}</strong><small>{session.durationMinutes} min · {session.exercises.length} movements</small><ul>{session.exercises.map((planned) => <li key={planned.id}><b>{planned.role}</b>{exercises.find((exercise) => exercise.id === planned.exerciseId)?.name} · {planned.sets.length} sets</li>)}</ul></div></article>)}</div>
+            <div className="preview-rationale"><strong>Why this queue</strong>{preview.explanations.map((explanation) => <p key={explanation}><Check size={14} />{explanation}</p>)}</div>
+            <p className="modal-note">Projected sets are planning estimates, not completed volume. Progress dashboards remain sourced only from logged sets.</p>
+          </aside>
+        </div>
+        <div className="modal__actions"><button className="button button--ghost" onClick={() => setEditorOpen(false)}>Cancel</button><button className="button button--primary" disabled={Boolean(activeSessionId) || !draft.revisionReason.trim()} onClick={saveRevision}>Apply version {nextVersion}</button></div>
+      </Modal>
+
+      <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title="Mesocycle revision history" description="Each version keeps its original objective, criteria, timing assumptions, and reason for change." wide>
+        <div className="revision-list">
+          {[...mesocycles].sort((a, b) => b.version - a.version).map((plan) => <article key={plan.id} className={plan.status === 'active' ? 'active' : ''}>
+            <div className="revision-list__version"><span>v{plan.version}</span><small>{plan.status}</small></div>
+            <div><div className="revision-list__title"><h3>{plan.title}</h3><span>{new Date(plan.effectiveAt).toLocaleDateString()}</span></div><p>{plan.objective}</p><div className="revision-list__meta"><span><Dumbbell size={14} /> {readable(plan.dominantAdaptation)}</span><span><CalendarDays size={14} /> {plan.targetMicrocycles} target rounds</span><span><Clock3 size={14} /> {plan.defaultMinutes} min</span></div><blockquote><strong>Why changed</strong>{plan.revisionReason}</blockquote></div>
+          </article>)}
+          {mesocycles.length === 0 && <div className="empty-plan-history"><History size={26} /><strong>No versioned mesocycle yet</strong><p>Your current sessions are intact. Create the first plan version to begin the revision history.</p></div>}
+        </div>
       </Modal>
     </div>
   )

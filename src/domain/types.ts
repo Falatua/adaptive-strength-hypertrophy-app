@@ -9,6 +9,8 @@ export type ContinuityState = 'stable' | 'interrupted' | 'returning'
 export type ReadinessOutcome = 'normal' | 'confirm' | 'protect' | 'reacclimate' | 'pain-aware'
 export type ProgressionAction = 'load' | 'reps' | 'sets' | 'hold' | 'reduce' | 'reacclimate'
 export type SurveyMode = 'full' | 'quick' | 'minimal' | 'off' | 'ask'
+export type MesocycleAdaptation = 'powerbuilding' | 'strength' | 'hypertrophy' | 'reacclimation'
+export type MesocycleStatus = 'draft' | 'active' | 'superseded' | 'completed' | 'abandoned'
 
 export interface Exercise {
   id: string
@@ -63,6 +65,51 @@ export interface TrainingSession {
   completedAt?: string
   sessionRpe?: number
   note?: string
+  mesocycleId?: string
+  planVersion?: number
+}
+
+export interface MesocyclePlan {
+  id: string
+  version: number
+  title: string
+  objective: string
+  dominantAdaptation: MesocycleAdaptation
+  status: MesocycleStatus
+  createdAt: string
+  effectiveAt: string
+  supersedesId: string | null
+  revisionReason: string
+  entryCriteria: string
+  progressionModel: string
+  targetMicrocycles: number
+  minimumProductiveExposures: number
+  successCriteria: string
+  exitPlan: string
+  weeklyOpportunities: number
+  defaultMinutes: number
+  strengthAnchors: string[]
+  priorityRegions: BodyRegion[]
+  maintenanceRegions: BodyRegion[]
+  sessionIds: string[]
+}
+
+export interface MesocycleDraft {
+  title: string
+  objective: string
+  dominantAdaptation: MesocycleAdaptation
+  revisionReason: string
+  entryCriteria: string
+  progressionModel: string
+  targetMicrocycles: number
+  minimumProductiveExposures: number
+  successCriteria: string
+  exitPlan: string
+  weeklyOpportunities: number
+  defaultMinutes: number
+  strengthAnchors: string[]
+  priorityRegions: BodyRegion[]
+  maintenanceRegions: BodyRegion[]
 }
 
 export interface CompletedSetRecord {

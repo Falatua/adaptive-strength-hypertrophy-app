@@ -1,7 +1,7 @@
 import { subDays } from 'date-fns'
 import { nanoid } from 'nanoid'
 import { makeSets } from './training-engine'
-import type { AthleteProfile, CompletedSetRecord, Exercise, PersonalRecord, TrainingSession } from './types'
+import type { AthleteProfile, CompletedSetRecord, Exercise, MesocyclePlan, PersonalRecord, TrainingSession } from './types'
 
 export const exercises: Exercise[] = [
   {
@@ -118,6 +118,31 @@ export const exercises: Exercise[] = [
 const today = new Date()
 const iso = (date: Date) => date.toISOString()
 
+export const mesocycles: MesocyclePlan[] = [{
+  id: 'mesocycle-powerbuilding-1',
+  version: 1,
+  title: 'Powerbuilding Foundation',
+  objective: 'Restore training rhythm while progressing squat, bench, and sumo strength and growing chest, back, and triceps.',
+  dominantAdaptation: 'powerbuilding',
+  status: 'active',
+  createdAt: iso(subDays(today, 3)),
+  effectiveAt: iso(subDays(today, 3)),
+  supersedesId: null,
+  revisionReason: 'Initial plan created from the athlete profile and recent training continuity.',
+  entryCriteria: 'Experienced athlete with usable strength history and interrupted recent continuity.',
+  progressionModel: 'Progress load first, then repetitions, then a working set only when recovery and continuity support more dose.',
+  targetMicrocycles: 4,
+  minimumProductiveExposures: 9,
+  successCriteria: 'Complete at least three productive exposure rounds with stable technique, manageable pain, and recoverable fatigue.',
+  exitPlan: 'Review anchor performance and recovery. Continue, recover, pivot, or enter a more specific strength phase.',
+  weeklyOpportunities: 3,
+  defaultMinutes: 60,
+  strengthAnchors: ['competition-squat', 'competition-bench', 'sumo-deadlift'],
+  priorityRegions: ['chest', 'back', 'triceps'],
+  maintenanceRegions: ['hamstrings', 'shoulders', 'biceps'],
+  sessionIds: ['session-bench', 'session-squat', 'session-deadlift']
+}]
+
 export const athlete: AthleteProfile = {
   name: 'JB',
   trainingAge: 8,
@@ -148,6 +173,8 @@ export const sessions: TrainingSession[] = [
     plannedDate: iso(today),
     status: 'planned',
     durationMinutes: 60,
+    mesocycleId: 'mesocycle-powerbuilding-1',
+    planVersion: 1,
     exercises: [
       { id: 'plan-bench', exerciseId: 'competition-bench', role: 'primary', purpose: 'Strength anchor', sets: makeSets(4, 6, 175, 2), restSeconds: 180, estimatedMinutes: 22, optional: false },
       { id: 'plan-board', exerciseId: 'two-board-press', role: 'secondary', purpose: 'Build bench lockout and triceps strength', sets: makeSets(3, 8, 165, 2), restSeconds: 150, estimatedMinutes: 15, optional: false },
@@ -164,6 +191,8 @@ export const sessions: TrainingSession[] = [
     plannedDate: iso(subDays(today, -2)),
     status: 'planned',
     durationMinutes: 65,
+    mesocycleId: 'mesocycle-powerbuilding-1',
+    planVersion: 1,
     exercises: [
       { id: 'plan-squat', exerciseId: 'competition-squat', role: 'primary', purpose: 'Strength anchor', sets: makeSets(4, 5, 245, 2), restSeconds: 210, estimatedMinutes: 25, optional: false },
       { id: 'plan-ssb', exerciseId: 'ssb-squat', role: 'secondary', purpose: 'Build quads and upper-back position', sets: makeSets(3, 8, 185, 2), restSeconds: 150, estimatedMinutes: 16, optional: false },
@@ -180,6 +209,8 @@ export const sessions: TrainingSession[] = [
     plannedDate: iso(subDays(today, -4)),
     status: 'planned',
     durationMinutes: 60,
+    mesocycleId: 'mesocycle-powerbuilding-1',
+    planVersion: 1,
     exercises: [
       { id: 'plan-sumo', exerciseId: 'sumo-deadlift', role: 'primary', purpose: 'Strength anchor', sets: makeSets(4, 4, 315, 2), restSeconds: 210, estimatedMinutes: 24, optional: false },
       { id: 'plan-deficit', exerciseId: 'deficit-conventional', role: 'secondary', purpose: 'Build low-back and off-floor strength for sumo', sets: makeSets(3, 6, 235, 2), restSeconds: 180, estimatedMinutes: 16, optional: false },

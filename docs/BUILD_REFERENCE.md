@@ -10,7 +10,7 @@ The authoritative product specifications live in JB's Obsidian vault:
 - `Projects/Adaptive Strength and Hypertrophy App/Outputs/Build Bible Requirement Traceability Matrix.md`
 - `Projects/Adaptive Strength and Hypertrophy App/Inputs/App Requirements Register.md`
 
-The first implementation is governed by the complete R-001 through R-289 register. It is a deliberately bounded private-alpha slice, not a claim that every requirement or later delivery phase is complete. Its exact status is recorded in Obsidian at `Outputs/Private Alpha Implementation 2026-08-10.md`.
+The first implementation is governed by the complete R-001 through R-295 register. It is a deliberately bounded private-alpha slice, not a claim that every requirement or later delivery phase is complete. Its exact status is recorded in Obsidian at `Outputs/Private Alpha Implementation 2026-08-10.md`.
 
 ## Implemented Private-Alpha Slice
 
@@ -23,6 +23,10 @@ The first implementation is governed by the complete R-001 through R-289 registe
 - Hold, reduce, and reacclimation paths.
 - Time-aware session compression.
 - Calendar and exposure clock presentation.
+- Editable mesocycle objectives, adaptation emphasis, opportunities, time budget, exposure rounds, strength anchors, priority regions, maintenance regions, and criterion fields.
+- Deterministic plan preview with protected-anchor coverage, projected sets, time fit, selection rationale, and preview-before-apply.
+- Immutable mesocycle revision history with status, effective date, prior-plan link, and required reason for change.
+- Future-only plan replacement that preserves completed, partial, stopped, deferred, and expired historical truth.
 - Missed-session replanning without catch-up volume.
 - Exact exercise history, canonical IDs, aliases, duplicate warnings, preferences, and joint response.
 - Educated exercise replacement with preserved exact-movement clocks.
@@ -30,7 +34,7 @@ The first implementation is governed by the complete R-001 through R-289 registe
 - Real daily, weekly, rolling-28-day, calendar-month, yearly, and all-time filters with source-set reconciliation.
 - Exclusive primary-region and upper-body, lower-body, arms, and trunk volume lenses.
 - Athlete model, survey controls, focused mode, data export, and local reset.
-- Version 2 open-JSON backup with integrity checks, schema migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
+- Version 3 open-JSON backup with plan history, integrity checks, version 1 and 2 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
 - Original pixel-adventure visual language and installable PWA shell.
 - Accurate completed, partial-primary, and partial-without-primary session states.
 
@@ -45,6 +49,8 @@ The first implementation is governed by the complete R-001 through R-289 registe
 - Navigate Today, Plan, Progress, Library, and You on desktop and a 390 px phone viewport.
 - Export a complete local backup, validate and preview it, restore it, and recover the pre-restore state.
 - Switch every progress horizon and prove chart, body-lens, and headline totals equal the selected completed source sets.
+- Preview a 30-minute plan revision, apply it, preserve partial history, inspect both plan versions, reload, and recover the active version from local persistence.
+- Export and preview a verified version 3 backup containing both plan versions.
 
 ## Deliberately Deferred
 

@@ -3,14 +3,15 @@ import type {
   AthleteProfile,
   CompletedSetRecord,
   Exercise,
+  MesocyclePlan,
   PersonalRecord,
   SurveyRecord,
   TrainingSession
 } from './types'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 2
-export const BACKUP_APP_VERSION = '0.2.0'
+export const BACKUP_SCHEMA_VERSION = 3
+export const BACKUP_APP_VERSION = '0.3.0'
 
 export interface RestorableAppState {
   athlete: AthleteProfile
@@ -20,6 +21,8 @@ export interface RestorableAppState {
   history: CompletedSetRecord[]
   surveys: SurveyRecord[]
   records: PersonalRecord[]
+  mesocycles: MesocyclePlan[]
+  activeMesocycleId: string | null
   activeSessionId: string | null
   onboardingComplete: boolean
 }
@@ -45,6 +48,7 @@ export interface BackupPreview {
     completedSets: number
     surveys: number
     records: number
+    planVersions: number
     athleteName: string
     exportedAt: string
   }
@@ -98,7 +102,7 @@ function requireUniqueIds(values: unknown[], label: string, errors: string[]) {
 function validateState(candidate: unknown): asserts candidate is RestorableAppState {
   if (!isRecord(candidate)) throw new Error('Backup data is missing or invalid.')
   const errors: string[] = []
-  const arrays = ['exercises', 'sessions', 'history', 'surveys', 'records'] as const
+  const arrays = ['exercises', 'sessions', 'history', 'surveys', 'records', 'mesocycles'] as const
   arrays.forEach((key) => {
     if (!Array.isArray(candidate[key])) errors.push(`${key} must be an array.`)
     else if (candidate[key].length > 500_000) errors.push(`${key} exceeds the private-alpha restore limit.`)
@@ -107,6 +111,7 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   if (!isRecord(candidate.settings)) errors.push('Settings are missing.')
   if (typeof candidate.onboardingComplete !== 'boolean') errors.push('Onboarding state is invalid.')
   if (!(candidate.activeSessionId === null || typeof candidate.activeSessionId === 'string')) errors.push('Active session ID is invalid.')
+  if (!(candidate.activeMesocycleId === null || typeof candidate.activeMesocycleId === 'string')) errors.push('Active mesocycle ID is invalid.')
   if (errors.length) throw new Error(errors.join(' '))
 
   const exercises = candidate.exercises as unknown[]
@@ -114,14 +119,17 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   const history = candidate.history as unknown[]
   const surveys = candidate.surveys as unknown[]
   const records = candidate.records as unknown[]
+  const mesocycles = candidate.mesocycles as unknown[]
   requireUniqueIds(exercises, 'Exercises', errors)
   requireUniqueIds(sessions, 'Sessions', errors)
   requireUniqueIds(history, 'Completed sets', errors)
   requireUniqueIds(surveys, 'Surveys', errors)
   requireUniqueIds(records, 'Records', errors)
+  requireUniqueIds(mesocycles, 'Mesocycles', errors)
 
   const exerciseIds = new Set(exercises.flatMap((exercise) => isRecord(exercise) && typeof exercise.id === 'string' ? [exercise.id] : []))
   const sessionIds = new Set(sessions.flatMap((session) => isRecord(session) && typeof session.id === 'string' ? [session.id] : []))
+  const mesocycleIds = new Set(mesocycles.flatMap((plan) => isRecord(plan) && typeof plan.id === 'string' ? [plan.id] : []))
 
   exercises.forEach((exercise) => {
     if (!isRecord(exercise) || typeof exercise.name !== 'string' || !Array.isArray(exercise.aliases) || !Array.isArray(exercise.equipment)) {
@@ -164,8 +172,29 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
     if (!isRecord(record) || typeof record.exerciseId !== 'string' || !exerciseIds.has(record.exerciseId) || !isFiniteNonNegative(record.value) || !isValidDate(record.achievedAt)) errors.push('A personal record is invalid.')
   })
 
+  mesocycles.forEach((plan) => {
+    if (!isRecord(plan) || typeof plan.title !== 'string' || !isFiniteNonNegative(plan.version) || !Array.isArray(plan.sessionIds) || !Array.isArray(plan.strengthAnchors)) {
+      errors.push('A mesocycle plan is invalid.')
+      return
+    }
+    if (!isValidDate(plan.createdAt) || !isValidDate(plan.effectiveAt)) errors.push('A mesocycle plan has an invalid date.')
+    plan.strengthAnchors.forEach((exerciseId) => {
+      if (typeof exerciseId !== 'string' || !exerciseIds.has(exerciseId)) errors.push('A mesocycle references an unknown strength anchor.')
+    })
+    plan.sessionIds.forEach((sessionId) => {
+      if (typeof sessionId !== 'string' || (plan.status === 'active' && !sessionIds.has(sessionId))) errors.push('An active mesocycle references an unknown session.')
+    })
+  })
+
   const activeSessionId = candidate.activeSessionId
   if (typeof activeSessionId === 'string' && !sessionIds.has(activeSessionId)) errors.push('The active workout references a session that is not present.')
+  const activeMesocycleId = candidate.activeMesocycleId
+  if (typeof activeMesocycleId === 'string' && !mesocycleIds.has(activeMesocycleId)) errors.push('The active mesocycle is not present.')
+  if (typeof activeMesocycleId === 'string') {
+    const activePlan = mesocycles.find((plan) => isRecord(plan) && plan.id === activeMesocycleId)
+    if (isRecord(activePlan) && activePlan.status !== 'active') errors.push('The active mesocycle pointer does not reference an active plan.')
+  }
+  if (mesocycles.filter((plan) => isRecord(plan) && plan.status === 'active').length > 1) errors.push('More than one mesocycle is marked active.')
   if (errors.length) throw new Error([...new Set(errors)].join(' '))
 }
 
@@ -179,6 +208,8 @@ function migrateLegacyV1(candidate: Record<string, unknown>): { data: Restorable
     history: candidate.history,
     surveys: Array.isArray(candidate.surveys) ? candidate.surveys : [],
     records: candidate.records,
+    mesocycles: [],
+    activeMesocycleId: null,
     activeSessionId: typeof candidate.activeSessionId === 'string' ? candidate.activeSessionId : null,
     onboardingComplete: typeof candidate.onboardingComplete === 'boolean' ? candidate.onboardingComplete : true
   }
@@ -187,6 +218,25 @@ function migrateLegacyV1(candidate: Record<string, unknown>): { data: Restorable
     data,
     exportedAt: typeof legacyExportedAt === 'string' && isValidDate(legacyExportedAt) ? legacyExportedAt : new Date().toISOString(),
     warning: 'Legacy version 1 export migrated to the current version. Survey history may be incomplete.'
+  }
+}
+
+function migrateV2(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') {
+    throw new Error('Backup integrity information is missing.')
+  }
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = {
+    ...candidate.data,
+    mesocycles: [],
+    activeMesocycleId: null
+  }
+  validateState(data)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 2 backup migrated safely. Training history is intact; create a mesocycle to begin versioned planning.'
   }
 }
 
@@ -209,6 +259,10 @@ export function parseBackup(raw: string): BackupPreview {
     if (candidate.integrity.value !== integrityFor(candidate.data)) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
     if (!isValidDate(candidate.exportedAt)) throw new Error('Backup export date is invalid.')
     backup = candidate as unknown as ForgePathBackup
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 2) {
+    const migrated = migrateV2(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
@@ -226,6 +280,7 @@ export function parseBackup(raw: string): BackupPreview {
       completedSets: backup.data.history.length,
       surveys: backup.data.surveys.length,
       records: backup.data.records.length,
+      planVersions: backup.data.mesocycles.length,
       athleteName: backup.data.athlete.name,
       exportedAt: backup.exportedAt
     }
@@ -241,6 +296,8 @@ export function backupStateFrom(source: RestorableAppState): RestorableAppState 
     history: structuredClone(source.history),
     surveys: structuredClone(source.surveys),
     records: structuredClone(source.records),
+    mesocycles: structuredClone(source.mesocycles),
+    activeMesocycleId: source.activeMesocycleId,
     activeSessionId: source.activeSessionId,
     onboardingComplete: source.onboardingComplete
   }

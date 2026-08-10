@@ -1,14 +1,17 @@
 import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { athlete as seedAthlete, exercises as seedExercises, history as seedHistory, records as seedRecords, sessions as seedSessions } from '../domain/seed'
+import { athlete as seedAthlete, exercises as seedExercises, history as seedHistory, mesocycles as seedMesocycles, records as seedRecords, sessions as seedSessions } from '../domain/seed'
 import { compressSession, readinessFromSurvey, replanAfterMiss, sessionCompletionStatus } from '../domain/training-engine'
 import { backupStateFrom, type RestorableAppState } from '../domain/backup'
+import { buildMesocyclePreview, createMesocyclePlan, replaceFuturePlan } from '../domain/mesocycle-engine'
 import type {
   AppSettings,
   AthleteProfile,
   CompletedSetRecord,
   Exercise,
+  MesocycleDraft,
+  MesocyclePlan,
   MissedSessionReason,
   NavKey,
   PersonalRecord,
@@ -26,6 +29,8 @@ interface AppState {
   history: CompletedSetRecord[]
   surveys: SurveyRecord[]
   records: PersonalRecord[]
+  mesocycles: MesocyclePlan[]
+  activeMesocycleId: string | null
   activeSessionId: string | null
   onboardingComplete: boolean
   recoverySnapshot: RestorableAppState | null
@@ -46,6 +51,7 @@ interface AppState {
   toggleFavorite: (exerciseId: string) => void
   setJointFeeling: (exerciseId: string, jointFeeling: Exercise['jointFeeling']) => void
   addCustomExercise: (exercise: Exercise) => void
+  applyMesocycleRevision: (draft: MesocycleDraft) => { ok: boolean; error?: string }
   restoreBackup: (data: RestorableAppState) => void
   undoLastRestore: () => void
   resetDemo: () => void
@@ -71,6 +77,8 @@ const fresh = () => ({
   history: structuredClone(seedHistory),
   surveys: [] as SurveyRecord[],
   records: structuredClone(seedRecords),
+  mesocycles: structuredClone(seedMesocycles),
+  activeMesocycleId: seedMesocycles[0]?.id ?? null,
   activeSessionId: null,
   onboardingComplete: false,
   recoverySnapshot: null as RestorableAppState | null
@@ -186,6 +194,42 @@ export const useAppStore = create<AppState>()(
       toggleFavorite: (exerciseId) => set((state) => ({ exercises: state.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, favorite: !exercise.favorite } : exercise) })),
       setJointFeeling: (exerciseId, jointFeeling) => set((state) => ({ exercises: state.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, jointFeeling } : exercise) })),
       addCustomExercise: (exercise) => set((state) => ({ exercises: [...state.exercises, exercise] })),
+      applyMesocycleRevision: (draft) => {
+        const state = get()
+        if (state.activeSessionId) return { ok: false, error: 'Finish or leave the active workout before revising the mesocycle.' }
+        if (!draft.revisionReason.trim()) return { ok: false, error: 'Add a short reason so this plan change stays explainable.' }
+        if (draft.strengthAnchors.length === 0) return { ok: false, error: 'Choose at least one protected strength anchor.' }
+        const activePlan = state.mesocycles.find((plan) => plan.id === state.activeMesocycleId)
+        const nextVersion = Math.max(0, ...state.mesocycles.map((plan) => plan.version)) + 1
+        const planId = `mesocycle-${nanoid()}`
+        const effectiveAt = new Date().toISOString()
+        const preview = buildMesocyclePreview(draft, {
+          exercises: state.exercises,
+          currentSessions: state.sessions,
+          history: state.history,
+          planId,
+          planVersion: nextVersion,
+          startsAt: new Date(effectiveAt)
+        })
+        const nextPlan = createMesocyclePlan(draft, planId, nextVersion, effectiveAt, activePlan?.id ?? null, preview.sessions.map((session) => session.id))
+        const revised = replaceFuturePlan(state.sessions, state.mesocycles, nextPlan, preview.sessions)
+        set({
+          sessions: revised.sessions,
+          mesocycles: revised.plans,
+          activeMesocycleId: nextPlan.id,
+          athlete: {
+            ...state.athlete,
+            goal: draft.objective,
+            weeklyOpportunities: draft.weeklyOpportunities,
+            defaultMinutes: draft.defaultMinutes,
+            strengthAnchors: [...draft.strengthAnchors],
+            priorityRegions: [...draft.priorityRegions]
+          },
+          settings: { ...state.settings, availableMinutes: draft.defaultMinutes },
+          notice: `Mesocycle version ${nextVersion} is active. Completed work and prior plan versions were preserved.`
+        })
+        return { ok: true }
+      },
       restoreBackup: (data) => set((state) => ({
         ...backupStateFrom(data),
         recoverySnapshot: backupStateFrom(state),
@@ -202,7 +246,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 1,
+      version: 2,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,
@@ -211,10 +255,20 @@ export const useAppStore = create<AppState>()(
         history: state.history,
         surveys: state.surveys,
         records: state.records,
+        mesocycles: state.mesocycles,
+        activeMesocycleId: state.activeMesocycleId,
         activeSessionId: state.activeSessionId,
         onboardingComplete: state.onboardingComplete,
         recoverySnapshot: state.recoverySnapshot
-      })
+      }),
+      migrate: (persistedState) => {
+        const persisted = persistedState as AppState
+        return {
+          ...persisted,
+          mesocycles: persisted.mesocycles?.length ? persisted.mesocycles : structuredClone(seedMesocycles),
+          activeMesocycleId: persisted.activeMesocycleId ?? seedMesocycles[0]?.id ?? null
+        }
+      }
     }
   )
 )
