@@ -20,6 +20,22 @@ export const placementVerificationVerdictLabels = {
   'reassessment-required': 'Reassessment required before training'
 } as const
 
+export function cancelPlacementVerificationForPrimarySubstitution(input: {
+  events: PlacementVerificationEvent[]
+  placementCreatedAt: string
+  sessionId: string
+}) {
+  let cancelled = false
+  const events = input.events.filter((event) => {
+    const matches = event.placementCreatedAt === input.placementCreatedAt
+      && event.sessionId === input.sessionId
+      && event.status === 'active'
+    if (matches) cancelled = true
+    return !matches
+  })
+  return { events, cancelled }
+}
+
 export function beginPlacementVerification(input: {
   id: string
   placement: AthletePlacementAssessment

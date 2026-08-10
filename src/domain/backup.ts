@@ -28,7 +28,7 @@ import { routeSessionGenerationError } from './route-session-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
 export const BACKUP_SCHEMA_VERSION = 19
-export const BACKUP_APP_VERSION = '0.25.0'
+export const BACKUP_APP_VERSION = '0.25.1'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',

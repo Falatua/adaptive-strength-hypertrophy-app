@@ -12,7 +12,7 @@ import { buildDeferredFeedbackRequest, expireDeferredFeedbackRequests, summarize
 import { projectExerciseCatalogEdit, type ExerciseCatalogInput } from '../domain/catalog-engine'
 import { equipmentGenerationEvidence, equipmentProfileError, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad, normalizedEquipmentProfile } from '../domain/equipment-engine'
 import { legacyPlacementForAthlete, placementRouteLabels } from '../domain/placement-engine'
-import { beginPlacementVerification, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery, revisePlacementSessionEvidence } from '../domain/placement-verification-engine'
+import { beginPlacementVerification, cancelPlacementVerificationForPrimarySubstitution, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery, revisePlacementSessionEvidence } from '../domain/placement-verification-engine'
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment, movementPlacementExitReviewRuleVersion, placementExitReviewRuleVersion } from '../domain/placement-exit-engine'
 import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION, routeSessionProfile } from '../domain/route-session-engine'
 import type {
@@ -85,7 +85,7 @@ interface AppState {
   resolvePlacementRecovery: (eventId: string, response: Exclude<PlacementRecoveryResponse, 'pending'>) => void
   recordPlacementExitReview: (decision: PlacementExitDecision, reason: string) => { ok: boolean; error?: string }
   recordMovementPlacementExitReview: (exerciseId: string, decision: PlacementExitDecision, reason: string) => { ok: boolean; error?: string }
-  swapExercise: (sessionId: string, plannedExerciseId: string, exerciseId: string, reason: SubstitutionReason, primaryOverrideConfirmed: boolean) => { ok: boolean; error?: string }
+  swapExercise: (sessionId: string, plannedExerciseId: string, exerciseId: string, reason: SubstitutionReason, primaryOverrideConfirmed: boolean) => { ok: boolean; error?: string; placementVerificationCancelled?: boolean }
   finishSession: (sessionId: string, feedback: { answers: SurveyAnswer[]; note?: string; skipped: boolean; mode: EffectiveSurveyMode; deferred?: boolean }) => void
   submitDeferredFeedback: (requestId: string, answers: SurveyAnswer[], note?: string) => { ok: boolean; error?: string }
   dismissDeferredFeedback: (requestId: string) => { ok: boolean; error?: string }
@@ -484,6 +484,9 @@ export const useAppStore = create<AppState>()(
           replacementPrescription: structuredClone(choice.prescription), prescriptionMethod: choice.prescriptionMethod,
           prescriptionNote: choice.prescriptionNote, sourceSetIds: [], outcome: 'pending'
         }
+        const placementCancellation = planned.role === 'primary'
+          ? cancelPlacementVerificationForPrimarySubstitution({ events: state.placementVerifications, placementCreatedAt: state.athlete.placement.createdAt, sessionId })
+          : { events: state.placementVerifications, cancelled: false }
         set({
           sessions: state.sessions.map((candidate) => candidate.id === sessionId ? {
             ...candidate, exercises: nextExercises, durationMinutes: nextExercises.reduce((sum, item) => sum + item.estimatedMinutes, 0)
@@ -494,9 +497,10 @@ export const useAppStore = create<AppState>()(
               : prior),
             event
           ],
-          notice: `${selected.name} now owns a ${choice.prescriptionMethod === 'exact-history' ? 'history-based' : 'baseline-calibration'} prescription. ${original.name}'s progression clock remains frozen.`
+          placementVerifications: placementCancellation.events,
+          notice: `${selected.name} now owns a ${choice.prescriptionMethod === 'exact-history' ? 'history-based' : 'baseline-calibration'} prescription. ${original.name}'s progression clock remains frozen.${placementCancellation.cancelled ? ` This session no longer verifies the ${original.name} placement lane.` : ''}`
         })
-        return { ok: true }
+        return { ok: true, placementVerificationCancelled: placementCancellation.cancelled }
       },
       finishSession: (sessionId, feedback) => {
         const state = get()

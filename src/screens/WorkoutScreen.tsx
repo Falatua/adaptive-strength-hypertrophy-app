@@ -26,6 +26,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
   const [primaryOverrideConfirmed, setPrimaryOverrideConfirmed] = useState(false)
   const [swapError, setSwapError] = useState<string | null>(null)
+  const [cancelledPlacementName, setCancelledPlacementName] = useState<string | null>(null)
   const [finishOpen, setFinishOpen] = useState(false)
   const [finishChooserOpen, setFinishChooserOpen] = useState(false)
   const [activePostMode, setActivePostMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
@@ -91,8 +92,10 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
 
   const chooseSwap = (exerciseId: string) => {
     if (!swapTarget) return
+    const originalName = exercises.find((exercise) => exercise.id === swapTarget.exerciseId)?.name ?? 'the original movement'
     const result = swapExercise(session.id, swapTarget.id, exerciseId, swapReason, primaryOverrideConfirmed)
     if (!result.ok) return setSwapError(result.error ?? 'That movement could not be selected.')
+    if (result.placementVerificationCancelled) setCancelledPlacementName(originalName)
     setSwapTarget(null)
   }
 
@@ -141,6 +144,11 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
       </header>
 
       <main className="workout-main">
+        {cancelledPlacementName && (
+          <section className="warmup-check placement-session-check is-captured" role="status" aria-live="polite">
+            <div><AlertTriangle size={20} /><span><strong>Exact movement check cancelled</strong><small>This session no longer verifies the {cancelledPlacementName} placement lane. The replacement still earns its own training history.</small></span></div>
+          </section>
+        )}
         {placementVerification && (
           <section className={`warmup-check placement-session-check ${placementVerification.warmupResponse !== 'not-answered' ? 'is-captured' : ''}`} aria-label="Placement verification warm-up">
             <div><Sparkles size={20} /><span><strong>{placementVerification.movementPlacement ? `${placementVerification.movementPlacement.exerciseName} check` : 'Placement check'} {placementVerification.sequence} of 3</strong><small>{placementRouteLabels[placementVerification.placementRoute]} is a hypothesis. Use a submaximal warm-up and answer only if useful.</small></span></div>

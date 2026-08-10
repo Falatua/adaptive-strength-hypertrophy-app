@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildPlacementAssessment } from './placement-engine'
 import {
   beginPlacementVerification,
+  cancelPlacementVerificationForPrimarySubstitution,
   completePlacementVerification,
   placementVerificationError,
   recordPlacementWarmup,
@@ -40,6 +41,21 @@ const begun = () => beginPlacementVerification({
 })
 
 describe('placement-verification-v1', () => {
+  it('cancels only the active exact-lane check when the protected primary is substituted', () => {
+    const active = begun()
+    const otherSession = { ...active, id: 'verify-other', sessionId: 'session-other' }
+    const priorResolved = resolvePlacementRecovery(completePlacementVerification({ ...active, id: 'verify-prior', sessionId: 'session-prior' }, { firstSet, sessionEvidence: evidence(), completedAt: '2026-08-10T12:00:00.000Z' }), 'recovered', '2026-08-11T10:00:00.000Z')
+    const result = cancelPlacementVerificationForPrimarySubstitution({ events: [active, otherSession, priorResolved], placementCreatedAt: placement.createdAt, sessionId: active.sessionId })
+    expect(result.cancelled).toBe(true)
+    expect(result.events.map((event) => event.id)).toEqual(['verify-other', 'verify-prior'])
+  })
+
+  it('does not alter verification when no active event belongs to the substituted session', () => {
+    const active = begun()
+    const result = cancelPlacementVerificationForPrimarySubstitution({ events: [active], placementCreatedAt: placement.createdAt, sessionId: 'another-session' })
+    expect(result).toEqual({ events: [active], cancelled: false })
+  })
+
   it('starts as a productive non-maximal check and records optional warm-up evidence', () => {
     const event = recordPlacementWarmup(begun(), 'as-expected', '2026-08-10T11:05:00.000Z')
     expect(event).toMatchObject({
