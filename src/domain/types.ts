@@ -7,6 +7,53 @@ export type MuscleId = 'pectorals' | 'anterior-deltoids' | 'lateral-deltoids' | 
 export type JointFeeling = 'great' | 'good' | 'neutral' | 'irritating' | 'avoid'
 export type SessionStatus = 'planned' | 'active' | 'completed' | 'partial-primary' | 'partial-no-primary' | 'deferred' | 'expired' | 'stopped'
 export type ContinuityState = 'stable' | 'interrupted' | 'returning'
+export type PlacementGoal = 'powerbuilding' | 'strength' | 'hypertrophy' | 'power' | 'event-specific' | 'return-to-training'
+export type PlacementRoute = 'introductory-skill' | 'reacclimation' | 'bridge-calibration' | 'base-building' | 'hypertrophy' | 'powerbuilding' | 'strength' | 'power' | 'event-specific' | 'pain-aware-modified'
+export type PlacementConfidence = 'low' | 'medium' | 'high'
+export type PlacementDecision = 'confirmed' | 'conservative' | 'aggressive-test' | 'quick-start'
+export type PlacementPainState = 'none' | 'manageable' | 'modifying' | 'unknown'
+
+export interface PlacementInputs {
+  goal: PlacementGoal | null
+  fixedEvent: string | null
+  trainingAge: number | null
+  continuity: ContinuityState | null
+  movementSkill: number | null
+  strengthTolerance: number | null
+  volumeTolerance: number | null
+  scheduleStability: number | null
+  dataConfidence: number | null
+  painState: PlacementPainState
+  weeklyOpportunities: number
+  defaultMinutes: number
+  equipmentProfileId: string
+  skippedFields: string[]
+}
+
+export interface AthletePlacementAssessment {
+  ruleVersion: 'placement-v1'
+  createdAt: string
+  inputs: PlacementInputs
+  dimensions: {
+    experience: number
+    recentContinuity: number
+    movementSkill: number
+    strengthTolerance: number
+    volumeTolerance: number
+    scheduleStability: number
+    dataConfidence: number
+  }
+  recommendedRoute: PlacementRoute
+  selectedRoute: PlacementRoute
+  confidence: PlacementConfidence
+  decision: PlacementDecision
+  reasons: string[]
+  uncertainInputs: string[]
+  verificationPlan: string[]
+  whyNotLower: string
+  whyNotHigher: string
+  exitCriteria: string[]
+}
 export type ReadinessOutcome = 'normal' | 'confirm' | 'protect' | 'reacclimate' | 'pain-aware'
 export type ProgressionAction = 'load' | 'reps' | 'sets' | 'hold' | 'reduce' | 'reacclimate'
 export type SurveyMode = 'full' | 'quick' | 'minimal' | 'off' | 'ask'
@@ -399,9 +446,11 @@ export interface AthleteProfile {
   defaultMinutes: number
   equipmentProfile: string
   continuity: ContinuityState
+  placement: AthletePlacementAssessment
   level: {
     experience: number
     recentContinuity: number
+    movementSkill: number
     strengthTolerance: number
     volumeTolerance: number
     scheduleStability: number

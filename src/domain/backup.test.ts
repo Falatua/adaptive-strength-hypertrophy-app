@@ -48,6 +48,8 @@ describe('versioned backup and restore', () => {
     expect(parsed.summary.cycleReviews).toBe(0)
     expect(parsed.summary.substitutions).toBe(0)
     expect(parsed.summary.equipmentProfiles).toBe(3)
+    expect(parsed.summary.placementRoute).toBe('Base-Building Cycle')
+    expect(parsed.summary.placementConfidence).toBe('high')
     expect(parsed.warnings).toEqual([])
   })
 
@@ -227,6 +229,8 @@ describe('versioned backup and restore', () => {
   it('migrates a verified version 10 backup into an explicit equipment profile', () => {
     const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
     delete legacyData.equipmentProfiles
+    delete (legacyData.athlete as Record<string, unknown>).placement
+    delete ((legacyData.athlete as Record<string, unknown>).level as Record<string, unknown>).movementSkill
     const legacySettings = legacyData.settings as Record<string, unknown>
     delete legacySettings.activeEquipmentProfileId
     const legacy = {
@@ -236,7 +240,32 @@ describe('versioned backup and restore', () => {
     const parsed = parseBackup(JSON.stringify(legacy))
     expect(parsed.backup.data.settings.activeEquipmentProfileId).toBe('equipment-commercial-gym')
     expect(parsed.backup.data.equipmentProfiles).toHaveLength(3)
+    expect(parsed.backup.data.athlete.placement.ruleVersion).toBe('placement-v1')
     expect(parsed.warnings[0]).toMatch(/version 10/i)
+  })
+
+  it('migrates a verified version 11 backup into a transparent placement hypothesis', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    delete (legacyData.athlete as Record<string, unknown>).placement
+    delete ((legacyData.athlete as Record<string, unknown>).level as Record<string, unknown>).movementSkill
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 11, appVersion: '0.17.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.athlete.placement).toMatchObject({ ruleVersion: 'placement-v1', confidence: 'medium' })
+    expect(parsed.backup.data.athlete.level.movementSkill).toBeGreaterThanOrEqual(1)
+    expect(parsed.warnings[0]).toMatch(/version 11/i)
+  })
+
+  it('rejects placement tampering and a route label that disagrees with its evidence', () => {
+    const invalidDimension = state()
+    invalidDimension.athlete.placement.dimensions.movementSkill = 7
+    expect(() => parseBackup(JSON.stringify(createBackup(invalidDimension)))).toThrow(/placement.*one to five/i)
+
+    const invalidRoute = state()
+    invalidRoute.athlete.entryRoute = 'Introductory Skill Cycle'
+    expect(() => parseBackup(JSON.stringify(createBackup(invalidRoute)))).toThrow(/entry route/i)
   })
 
   it('rejects invalid equipment profiles and an orphaned active profile', () => {

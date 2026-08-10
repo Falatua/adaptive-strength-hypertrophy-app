@@ -31,6 +31,7 @@ export function TodayScreen() {
   const primaryHistory = history.filter((set) => set.exerciseId === primaryExercise?.id)
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const equipmentGaps = nextSession ? sessionEquipmentGaps(nextSession, exercises, activeEquipmentProfile) : []
+  const placementBlocked = athlete.placement.selectedRoute === 'pain-aware-modified'
   const recentPrimary = primaryHistory.slice(-Math.max(1, primaryPlan?.sets.length ?? 1))
   const lastVolume = volumeLoad(recentPrimary)
   const recentRecord = records[0]
@@ -84,6 +85,7 @@ export function TodayScreen() {
   }
 
   const openPreferredCheckIn = () => {
+    if (placementBlocked) return
     if (settings.preSurveyMode === 'off') return begin([], true, 'off')
     if (settings.preSurveyMode === 'ask') return setSurveyChooserOpen(true)
     setActiveSurveyMode(settings.preSurveyMode)
@@ -123,6 +125,7 @@ export function TodayScreen() {
           <p className="eyebrow">Next best session · Exposure queue 01</p>
           <h2>{nextSession?.title}</h2>
           <p className="hero-workout__objective">{nextSession?.objective}</p>
+          {placementBlocked && <button className="placement-training-gate" onClick={() => setNav('you')}><AlertTriangle size={19} /><span><strong>Workout start paused for placement review</strong><small>Your starting profile says pain or restriction changes what can be trained. Reassess the profile before starting. This is not medical clearance.</small></span><ChevronRight size={18} /></button>}
           {equipmentGaps.length > 0 && <button className="equipment-gate-callout" onClick={() => { setPendingStart(null); setEquipmentGateOpen(true) }}><AlertTriangle size={19} /><span><strong>{equipmentGaps.length} movement{equipmentGaps.length === 1 ? '' : 's'} need equipment review</strong><small>{activeEquipmentProfile.name} is missing required items. Unavailable sets cannot be logged until each movement is changed or the profile is corrected.</small></span><ChevronRight size={18} /></button>}
           <div className="anchor-prescription">
             <div className="anchor-prescription__icon"><Dumbbell size={24} /></div>
@@ -130,8 +133,8 @@ export function TodayScreen() {
             <div className="anchor-prescription__decision"><span>{progression.action}</span><strong>{progression.title}</strong></div>
           </div>
           <div className="hero-workout__actions">
-            <button className="button button--primary button--large" onClick={openPreferredCheckIn}>{checkInLabel} <ArrowRight size={18} /></button>
-            {settings.preSurveyMode !== 'off' && <button className="button button--secondary" onClick={() => begin([], true, 'off')}>Start without check-in</button>}
+            <button className="button button--primary button--large" disabled={placementBlocked} onClick={openPreferredCheckIn}>{placementBlocked ? 'Reassess before training' : checkInLabel} <ArrowRight size={18} /></button>
+            {settings.preSurveyMode !== 'off' && <button className="button button--secondary" disabled={placementBlocked} onClick={() => begin([], true, 'off')}>Start without check-in</button>}
             <button className="button button--ghost" onClick={() => setWhyOpen(true)}><HelpCircle size={17} /> Why this session?</button>
           </div>
           <div className="time-budget" aria-label="Available workout time">

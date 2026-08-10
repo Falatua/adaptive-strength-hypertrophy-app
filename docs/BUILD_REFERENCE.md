@@ -15,7 +15,11 @@ The first implementation is governed by the complete R-001 through R-295 registe
 ## Implemented Private-Alpha Slice
 
 - Today, Plan, Progress, Library, and You navigation.
-- Optional onboarding with direct-entry and returning routes.
+- Four-stage, fully skippable starting-profile onboarding with Quick Start and history-import routes.
+- Versioned `placement-v1` inputs and independent one-to-five dimensions for experience, recent continuity, movement skill, strength tolerance, volume tolerance, schedule stability, and data confidence.
+- Deterministic introductory, reacclimation, bridge, base-building, hypertrophy, powerbuilding, strength, power, event-specific, and pain-aware route selection with explicit confidence, reasons, unknown inputs, lower and higher route comparisons, first-session verification, and criterion-based exit evidence.
+- Athlete-controlled confirmation, conservative placement, faster submaximal test request, answer correction, goal change, and history import. Quick Start defaults remain visibly low-confidence until confirmed by completed work.
+- Pain-modified placement carries a non-medical boundary, routes to the athlete profile, and pauses both surveyed and survey-free workout starts until reassessment.
 - Independent full 10, quick 5, minimal 3, ask-each-time, and off modes for pre- and post-session surveys.
 - Per-question answer, skip, not-sure, and prefer-not states plus immediate survey-free start and finish. Untouched defaults remain unknown rather than becoming fabricated answers.
 - Optional post-session “Remind me later” finishes the workout immediately, creates a quiet 24-hour local follow-up, never blocks the next session, and expires without penalty or invented evidence.
@@ -59,7 +63,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - A fully validated PR requires confirmed technique and pain feedback. Survey-free sessions keep their numbers as visibly numeric-only bests.
 - Athlete-controlled celebration level, quiet mode, opportunity prompts, session achievements, reduced motion, pixel confetti, sounds preference, and supported-device haptics.
 - Athlete model, survey controls, focused mode, data export, and local reset.
-- Version 11 open-JSON backup with expanded record definitions, celebration controls, equipment profiles, plan, review, history and catalog changes, substitution, survey-evidence, and deferred-feedback history, integrity checks, versions 1 through 10 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
+- Version 12 open-JSON backup with placement evidence and decisions, expanded record definitions, celebration controls, equipment profiles, plan, review, history and catalog changes, substitution, survey-evidence, and deferred-feedback history, integrity checks, versions 1 through 11 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
 - Original pixel-adventure visual language and installable PWA shell.
 - Accurate completed, partial-primary, and partial-without-primary session states.
 
@@ -78,7 +82,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Switch every progress horizon and prove chart, body-lens, and headline totals equal the selected completed source sets.
 - Select the calendar quarter, show monthly quarter points, inspect exact movement mix and priority attention, and preserve exact-width phone containment without turning volume share into a stimulus or enjoyment claim.
 - Preview a 30-minute plan revision, apply it, preserve partial history, inspect both plan versions, reload, and recover the active version from local persistence.
-- Export and preview a verified version 11 backup containing expanded records, athlete celebration preferences, training locations, plan versions, the history and catalog ledger, cycle-review history, substitution learning, survey evidence, and deferred-feedback provenance.
+- Export and preview a verified version 12 backup containing replay-validated placement evidence, expanded records, athlete preferences, training locations, plan versions, ledgers, survey evidence, and deferred-feedback provenance.
 - Create a distinct custom movement, edit its canonical metadata, block an exact alias collision, save a non-conflicting identity without changing its stable ID, inspect the zero-volume catalog ledger entry, and undo the edit.
 - Document two intentionally separate exact-name matches, review the resulting three-identity cleanup group, keep Competition Bench Press, retire both copies in one merge, verify the group disappears, and restore both identities through undo.
 - Complete one set from a stored fifteen-set session, show one of fifteen linked sets, distinguish 136 older completed sets with no stored plan, classify chest as one of four linked planned sets, and preserve all unlinked work in Progress without counting it as plan compliance.
@@ -89,9 +93,12 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Review a custom movement's direct and secondary muscle mapping, confirm the replay notice and audit description, inspect its explicit mapping in the movement detail, and undo the review without changing completed history or the stable canonical ID.
 - Reconcile a stored fifteen-set plan to fifteen mapped intended sets, preserve repeated raw planned-set IDs as distinct exercise-slot evidence, and keep all unlinked completed work separate from linked muscle-plan completion.
 - Create and persist a home-gym profile, activate it after reload, review four exact equipment conflicts before training, start without losing the workout, block unavailable set logging, enforce a 2.5 lb barbell input step, and replace an unavailable movement only with a candidate available at that location.
+- Enter recent experience, capacity, schedule, evidence, and restriction inputs; receive a high-confidence direct-strength recommendation; inspect lower and higher route comparisons; choose a conservative base-building route; persist all seven dimensions and the plan metadata; and inspect the complete verification evidence in You.
+- Report that pain changes movement choice, receive a pain-aware modified route with a non-medical warning, prove both workout-start paths remain disabled, and reopen onboarding without deleting existing history.
 
 ## Deliberately Deferred
 
+- Per-exercise and movement-family placement, automatic route-specific exercise rewriting, imported-history placement inference, fixed-event date logic, and automatic reclassification after the first three sessions.
 - Supabase authentication, Postgres system of record, Row Level Security, and multi-device sync.
 - React Native client and SQLite migration after the private web workflow is validated.
 - Cloud AI provider, research retrieval, and voice interpretation.

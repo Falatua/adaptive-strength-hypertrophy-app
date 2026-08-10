@@ -18,10 +18,11 @@ import { summarizeSurveyEvidence } from './survey-engine'
 import { exerciseMuscleMappingError } from './muscle-dose'
 import { equipmentProfileError } from './equipment-engine'
 import { equipmentProfiles as seedEquipmentProfiles } from './seed'
+import { legacyPlacementForAthlete, placementAssessmentError, placementRouteLabels } from './placement-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 11
-export const BACKUP_APP_VERSION = '0.17.0'
+export const BACKUP_SCHEMA_VERSION = 12
+export const BACKUP_APP_VERSION = '0.18.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -79,6 +80,8 @@ export interface BackupPreview {
     substitutions: number
     equipmentProfiles: number
     athleteName: string
+    placementRoute: string
+    placementConfidence: string
     exportedAt: string
   }
 }
@@ -154,9 +157,23 @@ function addLegacyEquipmentProfiles(candidate: Record<string, unknown>) {
   if (isRecord(candidate.athlete)) candidate.athlete = { ...candidate.athlete, equipmentProfile: active.name }
 }
 
-function validateState(candidate: unknown, migrateLegacyEquipment = false): asserts candidate is RestorableAppState {
+function addLegacyPlacement(candidate: Record<string, unknown>) {
+  if (!isRecord(candidate.athlete) || candidate.athlete.placement !== undefined) return
+  const placement = legacyPlacementForAthlete(candidate.athlete as Partial<AthleteProfile>)
+  candidate.athlete = {
+    ...candidate.athlete,
+    placement,
+    entryRoute: placementRouteLabels[placement.selectedRoute],
+    level: placement.dimensions
+  }
+}
+
+function validateState(candidate: unknown, migrateLegacyState = false): asserts candidate is RestorableAppState {
   if (!isRecord(candidate)) throw new Error('Backup data is missing or invalid.')
-  if (migrateLegacyEquipment) addLegacyEquipmentProfiles(candidate)
+  if (migrateLegacyState) {
+    addLegacyEquipmentProfiles(candidate)
+    addLegacyPlacement(candidate)
+  }
   const errors: string[] = []
   const arrays = ['equipmentProfiles', 'exercises', 'sessions', 'history', 'surveys', 'deferredFeedback', 'records', 'mesocycles', 'historyMutations', 'cycleReviews', 'substitutionEvents'] as const
   arrays.forEach((key) => {
@@ -169,6 +186,17 @@ function validateState(candidate: unknown, migrateLegacyEquipment = false): asse
   if (!(candidate.activeSessionId === null || typeof candidate.activeSessionId === 'string')) errors.push('Active session ID is invalid.')
   if (!(candidate.activeMesocycleId === null || typeof candidate.activeMesocycleId === 'string')) errors.push('Active mesocycle ID is invalid.')
   if (errors.length) throw new Error(errors.join(' '))
+
+  const athlete = candidate.athlete as Record<string, unknown>
+  const athleteLevel = isRecord(athlete.level) ? athlete.level : null
+  const placement = isRecord(athlete.placement) ? athlete.placement : null
+  const placementDimensions = placement && isRecord(placement.dimensions) ? placement.dimensions : null
+  const placementError = placementAssessmentError(athlete.placement)
+  if (placementError) errors.push(`Athlete placement is invalid: ${placementError}`)
+  if (!athleteLevel) errors.push('Athlete placement dimensions are missing.')
+  else if (['experience', 'recentContinuity', 'movementSkill', 'strengthTolerance', 'volumeTolerance', 'scheduleStability', 'dataConfidence'].some((key) => !Number.isInteger(athleteLevel[key]) || Number(athleteLevel[key]) < 1 || Number(athleteLevel[key]) > 5)) errors.push('Athlete placement dimensions must all be integers from one to five.')
+  if (placementDimensions && athleteLevel && stableStringify(placementDimensions) !== stableStringify(athleteLevel)) errors.push('Athlete placement dimensions do not match the stored assessment.')
+  if (placement && typeof placement.selectedRoute === 'string' && athlete.entryRoute !== placementRouteLabels[placement.selectedRoute as keyof typeof placementRouteLabels]) errors.push('Athlete entry route does not match the stored placement decision.')
 
   const exercises = candidate.exercises as unknown[]
   const equipmentProfiles = candidate.equipmentProfiles as unknown[]
@@ -536,6 +564,19 @@ function migrateV10(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV11(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = { ...candidate.data, settings: normalizeSettings(candidate.data.settings) }
+  validateState(data, true)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 11 backup migrated safely. Existing training truth is intact; placement begins as a transparent legacy-derived hypothesis.'
+  }
+}
+
 export function parseBackup(raw: string): BackupPreview {
   let candidate: unknown
   try {
@@ -591,6 +632,10 @@ export function parseBackup(raw: string): BackupPreview {
     const migrated = migrateV10(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 11) {
+    const migrated = migrateV11(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
@@ -615,6 +660,8 @@ export function parseBackup(raw: string): BackupPreview {
       substitutions: backup.data.substitutionEvents.length,
       equipmentProfiles: backup.data.equipmentProfiles.length,
       athleteName: backup.data.athlete.name,
+      placementRoute: placementRouteLabels[backup.data.athlete.placement.selectedRoute],
+      placementConfidence: backup.data.athlete.placement.confidence,
       exportedAt: backup.exportedAt
     }
   }

@@ -6,6 +6,7 @@ import type { CelebrationLevel, EquipmentProfile, EquipmentProfileKind, SurveyMo
 import { Modal } from '../components/Modal'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { createBackup, parseBackup, type BackupPreview } from '../domain/backup'
+import { placementRouteLabels } from '../domain/placement-engine'
 
 const surveyModeLabels: Record<SurveyMode, string> = { full: 'Full', quick: 'Quick', minimal: 'Minimal', off: 'Off', ask: 'Ask each time' }
 
@@ -13,7 +14,7 @@ export function YouScreen() {
   const {
     athlete, settings, updateSettings, equipmentProfiles, setActiveEquipmentProfile, saveEquipmentProfile, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents,
     activeMesocycleId, activeSessionId, onboardingComplete, recoverySnapshot, restoreBackup, undoLastRestore,
-    resetDemo, setNotice
+    restartOnboarding, resetDemo, setNotice
   } = useAppStore()
   const [resetOpen, setResetOpen] = useState(false)
   const [importPreview, setImportPreview] = useState<BackupPreview | null>(null)
@@ -31,10 +32,10 @@ export function YouScreen() {
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `forgepath-backup-v11-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `forgepath-backup-v12-${new Date().toISOString().slice(0, 10)}.json`
     anchor.click()
     URL.revokeObjectURL(url)
-    setNotice('Verified version 11 backup created as open JSON, including equipment profiles, executable load increments, records, plans, history changes, substitutions, surveys, and recovery provenance.')
+    setNotice('Verified version 12 backup created as open JSON, including placement evidence, equipment profiles, executable load increments, records, plans, history changes, substitutions, surveys, and recovery provenance.')
   }
 
   const openEquipmentEditor = (profile?: EquipmentProfile) => {
@@ -89,6 +90,7 @@ export function YouScreen() {
             <div className="panel__header"><div><p className="eyebrow">Multi-dimensional placement</p><h3>Current training profile</h3></div><UserRound size={19} /></div>
             <div className="level-list">{Object.entries(athlete.level).map(([key, value]) => <div key={key}><span>{key.replace(/([A-Z])/g, ' $1')}</span><div>{Array.from({ length: 5 }, (_, index) => <i key={index} className={index < value ? 'filled' : ''} />)}</div><strong>{value}/5</strong></div>)}</div>
             <p className="chart-note">Experience and current preparedness stay separate. An interrupted schedule does not turn an experienced athlete into a beginner.</p>
+            <div className="placement-profile-evidence"><span><Sparkles size={17} /><span><strong>{athlete.entryRoute}</strong><small>{athlete.placement.confidence} confidence · {athlete.placement.ruleVersion} · {athlete.placement.decision}</small>{athlete.placement.selectedRoute !== athlete.placement.recommendedRoute && <small>Engine recommendation: {placementRouteLabels[athlete.placement.recommendedRoute]}</small>}</span></span><details><summary>Why and how this will be verified</summary><p>{athlete.placement.reasons.join(' ')}</p>{athlete.placement.uncertainInputs.length > 0 && <p><strong>Still uncertain:</strong> {athlete.placement.uncertainInputs.join(', ')}.</p>}<ul>{athlete.placement.verificationPlan.map((item) => <li key={item}>{item}</li>)}</ul><p><strong>Exit criteria:</strong> {athlete.placement.exitCriteria.join('; ')}.</p></details><button className="button button--small button--secondary" disabled={Boolean(activeSessionId)} onClick={restartOnboarding}>Reassess starting placement</button></div>
           </section>
 
           <section className="panel equipment-profile-panel">
@@ -146,7 +148,7 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.17.0 private alpha</strong></li><li><span>Rules</span><strong>0.17 equipment availability + executable loads</strong></li><li><span>Calculations</span><strong>Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Equipment v1 · Load increment v1</strong></li><li><span>Backup schema</span><strong>Version 11</strong></li><li><span>Persistence</span><strong>Local v9</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.18.0 private alpha</strong></li><li><span>Rules</span><strong>0.18 explainable starting placement</strong></li><li><span>Calculations</span><strong>Placement v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Equipment v1 · Load increment v1</strong></li><li><span>Backup schema</span><strong>Version 12</strong></li><li><span>Persistence</span><strong>Local v10</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Reset private alpha</button>
         </aside>
@@ -177,6 +179,8 @@ export function YouScreen() {
             <div><small>Completed sets</small><strong>{importPreview.summary.completedSets.toLocaleString()}</strong></div>
             <div><small>Exercises</small><strong>{importPreview.summary.exercises}</strong></div>
             <div><small>Training locations</small><strong>{importPreview.summary.equipmentProfiles}</strong></div>
+            <div><small>Starting route</small><strong>{importPreview.summary.placementRoute}</strong></div>
+            <div><small>Placement confidence</small><strong>{importPreview.summary.placementConfidence}</strong></div>
             <div><small>Sessions</small><strong>{importPreview.summary.sessions}</strong></div>
             <div><small>Surveys</small><strong>{importPreview.summary.surveys}</strong></div>
             <div><small>Feedback follow-ups</small><strong>{importPreview.summary.deferredFeedback}</strong></div>

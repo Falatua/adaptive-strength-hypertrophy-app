@@ -2,6 +2,7 @@ import { subDays } from 'date-fns'
 import { nanoid } from 'nanoid'
 import { makeSets } from './training-engine'
 import { derivePersonalRecords } from './history-engine'
+import { buildPlacementAssessment } from './placement-engine'
 import type { AthleteProfile, CompletedSetRecord, EquipmentProfile, Exercise, MesocyclePlan, TrainingSession } from './types'
 
 export const exercises: Exercise[] = [
@@ -166,16 +167,22 @@ export const athlete: AthleteProfile = {
   name: 'JB',
   trainingAge: 8,
   goal: 'Powerbuilding: improve squat, bench, and sumo while growing chest, back, and arms',
-  entryRoute: 'Direct Strength + Hypertrophy Development',
+  entryRoute: 'Base-Building Cycle',
   strengthAnchors: ['competition-squat', 'competition-bench', 'sumo-deadlift'],
   priorityRegions: ['chest', 'back', 'triceps'],
   weeklyOpportunities: 3,
   defaultMinutes: 60,
   equipmentProfile: 'Commercial Gym',
   continuity: 'interrupted',
+  placement: buildPlacementAssessment({
+    goal: 'powerbuilding', fixedEvent: null, trainingAge: 8, continuity: 'interrupted', movementSkill: 5,
+    strengthTolerance: 4, volumeTolerance: 4, scheduleStability: 2, dataConfidence: 3, painState: 'none',
+    weeklyOpportunities: 3, defaultMinutes: 60, equipmentProfileId: 'equipment-commercial-gym', skippedFields: []
+  }, '2026-08-10T00:00:00.000Z'),
   level: {
     experience: 5,
     recentContinuity: 3,
+    movementSkill: 5,
     strengthTolerance: 4,
     volumeTolerance: 4,
     scheduleStability: 2,

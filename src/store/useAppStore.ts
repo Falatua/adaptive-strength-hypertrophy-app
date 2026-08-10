@@ -11,6 +11,7 @@ import { rankExerciseSubstitutions } from '../domain/substitution-engine'
 import { buildDeferredFeedbackRequest, expireDeferredFeedbackRequests, summarizeSurveyEvidence } from '../domain/survey-engine'
 import { projectExerciseCatalogEdit, type ExerciseCatalogInput } from '../domain/catalog-engine'
 import { equipmentProfileError, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad, normalizedEquipmentProfile } from '../domain/equipment-engine'
+import { legacyPlacementForAthlete, placementRouteLabels } from '../domain/placement-engine'
 import type {
   AppSettings,
   AthleteProfile,
@@ -57,6 +58,7 @@ interface AppState {
   setNav: (nav: NavKey) => void
   setNotice: (notice: string | null) => void
   completeOnboarding: (profile: Partial<AthleteProfile>) => void
+  restartOnboarding: () => void
   updateAthlete: (profile: Partial<AthleteProfile>) => void
   updateSettings: (settings: Partial<AppSettings>) => void
   setActiveEquipmentProfile: (profileId: string) => { ok: boolean; error?: string }
@@ -135,7 +137,54 @@ export const useAppStore = create<AppState>()(
       ...fresh(),
       setNav: (nav) => set({ nav }),
       setNotice: (notice) => set({ notice }),
-      completeOnboarding: (profile) => set((state) => ({ athlete: { ...state.athlete, ...profile }, onboardingComplete: true })),
+      completeOnboarding: (profile) => set((state) => {
+        const athlete = { ...state.athlete, ...profile }
+        const route = athlete.placement.selectedRoute
+        const dominantAdaptation = route === 'hypertrophy' ? 'hypertrophy' as const
+          : ['strength', 'power', 'event-specific'].includes(route) ? 'strength' as const
+            : route === 'powerbuilding' ? 'powerbuilding' as const
+              : 'reacclimation' as const
+        const activePlan = state.mesocycles.find((plan) => plan.id === state.activeMesocycleId)
+        const planFields = {
+          title: `${placementRouteLabels[route]} · Starting Cycle`,
+          dominantAdaptation,
+          entryCriteria: athlete.placement.reasons.join(' '),
+          successCriteria: athlete.placement.exitCriteria.join('; '),
+          exitPlan: `Verify placement across the first one to three productive sessions. ${athlete.placement.verificationPlan[0]}`,
+          revisionReason: `${athlete.placement.ruleVersion} onboarding placement · ${athlete.placement.decision}`,
+          weeklyOpportunities: athlete.weeklyOpportunities,
+          defaultMinutes: athlete.defaultMinutes
+        }
+        const isReassessment = Boolean(activePlan?.revisionReason.startsWith(`${athlete.placement.ruleVersion} onboarding placement`))
+        const now = new Date().toISOString()
+        const futureSessionIds = state.sessions.filter((session) => ['planned', 'deferred'].includes(session.status)).map((session) => session.id)
+        const replacementPlanId = isReassessment && activePlan ? nanoid() : state.activeMesocycleId
+        const mesocycles = isReassessment && activePlan ? [
+          ...state.mesocycles.map((plan) => plan.id === activePlan.id ? { ...plan, status: 'superseded' as const } : plan),
+          {
+            ...activePlan,
+            ...planFields,
+            id: replacementPlanId as string,
+            version: Math.max(...state.mesocycles.map((plan) => plan.version)) + 1,
+            status: 'active' as const,
+            createdAt: now,
+            effectiveAt: now,
+            supersedesId: activePlan.id,
+            revisionReason: `${athlete.placement.ruleVersion} reassessment · ${athlete.placement.decision}`,
+            sessionIds: futureSessionIds
+          }
+        ] : state.mesocycles.map((plan) => plan.id === state.activeMesocycleId ? { ...plan, ...planFields } : plan)
+        return {
+          athlete,
+          settings: { ...state.settings, availableMinutes: athlete.defaultMinutes },
+          mesocycles,
+          sessions: isReassessment && activePlan ? state.sessions.map((session) => futureSessionIds.includes(session.id) ? { ...session, mesocycleId: replacementPlanId as string, planVersion: Math.max(...state.mesocycles.map((plan) => plan.version)) + 1 } : session) : state.sessions,
+          activeMesocycleId: replacementPlanId,
+          onboardingComplete: true,
+          notice: `${placementRouteLabels[route]} saved as a ${athlete.placement.confidence}-confidence starting hypothesis.`
+        }
+      }),
+      restartOnboarding: () => set({ onboardingComplete: false, activeSessionId: null, nav: 'today', notice: null }),
       updateAthlete: (profile) => set((state) => ({ athlete: { ...state.athlete, ...profile } })),
       updateSettings: (settings) => set((state) => ({ settings: { ...state.settings, ...settings } })),
       setActiveEquipmentProfile: (profileId) => {
@@ -700,7 +749,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 9,
+      version: 10,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,
@@ -731,7 +780,16 @@ export const useAppStore = create<AppState>()(
           ...persisted,
           settings: { ...structuredClone(initialSettings), ...(persisted.settings ?? {}), activeEquipmentProfileId: legacyProfile.id, equipmentLocation: legacyProfile.name },
           equipmentProfiles,
-          athlete: { ...persisted.athlete, equipmentProfile: legacyProfile.name },
+          athlete: {
+            ...persisted.athlete,
+            equipmentProfile: legacyProfile.name,
+            placement: persisted.athlete?.placement ?? legacyPlacementForAthlete(persisted.athlete ?? seedAthlete),
+            level: {
+              ...seedAthlete.level,
+              ...(persisted.athlete?.level ?? {}),
+              movementSkill: persisted.athlete?.level?.movementSkill ?? persisted.athlete?.level?.strengthTolerance ?? seedAthlete.level.movementSkill
+            }
+          },
           mesocycles: persisted.mesocycles?.length ? persisted.mesocycles : structuredClone(seedMesocycles),
           activeMesocycleId: persisted.activeMesocycleId ?? seedMesocycles[0]?.id ?? null,
           historyMutations: (persisted.historyMutations ?? []).map((event) => ({
