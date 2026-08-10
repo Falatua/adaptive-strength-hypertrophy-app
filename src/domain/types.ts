@@ -160,6 +160,7 @@ export interface CompletedSetRecord {
   rir: number
   technique: number
   pain: number
+  qualityConfirmed?: boolean
   setIndex: number
   originalExerciseId?: string
   originalExerciseName?: string
@@ -215,7 +216,7 @@ export interface PersonalRecord {
     formulaVersion?: 'epley-v1'
     eligibleRepRange?: [number, number]
   }
-  validation: 'validated'
+  validation: 'validated' | 'numeric-only'
   ruleVersion: 'pr-v2'
 }
 
@@ -236,7 +237,7 @@ export interface AchievementEvent {
   sourceSessionId: string
   sourceSetIds: string[]
   priorSourceSetIds: string[]
-  validation: 'validated'
+  validation: 'validated' | 'numeric-only'
   ruleVersion: 'achievement-v1'
 }
 

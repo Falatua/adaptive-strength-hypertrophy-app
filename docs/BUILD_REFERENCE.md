@@ -37,6 +37,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Deterministic achievement replay for personal records, load and repetition micro wins, quality wins, baselines, returns, and consistency, with completed source-set provenance.
 - Opportunity prompts calculated only from prescribed targets. Athlete-entered actuals can never be reclassified as an app-prescribed record attempt.
 - Provisional in-workout achievement feedback and a corrected-history-aware Progress ledger.
+- A fully validated PR requires confirmed technique and pain feedback. Survey-free sessions keep their numbers as visibly numeric-only bests.
 - Athlete-controlled celebration level, quiet mode, opportunity prompts, session achievements, reduced motion, pixel confetti, sounds preference, and supported-device haptics.
 - Athlete model, survey controls, focused mode, data export, and local reset.
 - Version 6 open-JSON backup with expanded record definitions, celebration controls, plan and review history, integrity checks, versions 1 through 5 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.

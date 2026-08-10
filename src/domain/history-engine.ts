@@ -34,10 +34,12 @@ const sameNumber = (values: number[]) => values.length > 0 && values.every((valu
 const setSchemeKey = (sets: CompletedSetRecord[]) => orderedSets(sets).map((workSet) => workSet.reps).join('-')
 const recordDate = (sets: CompletedSetRecord[]) => latest(sets).completedAt
 
-const record = (input: Omit<PersonalRecord, 'scope' | 'validation' | 'ruleVersion'>): PersonalRecord => ({
+const validationFor = (sets: CompletedSetRecord[]): PersonalRecord['validation'] =>
+  sets.every((workSet) => workSet.qualityConfirmed === true && workSet.technique >= 3 && workSet.pain <= 3) ? 'validated' : 'numeric-only'
+
+const record = (input: Omit<PersonalRecord, 'scope' | 'ruleVersion'>): PersonalRecord => ({
   ...input,
   scope: 'all-time',
-  validation: 'validated',
   ruleVersion: recordRuleVersion
 })
 
@@ -58,13 +60,13 @@ export function derivePersonalRecords(history: CompletedSetRecord[]): PersonalRe
       record({
         id: `record:${exerciseId}:absolute-load`, exerciseId, exerciseName, type: 'absolute-load', category: 'strength',
         value: loadSet.load, unit: 'load', label: `${loadSet.load} heaviest completed load`, achievedAt: loadSet.completedAt,
-        sourceSessionId: loadSet.sessionId, sourceSetIds: [loadSet.id], context: { load: loadSet.load, reps: loadSet.reps }
+        sourceSessionId: loadSet.sessionId, sourceSetIds: [loadSet.id], context: { load: loadSet.load, reps: loadSet.reps }, validation: validationFor([loadSet])
       }),
       record({
         id: `record:${exerciseId}:exercise-session-volume`, exerciseId, exerciseName, type: 'exercise-session-volume', category: 'workload',
         value: historyVolume(volumeSets), unit: 'volume-load', label: `${historyVolume(volumeSets).toLocaleString()} exact-movement session volume`,
         achievedAt: recordDate(volumeSets), sourceSessionId: volumeSets[0].sessionId, sourceSetIds: orderedSets(volumeSets).map((workSet) => workSet.id),
-        context: { setCount: volumeSets.length, repetitionScheme: orderedSets(volumeSets).map((workSet) => workSet.reps) }
+        context: { setCount: volumeSets.length, repetitionScheme: orderedSets(volumeSets).map((workSet) => workSet.reps) }, validation: validationFor(volumeSets)
       })
     )
 
@@ -74,7 +76,7 @@ export function derivePersonalRecords(history: CompletedSetRecord[]): PersonalRe
         id: `record:${exerciseId}:estimated-strength`, exerciseId, exerciseName, type: 'estimated-strength', category: 'strength',
         value: estimated, unit: 'estimated-load', label: `${estimated} estimated strength`, achievedAt: strengthSet.completedAt,
         sourceSessionId: strengthSet.sessionId, sourceSetIds: [strengthSet.id],
-        context: { load: strengthSet.load, reps: strengthSet.reps, formula: 'epley', formulaVersion: 'epley-v1', eligibleRepRange: [1, 12] }
+        context: { load: strengthSet.load, reps: strengthSet.reps, formula: 'epley', formulaVersion: 'epley-v1', eligibleRepRange: [1, 12] }, validation: validationFor([strengthSet])
       }))
     }
 
@@ -89,7 +91,7 @@ export function derivePersonalRecords(history: CompletedSetRecord[]): PersonalRe
       records.push(record({
         id: `record:${exerciseId}:reps-at-load:${load}`, exerciseId, exerciseName, type: 'reps-at-load', category: 'repetition',
         value: winner.reps, unit: 'repetitions', label: `${winner.reps} reps at ${load}`, achievedAt: winner.completedAt,
-        sourceSessionId: winner.sessionId, sourceSetIds: [winner.id], context: { load, reps: winner.reps }
+        sourceSessionId: winner.sessionId, sourceSetIds: [winner.id], context: { load, reps: winner.reps }, validation: validationFor([winner])
       }))
     })
     byReps.forEach((repSets, reps) => {
@@ -97,7 +99,7 @@ export function derivePersonalRecords(history: CompletedSetRecord[]): PersonalRe
       records.push(record({
         id: `record:${exerciseId}:load-for-reps:${reps}`, exerciseId, exerciseName, type: 'load-for-reps', category: 'strength',
         value: winner.load, unit: 'load', label: `${winner.load} for ${reps} reps`, achievedAt: winner.completedAt,
-        sourceSessionId: winner.sessionId, sourceSetIds: [winner.id], context: { load: winner.load, reps }
+        sourceSessionId: winner.sessionId, sourceSetIds: [winner.id], context: { load: winner.load, reps }, validation: validationFor([winner])
       }))
     })
 
@@ -117,7 +119,7 @@ export function derivePersonalRecords(history: CompletedSetRecord[]): PersonalRe
         id: `record:${exerciseId}:set-scheme:${key}`, exerciseId, exerciseName, type: 'set-scheme', category: 'scheme',
         value: winner[0].load, unit: 'load', label: `${schemeLabel} at ${winner[0].load}`, achievedAt: recordDate(winner),
         sourceSessionId: winner[0].sessionId, sourceSetIds: winner.map((workSet) => workSet.id),
-        context: { load: winner[0].load, setCount: winner.length, repetitionScheme: repetitions }
+        context: { load: winner[0].load, setCount: winner.length, repetitionScheme: repetitions }, validation: validationFor(winner)
       }))
     })
   })
@@ -128,7 +130,7 @@ export function derivePersonalRecords(history: CompletedSetRecord[]): PersonalRe
     records.push(record({
       id: 'record:workout:session-volume', exerciseId: null, exerciseName: 'Whole workout', type: 'workout-session-volume', category: 'workload',
       value: historyVolume(winner), unit: 'volume-load', label: `${historyVolume(winner).toLocaleString()} workout volume`, achievedAt: recordDate(winner),
-      sourceSessionId: winner[0].sessionId, sourceSetIds: orderedSets(winner).map((workSet) => workSet.id), context: { setCount: winner.length }
+      sourceSessionId: winner[0].sessionId, sourceSetIds: orderedSets(winner).map((workSet) => workSet.id), context: { setCount: winner.length }, validation: validationFor(winner)
     }))
   }
 
@@ -157,10 +159,10 @@ export function deriveAchievementEvents(history: CompletedSetRecord[]): Achievem
       if (!before || after.value <= before.value) return
       events.push({
         id: `achievement:${after.id}:${sessionId}`, kind: 'personal-record', category: after.category, recordType: after.type,
-        title: categoryTitle(after), explanation: `${after.label}, improved from ${before.label}.`, exerciseId: after.exerciseId,
+        title: after.validation === 'validated' ? categoryTitle(after) : 'Unverified number best', explanation: `${after.label}, improved from ${before.label}.${after.validation === 'numeric-only' ? ' Technique and pain were not confirmed, so this is not a validated PR.' : ''}`, exerciseId: after.exerciseId,
         exerciseName: after.exerciseName, achievedAt: after.achievedAt, scope: 'all-time', value: after.value,
         priorValue: before.value, delta: after.value - before.value, sourceSessionId: sessionId,
-        sourceSetIds: after.sourceSetIds, priorSourceSetIds: before.sourceSetIds, validation: 'validated', ruleVersion: achievementRuleVersion
+        sourceSetIds: after.sourceSetIds, priorSourceSetIds: before.sourceSetIds, validation: after.validation, ruleVersion: achievementRuleVersion
       })
     })
 
@@ -194,7 +196,7 @@ export function deriveAchievementEvents(history: CompletedSetRecord[]): Achievem
             explanation: `More load across the same completed repetition scheme without worse effort.`, exerciseId, exerciseName,
             achievedAt: recordDate(exerciseSets), scope: 'recent', value: currentLoad, priorValue: priorLoad, delta: currentLoad - priorLoad,
             sourceSessionId: sessionId, sourceSetIds: currentOrdered.map((workSet) => workSet.id), priorSourceSetIds: priorOrdered.map((workSet) => workSet.id),
-            validation: 'validated', ruleVersion: achievementRuleVersion
+            validation: validationFor(currentOrdered), ruleVersion: achievementRuleVersion
           })
         }
         const currentReps = currentOrdered.reduce((sum, workSet) => sum + workSet.reps, 0)
@@ -205,10 +207,10 @@ export function deriveAchievementEvents(history: CompletedSetRecord[]): Achievem
             explanation: `More total repetitions across the same number of sets at the same load and no worse effort.`, exerciseId, exerciseName,
             achievedAt: recordDate(exerciseSets), scope: 'recent', value: currentReps, priorValue: priorReps, delta: currentReps - priorReps,
             sourceSessionId: sessionId, sourceSetIds: currentOrdered.map((workSet) => workSet.id), priorSourceSetIds: priorOrdered.map((workSet) => workSet.id),
-            validation: 'validated', ruleVersion: achievementRuleVersion
+            validation: validationFor(currentOrdered), ruleVersion: achievementRuleVersion
           })
         }
-        if (currentLoad !== null && currentLoad === priorLoad && currentReps === priorReps && currentRir >= priorRir + 1) {
+        if (currentLoad !== null && currentLoad === priorLoad && currentReps === priorReps && currentRir >= priorRir + 1 && validationFor(currentOrdered) === 'validated' && validationFor(priorOrdered) === 'validated') {
           events.push({
             id: `achievement:quality-win:${exerciseId}:${sessionId}`, kind: 'micro-win', category: 'quality', title: 'Quality micro win',
             explanation: `The same load and repetitions finished with ${currentRir.toFixed(1)} average RIR instead of ${priorRir.toFixed(1)}.`, exerciseId, exerciseName,

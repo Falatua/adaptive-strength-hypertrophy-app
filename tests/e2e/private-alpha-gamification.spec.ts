@@ -24,7 +24,7 @@ test('validates an athlete-controlled PR without changing the prescription', asy
   await expect(page.getByText('Provisional until the workout is finished and saved.').first()).toBeVisible()
 
   await page.getByRole('button', { name: 'Finish workout' }).click()
-  await page.getByRole('button', { name: 'Finish without survey' }).click()
+  await page.getByRole('button', { name: 'Save feedback & finish' }).click()
   await expect(page.getByRole('heading', { name: 'PRs and micro wins' })).toBeVisible()
   await expect(page.getByText('Strength PR').first()).toBeVisible()
   await expect(page.getByText('185 heaviest completed load', { exact: false }).first()).toBeVisible()

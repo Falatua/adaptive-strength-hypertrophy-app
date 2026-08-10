@@ -417,6 +417,8 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .record-list strong, .record-list small { display: block; }
 .record-list > div > span:last-child { color: var(--muted); font: 700 .63rem/1 ui-monospace, monospace; text-transform: uppercase; }
 .record-medal { color: var(--lime); }
+.record-list > div.is-numeric-only { opacity: .78; }
+.record-list > div.is-numeric-only .record-medal { color: var(--orange); }
 .record-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
 .record-filter button { border: 1px solid var(--line); border-radius: 999px; padding: 7px 10px; background: var(--panel-2); color: var(--muted); font: 700 .61rem/1 ui-monospace, monospace; text-transform: uppercase; }
 .record-filter button.selected { border-color: rgb(231 255 88 / 45%); background: rgb(231 255 88 / 10%); color: var(--lime); }
@@ -426,6 +428,7 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .achievement-row:first-child, .opportunity-list > div:first-child { border-top: 0; }
 .achievement-glyph { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid rgb(231 255 88 / 32%); border-radius: 7px; background: rgb(231 255 88 / 7%); color: var(--lime); }
 .achievement-row--micro-win .achievement-glyph { border-color: rgb(124 184 255 / 32%); background: rgb(124 184 255 / 8%); color: #7cb8ff; }
+.achievement-row.is-numeric-only .achievement-glyph { border-color: rgb(255 122 69 / 34%); background: rgb(255 122 69 / 8%); color: var(--orange); }
 .achievement-row strong, .achievement-row small, .achievement-row em { display: block; }
 .achievement-row small { margin-top: 3px; color: var(--muted); line-height: 1.4; }
 .achievement-row em { margin-top: 5px; color: var(--muted-2); font: 600 .58rem/1.3 ui-monospace, monospace; font-style: normal; text-transform: uppercase; }

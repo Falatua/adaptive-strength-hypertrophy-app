@@ -250,6 +250,7 @@ export const history: CompletedSetRecord[] = Array.from({ length: 7 }, (_, week)
       rir: 2,
       technique: 4,
       pain: 0,
+      qualityConfirmed: true,
       setIndex
     }))
   )

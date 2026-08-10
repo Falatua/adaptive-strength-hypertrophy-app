@@ -182,6 +182,7 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
     if (typeof workSet.sessionId !== 'string') errors.push('A completed set is missing its session reference.')
     if (!isValidDate(workSet.completedAt)) errors.push('A completed set has an invalid date.')
     if (!isFiniteNonNegative(workSet.reps) || !isFiniteNonNegative(workSet.load) || !isFiniteNonNegative(workSet.rir)) errors.push('A completed set has invalid numeric training data.')
+    if (workSet.qualityConfirmed !== undefined && typeof workSet.qualityConfirmed !== 'boolean') errors.push('A completed set has an invalid quality-confirmation state.')
   })
 
   sessions.forEach((session) => {
@@ -210,7 +211,7 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   records.forEach((record) => {
     const exactExercise = isRecord(record) && typeof record.exerciseId === 'string' && exerciseIds.has(record.exerciseId)
     const wholeWorkout = isRecord(record) && record.exerciseId === null && record.type === 'workout-session-volume'
-    if (!isRecord(record) || !(exactExercise || wholeWorkout) || typeof record.exerciseName !== 'string' || !['absolute-load', 'reps-at-load', 'load-for-reps', 'set-scheme', 'estimated-strength', 'exercise-session-volume', 'workout-session-volume'].includes(String(record.type)) || !['strength', 'repetition', 'scheme', 'workload'].includes(String(record.category)) || record.scope !== 'all-time' || !isFiniteNonNegative(record.value) || !isValidDate(record.achievedAt) || typeof record.sourceSessionId !== 'string' || !Array.isArray(record.sourceSetIds) || record.sourceSetIds.length === 0 || record.sourceSetIds.some((id) => typeof id !== 'string' || !completedSetIds.has(id)) || !isRecord(record.context) || record.validation !== 'validated' || record.ruleVersion !== 'pr-v2') errors.push('A personal record is invalid or lacks completed source sets.')
+    if (!isRecord(record) || !(exactExercise || wholeWorkout) || typeof record.exerciseName !== 'string' || !['absolute-load', 'reps-at-load', 'load-for-reps', 'set-scheme', 'estimated-strength', 'exercise-session-volume', 'workout-session-volume'].includes(String(record.type)) || !['strength', 'repetition', 'scheme', 'workload'].includes(String(record.category)) || record.scope !== 'all-time' || !isFiniteNonNegative(record.value) || !isValidDate(record.achievedAt) || typeof record.sourceSessionId !== 'string' || !Array.isArray(record.sourceSetIds) || record.sourceSetIds.length === 0 || record.sourceSetIds.some((id) => typeof id !== 'string' || !completedSetIds.has(id)) || !isRecord(record.context) || !['validated', 'numeric-only'].includes(String(record.validation)) || record.ruleVersion !== 'pr-v2') errors.push('A personal record is invalid or lacks completed source sets.')
   })
   if (stableStringify(records) !== stableStringify(derivePersonalRecords(history as CompletedSetRecord[]))) errors.push('Personal records do not match the completed source sets.')
 

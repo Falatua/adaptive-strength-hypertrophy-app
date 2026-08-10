@@ -58,7 +58,7 @@ interface AppState {
   toggleFavorite: (exerciseId: string) => void
   setJointFeeling: (exerciseId: string, jointFeeling: Exercise['jointFeeling']) => void
   addCustomExercise: (exercise: Exercise) => void
-  correctHistorySet: (setId: string, data: Pick<CompletedSetRecord, 'reps' | 'load' | 'rir' | 'technique' | 'pain' | 'completedAt'>, reason: string) => { ok: boolean; error?: string }
+  correctHistorySet: (setId: string, data: Pick<CompletedSetRecord, 'reps' | 'load' | 'rir' | 'technique' | 'pain' | 'qualityConfirmed' | 'completedAt'>, reason: string) => { ok: boolean; error?: string }
   deleteHistorySet: (setId: string, reason: string) => { ok: boolean; error?: string }
   mergeExercises: (sourceIds: string[], targetId: string, reason: string) => { ok: boolean; error?: string }
   undoLatestHistoryMutation: () => { ok: boolean; error?: string }
@@ -177,6 +177,11 @@ export const useAppStore = create<AppState>()(
         const session = state.sessions.find((candidate) => candidate.id === sessionId)
         if (!session) return
         const completedAt = new Date().toISOString()
+        const techniqueAnswer = feedback.answers.find((answer) => answer.id === 'technique' && answer.status === 'answered')
+        const painAnswer = feedback.answers.find((answer) => answer.id === 'pain' && answer.status === 'answered')
+        const qualityConfirmed = typeof techniqueAnswer?.value === 'number' && typeof painAnswer?.value === 'number'
+        const technique = qualityConfirmed ? Number(techniqueAnswer.value) : 0
+        const pain = qualityConfirmed ? Number(painAnswer.value) : 0
         const newHistory: CompletedSetRecord[] = session.exercises.flatMap((plannedExercise) => {
           const exercise = state.exercises.find((candidate) => candidate.id === plannedExercise.exerciseId)
           if (!exercise) return []
@@ -184,7 +189,7 @@ export const useAppStore = create<AppState>()(
             id: nanoid(), sessionId, exerciseId: exercise.id, exerciseName: exercise.name, family: exercise.family,
             primaryRegion: exercise.primaryRegion, completedAt, reps: workSet.completedReps ?? workSet.targetReps,
             load: workSet.completedLoad ?? workSet.targetLoad, rir: workSet.actualRir ?? workSet.targetRir,
-            technique: 4, pain: 0, setIndex
+            technique, pain, qualityConfirmed, setIndex
           }] : [])
         })
         const status = sessionCompletionStatus(session)

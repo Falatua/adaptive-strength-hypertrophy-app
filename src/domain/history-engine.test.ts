@@ -58,6 +58,17 @@ describe('source history replay', () => {
     expect(events.some((event) => event.category === 'baseline')).toBe(true)
     expect(events.every((event) => event.sourceSetIds.length > 0 && event.sourceSetIds.every((id) => sourceIds.has(id)))).toBe(true)
   })
+
+  it('labels an improved number without confirmed technique and pain as numeric-only', () => {
+    const template = history.find((workSet) => workSet.exerciseId === 'competition-bench')!
+    const earlier = { ...template, id: 'confirmed-earlier', sessionId: 'earlier', completedAt: '2026-08-01T12:00:00.000Z', load: 180, qualityConfirmed: true }
+    const unconfirmed = { ...template, id: 'unconfirmed-later', sessionId: 'later', completedAt: '2026-08-10T12:00:00.000Z', load: 185, qualityConfirmed: false }
+    const record = derivePersonalRecords([earlier, unconfirmed]).find((candidate) => candidate.type === 'absolute-load')
+    const event = deriveAchievementEvents([earlier, unconfirmed]).find((candidate) => candidate.recordType === 'absolute-load')
+    expect(record?.validation).toBe('numeric-only')
+    expect(event).toMatchObject({ title: 'Unverified number best', validation: 'numeric-only' })
+    expect(event?.explanation).toMatch(/not a validated PR/i)
+  })
 })
 
 describe('duplicate identity control', () => {
