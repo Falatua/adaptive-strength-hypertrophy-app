@@ -1,15 +1,17 @@
 import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { athlete as seedAthlete, exercises as seedExercises, history as seedHistory, mesocycles as seedMesocycles, records as seedRecords, sessions as seedSessions } from '../domain/seed'
+import { athlete as seedAthlete, exercises as seedExercises, history as seedHistory, mesocycles as seedMesocycles, sessions as seedSessions } from '../domain/seed'
 import { compressSession, readinessFromSurvey, replanAfterMiss, sessionCompletionStatus } from '../domain/training-engine'
 import { backupStateFrom, type RestorableAppState } from '../domain/backup'
 import { buildMesocyclePreview, createMesocyclePlan, replaceFuturePlan } from '../domain/mesocycle-engine'
+import { derivePersonalRecords, historyVolume, projectExerciseMerge } from '../domain/history-engine'
 import type {
   AppSettings,
   AthleteProfile,
   CompletedSetRecord,
   Exercise,
+  HistoryMutationEvent,
   MesocycleDraft,
   MesocyclePlan,
   MissedSessionReason,
@@ -30,6 +32,7 @@ interface AppState {
   surveys: SurveyRecord[]
   records: PersonalRecord[]
   mesocycles: MesocyclePlan[]
+  historyMutations: HistoryMutationEvent[]
   activeMesocycleId: string | null
   activeSessionId: string | null
   onboardingComplete: boolean
@@ -51,6 +54,10 @@ interface AppState {
   toggleFavorite: (exerciseId: string) => void
   setJointFeeling: (exerciseId: string, jointFeeling: Exercise['jointFeeling']) => void
   addCustomExercise: (exercise: Exercise) => void
+  correctHistorySet: (setId: string, data: Pick<CompletedSetRecord, 'reps' | 'load' | 'rir' | 'technique' | 'pain' | 'completedAt'>, reason: string) => { ok: boolean; error?: string }
+  deleteHistorySet: (setId: string, reason: string) => { ok: boolean; error?: string }
+  mergeExercises: (sourceIds: string[], targetId: string, reason: string) => { ok: boolean; error?: string }
+  undoLatestHistoryMutation: () => { ok: boolean; error?: string }
   applyMesocycleRevision: (draft: MesocycleDraft) => { ok: boolean; error?: string }
   restoreBackup: (data: RestorableAppState) => void
   undoLastRestore: () => void
@@ -76,8 +83,9 @@ const fresh = () => ({
   sessions: structuredClone(seedSessions),
   history: structuredClone(seedHistory),
   surveys: [] as SurveyRecord[],
-  records: structuredClone(seedRecords),
+  records: derivePersonalRecords(seedHistory),
   mesocycles: structuredClone(seedMesocycles),
+  historyMutations: [] as HistoryMutationEvent[],
   activeMesocycleId: seedMesocycles[0]?.id ?? null,
   activeSessionId: null,
   onboardingComplete: false,
@@ -171,14 +179,17 @@ export const useAppStore = create<AppState>()(
         const status = sessionCompletionStatus(session)
         const difficulty = feedback.answers.find((answer) => answer.id === 'difficulty' && answer.status === 'answered')
         const sessionRpe = typeof difficulty?.value === 'number' ? difficulty.value : undefined
-        set((current) => ({
-          history: [...current.history, ...newHistory],
+        set((current) => {
+          const history = [...current.history, ...newHistory]
+          return {
+          history,
+          records: derivePersonalRecords(history),
           surveys: [...current.surveys, { id: nanoid(), sessionId, type: 'post', completedAt, answers: feedback.answers, skipped: feedback.skipped }],
           sessions: current.sessions.map((candidate) => candidate.id === sessionId ? { ...candidate, status, completedAt, sessionRpe, note: feedback.note } : candidate),
           activeSessionId: null,
           nav: 'progress',
           notice: `${newHistory.length} working sets saved. Progress clocks updated from completed work only.`
-        }))
+        }})
       },
       skipExercise: (sessionId, plannedExerciseId) => set((state) => ({
         sessions: state.sessions.map((session) => session.id !== sessionId ? session : {
@@ -194,6 +205,76 @@ export const useAppStore = create<AppState>()(
       toggleFavorite: (exerciseId) => set((state) => ({ exercises: state.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, favorite: !exercise.favorite } : exercise) })),
       setJointFeeling: (exerciseId, jointFeeling) => set((state) => ({ exercises: state.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, jointFeeling } : exercise) })),
       addCustomExercise: (exercise) => set((state) => ({ exercises: [...state.exercises, exercise] })),
+      correctHistorySet: (setId, data, reason) => {
+        const state = get()
+        const workSet = state.history.find((candidate) => candidate.id === setId)
+        if (!workSet) return { ok: false, error: 'That completed set could not be found.' }
+        if (!reason.trim()) return { ok: false, error: 'Add a short reason so the correction remains auditable.' }
+        if ([data.reps, data.load, data.rir, data.technique, data.pain].some((value) => !Number.isFinite(value) || value < 0)) return { ok: false, error: 'Use valid zero-or-greater numbers.' }
+        if (Number.isNaN(new Date(data.completedAt).getTime())) return { ok: false, error: 'Use a valid completion date.' }
+        const history = state.history.map((candidate) => candidate.id === setId ? { ...candidate, ...data } : candidate)
+        const records = derivePersonalRecords(history)
+        const event: HistoryMutationEvent = {
+          id: nanoid(), type: 'set-corrected', createdAt: new Date().toISOString(), reason: reason.trim(),
+          description: `${workSet.exerciseName}: ${workSet.load} × ${workSet.reps} corrected to ${data.load} × ${data.reps}.`,
+          affectedSetIds: [setId], before: { history: state.history, exercises: state.exercises, sessions: state.sessions },
+          after: { history, exercises: state.exercises, sessions: state.sessions }, recordsBefore: state.records, recordsAfter: records,
+          volumeBefore: historyVolume(state.history), volumeAfter: historyVolume(history)
+        }
+        set({ history, records, historyMutations: [...state.historyMutations, event], notice: `Set corrected. Volume changed by ${(event.volumeAfter - event.volumeBefore).toLocaleString()} and every record was replayed.` })
+        return { ok: true }
+      },
+      deleteHistorySet: (setId, reason) => {
+        const state = get()
+        const workSet = state.history.find((candidate) => candidate.id === setId)
+        if (!workSet) return { ok: false, error: 'That completed set could not be found.' }
+        if (!reason.trim()) return { ok: false, error: 'Add a short reason so the deletion remains auditable.' }
+        const history = state.history.filter((candidate) => candidate.id !== setId)
+        const records = derivePersonalRecords(history)
+        const event: HistoryMutationEvent = {
+          id: nanoid(), type: 'set-deleted', createdAt: new Date().toISOString(), reason: reason.trim(),
+          description: `${workSet.exerciseName}: ${workSet.load} × ${workSet.reps} removed from completed history.`,
+          affectedSetIds: [setId], before: { history: state.history, exercises: state.exercises, sessions: state.sessions },
+          after: { history, exercises: state.exercises, sessions: state.sessions }, recordsBefore: state.records, recordsAfter: records,
+          volumeBefore: historyVolume(state.history), volumeAfter: historyVolume(history)
+        }
+        set({ history, records, historyMutations: [...state.historyMutations, event], notice: 'Set removed. Volume, charts, exposure history, and records were replayed.' })
+        return { ok: true }
+      },
+      mergeExercises: (sourceIds, targetId, reason) => {
+        const state = get()
+        if (state.activeSessionId) return { ok: false, error: 'Finish or leave the active workout before merging movements.' }
+        if (!reason.trim()) return { ok: false, error: 'Add a short reason so the merge remains auditable.' }
+        try {
+          const projection = projectExerciseMerge({ exercises: state.exercises, history: state.history, sessions: state.sessions, athlete: state.athlete, sourceIds, targetId })
+          const records = derivePersonalRecords(projection.history)
+          const affectedSetIds = state.history.filter((workSet) => sourceIds.includes(workSet.exerciseId)).map((workSet) => workSet.id)
+          const event: HistoryMutationEvent = {
+            id: nanoid(), type: 'exercise-merged', createdAt: new Date().toISOString(), reason: reason.trim(),
+            description: `${projection.sources.map((exercise) => exercise.name).join(', ')} merged into ${projection.target.name}.`, affectedSetIds,
+            before: { history: state.history, exercises: state.exercises, sessions: state.sessions, athlete: state.athlete },
+            after: { history: projection.history, exercises: projection.exercises, sessions: projection.sessions, athlete: projection.athlete },
+            recordsBefore: state.records, recordsAfter: records, volumeBefore: historyVolume(state.history), volumeAfter: historyVolume(projection.history)
+          }
+          set({ exercises: projection.exercises, history: projection.history, sessions: projection.sessions, athlete: projection.athlete, records, historyMutations: [...state.historyMutations, event], notice: `${affectedSetIds.length} source sets now share ${projection.target.name}. Original names and an undo snapshot were preserved.` })
+          return { ok: true }
+        } catch (error) {
+          return { ok: false, error: error instanceof Error ? error.message : 'The movements could not be merged.' }
+        }
+      },
+      undoLatestHistoryMutation: () => {
+        const state = get()
+        const event = [...state.historyMutations].reverse().find((candidate) => !candidate.undoneAt)
+        if (!event) return { ok: false, error: 'There is no history change to undo.' }
+        const historyMutations = state.historyMutations.map((candidate) => candidate.id === event.id ? { ...candidate, undoneAt: new Date().toISOString() } : candidate)
+        set({
+          history: structuredClone(event.before.history), exercises: structuredClone(event.before.exercises), sessions: structuredClone(event.before.sessions),
+          athlete: event.before.athlete ? structuredClone(event.before.athlete) : state.athlete,
+          records: structuredClone(event.recordsBefore), historyMutations,
+          notice: `Undid: ${event.description} Charts and records now reflect the restored source data.`
+        })
+        return { ok: true }
+      },
       applyMesocycleRevision: (draft) => {
         const state = get()
         if (state.activeSessionId) return { ok: false, error: 'Finish or leave the active workout before revising the mesocycle.' }
@@ -246,7 +327,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 2,
+      version: 3,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,
@@ -255,6 +336,7 @@ export const useAppStore = create<AppState>()(
         history: state.history,
         surveys: state.surveys,
         records: state.records,
+        historyMutations: state.historyMutations,
         mesocycles: state.mesocycles,
         activeMesocycleId: state.activeMesocycleId,
         activeSessionId: state.activeSessionId,
@@ -266,7 +348,9 @@ export const useAppStore = create<AppState>()(
         return {
           ...persisted,
           mesocycles: persisted.mesocycles?.length ? persisted.mesocycles : structuredClone(seedMesocycles),
-          activeMesocycleId: persisted.activeMesocycleId ?? seedMesocycles[0]?.id ?? null
+          activeMesocycleId: persisted.activeMesocycleId ?? seedMesocycles[0]?.id ?? null,
+          historyMutations: persisted.historyMutations ?? [],
+          records: derivePersonalRecords(persisted.history ?? [])
         }
       }
     }

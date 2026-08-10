@@ -26,6 +26,8 @@ export interface Exercise {
   favorite: boolean
   jointFeeling: JointFeeling
   custom?: boolean
+  retired?: boolean
+  mergedIntoId?: string
 }
 
 export interface SetPrescription {
@@ -126,6 +128,10 @@ export interface CompletedSetRecord {
   technique: number
   pain: number
   setIndex: number
+  originalExerciseId?: string
+  originalExerciseName?: string
+  originalFamily?: string
+  originalPrimaryRegion?: BodyRegion
 }
 
 export interface SurveyAnswer {
@@ -162,6 +168,32 @@ export interface PersonalRecord {
   value: number
   label: string
   achievedAt: string
+  sourceSetIds: string[]
+}
+
+export type HistoryMutationType = 'set-corrected' | 'set-deleted' | 'exercise-merged'
+
+export interface HistoryMutationSnapshot {
+  history: CompletedSetRecord[]
+  exercises: Exercise[]
+  sessions: TrainingSession[]
+  athlete?: AthleteProfile
+}
+
+export interface HistoryMutationEvent {
+  id: string
+  type: HistoryMutationType
+  createdAt: string
+  reason: string
+  description: string
+  affectedSetIds: string[]
+  before: HistoryMutationSnapshot
+  after: HistoryMutationSnapshot
+  recordsBefore: PersonalRecord[]
+  recordsAfter: PersonalRecord[]
+  volumeBefore: number
+  volumeAfter: number
+  undoneAt?: string
 }
 
 export interface AthleteProfile {

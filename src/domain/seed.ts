@@ -1,7 +1,8 @@
 import { subDays } from 'date-fns'
 import { nanoid } from 'nanoid'
 import { makeSets } from './training-engine'
-import type { AthleteProfile, CompletedSetRecord, Exercise, MesocyclePlan, PersonalRecord, TrainingSession } from './types'
+import { derivePersonalRecords } from './history-engine'
+import type { AthleteProfile, CompletedSetRecord, Exercise, MesocyclePlan, TrainingSession } from './types'
 
 export const exercises: Exercise[] = [
   {
@@ -254,9 +255,4 @@ export const history: CompletedSetRecord[] = Array.from({ length: 7 }, (_, week)
   )
 ).flat()
 
-export const records: PersonalRecord[] = [
-  { id: 'pr-bench', exerciseId: 'competition-bench', exerciseName: 'Competition Bench Press', type: 'load', value: 250, label: '250 lb best bench', achievedAt: iso(subDays(today, 110)) },
-  { id: 'pr-sumo', exerciseId: 'sumo-deadlift', exerciseName: 'Sumo Deadlift', type: 'load', value: 455, label: '455 lb best sumo', achievedAt: iso(subDays(today, 180)) },
-  { id: 'pr-squat', exerciseId: 'competition-squat', exerciseName: 'Competition Back Squat', type: 'load', value: 365, label: '365 lb best squat', achievedAt: iso(subDays(today, 220)) },
-  { id: 'pr-board-volume', exerciseId: 'two-board-press', exerciseName: 'Two-Board Press', type: 'volume', value: 7440, label: '4 × 12 at 155', achievedAt: iso(subDays(today, 70)) }
-]
+export const records = derivePersonalRecords(history)

@@ -3,15 +3,17 @@ import type {
   AthleteProfile,
   CompletedSetRecord,
   Exercise,
+  HistoryMutationEvent,
   MesocyclePlan,
   PersonalRecord,
   SurveyRecord,
   TrainingSession
 } from './types'
+import { derivePersonalRecords } from './history-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 3
-export const BACKUP_APP_VERSION = '0.3.0'
+export const BACKUP_SCHEMA_VERSION = 4
+export const BACKUP_APP_VERSION = '0.4.0'
 
 export interface RestorableAppState {
   athlete: AthleteProfile
@@ -21,6 +23,7 @@ export interface RestorableAppState {
   history: CompletedSetRecord[]
   surveys: SurveyRecord[]
   records: PersonalRecord[]
+  historyMutations: HistoryMutationEvent[]
   mesocycles: MesocyclePlan[]
   activeMesocycleId: string | null
   activeSessionId: string | null
@@ -49,6 +52,7 @@ export interface BackupPreview {
     surveys: number
     records: number
     planVersions: number
+    historyChanges: number
     athleteName: string
     exportedAt: string
   }
@@ -102,7 +106,7 @@ function requireUniqueIds(values: unknown[], label: string, errors: string[]) {
 function validateState(candidate: unknown): asserts candidate is RestorableAppState {
   if (!isRecord(candidate)) throw new Error('Backup data is missing or invalid.')
   const errors: string[] = []
-  const arrays = ['exercises', 'sessions', 'history', 'surveys', 'records', 'mesocycles'] as const
+  const arrays = ['exercises', 'sessions', 'history', 'surveys', 'records', 'mesocycles', 'historyMutations'] as const
   arrays.forEach((key) => {
     if (!Array.isArray(candidate[key])) errors.push(`${key} must be an array.`)
     else if (candidate[key].length > 500_000) errors.push(`${key} exceeds the private-alpha restore limit.`)
@@ -120,16 +124,19 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   const surveys = candidate.surveys as unknown[]
   const records = candidate.records as unknown[]
   const mesocycles = candidate.mesocycles as unknown[]
+  const historyMutations = candidate.historyMutations as unknown[]
   requireUniqueIds(exercises, 'Exercises', errors)
   requireUniqueIds(sessions, 'Sessions', errors)
   requireUniqueIds(history, 'Completed sets', errors)
   requireUniqueIds(surveys, 'Surveys', errors)
   requireUniqueIds(records, 'Records', errors)
   requireUniqueIds(mesocycles, 'Mesocycles', errors)
+  requireUniqueIds(historyMutations, 'History changes', errors)
 
   const exerciseIds = new Set(exercises.flatMap((exercise) => isRecord(exercise) && typeof exercise.id === 'string' ? [exercise.id] : []))
   const sessionIds = new Set(sessions.flatMap((session) => isRecord(session) && typeof session.id === 'string' ? [session.id] : []))
   const mesocycleIds = new Set(mesocycles.flatMap((plan) => isRecord(plan) && typeof plan.id === 'string' ? [plan.id] : []))
+  const completedSetIds = new Set(history.flatMap((workSet) => isRecord(workSet) && typeof workSet.id === 'string' ? [workSet.id] : []))
 
   exercises.forEach((exercise) => {
     if (!isRecord(exercise) || typeof exercise.name !== 'string' || !Array.isArray(exercise.aliases) || !Array.isArray(exercise.equipment)) {
@@ -169,7 +176,13 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   })
 
   records.forEach((record) => {
-    if (!isRecord(record) || typeof record.exerciseId !== 'string' || !exerciseIds.has(record.exerciseId) || !isFiniteNonNegative(record.value) || !isValidDate(record.achievedAt)) errors.push('A personal record is invalid.')
+    if (!isRecord(record) || typeof record.exerciseId !== 'string' || !exerciseIds.has(record.exerciseId) || !isFiniteNonNegative(record.value) || !isValidDate(record.achievedAt) || !Array.isArray(record.sourceSetIds) || record.sourceSetIds.length === 0 || record.sourceSetIds.some((id) => typeof id !== 'string' || !completedSetIds.has(id))) errors.push('A personal record is invalid or lacks completed source sets.')
+  })
+  if (stableStringify(records) !== stableStringify(derivePersonalRecords(history as CompletedSetRecord[]))) errors.push('Personal records do not match the completed source sets.')
+
+  historyMutations.forEach((event) => {
+    if (!isRecord(event) || !['set-corrected', 'set-deleted', 'exercise-merged'].includes(String(event.type)) || !isValidDate(event.createdAt) || typeof event.reason !== 'string' || !Array.isArray(event.affectedSetIds) || !isRecord(event.before) || !isRecord(event.after) || !Array.isArray(event.recordsBefore) || !Array.isArray(event.recordsAfter) || !isFiniteNonNegative(event.volumeBefore) || !isFiniteNonNegative(event.volumeAfter)) errors.push('A history change is invalid.')
+    if (isRecord(event) && event.undoneAt !== undefined && !isValidDate(event.undoneAt)) errors.push('A history change has an invalid undo date.')
   })
 
   mesocycles.forEach((plan) => {
@@ -207,8 +220,9 @@ function migrateLegacyV1(candidate: Record<string, unknown>): { data: Restorable
     sessions: candidate.sessions,
     history: candidate.history,
     surveys: Array.isArray(candidate.surveys) ? candidate.surveys : [],
-    records: candidate.records,
+    records: derivePersonalRecords((candidate.history as CompletedSetRecord[]) ?? []),
     mesocycles: [],
+    historyMutations: [],
     activeMesocycleId: null,
     activeSessionId: typeof candidate.activeSessionId === 'string' ? candidate.activeSessionId : null,
     onboardingComplete: typeof candidate.onboardingComplete === 'boolean' ? candidate.onboardingComplete : true
@@ -230,13 +244,32 @@ function migrateV2(candidate: Record<string, unknown>): { data: RestorableAppSta
   const data = {
     ...candidate.data,
     mesocycles: [],
-    activeMesocycleId: null
+    activeMesocycleId: null,
+    historyMutations: [],
+    records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
   validateState(data)
   return {
     data,
     exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
     warning: 'Version 2 backup migrated safely. Training history is intact; create a mesocycle to begin versioned planning.'
+  }
+}
+
+function migrateV3(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = {
+    ...candidate.data,
+    historyMutations: [],
+    records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
+  }
+  validateState(data)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 3 backup migrated safely. Records were replayed from completed source sets and the correction ledger starts empty.'
   }
 }
 
@@ -252,15 +285,19 @@ export function parseBackup(raw: string): BackupPreview {
   const warnings: string[] = []
   let backup: ForgePathBackup
   if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === BACKUP_SCHEMA_VERSION) {
-    validateState(candidate.data)
     if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') {
       throw new Error('Backup integrity information is missing.')
     }
-    if (candidate.integrity.value !== integrityFor(candidate.data)) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+    if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+    validateState(candidate.data)
     if (!isValidDate(candidate.exportedAt)) throw new Error('Backup export date is invalid.')
     backup = candidate as unknown as ForgePathBackup
   } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 2) {
     const migrated = migrateV2(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 3) {
+    const migrated = migrateV3(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
@@ -281,6 +318,7 @@ export function parseBackup(raw: string): BackupPreview {
       surveys: backup.data.surveys.length,
       records: backup.data.records.length,
       planVersions: backup.data.mesocycles.length,
+      historyChanges: backup.data.historyMutations.length,
       athleteName: backup.data.athlete.name,
       exportedAt: backup.exportedAt
     }
@@ -296,6 +334,7 @@ export function backupStateFrom(source: RestorableAppState): RestorableAppState 
     history: structuredClone(source.history),
     surveys: structuredClone(source.surveys),
     records: structuredClone(source.records),
+    historyMutations: structuredClone(source.historyMutations),
     mesocycles: structuredClone(source.mesocycles),
     activeMesocycleId: source.activeMesocycleId,
     activeSessionId: source.activeSessionId,

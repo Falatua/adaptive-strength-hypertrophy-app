@@ -22,6 +22,7 @@ const state = (): RestorableAppState => ({
   history: structuredClone(history),
   surveys: [],
   records: structuredClone(records),
+  historyMutations: [],
   mesocycles: structuredClone(mesocycles),
   activeMesocycleId: mesocycles[0].id,
   activeSessionId: null,
@@ -36,6 +37,7 @@ describe('versioned backup and restore', () => {
     expect(parsed.summary.completedSets).toBe(history.length)
     expect(parsed.backup.data.surveys).toEqual([])
     expect(parsed.summary.planVersions).toBe(1)
+    expect(parsed.summary.historyChanges).toBe(0)
     expect(parsed.warnings).toEqual([])
   })
 
@@ -100,6 +102,24 @@ describe('versioned backup and restore', () => {
     expect(parsed.backup.data.mesocycles).toEqual([])
     expect(parsed.backup.data.activeMesocycleId).toBeNull()
     expect(parsed.warnings[0]).toMatch(/version 2/i)
+  })
+
+  it('migrates a verified version 3 backup and replays source-backed records', () => {
+    const current = state()
+    const legacyData: Partial<RestorableAppState> = structuredClone(current)
+    delete legacyData.historyMutations
+    const legacy = {
+      format: BACKUP_FORMAT,
+      schemaVersion: 3,
+      appVersion: '0.3.0',
+      exportedAt: '2026-08-10T12:00:00.000Z',
+      data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.historyMutations).toEqual([])
+    expect(parsed.backup.data.records.every((record) => record.sourceSetIds.length > 0)).toBe(true)
+    expect(parsed.warnings[0]).toMatch(/version 3/i)
   })
 
   it('creates an isolated restore snapshot', () => {
