@@ -77,6 +77,11 @@ const initialSettings: AppSettings = {
   reducedMotion: false,
   sounds: false,
   haptics: true,
+  celebrationLevel: 'subtle',
+  opportunityPrompts: true,
+  sessionAchievements: true,
+  confetti: false,
+  quietMode: false,
   availableMinutes: 60,
   equipmentLocation: 'Commercial Gym'
 }
@@ -391,7 +396,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 4,
+      version: 5,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,
@@ -412,9 +417,14 @@ export const useAppStore = create<AppState>()(
         const persisted = persistedState as AppState
         return {
           ...persisted,
+          settings: { ...structuredClone(initialSettings), ...(persisted.settings ?? {}) },
           mesocycles: persisted.mesocycles?.length ? persisted.mesocycles : structuredClone(seedMesocycles),
           activeMesocycleId: persisted.activeMesocycleId ?? seedMesocycles[0]?.id ?? null,
-          historyMutations: persisted.historyMutations ?? [],
+          historyMutations: (persisted.historyMutations ?? []).map((event) => ({
+            ...event,
+            recordsBefore: derivePersonalRecords(event.before.history),
+            recordsAfter: derivePersonalRecords(event.after.history)
+          })),
           cycleReviews: persisted.cycleReviews ?? [],
           records: derivePersonalRecords(persisted.history ?? [])
         }

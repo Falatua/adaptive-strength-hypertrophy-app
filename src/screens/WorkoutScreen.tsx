@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Check, CheckCircle2, ChevronDown, Clock3, Info, Pause, Play, RefreshCcw, SkipForward, Sparkles, TimerReset, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
+import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
+import type { CompletedSetRecord } from '../domain/types'
 import type { PlannedExercise } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
@@ -22,6 +24,21 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const [warmupConfirmed, setWarmupConfirmed] = useState(false)
   const [timerRunning, setTimerRunning] = useState(false)
   const [elapsed, setElapsed] = useState(0)
+  const activeSetRecords = useMemo<CompletedSetRecord[]>(() => session?.exercises.flatMap((plannedExercise) => {
+    const exercise = exercises.find((candidate) => candidate.id === plannedExercise.exerciseId)
+    if (!exercise) return []
+    return plannedExercise.sets.flatMap((workSet, setIndex) => workSet.completed ? [{
+      id: `active:${session.id}:${workSet.id}`, sessionId: session.id, exerciseId: exercise.id, exerciseName: exercise.name,
+      family: exercise.family, primaryRegion: exercise.primaryRegion, completedAt: session.startedAt ?? new Date().toISOString(),
+      reps: workSet.completedReps ?? workSet.targetReps, load: workSet.completedLoad ?? workSet.targetLoad,
+      rir: workSet.actualRir ?? workSet.targetRir, technique: 4, pain: 0, setIndex
+    }] : [])
+  }) ?? [], [exercises, session])
+  const activeAchievementPreview = useMemo(() => {
+    if (!activeSetRecords.length) return []
+    const activeIds = new Set(activeSetRecords.map((workSet) => workSet.id))
+    return deriveAchievementEvents([...history, ...activeSetRecords]).filter((event) => event.sourceSetIds.some((id) => activeIds.has(id)))
+  }, [activeSetRecords, history])
   useEffect(() => {
     if (!timerRunning) return
     const interval = window.setInterval(() => {
@@ -56,6 +73,11 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const finishWithoutSurvey = () => {
     finishSession(session.id, { answers: [], skipped: true })
     setFinishOpen(false)
+  }
+
+  const logSet = (plannedExerciseId: string, setId: string, currentlyComplete: boolean) => {
+    toggleSetComplete(session.id, plannedExerciseId, setId)
+    if (!currentlyComplete && settings.haptics && !settings.quietMode && settings.celebrationLevel !== 'off' && 'vibrate' in navigator) navigator.vibrate(18)
   }
 
   const bestEstimatedStrength = Math.max(0, ...session.exercises.flatMap((exercise) => exercise.sets
@@ -105,6 +127,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
               continuity: useAppStore.getState().athlete.continuity,
               readiness: session.readiness ?? 'confirm'
             })
+            const opportunities = deriveRecordOpportunities({ history, planned, exercise, readiness: session.readiness ?? 'confirm' })
+            const exerciseAchievements = activeAchievementPreview.filter((event) => event.exerciseId === exercise.id)
             return (
               <article className={`exercise-card exercise-card--${planned.role}`} key={planned.id}>
                 <div className="exercise-card__header">
@@ -129,12 +153,21 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                       <label><span className="sr-only">Set {index + 1} load</span><input type="number" inputMode="decimal" value={workSet.completedLoad ?? workSet.targetLoad} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { load: Number(event.target.value) })} /><small>{settings.units}</small></label>
                       <label><span className="sr-only">Set {index + 1} repetitions</span><input type="number" inputMode="numeric" value={workSet.completedReps ?? workSet.targetReps} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { reps: Number(event.target.value) })} /></label>
                       <label><span className="sr-only">Set {index + 1} repetitions in reserve</span><select value={workSet.actualRir ?? workSet.targetRir} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { rir: Number(event.target.value) })}><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></label>
-                      <button className="complete-set" onClick={() => toggleSetComplete(session.id, planned.id, workSet.id)} aria-pressed={workSet.completed}>{workSet.completed ? <><Check size={18} /> Done</> : 'Log set'}</button>
+                      <button className="complete-set" onClick={() => logSet(planned.id, workSet.id, workSet.completed)} aria-pressed={workSet.completed}>{workSet.completed ? <><Check size={18} /> Done</> : 'Log set'}</button>
                     </div>
                   ))}
                 </div>
-                {planned.role === 'primary' && recent.length > 0 && (
-                  <div className="pr-opportunity"><Trophy size={17} /><span><strong>Valid opportunity:</strong> {planned.sets[0].targetLoad + 5} × {planned.sets[0].targetReps} would beat the recent load-for-reps result if the engine earns the increase. Today's plan stays unchanged.</span></div>
+                {settings.opportunityPrompts && !settings.quietMode && exactHistory.length > 0 && (
+                  <div className={`pr-opportunity ${opportunities.length && !opportunities[0].eligible ? 'pr-opportunity--paused' : ''}`}>
+                    <Trophy size={17} />
+                    <span>{opportunities.length
+                      ? <><strong>{opportunities[0].eligible ? opportunities[0].title : 'Record prompt paused'}:</strong> {opportunities[0].eligible ? opportunities[0].explanation : opportunities[0].gateReason} <small>{opportunities[0].eligible ? 'This is already prescribed. Do not add work to chase it.' : 'Training continues without a gamification target.'}</small></>
+                      : <><strong>Productive hold:</strong> Today's prescribed target does not cross an all-time exact-movement record. A useful session does not need a PR.</>}
+                    </span>
+                  </div>
+                )}
+                {settings.sessionAchievements && !settings.quietMode && settings.celebrationLevel !== 'off' && exerciseAchievements.length > 0 && (
+                  <div className={`achievement-preview achievement-preview--${settings.celebrationLevel} ${settings.confetti && !settings.reducedMotion ? 'achievement-preview--confetti' : ''}`} role="status" aria-live="polite"><Sparkles size={18} /><span><strong>{exerciseAchievements[0].title}</strong>{exerciseAchievements[0].explanation}<small>Provisional until the workout is finished and saved.</small></span></div>
                 )}
               </article>
             )

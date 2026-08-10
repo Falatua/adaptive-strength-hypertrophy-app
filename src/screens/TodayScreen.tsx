@@ -22,6 +22,10 @@ export function TodayScreen() {
   const primaryHistory = history.filter((set) => set.exerciseId === primaryExercise?.id)
   const recentPrimary = primaryHistory.slice(-Math.max(1, primaryPlan?.sets.length ?? 1))
   const lastVolume = volumeLoad(recentPrimary)
+  const recentRecord = records[0]
+  const recentRecordValue = recentRecord
+    ? `${recentRecord.value.toLocaleString()}${recentRecord.unit === 'repetitions' ? ' reps' : ` ${settings.units}`}`
+    : 'No record'
   const today = new Date()
 
   const progression = recommendProgression({
@@ -87,9 +91,9 @@ export function TodayScreen() {
       </section>
 
       <section className="stats-grid" aria-label="Current training snapshot">
-        <StatCard label="Last anchor exposure" value={`${lastVolume.toLocaleString()} lb`} detail={`${recentPrimary.length} completed sets · exact movement`} icon={<Dumbbell size={18} />} />
+        <StatCard label="Last anchor exposure" value={`${lastVolume.toLocaleString()} ${settings.units}`} detail={`${recentPrimary.length} completed sets · exact movement`} icon={<Dumbbell size={18} />} />
         <StatCard label="Current continuity" value={athlete.continuity} detail="Calendar pressure reduced · exposure clocks preserved" icon={<CalendarClock size={18} />} tone="orange" />
-        <StatCard label="Recent record" value={records[0]?.value ? `${records[0].value} lb` : 'No record'} detail={records[0]?.label ?? 'Complete work to create a record'} icon={<Trophy size={18} />} tone="purple" />
+        <StatCard label="Recent record" value={recentRecordValue} detail={recentRecord?.label ?? 'Complete work to create a record'} icon={<Trophy size={18} />} tone="purple" />
         <StatCard label="Confidence" value="Medium" detail="Warm-up will confirm today's readiness hypothesis" icon={<ShieldCheck size={18} />} tone="blue" />
       </section>
 

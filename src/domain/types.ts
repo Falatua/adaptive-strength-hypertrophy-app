@@ -12,6 +12,10 @@ export type SurveyMode = 'full' | 'quick' | 'minimal' | 'off' | 'ask'
 export type MesocycleAdaptation = 'powerbuilding' | 'strength' | 'hypertrophy' | 'reacclimation'
 export type MesocycleStatus = 'draft' | 'active' | 'superseded' | 'completed' | 'abandoned'
 export type CycleReviewDecision = 'continue-progress' | 'continue-hold' | 'extend' | 'recover' | 'complete'
+export type PersonalRecordType = 'absolute-load' | 'reps-at-load' | 'load-for-reps' | 'set-scheme' | 'estimated-strength' | 'exercise-session-volume' | 'workout-session-volume'
+export type RecordCategory = 'strength' | 'repetition' | 'scheme' | 'workload'
+export type AchievementCategory = RecordCategory | 'quality' | 'consistency' | 'return' | 'baseline'
+export type CelebrationLevel = 'off' | 'subtle' | 'normal' | 'high-energy'
 
 export interface Exercise {
   id: string
@@ -191,13 +195,66 @@ export interface ProgressionDecision {
 
 export interface PersonalRecord {
   id: string
-  exerciseId: string
+  exerciseId: string | null
   exerciseName: string
-  type: 'load' | 'reps' | 'volume' | 'estimated-strength'
+  type: PersonalRecordType
+  category: RecordCategory
+  scope: 'all-time'
   value: number
+  unit: 'load' | 'repetitions' | 'volume-load' | 'estimated-load'
   label: string
   achievedAt: string
+  sourceSessionId: string
   sourceSetIds: string[]
+  context: {
+    load?: number
+    reps?: number
+    setCount?: number
+    repetitionScheme?: number[]
+    formula?: 'epley'
+    formulaVersion?: 'epley-v1'
+    eligibleRepRange?: [number, number]
+  }
+  validation: 'validated'
+  ruleVersion: 'pr-v2'
+}
+
+export interface AchievementEvent {
+  id: string
+  kind: 'personal-record' | 'micro-win'
+  category: AchievementCategory
+  recordType?: PersonalRecordType
+  title: string
+  explanation: string
+  exerciseId: string | null
+  exerciseName: string
+  achievedAt: string
+  scope: 'all-time' | 'recent'
+  value: number
+  priorValue: number | null
+  delta: number | null
+  sourceSessionId: string
+  sourceSetIds: string[]
+  priorSourceSetIds: string[]
+  validation: 'validated'
+  ruleVersion: 'achievement-v1'
+}
+
+export interface RecordOpportunity {
+  id: string
+  exerciseId: string
+  type: PersonalRecordType
+  category: RecordCategory
+  title: string
+  explanation: string
+  plannedValue: number
+  currentValue: number | null
+  margin: number | null
+  sourceSetIds: string[]
+  plannedSetIds: string[]
+  eligible: boolean
+  gateReason: string
+  ruleVersion: 'opportunity-v1'
 }
 
 export type HistoryMutationType = 'set-corrected' | 'set-deleted' | 'exercise-merged'
@@ -254,6 +311,11 @@ export interface AppSettings {
   reducedMotion: boolean
   sounds: boolean
   haptics: boolean
+  celebrationLevel: CelebrationLevel
+  opportunityPrompts: boolean
+  sessionAchievements: boolean
+  confetti: boolean
+  quietMode: boolean
   availableMinutes: number
   equipmentLocation: string
 }

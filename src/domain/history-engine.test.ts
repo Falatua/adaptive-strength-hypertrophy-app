@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { athlete, exercises, history, sessions } from './seed'
-import { derivePersonalRecords, findExerciseDuplicatePairs, historyVolume, projectExerciseMerge } from './history-engine'
+import { deriveAchievementEvents, derivePersonalRecords, deriveRecordOpportunities, findExerciseDuplicatePairs, historyVolume, projectExerciseMerge } from './history-engine'
 
 describe('source history replay', () => {
   it('derives every record from exact supporting set IDs', () => {
@@ -14,9 +14,9 @@ describe('source history replay', () => {
     const template = history.find((workSet) => workSet.exerciseId === 'competition-bench')!
     const workSets = [{ ...template, id: 'ordinary-set', load: 180 }, { ...template, id: 'false-record-set', load: 500, completedAt: '2026-08-10T12:00:00.000Z' }]
     const peak = [...workSets].sort((a, b) => b.load - a.load)[0]
-    const before = derivePersonalRecords(workSets).find((record) => record.type === 'load')
+    const before = derivePersonalRecords(workSets).find((record) => record.type === 'absolute-load')
     const corrected = workSets.map((workSet) => workSet.id === peak.id ? { ...workSet, load: 1 } : workSet)
-    const after = derivePersonalRecords(corrected).find((record) => record.type === 'load')
+    const after = derivePersonalRecords(corrected).find((record) => record.type === 'absolute-load')
     expect(after?.value).toBeLessThan(before?.value ?? 0)
     expect(after?.sourceSetIds).not.toContain(peak.id)
   })
@@ -25,6 +25,38 @@ describe('source history replay', () => {
     const removed = history[0]
     const after = history.filter((workSet) => workSet.id !== removed.id)
     expect(historyVolume(history) - historyVolume(after)).toBe(removed.load * removed.reps)
+  })
+
+  it('keeps exact load, repetition-at-load, load-for-reps, scheme, estimate, and volume definitions separate', () => {
+    const records = derivePersonalRecords(history.filter((workSet) => workSet.exerciseId === 'competition-bench'))
+    expect(new Set(records.map((record) => record.type))).toEqual(new Set([
+      'absolute-load', 'reps-at-load', 'load-for-reps', 'set-scheme', 'estimated-strength', 'exercise-session-volume', 'workout-session-volume'
+    ]))
+    const scheme = records.find((record) => record.type === 'set-scheme')
+    expect(scheme?.sourceSetIds).toHaveLength(4)
+    expect(scheme?.context.formula).toBeUndefined()
+    expect(records.find((record) => record.type === 'estimated-strength')?.context).toMatchObject({ formula: 'epley', formulaVersion: 'epley-v1', eligibleRepRange: [1, 12] })
+  })
+
+  it('reveals only opportunities already inside the plan and pauses them under protective readiness', () => {
+    const planned = structuredClone(sessions[0].exercises[0])
+    planned.sets.forEach((workSet) => { workSet.targetLoad = 500 })
+    planned.sets[0].completedLoad = 900
+    const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)!
+    const normal = deriveRecordOpportunities({ history, planned, exercise, readiness: 'normal' })
+    const protectedOpportunities = deriveRecordOpportunities({ history, planned, exercise, readiness: 'protect' })
+    expect(normal.length).toBeGreaterThan(0)
+    expect(normal.every((opportunity) => opportunity.eligible && opportunity.plannedValue <= 500 * planned.sets.length * planned.sets[0].targetReps)).toBe(true)
+    expect(normal.some((opportunity) => opportunity.plannedValue === 900)).toBe(false)
+    expect(protectedOpportunities.every((opportunity) => !opportunity.eligible && /pauses/i.test(opportunity.gateReason))).toBe(true)
+  })
+
+  it('derives an auditable achievement timeline from completed source sets', () => {
+    const events = deriveAchievementEvents(history)
+    const sourceIds = new Set(history.map((workSet) => workSet.id))
+    expect(events.some((event) => event.kind === 'personal-record')).toBe(true)
+    expect(events.some((event) => event.category === 'baseline')).toBe(true)
+    expect(events.every((event) => event.sourceSetIds.length > 0 && event.sourceSetIds.every((id) => sourceIds.has(id)))).toBe(true)
   })
 })
 

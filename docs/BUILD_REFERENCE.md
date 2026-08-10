@@ -30,11 +30,16 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Missed-session replanning without catch-up volume.
 - Exact exercise history, canonical IDs, aliases, duplicate warnings, preferences, and joint response.
 - Educated exercise replacement with preserved exact-movement clocks.
-- Daily and weekly volume, body-region views, records, and micro wins.
+- Daily and weekly volume, body-region views, source-backed records, and micro wins.
 - Real daily, weekly, rolling-28-day, calendar-month, yearly, and all-time filters with source-set reconciliation.
 - Exclusive primary-region and upper-body, lower-body, arms, and trunk volume lenses.
+- Exact all-time record definitions for absolute load, repetitions at load, load for repetitions, exact set scheme, Epley estimated strength for one through twelve repetitions, exact-movement session volume, and workout session volume.
+- Deterministic achievement replay for personal records, load and repetition micro wins, quality wins, baselines, returns, and consistency, with completed source-set provenance.
+- Opportunity prompts calculated only from prescribed targets. Athlete-entered actuals can never be reclassified as an app-prescribed record attempt.
+- Provisional in-workout achievement feedback and a corrected-history-aware Progress ledger.
+- Athlete-controlled celebration level, quiet mode, opportunity prompts, session achievements, reduced motion, pixel confetti, sounds preference, and supported-device haptics.
 - Athlete model, survey controls, focused mode, data export, and local reset.
-- Version 3 open-JSON backup with plan history, integrity checks, version 1 and 2 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
+- Version 6 open-JSON backup with expanded record definitions, celebration controls, plan and review history, integrity checks, versions 1 through 5 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
 - Original pixel-adventure visual language and installable PWA shell.
 - Accurate completed, partial-primary, and partial-without-primary session states.
 
@@ -50,7 +55,10 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Export a complete local backup, validate and preview it, restore it, and recover the pre-restore state.
 - Switch every progress horizon and prove chart, body-lens, and headline totals equal the selected completed source sets.
 - Preview a 30-minute plan revision, apply it, preserve partial history, inspect both plan versions, reload, and recover the active version from local persistence.
-- Export and preview a verified version 5 backup containing plan versions, the correction ledger, and cycle-review history.
+- Export and preview a verified version 6 backup containing expanded records, athlete celebration preferences, plan versions, the correction ledger, and cycle-review history.
+- Confirm a planned hold remains a hold after an athlete edits actual load, then log, provisionally recognize, save, and replay a source-backed exact-movement load record.
+- Turn quiet mode on, reload, and confirm the preference persists without changing training or record calculations.
+- Verify the achievement and settings surfaces on desktop and phone with no browser errors or horizontal overflow.
 
 ## Deliberately Deferred
 

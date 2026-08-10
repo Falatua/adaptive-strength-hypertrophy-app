@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { athlete, exercises, history, mesocycles, records, sessions } from './seed'
 import { BACKUP_FORMAT, BACKUP_SCHEMA_VERSION, backupStateFrom, createBackup, fnv1a32, parseBackup, type RestorableAppState } from './backup'
+import { derivePersonalRecords, historyVolume } from './history-engine'
 
 const stable = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`
@@ -15,7 +16,8 @@ const state = (): RestorableAppState => ({
   athlete: structuredClone(athlete),
   settings: {
     units: 'lb', preSurveyMode: 'ask', postSurveyMode: 'ask', focusedMode: false,
-    reducedMotion: false, sounds: false, haptics: true, availableMinutes: 60, equipmentLocation: 'Commercial Gym'
+    reducedMotion: false, sounds: false, haptics: true, celebrationLevel: 'subtle', opportunityPrompts: true,
+    sessionAchievements: true, confetti: false, quietMode: false, availableMinutes: 60, equipmentLocation: 'Commercial Gym'
   },
   exercises: structuredClone(exercises),
   sessions: structuredClone(sessions),
@@ -59,6 +61,20 @@ describe('versioned backup and restore', () => {
     const invalid = state()
     invalid.mesocycles.push({ ...structuredClone(invalid.mesocycles[0]), id: 'second-active-plan', version: 2 })
     expect(() => parseBackup(JSON.stringify(createBackup(invalid)))).toThrow(/more than one mesocycle/i)
+  })
+
+  it('rejects a correction ledger whose record projection no longer matches its source snapshots', () => {
+    const invalid = state()
+    const beforeHistory = structuredClone(invalid.history)
+    const afterHistory = invalid.history.map((workSet, index) => index === 0 ? { ...workSet, load: workSet.load + 5 } : workSet)
+    invalid.historyMutations = [{
+      id: 'correction-1', type: 'set-corrected', createdAt: '2026-08-10T12:00:00.000Z', reason: 'Test correction',
+      description: 'Corrected one source set.', affectedSetIds: [beforeHistory[0].id],
+      before: { history: beforeHistory, exercises: structuredClone(invalid.exercises), sessions: structuredClone(invalid.sessions) },
+      after: { history: afterHistory, exercises: structuredClone(invalid.exercises), sessions: structuredClone(invalid.sessions) },
+      recordsBefore: [], recordsAfter: derivePersonalRecords(afterHistory), volumeBefore: historyVolume(beforeHistory), volumeAfter: historyVolume(afterHistory)
+    }]
+    expect(() => parseBackup(JSON.stringify(createBackup(invalid)))).toThrow(/record projection/i)
   })
 
   it('migrates the original version 1 open export without inventing survey answers', () => {
@@ -135,6 +151,25 @@ describe('versioned backup and restore', () => {
     const parsed = parseBackup(JSON.stringify(legacy))
     expect(parsed.backup.data.cycleReviews).toEqual([])
     expect(parsed.warnings[0]).toMatch(/version 4/i)
+  })
+
+  it('migrates a verified version 5 backup through expanded record definitions and quiet defaults', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    const legacySettings = legacyData.settings as Record<string, unknown>
+    delete legacySettings.celebrationLevel
+    delete legacySettings.opportunityPrompts
+    delete legacySettings.sessionAchievements
+    delete legacySettings.confetti
+    delete legacySettings.quietMode
+    legacyData.records = []
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 5, appVersion: '0.5.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.records.some((record) => record.type === 'set-scheme')).toBe(true)
+    expect(parsed.backup.data.settings).toMatchObject({ celebrationLevel: 'subtle', opportunityPrompts: true, quietMode: false })
+    expect(parsed.warnings[0]).toMatch(/version 5/i)
   })
 
   it('creates an isolated restore snapshot', () => {

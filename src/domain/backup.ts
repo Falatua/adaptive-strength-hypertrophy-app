@@ -13,8 +13,16 @@ import type {
 import { derivePersonalRecords } from './history-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 5
-export const BACKUP_APP_VERSION = '0.5.0'
+export const BACKUP_SCHEMA_VERSION = 6
+export const BACKUP_APP_VERSION = '0.6.0'
+
+const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode'> = {
+  celebrationLevel: 'subtle',
+  opportunityPrompts: true,
+  sessionAchievements: true,
+  confetti: false,
+  quietMode: false
+}
 
 export interface RestorableAppState {
   athlete: AthleteProfile
@@ -63,6 +71,22 @@ export interface BackupPreview {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const normalizeSettings = (settings: unknown): AppSettings => ({
+  ...settingsDefaults,
+  ...(isRecord(settings) ? settings : {})
+}) as AppSettings
+
+const replayHistoryMutationRecords = (events: unknown): HistoryMutationEvent[] => Array.isArray(events)
+  ? events.map((event) => {
+    if (!isRecord(event) || !isRecord(event.before) || !isRecord(event.after) || !Array.isArray(event.before.history) || !Array.isArray(event.after.history)) return event as unknown as HistoryMutationEvent
+    return {
+      ...event,
+      recordsBefore: derivePersonalRecords(event.before.history as CompletedSetRecord[]),
+      recordsAfter: derivePersonalRecords(event.after.history as CompletedSetRecord[])
+    } as HistoryMutationEvent
+  })
+  : []
 
 const isFiniteNonNegative = (value: unknown) =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0
@@ -180,14 +204,20 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
     if (!isRecord(survey) || typeof survey.sessionId !== 'string' || !Array.isArray(survey.answers) || !isValidDate(survey.completedAt)) errors.push('A survey record is invalid.')
   })
 
+  const settings = candidate.settings as Record<string, unknown>
+  if (!['off', 'subtle', 'normal', 'high-energy'].includes(String(settings.celebrationLevel)) || typeof settings.opportunityPrompts !== 'boolean' || typeof settings.sessionAchievements !== 'boolean' || typeof settings.confetti !== 'boolean' || typeof settings.quietMode !== 'boolean') errors.push('Gamification settings are invalid.')
+
   records.forEach((record) => {
-    if (!isRecord(record) || typeof record.exerciseId !== 'string' || !exerciseIds.has(record.exerciseId) || !isFiniteNonNegative(record.value) || !isValidDate(record.achievedAt) || !Array.isArray(record.sourceSetIds) || record.sourceSetIds.length === 0 || record.sourceSetIds.some((id) => typeof id !== 'string' || !completedSetIds.has(id))) errors.push('A personal record is invalid or lacks completed source sets.')
+    const exactExercise = isRecord(record) && typeof record.exerciseId === 'string' && exerciseIds.has(record.exerciseId)
+    const wholeWorkout = isRecord(record) && record.exerciseId === null && record.type === 'workout-session-volume'
+    if (!isRecord(record) || !(exactExercise || wholeWorkout) || typeof record.exerciseName !== 'string' || !['absolute-load', 'reps-at-load', 'load-for-reps', 'set-scheme', 'estimated-strength', 'exercise-session-volume', 'workout-session-volume'].includes(String(record.type)) || !['strength', 'repetition', 'scheme', 'workload'].includes(String(record.category)) || record.scope !== 'all-time' || !isFiniteNonNegative(record.value) || !isValidDate(record.achievedAt) || typeof record.sourceSessionId !== 'string' || !Array.isArray(record.sourceSetIds) || record.sourceSetIds.length === 0 || record.sourceSetIds.some((id) => typeof id !== 'string' || !completedSetIds.has(id)) || !isRecord(record.context) || record.validation !== 'validated' || record.ruleVersion !== 'pr-v2') errors.push('A personal record is invalid or lacks completed source sets.')
   })
   if (stableStringify(records) !== stableStringify(derivePersonalRecords(history as CompletedSetRecord[]))) errors.push('Personal records do not match the completed source sets.')
 
   historyMutations.forEach((event) => {
     if (!isRecord(event) || !['set-corrected', 'set-deleted', 'exercise-merged'].includes(String(event.type)) || !isValidDate(event.createdAt) || typeof event.reason !== 'string' || !Array.isArray(event.affectedSetIds) || !isRecord(event.before) || !isRecord(event.after) || !Array.isArray(event.recordsBefore) || !Array.isArray(event.recordsAfter) || !isFiniteNonNegative(event.volumeBefore) || !isFiniteNonNegative(event.volumeAfter)) errors.push('A history change is invalid.')
     if (isRecord(event) && event.undoneAt !== undefined && !isValidDate(event.undoneAt)) errors.push('A history change has an invalid undo date.')
+    if (isRecord(event) && isRecord(event.before) && isRecord(event.after) && Array.isArray(event.before.history) && Array.isArray(event.after.history) && (stableStringify(event.recordsBefore) !== stableStringify(derivePersonalRecords(event.before.history as CompletedSetRecord[])) || stableStringify(event.recordsAfter) !== stableStringify(derivePersonalRecords(event.after.history as CompletedSetRecord[])))) errors.push('A history change record projection does not match its source snapshots.')
   })
 
   cycleReviews.forEach((review) => {
@@ -224,7 +254,7 @@ function migrateLegacyV1(candidate: Record<string, unknown>): { data: Restorable
   const legacyExportedAt = candidate.exportedAt
   const data = {
     athlete: candidate.athlete,
-    settings: candidate.settings,
+    settings: normalizeSettings(candidate.settings),
     exercises: candidate.exercises,
     sessions: candidate.sessions,
     history: candidate.history,
@@ -253,6 +283,7 @@ function migrateV2(candidate: Record<string, unknown>): { data: RestorableAppSta
   if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
   const data = {
     ...candidate.data,
+    settings: normalizeSettings(candidate.data.settings),
     mesocycles: [],
     activeMesocycleId: null,
     historyMutations: [],
@@ -273,6 +304,7 @@ function migrateV3(candidate: Record<string, unknown>): { data: RestorableAppSta
   if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
   const data = {
     ...candidate.data,
+    settings: normalizeSettings(candidate.data.settings),
     historyMutations: [],
     cycleReviews: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
@@ -289,12 +321,36 @@ function migrateV4(candidate: Record<string, unknown>): { data: RestorableAppSta
   if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
   if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
-  const data = { ...candidate.data, cycleReviews: [] }
+  const data = {
+    ...candidate.data,
+    settings: normalizeSettings(candidate.data.settings),
+    historyMutations: replayHistoryMutationRecords(candidate.data.historyMutations),
+    cycleReviews: [],
+    records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
+  }
   validateState(data)
   return {
     data,
     exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
     warning: 'Version 4 backup migrated safely. Existing plan and correction history are intact; the cycle-review ledger starts empty.'
+  }
+}
+
+function migrateV5(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = {
+    ...candidate.data,
+    settings: normalizeSettings(candidate.data.settings),
+    historyMutations: replayHistoryMutationRecords(candidate.data.historyMutations),
+    records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
+  }
+  validateState(data)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 5 backup migrated safely. Completed source sets were replayed through expanded record definitions and celebration controls use quiet defaults.'
   }
 }
 
@@ -327,6 +383,10 @@ export function parseBackup(raw: string): BackupPreview {
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 4) {
     const migrated = migrateV4(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 5) {
+    const migrated = migrateV5(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {

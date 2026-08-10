@@ -15,16 +15,19 @@ import {
 import { useAppStore } from '../store/useAppStore'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { StatCard } from '../components/StatCard'
+import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
+import type { RecordCategory } from '../domain/types'
 
 export function ProgressScreen() {
-  const { history, records, athlete, settings } = useAppStore()
+  const { history, records, athlete, settings, sessions, exercises: exerciseCatalog } = useAppStore()
   const [range, setRange] = useState<ProgressRange>('28d')
   const [bodyLens, setBodyLens] = useState<BodyLens>('region')
+  const [recordCategory, setRecordCategory] = useState<RecordCategory | 'all'>('all')
   const summary = useMemo(() => buildAnalytics(history, range), [history, range])
   const bodyData = useMemo(() => bodyLens === 'region' ? regionVolumeFor(summary.history) : areaVolumeFor(summary.history), [bodyLens, summary.history])
-  const exercises = useMemo(() => exerciseVolumeFor(summary.history), [summary.history])
+  const exerciseVolumes = useMemo(() => exerciseVolumeFor(summary.history), [summary.history])
   const reconciliation = useMemo(() => analyticsReconciliation(summary), [summary])
-  const topExercise = exercises[0]
+  const topExercise = exerciseVolumes[0]
   const latestTimestamp = summary.history.reduce((latest, workSet) => Math.max(latest, new Date(workSet.completedAt).getTime()), 0)
   const latestDate = latestTimestamp ? new Date(latestTimestamp) : null
   const currentWindow = rangeWindow(range)
@@ -32,6 +35,17 @@ export function ProgressScreen() {
     const timestamp = new Date(record.achievedAt).getTime()
     return timestamp <= currentWindow.end.getTime() && (currentWindow.start === null || timestamp >= currentWindow.start.getTime())
   })
+  const achievements = useMemo(() => deriveAchievementEvents(history), [history])
+  const visibleAchievements = achievements.filter((event) => {
+    const timestamp = new Date(event.achievedAt).getTime()
+    return timestamp <= currentWindow.end.getTime() && (currentWindow.start === null || timestamp >= currentWindow.start.getTime())
+  })
+  const filteredRecords = visibleRecords.filter((record) => recordCategory === 'all' || record.category === recordCategory)
+  const nextSession = sessions.filter((session) => ['planned', 'deferred'].includes(session.status)).sort((a, b) => new Date(a.plannedDate).getTime() - new Date(b.plannedDate).getTime())[0]
+  const nextOpportunities = nextSession?.exercises.flatMap((planned) => {
+    const exercise = exerciseCatalog.find((candidate) => candidate.id === planned.exerciseId)
+    return exercise ? deriveRecordOpportunities({ history, planned, exercise, readiness: nextSession.readiness ?? 'confirm' }) : []
+  }).filter((opportunity) => opportunity.eligible).slice(0, 3) ?? []
   const priorityCoverage = athlete.priorityRegions.map((region) => {
     const point = regionVolumeFor(summary.history).find((item) => item.label === region)
     return { region, sets: point?.sets ?? 0, volume: point?.volume ?? 0 }
@@ -56,15 +70,15 @@ export function ProgressScreen() {
 
       <section className="progress-banner">
         <div className="progress-banner__avatar"><PixelAvatar mood={summary.setCount ? 'celebrate' : 'ready'} size="medium" /></div>
-        <div className="progress-banner__copy"><p className="eyebrow">Micro-win ledger · {summary.label}</p><h2>{bannerTitle}</h2><p>{summary.setCount ? `${summary.setCount} completed source sets across ${summary.activeDays} active ${summary.activeDays === 1 ? 'day' : 'days'}. The app does not count planned or missed work.` : 'Choose another period or complete a workout. Zero is shown honestly rather than replaced by all-time history.'}</p></div>
-        <div className="progress-banner__badge"><Sparkles size={18} /><strong>{summary.sessionCount} useful {summary.sessionCount === 1 ? 'session' : 'sessions'}</strong><span>{rangeDates}</span></div>
+        <div className="progress-banner__copy"><p className="eyebrow">Micro-win ledger · {summary.label}</p><h2>{bannerTitle}</h2><p>{summary.setCount ? `${summary.setCount} completed source sets across ${summary.activeDays} active ${summary.activeDays === 1 ? 'day' : 'days'}, producing ${visibleAchievements.length} validated ${visibleAchievements.length === 1 ? 'win' : 'wins'}. Planned or missed work never counts.` : 'Choose another period or complete a workout. Zero is shown honestly rather than replaced by all-time history.'}</p></div>
+        <div className="progress-banner__badge"><Sparkles size={18} /><strong>{visibleAchievements.length} validated {visibleAchievements.length === 1 ? 'win' : 'wins'}</strong><span>{rangeDates}</span></div>
       </section>
 
       <section className="stats-grid">
         <StatCard label="Volume load" value={summary.totalVolume.toLocaleString()} detail={`${settings.units} · actual reps × actual load`} icon={<BarChart3 size={18} />} />
         <StatCard label="Completed sets" value={summary.setCount.toString()} detail={`Latest ${latestDate?.toLocaleDateString() ?? 'none in this period'}`} icon={<Dumbbell size={18} />} tone="orange" />
         <StatCard label="Most trained" value={topExercise?.name ?? 'No movement'} detail={topExercise ? `${topExercise.volume.toLocaleString()} exact volume load` : 'No completed source sets'} icon={<Target size={18} />} tone="blue" />
-        <StatCard label="Validated records" value={visibleRecords.length.toString()} detail={`Records achieved inside ${summary.label.toLowerCase()}`} icon={<Trophy size={18} />} tone="purple" />
+        <StatCard label="Validated wins" value={visibleAchievements.length.toString()} detail={`${visibleAchievements.filter((event) => event.kind === 'personal-record').length} PRs · ${visibleAchievements.filter((event) => event.kind === 'micro-win').length} micro wins`} icon={<Trophy size={18} />} tone="purple" />
       </section>
 
       <section className="period-facts" aria-label={`${summary.label} training summary`}>
@@ -98,8 +112,20 @@ export function ProgressScreen() {
           <p className="chart-note">A zero inside the selected period is a review signal, not a shame label. Programming still considers phase, recovery, and intended dose.</p>
         </section>
         <section className="panel">
-          <div className="panel__header"><div><p className="eyebrow">Records and milestones</p><h3>Bests inside this window</h3></div><Trophy size={19} /></div>
-          {visibleRecords.length ? <div className="record-list">{visibleRecords.map((record) => <div key={record.id}><span className="record-medal">◆</span><div><strong>{record.label}</strong><small>{record.exerciseName} · {new Date(record.achievedAt).toLocaleDateString()}</small></div><span>{record.type}</span></div>)}</div> : <div className="compact-empty"><Trophy size={24} /><strong>No validated record in this window</strong><p>Records outside the selected dates remain available in All time.</p></div>}
+          <div className="panel__header"><div><p className="eyebrow">Current record ledger</p><h3>Bests inside this window</h3></div><Trophy size={19} /></div>
+          <div className="record-filter" aria-label="Record category">{(['all', 'strength', 'repetition', 'scheme', 'workload'] as const).map((category) => <button key={category} aria-pressed={recordCategory === category} className={recordCategory === category ? 'selected' : ''} onClick={() => setRecordCategory(category)}>{category}</button>)}</div>
+          {filteredRecords.length ? <div className="record-list">{filteredRecords.slice(0, 12).map((record) => <div key={record.id}><span className="record-medal">◆</span><div><strong>{record.label}{['load', 'estimated-load'].includes(record.unit) ? ` ${settings.units}` : record.unit === 'volume-load' ? ` ${settings.units}` : ''}</strong><small>{record.exerciseName} · {new Date(record.achievedAt).toLocaleDateString()} · {record.sourceSetIds.length} source {record.sourceSetIds.length === 1 ? 'set' : 'sets'}</small></div><span>{record.category}</span></div>)}</div> : <div className="compact-empty"><Trophy size={24} /><strong>No validated record in this window</strong><p>Records outside the selected dates remain available in All time.</p></div>}
+        </section>
+      </div>
+
+      <div className="achievement-grid">
+        <section className="panel">
+          <div className="panel__header"><div><p className="eyebrow">Evidence-backed timeline</p><h3>PRs and micro wins</h3></div><Sparkles size={19} /></div>
+          {visibleAchievements.length ? <div className="achievement-list">{visibleAchievements.slice(0, 12).map((event) => <div key={event.id} className={`achievement-row achievement-row--${event.kind}`}><span className="achievement-glyph">{event.kind === 'personal-record' ? '★' : '✦'}</span><span><strong>{event.title}</strong><small>{event.exerciseName} · {event.explanation}</small><em>{new Date(event.achievedAt).toLocaleDateString()} · {event.sourceSetIds.length} source {event.sourceSetIds.length === 1 ? 'set' : 'sets'} · {event.ruleVersion}</em></span><b>{event.delta !== null ? `+${Number.isInteger(event.delta) ? event.delta : event.delta.toFixed(1)}` : 'BASE'}</b></div>)}</div> : <div className="compact-empty"><Sparkles size={24} /><strong>No win manufactured</strong><p>This period has no comparable validated improvement. Useful maintenance still remains in the completed-work charts.</p></div>}
+        </section>
+        <section className="panel">
+          <div className="panel__header"><div><p className="eyebrow">Next planned session</p><h3>Safe record opportunities</h3></div><Target size={19} /></div>
+          {nextOpportunities.length ? <div className="opportunity-list">{nextOpportunities.map((opportunity) => <div key={opportunity.id}><Trophy size={17} /><span><strong>{opportunity.title}</strong><small>{opportunity.explanation}</small><em>{opportunity.gateReason}</em></span></div>)}</div> : <div className="compact-empty"><Target size={24} /><strong>No PR chase prescribed</strong><p>The next session can still build strength, skill, and recoverable volume. ForgePath does not add work to manufacture a badge.</p></div>}
         </section>
       </div>
 

@@ -1,7 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import { AlertTriangle, Bell, BrainCircuit, Database, Download, Dumbbell, Eye, FileCheck2, HardDrive, MapPin, Moon, RotateCcw, ShieldCheck, Sparkles, Undo2, Upload, UserRound } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
-import type { SurveyMode } from '../domain/types'
+import type { CelebrationLevel, SurveyMode } from '../domain/types'
 import { Modal } from '../components/Modal'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { createBackup, parseBackup, type BackupPreview } from '../domain/backup'
@@ -23,10 +23,10 @@ export function YouScreen() {
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `forgepath-backup-v5-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `forgepath-backup-v6-${new Date().toISOString().slice(0, 10)}.json`
     anchor.click()
     URL.revokeObjectURL(url)
-    setNotice('Verified version 5 backup created as open JSON, including plan, correction, and cycle-review history.')
+    setNotice('Verified version 6 backup created as open JSON, including expanded records, plan, correction, and cycle-review history.')
   }
 
   const readImport = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -74,8 +74,18 @@ export function YouScreen() {
             <div className="panel__header"><div><p className="eyebrow">Visual and workout focus</p><h3>Experience controls</h3></div><Eye size={19} /></div>
             <label className="toggle-row"><span><strong>Focused training mode</strong><small>Reduce pixel-world decoration during active sets.</small></span><input type="checkbox" checked={settings.focusedMode} onChange={(event) => updateSettings({ focusedMode: event.target.checked })} /></label>
             <label className="toggle-row"><span><strong>Reduced motion</strong><small>Keep characters and charts visually still.</small></span><input type="checkbox" checked={settings.reducedMotion} onChange={(event) => updateSettings({ reducedMotion: event.target.checked })} /></label>
-            <label className="toggle-row"><span><strong>Sounds</strong><small>Optional milestone and timer audio.</small></span><input type="checkbox" checked={settings.sounds} onChange={(event) => updateSettings({ sounds: event.target.checked })} /></label>
+          </section>
+
+          <section className="panel">
+            <div className="panel__header"><div><p className="eyebrow">Optional game layer</p><h3>Achievement controls</h3></div><Sparkles size={19} /></div>
+            <label className="setting-row"><span><strong>Celebration level</strong><small>Off, restrained, standard, or high-energy visual feedback.</small></span><select value={settings.celebrationLevel} onChange={(event) => updateSettings({ celebrationLevel: event.target.value as CelebrationLevel })}>{(['off', 'subtle', 'normal', 'high-energy'] as const).map((level) => <option key={level} value={level}>{level}</option>)}</select></label>
+            <label className="toggle-row"><span><strong>Quiet mode</strong><small>Hide live prompts and celebrations without changing training or records.</small></span><input type="checkbox" checked={settings.quietMode} onChange={(event) => updateSettings({ quietMode: event.target.checked })} /></label>
+            <label className="toggle-row"><span><strong>Planned opportunities</strong><small>Show only records already available inside the prescribed work.</small></span><input type="checkbox" checked={settings.opportunityPrompts} onChange={(event) => updateSettings({ opportunityPrompts: event.target.checked })} /></label>
+            <label className="toggle-row"><span><strong>In-workout achievements</strong><small>Show provisional wins after completed sets, then validate at session save.</small></span><input type="checkbox" checked={settings.sessionAchievements} onChange={(event) => updateSettings({ sessionAchievements: event.target.checked })} /></label>
+            <label className="toggle-row"><span><strong>Pixel confetti</strong><small>Use a brief visual flourish only for earned achievements.</small></span><input type="checkbox" checked={settings.confetti} onChange={(event) => updateSettings({ confetti: event.target.checked })} /></label>
+            <label className="toggle-row"><span><strong>Sounds</strong><small>Optional milestone and timer audio when an approved sound pack is connected.</small></span><input type="checkbox" checked={settings.sounds} onChange={(event) => updateSettings({ sounds: event.target.checked })} /></label>
             <label className="toggle-row"><span><strong>Haptics</strong><small>Subtle set-completion feedback on supported devices.</small></span><input type="checkbox" checked={settings.haptics} onChange={(event) => updateSettings({ haptics: event.target.checked })} /></label>
+            <p className="chart-note">Quiet mode and celebration controls never affect logging, progression, or the underlying record ledger.</p>
           </section>
         </div>
 
@@ -91,7 +101,7 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.5.0 private alpha</strong></li><li><span>Rules</span><strong>0.4 load-first + cycle review</strong></li><li><span>Calculations</span><strong>Volume v2 · reconciled</strong></li><li><span>Backup schema</span><strong>Version 5</strong></li><li><span>Persistence</span><strong>Local v4</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.6.0 private alpha</strong></li><li><span>Rules</span><strong>0.5 load-first + safe records</strong></li><li><span>Calculations</span><strong>Volume v2 · PR v2</strong></li><li><span>Backup schema</span><strong>Version 6</strong></li><li><span>Persistence</span><strong>Local v5</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Reset private alpha</button>
         </aside>

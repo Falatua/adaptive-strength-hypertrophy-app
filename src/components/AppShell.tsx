@@ -13,10 +13,10 @@ const navItems: { id: NavKey; label: string; icon: typeof Dumbbell }[] = [
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { nav, setNav, athlete, notice, setNotice } = useAppStore()
+  const { nav, setNav, athlete, notice, setNotice, settings } = useAppStore()
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${settings.reducedMotion ? 'reduced-motion' : ''}`}>
       <aside className="sidebar" aria-label="Primary navigation">
         <button className="brand" onClick={() => setNav('today')} aria-label="ForgePath home">
           <span className="brand__mark">F</span>
@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar__footer">
           <Sparkles size={16} />
-          <span>Rules v0.2<br /><small>Local and private</small></span>
+          <span>Rules v0.5<br /><small>Local and private</small></span>
         </div>
       </aside>
       <main id="main-content" className="main-content">{children}</main>
