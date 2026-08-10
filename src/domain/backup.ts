@@ -21,10 +21,11 @@ import { equipmentProfileError } from './equipment-engine'
 import { equipmentProfiles as seedEquipmentProfiles } from './seed'
 import { legacyPlacementForAthlete, placementAssessmentError, placementRouteLabels } from './placement-engine'
 import { placementVerificationError } from './placement-verification-engine'
+import { routeSessionGenerationError } from './route-session-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 13
-export const BACKUP_APP_VERSION = '0.19.0'
+export const BACKUP_SCHEMA_VERSION = 14
+export const BACKUP_APP_VERSION = '0.20.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -82,6 +83,7 @@ export interface BackupPreview {
     cycleReviews: number
     substitutions: number
     placementChecks: number
+    routeGeneratedSessions: number
     equipmentProfiles: number
     athleteName: string
     placementRoute: string
@@ -294,6 +296,14 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
       errors.push('A training session is invalid.')
       return
     }
+    if (session.generation !== undefined) {
+      const generationError = routeSessionGenerationError(session.generation)
+      if (generationError) errors.push(`A route-generated session is invalid: ${generationError}`)
+      if (isRecord(session.generation)) {
+        const plan = mesocycles.find((candidate) => isRecord(candidate) && candidate.id === session.mesocycleId)
+        if (!isRecord(plan) || plan.entryRoute !== session.generation.route || plan.generationRuleVersion !== session.generation.ruleVersion || plan.placementCreatedAt !== session.generation.placementCreatedAt) errors.push('A route-generated session does not match its mesocycle placement provenance.')
+      }
+    }
     session.exercises.forEach((planned) => {
       if (!isRecord(planned) || typeof planned.exerciseId !== 'string' || !exerciseIds.has(planned.exerciseId) || !Array.isArray(planned.sets)) {
         errors.push('A planned exercise references an unknown exercise or invalid sets.')
@@ -393,6 +403,8 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
       return
     }
     if (!isValidDate(plan.createdAt) || !isValidDate(plan.effectiveAt)) errors.push('A mesocycle plan has an invalid date.')
+    const hasRouteGeneration = plan.entryRoute !== undefined || plan.generationRuleVersion !== undefined || plan.placementCreatedAt !== undefined
+    if (hasRouteGeneration && (!['introductory-skill', 'reacclimation', 'bridge-calibration', 'base-building', 'hypertrophy', 'powerbuilding', 'strength', 'power', 'event-specific', 'pain-aware-modified'].includes(String(plan.entryRoute)) || plan.generationRuleVersion !== 'route-session-v1' || !isValidDate(plan.placementCreatedAt))) errors.push('A mesocycle has incomplete route-generation provenance.')
     plan.strengthAnchors.forEach((exerciseId) => {
       if (typeof exerciseId !== 'string' || !exerciseIds.has(exerciseId)) errors.push('A mesocycle references an unknown strength anchor.')
     })
@@ -618,6 +630,19 @@ function migrateV12(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV13(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = { ...candidate.data, settings: normalizeSettings(candidate.data.settings) }
+  validateState(data, true)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 13 backup migrated safely. Existing sessions remain unchanged; route-specific generation provenance begins with a future placement or reassessment.'
+  }
+}
+
 export function parseBackup(raw: string): BackupPreview {
   let candidate: unknown
   try {
@@ -681,6 +706,10 @@ export function parseBackup(raw: string): BackupPreview {
     const migrated = migrateV12(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 13) {
+    const migrated = migrateV13(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
@@ -704,6 +733,7 @@ export function parseBackup(raw: string): BackupPreview {
       cycleReviews: backup.data.cycleReviews.length,
       substitutions: backup.data.substitutionEvents.length,
       placementChecks: backup.data.placementVerifications.length,
+      routeGeneratedSessions: backup.data.sessions.filter((session) => session.generation?.ruleVersion === 'route-session-v1').length,
       equipmentProfiles: backup.data.equipmentProfiles.length,
       athleteName: backup.data.athlete.name,
       placementRoute: placementRouteLabels[backup.data.athlete.placement.selectedRoute],

@@ -111,7 +111,12 @@ interface NextRoundInput {
 
 export function buildNextMicrocycle(input: NextRoundInput) {
   const draft = draftFromPlan(input.plan)
-  if (input.decision === 'recover') draft.dominantAdaptation = 'reacclimation'
+  if (input.decision === 'recover') {
+    draft.dominantAdaptation = 'reacclimation'
+    draft.entryRoute = undefined
+    draft.generationRuleVersion = undefined
+    draft.placementCreatedAt = undefined
+  }
   const preview = buildMesocyclePreview(draft, {
     exercises: input.exercises,
     currentSessions: input.sessions,

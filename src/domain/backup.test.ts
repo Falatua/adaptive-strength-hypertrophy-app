@@ -3,6 +3,7 @@ import { athlete, equipmentProfiles, exercises, history, mesocycles, records, se
 import { BACKUP_FORMAT, BACKUP_SCHEMA_VERSION, backupStateFrom, createBackup, fnv1a32, parseBackup, type RestorableAppState } from './backup'
 import { derivePersonalRecords, historyVolume } from './history-engine'
 import { beginPlacementVerification, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery } from './placement-verification-engine'
+import { buildMesocyclePreview, draftFromPlan } from './mesocycle-engine'
 
 const stable = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`
@@ -50,6 +51,7 @@ describe('versioned backup and restore', () => {
     expect(parsed.summary.cycleReviews).toBe(0)
     expect(parsed.summary.substitutions).toBe(0)
     expect(parsed.summary.placementChecks).toBe(0)
+    expect(parsed.summary.routeGeneratedSessions).toBe(0)
     expect(parsed.summary.equipmentProfiles).toBe(3)
     expect(parsed.summary.placementRoute).toBe('Base-Building Cycle')
     expect(parsed.summary.placementConfidence).toBe('high')
@@ -271,6 +273,37 @@ describe('versioned backup and restore', () => {
     const parsed = parseBackup(JSON.stringify(legacy))
     expect(parsed.backup.data.placementVerifications).toEqual([])
     expect(parsed.warnings[0]).toMatch(/version 12/i)
+  })
+
+  it('migrates a verified version 13 backup without relabeling existing sessions as route-generated', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 13, appVersion: '0.19.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.sessions.every((session) => session.generation === undefined)).toBe(true)
+    expect(parsed.warnings[0]).toMatch(/version 13/i)
+  })
+
+  it('round-trips route-generated sessions and rejects forged route provenance', () => {
+    const current = state()
+    const plan = current.mesocycles[0]
+    plan.entryRoute = 'strength'
+    plan.generationRuleVersion = 'route-session-v1'
+    plan.placementCreatedAt = current.athlete.placement.createdAt
+    const preview = buildMesocyclePreview(draftFromPlan(plan), {
+      exercises: current.exercises, currentSessions: current.sessions, history: current.history,
+      planId: plan.id, planVersion: plan.version, startsAt: new Date('2026-08-10T12:00:00.000Z')
+    })
+    current.sessions = preview.sessions
+    plan.sessionIds = preview.sessions.map((session) => session.id)
+    const parsed = parseBackup(JSON.stringify(createBackup(current)))
+    expect(parsed.backup.data.sessions.every((session) => session.generation?.route === 'strength')).toBe(true)
+    expect(parsed.summary.routeGeneratedSessions).toBe(3)
+
+    current.sessions[0].generation!.strategy = 'Forged route strategy.'
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/strategy/i)
   })
 
   it('rejects placement tampering and a route label that disagrees with its evidence', () => {

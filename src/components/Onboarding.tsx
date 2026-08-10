@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AlertTriangle, ArrowRight, BrainCircuit, CalendarClock, Check, Gauge, ShieldCheck, Sparkles } from 'lucide-react'
 import { applyPlacementDecision, buildPlacementAssessment, placementRouteLabels } from '../domain/placement-engine'
+import { routeSessionProfile } from '../domain/route-session-engine'
 import type { PlacementDecision, PlacementGoal, PlacementInputs, PlacementPainState } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { PixelAvatar } from './PixelAvatar'
@@ -43,6 +44,7 @@ export function Onboarding() {
   }), [continuity, dataConfidence, equipmentProfileId, experience, fixedEvent, goal, minutes, movementSkill, opportunities, painState, scheduleStability, skippedFields, strengthTolerance, volumeTolerance])
   const assessment = useMemo(() => buildPlacementAssessment(inputs, createdAt), [createdAt, inputs])
   const selectedAssessment = useMemo(() => applyPlacementDecision(assessment, decision), [assessment, decision])
+  const selectedRouteProfile = useMemo(() => routeSessionProfile(selectedAssessment.selectedRoute), [selectedAssessment.selectedRoute])
 
   const persistPlacement = (placementDecision: PlacementDecision = decision, destination: 'today' | 'library' = 'today', quick = false) => {
     const profile = equipmentProfiles.find((candidate) => candidate.id === equipmentProfileId) ?? equipmentProfiles[0]
@@ -137,6 +139,10 @@ export function Onboarding() {
           {selectedAssessment.uncertainInputs.length > 0 && <details><summary>Uncertain inputs · {selectedAssessment.uncertainInputs.length}</summary><p>{selectedAssessment.uncertainInputs.join(', ')}. These stay unknown and reduce confidence.</p></details>}
           <details><summary>Why not lower or higher?</summary><p><strong>Lower:</strong> {selectedAssessment.whyNotLower}</p><p><strong>Higher:</strong> {selectedAssessment.whyNotHigher}</p></details>
           <details open><summary>First-session verification plan</summary><ul>{selectedAssessment.verificationPlan.map((item) => <li key={item}>{item}</li>)}</ul></details>
+          <div className="route-session-preview">
+            <div><Sparkles size={18} /><span><strong>Your starting sessions will actually change</strong><small>{selectedRouteProfile.ruleVersion} · {selectedRouteProfile.label}</small></span></div>
+            {selectedAssessment.selectedRoute === 'pain-aware-modified' ? <p>Automatic session generation stays paused until you reassess movement restrictions. Existing completed work remains untouched.</p> : <><p>{selectedRouteProfile.strategy}</p><div className="route-session-preview__grid"><span><small>Primary</small><strong>{selectedRouteProfile.primary.sets} × {selectedRouteProfile.primary.reps}</strong><em>{selectedRouteProfile.primary.rir} RIR · {selectedRouteProfile.primary.restSeconds}s rest</em></span><span><small>Secondary</small><strong>{selectedRouteProfile.secondary.sets} × {selectedRouteProfile.secondary.reps}</strong><em>{selectedRouteProfile.secondary.rir} RIR · {selectedRouteProfile.secondary.restSeconds}s rest</em></span><span><small>Accessories</small><strong>{selectedRouteProfile.accessory.sets} × {selectedRouteProfile.accessory.reps}</strong><em>up to {selectedRouteProfile.maximumAccessories} · {selectedRouteProfile.accessory.rir} RIR</em></span></div><small>{selectedRouteProfile.warmupGuidance}</small></>}
+          </div>
           <div className="placement-controls"><button className={decision === 'conservative' ? 'selected' : ''} onClick={() => setDecision(decision === 'conservative' ? 'confirmed' : 'conservative')}><ShieldCheck size={17} /><span><strong>Start more conservatively</strong><small>Use {placementRouteLabels[applyPlacementDecision(assessment, 'conservative').selectedRoute]}.</small></span></button><button className={decision === 'aggressive-test' ? 'selected' : ''} onClick={() => setDecision(decision === 'aggressive-test' ? 'confirmed' : 'aggressive-test')}><Sparkles size={17} /><span><strong>I am ready for more</strong><small>Keep this route, but request faster productive verification.</small></span></button><button className="placement-controls__wide" onClick={() => persistPlacement(decision, 'library')}><BrainCircuit size={17} /><span><strong>Correct or import my training history</strong><small>Save this hypothesis, then improve its evidence in Library.</small></span></button></div>
           <ul className="check-list"><li><Check size={16} /> Surveys remain optional</li><li><Check size={16} /> Missed sessions create no volume debt</li><li><CalendarClock size={16} /> Exit depends on criteria, not an arbitrary date</li><li><ShieldCheck size={16} /> Data stays on this device for now</li></ul>
         </section>}

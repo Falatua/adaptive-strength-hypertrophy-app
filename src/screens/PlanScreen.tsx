@@ -157,7 +157,7 @@ export function PlanScreen() {
       <section className="cycle-hero">
         <div className="cycle-hero__copy">
           <span className="status-chip status-chip--orange">{cycleReview && cycleReview.evidence.unresolvedSessions === 0 ? 'Ready for review' : cycleReview?.targetPassed ? 'Review window open' : 'Exposure cycle active'}</span>
-          <p className="eyebrow">{activePlan ? `${readable(activePlan.dominantAdaptation)} · Plan v${activePlan.version}` : 'Legacy plan · Create first version'}</p>
+          <p className="eyebrow">{activePlan ? `${activePlan.entryRoute ? readable(activePlan.entryRoute) : readable(activePlan.dominantAdaptation)} · Plan v${activePlan.version}` : 'Legacy plan · Create first version'}</p>
           <h2>{activePlan?.title ?? 'Protect the next useful exposure.'}</h2>
           <p>{activePlan?.objective ?? athlete.goal}</p>
           <div className="cycle-progress"><span><b style={{ width: `${Math.max(8, ((cycleReview?.evidence.qualifiedSessions ?? 0) / Math.max(1, cycleReview?.evidence.requiredSessions ?? 1)) * 100)}%` }} /></span><small>{cycleReview?.evidence.qualifiedSessions ?? 0} of {cycleReview?.evidence.requiredSessions ?? required} protected sessions qualified in exposure round {cycleReview?.microcycleNumber ?? 1}</small></div>
@@ -177,7 +177,7 @@ export function PlanScreen() {
         <section className="panel panel--flush">
           <div className="panel__header panel__header--padded"><div><p className="eyebrow">Rolling priority queue</p><h3>Next sessions</h3></div><span>{activePlan?.weeklyOpportunities ?? athlete.weeklyOpportunities} opportunities / week</span></div>
           <div className="queue-list">
-            {sessions.map((session, index) => {
+            {planSessions.map((session, index) => {
               const primary = session.exercises.find((exercise) => exercise.role === 'primary')
               const exercise = exercises.find((candidate) => candidate.id === primary?.exerciseId)
               return (
@@ -187,7 +187,7 @@ export function PlanScreen() {
                     <div className="queue-content__top"><span className="eyebrow">{session.dayLabel}</span><span className={`status-chip status-chip--${session.status === 'completed' ? 'lime' : 'default'}`}>{session.status}</span></div>
                     <h3>{session.title}</h3>
                     <p>{session.objective}</p>
-                    <div className="queue-meta"><span><Shield size={14} /> {exercise?.name}</span><span><Clock3 size={14} /> {session.durationMinutes} min</span><span><Layers3 size={14} /> {session.exercises.length} movements</span></div>
+                    <div className="queue-meta"><span><Shield size={14} /> {exercise?.name}</span><span><Clock3 size={14} /> {session.durationMinutes} min</span><span><Layers3 size={14} /> {session.exercises.length} movements</span>{session.generation && <span><Sparkles size={14} /> {readable(session.generation.route)}</span>}</div>
                   </div>
                   <div className="queue-actions">
                     {(session.status === 'planned' || session.status === 'deferred') && <button className="button button--small button--secondary" onClick={() => startSession(session.id)}>Start</button>}
@@ -218,6 +218,7 @@ export function PlanScreen() {
             <div className="panel__header"><div><p className="eyebrow">Protected qualities</p><h3>Current contract</h3></div><Target size={19} /></div>
             <ul className="priority-list">
               <li><span>Anchors</span><strong>{activeAnchors.join(', ') || 'Choose anchors'}</strong></li>
+              <li><span>Entry route</span><strong>{activePlan?.entryRoute ? `${readable(activePlan.entryRoute)} · ${activePlan.generationRuleVersion}` : 'Manual adaptation rules'}</strong></li>
               <li><span>Develop</span><strong>{(activePlan?.priorityRegions ?? athlete.priorityRegions).map(readable).join(', ')}</strong></li>
               <li><span>Maintain</span><strong>{(activePlan?.maintenanceRegions ?? []).map(readable).join(', ') || 'Set in next plan version'}</strong></li>
               <li><span>Constraint</span><strong>{activePlan?.defaultMinutes ?? athlete.defaultMinutes} minutes, irregular schedule</strong></li>
@@ -258,7 +259,7 @@ export function PlanScreen() {
             {activeSessionId && <div className="plan-editor__warning"><AlertCircle size={18} /><span><strong>Revision paused</strong>Finish or leave the active workout before applying a new plan.</span></div>}
             <div className="form-grid">
               <label><span className="field-label">Plan title</span><input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
-              <label><span className="field-label">Dominant adaptation</span><select value={draft.dominantAdaptation} onChange={(event) => setDraft({ ...draft, dominantAdaptation: event.target.value as MesocycleDraft['dominantAdaptation'] })}><option value="powerbuilding">Powerbuilding</option><option value="strength">Strength</option><option value="hypertrophy">Hypertrophy</option><option value="reacclimation">Reacclimation</option></select></label>
+              <label><span className="field-label">Dominant adaptation</span><select value={draft.dominantAdaptation} onChange={(event) => setDraft({ ...draft, dominantAdaptation: event.target.value as MesocycleDraft['dominantAdaptation'], entryRoute: undefined, generationRuleVersion: undefined, placementCreatedAt: undefined })}><option value="powerbuilding">Powerbuilding</option><option value="strength">Strength</option><option value="hypertrophy">Hypertrophy</option><option value="reacclimation">Reacclimation</option></select></label>
             </div>
             <label><span className="field-label">Objective</span><textarea value={draft.objective} onChange={(event) => setDraft({ ...draft, objective: event.target.value })} /></label>
             <div className="plan-editor__numbers">

@@ -1,5 +1,6 @@
 import { addDays } from 'date-fns'
 import { makeSets } from './training-engine'
+import { prescriptionForRole, routeSessionProfile, type RouteSessionProfile } from './route-session-engine'
 import type {
   BodyRegion,
   CompletedSetRecord,
@@ -21,7 +22,7 @@ export interface MesocyclePreview {
   explanations: string[]
 }
 
-interface GenerationContext {
+export interface GenerationContext {
   exercises: Exercise[]
   currentSessions: TrainingSession[]
   history: CompletedSetRecord[]
@@ -30,6 +31,7 @@ interface GenerationContext {
   startsAt?: Date
   sessionKeyPrefix?: string
   microcycleNumber?: number
+  placementCreatedAt?: string
 }
 
 const adaptationCopy = {
@@ -76,6 +78,10 @@ function latestCompletedSet(history: CompletedSetRecord[], exerciseId: string) {
 }
 
 function priorPrescription(currentSessions: TrainingSession[], history: CompletedSetRecord[], exerciseId: string) {
+  const latest = latestCompletedSet(history, exerciseId)
+  if (latest) {
+    return { sets: 3, reps: latest.reps, load: latest.load, rir: Math.max(0, latest.rir), source: 'completed-history' as const }
+  }
   const planned = currentSessions
     .flatMap((session) => session.exercises)
     .find((exercise) => exercise.exerciseId === exerciseId)
@@ -84,13 +90,17 @@ function priorPrescription(currentSessions: TrainingSession[], history: Complete
       sets: planned.sets.length,
       reps: planned.sets[0].targetReps,
       load: planned.sets[0].targetLoad,
-      rir: planned.sets[0].targetRir
+      rir: planned.sets[0].targetRir,
+      source: 'existing-plan' as const
     }
   }
-  const latest = latestCompletedSet(history, exerciseId)
-  return latest
-    ? { sets: 3, reps: latest.reps, load: latest.load, rir: Math.max(1, latest.rir) }
-    : { sets: 3, reps: 10, load: 0, rir: 3 }
+  return { sets: 3, reps: 10, load: 0, rir: 3, source: 'calibration' as const }
+}
+
+function routeLoad(prior: ReturnType<typeof priorPrescription>, intensity: number) {
+  if (prior.load <= 0 || intensity <= 0) return 0
+  const estimatedMaximum = prior.load * (1 + (prior.reps + prior.rir) / 30)
+  return Math.max(0, Math.round((estimatedMaximum * intensity) / 5) * 5)
 }
 
 function plannedExercise(
@@ -99,24 +109,31 @@ function plannedExercise(
   purpose: string,
   sessionKey: string,
   context: GenerationContext,
-  adaptation: MesocycleDraft['dominantAdaptation']
+  adaptation: MesocycleDraft['dominantAdaptation'],
+  routeProfile?: RouteSessionProfile
 ): PlannedExercise {
   const prior = priorPrescription(context.currentSessions, context.history, exercise.id)
   const isPrimary = role === 'primary'
   const reacclimating = adaptation === 'reacclimation'
-  const setCount = Math.max(2, prior.sets - (reacclimating ? 1 : 0))
-  const targetLoad = reacclimating ? Math.round((prior.load * 0.9) / 5) * 5 : prior.load
-  const estimatedMinutes = isPrimary ? Math.min(23, 9 + setCount * 3) : role === 'secondary' ? Math.min(15, 6 + setCount * 2.5) : Math.min(10, 4 + setCount * 1.5)
+  const routePrescription = routeProfile ? prescriptionForRole(routeProfile, role) : null
+  const setCount = routePrescription?.sets ?? Math.max(2, prior.sets - (reacclimating ? 1 : 0))
+  const targetReps = routePrescription?.reps ?? prior.reps
+  const targetRir = routePrescription?.rir ?? (reacclimating ? Math.max(3, prior.rir) : prior.rir)
+  const targetLoad = routePrescription ? routeLoad(prior, routePrescription.intensity) : reacclimating ? Math.round((prior.load * 0.9) / 5) * 5 : prior.load
+  const restSeconds = routePrescription?.restSeconds ?? (isPrimary ? 180 : role === 'secondary' ? 135 : 75)
+  const setupMinutes = isPrimary ? 7 : role === 'secondary' ? 4 : 3
+  const estimatedMinutes = Math.max(4, Math.round(setupMinutes + (setCount * 0.75) + Math.max(0, setCount - 1) * restSeconds / 60))
   return {
     id: `${sessionKey}-${role}-${exercise.id}`,
     exerciseId: exercise.id,
     role,
     purpose,
-    sets: makeSets(setCount, prior.reps, targetLoad, reacclimating ? Math.max(3, prior.rir) : prior.rir)
+    sets: makeSets(setCount, targetReps, targetLoad, targetRir)
       .map((workSet, index) => ({ ...workSet, id: `${sessionKey}-${exercise.id}-set-${index + 1}` })),
-    restSeconds: isPrimary ? 180 : role === 'secondary' ? 135 : 75,
+    restSeconds,
     estimatedMinutes: Math.round(estimatedMinutes),
-    optional: role === 'optional'
+    optional: role === 'optional',
+    warmupGuidance: routeProfile ? routeProfile.warmupGuidance : undefined
   }
 }
 
@@ -142,23 +159,17 @@ function chooseAccessories(exercises: Exercise[], excluded: Set<string>, regions
 }
 
 function fitToTime(exercises: PlannedExercise[], minutes: number) {
-  const selected: PlannedExercise[] = []
-  let used = 0
-  exercises.forEach((exercise) => {
-    if (used + exercise.estimatedMinutes <= minutes || exercise.role === 'primary' || selected.length < 2) {
+  const primary = exercises.find((exercise) => exercise.role === 'primary')
+  if (!primary) return []
+  const selected = [{ ...primary }]
+  let used = primary.estimatedMinutes
+  exercises.filter((exercise) => exercise !== primary).forEach((exercise) => {
+    if (used + exercise.estimatedMinutes <= minutes) {
       selected.push(exercise)
       used += exercise.estimatedMinutes
     }
   })
-  const total = selected.reduce((sum, exercise) => sum + exercise.estimatedMinutes, 0)
-  const timeFitted = total <= minutes ? selected : selected.slice(0, 2).map((exercise, index, required) => {
-    const requiredTotal = required.reduce((sum, item) => sum + item.estimatedMinutes, 0)
-    const allocated = index === required.length - 1
-      ? minutes - required.slice(0, index).reduce((sum, item) => sum + Math.round((item.estimatedMinutes / requiredTotal) * minutes), 0)
-      : Math.round((exercise.estimatedMinutes / requiredTotal) * minutes)
-    return { ...exercise, estimatedMinutes: allocated }
-  })
-  return timeFitted.map((exercise, index) => ({
+  return selected.map((exercise, index) => ({
     ...exercise,
     optional: exercise.optional || index >= 3
   }))
@@ -180,11 +191,17 @@ export function draftFromPlan(plan: MesocyclePlan): MesocycleDraft {
     defaultMinutes: plan.defaultMinutes,
     strengthAnchors: [...plan.strengthAnchors],
     priorityRegions: [...plan.priorityRegions],
-    maintenanceRegions: [...plan.maintenanceRegions]
+    maintenanceRegions: [...plan.maintenanceRegions],
+    entryRoute: plan.entryRoute,
+    generationRuleVersion: plan.generationRuleVersion,
+    placementCreatedAt: plan.placementCreatedAt
   }
 }
 
 export function buildMesocyclePreview(draft: MesocycleDraft, context: GenerationContext): MesocyclePreview {
+  const routeProfile = draft.entryRoute && draft.generationRuleVersion === 'route-session-v1'
+    ? routeSessionProfile(draft.entryRoute)
+    : undefined
   const anchors = draft.strengthAnchors
     .map((id) => context.exercises.find((exercise) => exercise.id === id))
     .filter((exercise): exercise is Exercise => Boolean(exercise))
@@ -196,29 +213,31 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     const excluded = new Set<string>([anchor.id])
     const secondary = chooseSecondary(anchor, context.exercises, excluded, draft.priorityRegions)
     if (secondary) excluded.add(secondary.id)
-    const accessoryCount = draft.defaultMinutes <= 30 ? 1 : draft.defaultMinutes <= 45 ? 2 : 3
+    const timeAccessoryCount = draft.defaultMinutes <= 30 ? 1 : draft.defaultMinutes <= 45 ? 2 : 3
+    const accessoryCount = routeProfile ? Math.min(timeAccessoryCount, routeProfile.maximumAccessories) : timeAccessoryCount
     const priorityCount = Math.min(accessoryCount, Math.max(1, accessoryCount - 1))
     const priorityAccessories = chooseAccessories(context.exercises, excluded, draft.priorityRegions, priorityCount, index)
     priorityAccessories.forEach((exercise) => excluded.add(exercise.id))
     const maintenanceAccessories = chooseAccessories(context.exercises, excluded, draft.maintenanceRegions, accessoryCount - priorityAccessories.length, index)
     const accessories = [...priorityAccessories, ...maintenanceAccessories]
     const exercisePlan = [
-      plannedExercise(anchor, 'primary', adaptationCopy[draft.dominantAdaptation].primary, sessionKey, context, draft.dominantAdaptation),
-      ...(secondary ? [plannedExercise(secondary, 'secondary', `Build transfer to ${anchor.name}.`, sessionKey, context, draft.dominantAdaptation)] : []),
+      plannedExercise(anchor, 'primary', routeProfile?.strategy ?? adaptationCopy[draft.dominantAdaptation].primary, sessionKey, context, draft.dominantAdaptation, routeProfile),
+      ...(secondary ? [plannedExercise(secondary, 'secondary', `Build transfer to ${anchor.name}.`, sessionKey, context, draft.dominantAdaptation, routeProfile)] : []),
       ...accessories.map((exercise) => plannedExercise(
         exercise,
         draft.priorityRegions.includes(exercise.primaryRegion) ? 'priority' : 'maintenance',
         draft.priorityRegions.includes(exercise.primaryRegion) ? `Develop ${exercise.primaryRegion} for the active mesocycle.` : `Maintain ${exercise.primaryRegion} with a recoverable dose.`,
         sessionKey,
         context,
-        draft.dominantAdaptation
+        draft.dominantAdaptation,
+        routeProfile
       ))
     ]
     const fitted = fitToTime(exercisePlan, draft.defaultMinutes)
     return {
       id: sessionKey,
-      title: titleFor(anchor, adaptationCopy[draft.dominantAdaptation].suffix),
-      objective: `${draft.objective} Today's protected anchor is ${anchor.name}.`,
+      title: titleFor(anchor, routeProfile ? `${routeProfile.label} Session` : adaptationCopy[draft.dominantAdaptation].suffix),
+      objective: `${draft.objective} Today's protected anchor is ${anchor.name}.${routeProfile ? ` ${routeProfile.strategy}` : ''}`,
       dayLabel: index === 0 ? 'Next best session' : `Queued · ${index + 1}`,
       plannedDate: addDays(startsAt, index * 2).toISOString(),
       status: 'planned',
@@ -226,7 +245,14 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
       exercises: fitted,
       mesocycleId: context.planId,
       planVersion: context.planVersion,
-      microcycleNumber: context.microcycleNumber ?? 1
+      microcycleNumber: context.microcycleNumber ?? 1,
+      generation: routeProfile && draft.placementCreatedAt ? {
+        ruleVersion: routeProfile.ruleVersion,
+        placementCreatedAt: draft.placementCreatedAt,
+        route: routeProfile.route,
+        strategy: routeProfile.strategy,
+        reasons: [...routeProfile.reasons]
+      } : undefined
     } satisfies TrainingSession
   })
 
@@ -244,10 +270,13 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     regionSets,
     protectedAnchors: anchors.map((anchor) => anchor.id),
     explanations: [
+      ...(routeProfile ? [`${routeProfile.label} uses ${routeProfile.primary.sets} × ${routeProfile.primary.reps} at ${routeProfile.primary.rir} RIR for primary work under ${routeProfile.ruleVersion}.`, ...routeProfile.reasons, routeProfile.progressionPolicy] : []),
       `${anchors.length} strength anchors remain protected as required exposures.`,
       `${draft.weeklyOpportunities} weekly opportunities estimate the calendar pace; exposure completion controls progression.`,
       `${draft.defaultMinutes} minutes caps each generated session before optional work is added.`,
-      `Load, repetitions, and sets are copied from existing prescriptions or the latest exact exposure; reacclimation alone begins conservatively.`
+      routeProfile
+        ? 'Target loads derive from the latest exact completed set first, then an existing exact prescription, and otherwise remain a zero-load calibration. Different variations never lend each other a load.'
+        : 'Load, repetitions, and sets are copied from existing prescriptions or the latest exact exposure; reacclimation alone begins conservatively.'
     ]
   }
 }

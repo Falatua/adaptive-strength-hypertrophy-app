@@ -63,6 +63,19 @@ export function TodayScreen() {
     continuity: athlete.continuity,
     readiness: nextSession?.readiness ?? 'confirm'
   })
+  const routeLabel = nextSession?.generation?.route.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+  const whyReasons = nextSession?.generation
+    ? [
+        { title: `${routeLabel} route`, detail: nextSession.generation.strategy },
+        ...nextSession.generation.reasons.map((reason) => ({ title: 'Route evidence', detail: reason })),
+        { title: progression.title, detail: progression.explanation }
+      ]
+    : [
+        { title: `${primaryExercise?.name ?? 'The primary movement'} is the protected anchor.`, detail: 'Its latest qualified exact exposure remains the progression reference.' },
+        { title: 'The session protects the next useful exposure.', detail: 'Missed calendar dates do not create catch-up debt or automatic progression.' },
+        { title: 'The session fits the current time budget.', detail: `At ${settings.availableMinutes} minutes, primary work stays ahead of optional accessory dose.` },
+        { title: progression.title, detail: progression.explanation }
+      ]
 
   const commitStart = (start: { answers: SurveyAnswer[]; skipped: boolean; mode: EffectiveSurveyMode; minutes: number }) => {
     if (!nextSession) return
@@ -224,10 +237,7 @@ export function TodayScreen() {
 
       <Modal open={whyOpen} onClose={() => setWhyOpen(false)} title="Why this session is next" description="ForgePath shows the rule inputs instead of hiding them in an AI score.">
         <div className="reason-stack">
-          <div><span>01</span><p><strong>Bench is the highest overdue protected anchor.</strong>Your last qualified bench exposure remains the progression reference.</p></div>
-          <div><span>02</span><p><strong>Upper-body work fits the current recovery pattern.</strong>It avoids stacking another high-cost hinge immediately.</p></div>
-          <div><span>03</span><p><strong>The session compresses cleanly.</strong>At {settings.availableMinutes} minutes, primary bench and the two-board builder remain protected.</p></div>
-          <div><span>04</span><p><strong>{progression.title}.</strong>{progression.explanation}</p></div>
+          {whyReasons.map((reason, index) => <div key={`${reason.title}-${index}`}><span>{String(index + 1).padStart(2, '0')}</span><p><strong>{reason.title}.</strong> {reason.detail}</p></div>)}
         </div>
         <div className="modal__actions"><button className="button button--primary" onClick={() => setWhyOpen(false)}>Understood</button></div>
       </Modal>

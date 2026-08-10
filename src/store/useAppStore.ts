@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware'
 import { athlete as seedAthlete, equipmentProfiles as seedEquipmentProfiles, exercises as seedExercises, history as seedHistory, mesocycles as seedMesocycles, sessions as seedSessions } from '../domain/seed'
 import { compressSession, readinessFromSurvey, replanAfterMiss, sessionCompletionStatus } from '../domain/training-engine'
 import { backupStateFrom, type RestorableAppState } from '../domain/backup'
-import { buildMesocyclePreview, createMesocyclePlan, replaceFuturePlan } from '../domain/mesocycle-engine'
+import { buildMesocyclePreview, createMesocyclePlan, draftFromPlan, replaceFuturePlan } from '../domain/mesocycle-engine'
 import { derivePersonalRecords, historyVolume, projectExerciseMerge } from '../domain/history-engine'
 import { buildCycleReview, buildNextMicrocycle } from '../domain/cycle-review-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
@@ -13,6 +13,7 @@ import { projectExerciseCatalogEdit, type ExerciseCatalogInput } from '../domain
 import { equipmentProfileError, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad, normalizedEquipmentProfile } from '../domain/equipment-engine'
 import { legacyPlacementForAthlete, placementRouteLabels } from '../domain/placement-engine'
 import { beginPlacementVerification, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery, revisePlacementSessionEvidence } from '../domain/placement-verification-engine'
+import { ROUTE_SESSION_RULE_VERSION, routeSessionProfile } from '../domain/route-session-engine'
 import type {
   AppSettings,
   AthleteProfile,
@@ -148,48 +149,75 @@ export const useAppStore = create<AppState>()(
       completeOnboarding: (profile) => set((state) => {
         const athlete = { ...state.athlete, ...profile }
         const route = athlete.placement.selectedRoute
+        const routeProfile = routeSessionProfile(route)
         const dominantAdaptation = route === 'hypertrophy' ? 'hypertrophy' as const
           : ['strength', 'power', 'event-specific'].includes(route) ? 'strength' as const
             : route === 'powerbuilding' ? 'powerbuilding' as const
               : 'reacclimation' as const
         const activePlan = state.mesocycles.find((plan) => plan.id === state.activeMesocycleId)
+        const basePlan = activePlan ?? seedMesocycles[0]
+        const isReassessment = Boolean(activePlan?.placementCreatedAt || activePlan?.revisionReason.includes(`${athlete.placement.ruleVersion} onboarding placement`) || activePlan?.revisionReason.includes(`${athlete.placement.ruleVersion} reassessment`))
+        const now = new Date().toISOString()
+        const planVersion = isReassessment || !activePlan ? Math.max(0, ...state.mesocycles.map((plan) => plan.version)) + 1 : activePlan.version
+        const replacementPlanId = isReassessment || !activePlan ? `mesocycle-${nanoid()}` : activePlan.id
+        const queuedAnchorOrder = state.sessions
+          .filter((session) => ['planned', 'deferred'].includes(session.status))
+          .flatMap((session) => session.exercises.find((planned) => planned.role === 'primary')?.exerciseId ?? [])
+        const orderedAnchors = [...new Set([...queuedAnchorOrder, ...basePlan.strengthAnchors])]
         const planFields = {
           title: `${placementRouteLabels[route]} · Starting Cycle`,
+          objective: athlete.goal,
           dominantAdaptation,
           entryCriteria: athlete.placement.reasons.join(' '),
+          progressionModel: routeProfile.progressionPolicy,
           successCriteria: athlete.placement.exitCriteria.join('; '),
           exitPlan: `Verify placement across the first one to three productive sessions. ${athlete.placement.verificationPlan[0]}`,
-          revisionReason: `${athlete.placement.ruleVersion} onboarding placement · ${athlete.placement.decision}`,
+          revisionReason: `${athlete.placement.ruleVersion} ${isReassessment ? 'reassessment' : 'onboarding placement'} · ${athlete.placement.decision}`,
           weeklyOpportunities: athlete.weeklyOpportunities,
-          defaultMinutes: athlete.defaultMinutes
+          defaultMinutes: athlete.defaultMinutes,
+          strengthAnchors: orderedAnchors,
+          entryRoute: route,
+          generationRuleVersion: ROUTE_SESSION_RULE_VERSION,
+          placementCreatedAt: athlete.placement.createdAt
         }
-        const isReassessment = Boolean(activePlan?.revisionReason.startsWith(`${athlete.placement.ruleVersion} onboarding placement`))
-        const now = new Date().toISOString()
-        const futureSessionIds = state.sessions.filter((session) => ['planned', 'deferred'].includes(session.status)).map((session) => session.id)
-        const replacementPlanId = isReassessment && activePlan ? nanoid() : state.activeMesocycleId
-        const mesocycles = isReassessment && activePlan ? [
-          ...state.mesocycles.map((plan) => plan.id === activePlan.id ? { ...plan, status: 'superseded' as const } : plan),
-          {
-            ...activePlan,
-            ...planFields,
-            id: replacementPlanId as string,
-            version: Math.max(...state.mesocycles.map((plan) => plan.version)) + 1,
-            status: 'active' as const,
-            createdAt: now,
-            effectiveAt: now,
-            supersedesId: activePlan.id,
-            revisionReason: `${athlete.placement.ruleVersion} reassessment · ${athlete.placement.decision}`,
-            sessionIds: futureSessionIds
-          }
-        ] : state.mesocycles.map((plan) => plan.id === state.activeMesocycleId ? { ...plan, ...planFields } : plan)
+        const routePlan = {
+          ...basePlan,
+          ...planFields,
+          id: replacementPlanId,
+          version: planVersion,
+          status: 'active' as const,
+          createdAt: isReassessment || !activePlan ? now : basePlan.createdAt,
+          effectiveAt: now,
+          supersedesId: isReassessment && activePlan ? activePlan.id : basePlan.supersedesId,
+          sessionIds: [] as string[]
+        }
+        const generatedSessions = route === 'pain-aware-modified' ? [] : buildMesocyclePreview(draftFromPlan(routePlan), {
+          exercises: state.exercises,
+          currentSessions: state.sessions,
+          history: state.history,
+          planId: replacementPlanId,
+          planVersion,
+          startsAt: new Date(now),
+          sessionKeyPrefix: `${replacementPlanId}-${route}`,
+          placementCreatedAt: athlete.placement.createdAt
+        }).sessions
+        routePlan.sessionIds = generatedSessions.map((session) => session.id)
+        const mesocycles = activePlan
+          ? isReassessment
+            ? [...state.mesocycles.map((plan) => plan.id === activePlan.id ? { ...plan, status: 'superseded' as const } : plan), routePlan]
+            : state.mesocycles.map((plan) => plan.id === activePlan.id ? routePlan : plan)
+          : [...state.mesocycles, routePlan]
+        const preservedSessions = state.sessions.filter((session) => !['planned', 'deferred'].includes(session.status))
         return {
           athlete,
           settings: { ...state.settings, availableMinutes: athlete.defaultMinutes },
           mesocycles,
-          sessions: isReassessment && activePlan ? state.sessions.map((session) => futureSessionIds.includes(session.id) ? { ...session, mesocycleId: replacementPlanId as string, planVersion: Math.max(...state.mesocycles.map((plan) => plan.version)) + 1 } : session) : state.sessions,
+          sessions: [...preservedSessions, ...generatedSessions],
           activeMesocycleId: replacementPlanId,
           onboardingComplete: true,
-          notice: `${placementRouteLabels[route]} saved as a ${athlete.placement.confidence}-confidence starting hypothesis.`
+          notice: route === 'pain-aware-modified'
+            ? 'Pain-aware placement saved. Automatic session generation is paused until movement restrictions are reassessed.'
+            : `${placementRouteLabels[route]} saved as a ${athlete.placement.confidence}-confidence hypothesis. ${generatedSessions.length} route-specific sessions were queued under ${ROUTE_SESSION_RULE_VERSION}.`
         }
       }),
       restartOnboarding: () => set({ onboardingComplete: false, activeSessionId: null, nav: 'today', notice: null }),
@@ -847,7 +875,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 11,
+      version: 12,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,

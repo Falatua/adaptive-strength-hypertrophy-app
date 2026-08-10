@@ -12,6 +12,7 @@ export type PlacementRoute = 'introductory-skill' | 'reacclimation' | 'bridge-ca
 export type PlacementConfidence = 'low' | 'medium' | 'high'
 export type PlacementDecision = 'confirmed' | 'conservative' | 'aggressive-test' | 'quick-start'
 export type PlacementPainState = 'none' | 'manageable' | 'modifying' | 'unknown'
+export type RouteSessionRuleVersion = 'route-session-v1'
 
 export interface PlacementInputs {
   goal: PlacementGoal | null
@@ -187,6 +188,15 @@ export interface PlannedExercise {
   substitutionEventId?: string
   prescriptionMethod?: 'exact-history' | 'baseline-calibration'
   prescriptionNote?: string
+  warmupGuidance?: string
+}
+
+export interface RouteSessionGenerationEvidence {
+  ruleVersion: RouteSessionRuleVersion
+  placementCreatedAt: string
+  route: PlacementRoute
+  strategy: string
+  reasons: string[]
 }
 
 export interface TrainingSession {
@@ -210,6 +220,7 @@ export interface TrainingSession {
   mesocycleId?: string
   planVersion?: number
   microcycleNumber?: number
+  generation?: RouteSessionGenerationEvidence
 }
 
 export interface MesocyclePlan {
@@ -235,6 +246,9 @@ export interface MesocyclePlan {
   priorityRegions: BodyRegion[]
   maintenanceRegions: BodyRegion[]
   sessionIds: string[]
+  entryRoute?: PlacementRoute
+  generationRuleVersion?: RouteSessionRuleVersion
+  placementCreatedAt?: string
 }
 
 export interface MesocycleDraft {
@@ -253,6 +267,9 @@ export interface MesocycleDraft {
   strengthAnchors: string[]
   priorityRegions: BodyRegion[]
   maintenanceRegions: BodyRegion[]
+  entryRoute?: PlacementRoute
+  generationRuleVersion?: RouteSessionRuleVersion
+  placementCreatedAt?: string
 }
 
 export interface CycleReviewEvidence {

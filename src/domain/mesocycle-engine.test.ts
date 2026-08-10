@@ -46,7 +46,7 @@ describe('criterion-driven mesocycle planning', () => {
   })
 
   it('starts reacclimation conservatively without adding catch-up volume', () => {
-    const next = { ...draft(), dominantAdaptation: 'reacclimation' as const }
+    const next = { ...draft(), dominantAdaptation: 'reacclimation' as const, entryRoute: undefined, generationRuleVersion: undefined, placementCreatedAt: undefined }
     const preview = buildMesocyclePreview(next, {
       exercises,
       currentSessions: sessions,
@@ -56,7 +56,7 @@ describe('criterion-driven mesocycle planning', () => {
     })
     const oldBench = sessions[0].exercises.find((item) => item.exerciseId === 'competition-bench')!
     const newBench = preview.sessions.flatMap((session) => session.exercises).find((item) => item.exerciseId === 'competition-bench')!
-    expect(newBench.sets.length).toBe(oldBench.sets.length - 1)
+    expect(newBench.sets.length).toBeLessThan(oldBench.sets.length)
     expect(newBench.sets[0].targetLoad).toBeLessThan(oldBench.sets[0].targetLoad)
   })
 

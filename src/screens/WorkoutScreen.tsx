@@ -201,6 +201,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   <button className="info-button" aria-label={`More information about ${exercise.name}`} title={recommendation.explanation}><Info size={17} /></button>
                 </div>
                 {planned.prescriptionNote && <div className="substitution-prescription"><RefreshCcw size={16} /><span><strong>{planned.prescriptionMethod === 'exact-history' ? 'Exact-history replacement' : 'Baseline calibration'}</strong>{planned.prescriptionNote}</span></div>}
+                {planned.warmupGuidance && exerciseIndex === 0 && <div className="route-warmup-guidance"><Sparkles size={16} /><span><strong>Route-specific warm-up</strong>{planned.warmupGuidance}</span></div>}
                 <div className="set-table" role="table" aria-label={`${exercise.name} sets`}>
                   <div className="set-table__head" role="row"><span>Set</span><span>Load</span><span>Reps</span><span>RIR</span><span>Status</span></div>
                   {planned.sets.map((workSet, index) => (
