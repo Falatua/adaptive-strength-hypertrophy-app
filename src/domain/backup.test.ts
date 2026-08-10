@@ -211,6 +211,36 @@ describe('versioned backup and restore', () => {
     expect(parsed.warnings[0]).toMatch(/version 8/i)
   })
 
+  it('migrates a verified version 9 backup without inventing catalog edits', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 9, appVersion: '0.10.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.historyMutations).toEqual([])
+    expect(parsed.warnings[0]).toMatch(/version 9/i)
+  })
+
+  it('round-trips an auditable catalog edit with unchanged source history', () => {
+    const current = state()
+    const beforeExercises = structuredClone(current.exercises)
+    const afterExercises = current.exercises.map((exercise) => exercise.id === 'competition-bench' ? { ...exercise, aliases: [...exercise.aliases, 'Meet Bench'] } : exercise)
+    current.exercises = afterExercises
+    current.historyMutations = [{
+      id: 'catalog-edit-1', type: 'exercise-edited', createdAt: '2026-08-10T12:00:00.000Z', reason: 'Added notebook alias',
+      description: 'Competition Bench Press catalog identity updated to Competition Bench Press.',
+      affectedSetIds: current.history.filter((workSet) => workSet.exerciseId === 'competition-bench').map((workSet) => workSet.id),
+      before: { history: structuredClone(current.history), exercises: beforeExercises, sessions: structuredClone(current.sessions) },
+      after: { history: structuredClone(current.history), exercises: afterExercises, sessions: structuredClone(current.sessions) },
+      recordsBefore: structuredClone(current.records), recordsAfter: structuredClone(current.records),
+      volumeBefore: historyVolume(current.history), volumeAfter: historyVolume(current.history)
+    }]
+    const parsed = parseBackup(JSON.stringify(createBackup(current)))
+    expect(parsed.backup.data.historyMutations[0]).toMatchObject({ type: 'exercise-edited', volumeBefore: historyVolume(current.history), volumeAfter: historyVolume(current.history) })
+    expect(parsed.backup.data.exercises.find((exercise) => exercise.id === 'competition-bench')?.aliases).toContain('Meet Bench')
+  })
+
   it('preserves explicit unknown survey answers and rejects fabricated unknown values', () => {
     const current = state()
     current.surveys = [{

@@ -31,7 +31,9 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Immutable mesocycle revision history with status, effective date, prior-plan link, and required reason for change.
 - Future-only plan replacement that preserves completed, partial, stopped, deferred, and expired historical truth.
 - Missed-session replanning without catch-up volume.
-- Exact exercise history, canonical IDs, aliases, duplicate warnings, preferences, and joint response.
+- Exact exercise history, stable canonical IDs, aliases, duplicate warnings, preferences, and joint response.
+- Auditable custom-movement editing for name, family, movement type, body part, equipment, description, and aliases. Built-in taxonomy remains protected except for athlete-managed aliases.
+- Exact name and alias collisions are blocked before save. Probable related variations stay visible for athlete review, prior completed-set names remain historical truth, and every catalog edit has a required reason and one-step undo.
 - Reason-aware exercise replacement with ranked evidence tiers, visible purpose and tradeoffs, exact-history or conservative calibration prescriptions, protected-primary confirmation, and preserved exact-movement clocks.
 - A durable substitution-learning ledger linking original and selected movements, candidate snapshots, prescriptions, completed source sets, outcomes, and available feedback.
 - Daily and weekly volume, body-region views, source-backed records, and micro wins.
@@ -46,7 +48,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - A fully validated PR requires confirmed technique and pain feedback. Survey-free sessions keep their numbers as visibly numeric-only bests.
 - Athlete-controlled celebration level, quiet mode, opportunity prompts, session achievements, reduced motion, pixel confetti, sounds preference, and supported-device haptics.
 - Athlete model, survey controls, focused mode, data export, and local reset.
-- Version 9 open-JSON backup with expanded record definitions, celebration controls, plan, review, correction, substitution, survey-evidence, and deferred-feedback history, integrity checks, versions 1 through 8 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
+- Version 10 open-JSON backup with expanded record definitions, celebration controls, plan, review, history and catalog changes, substitution, survey-evidence, and deferred-feedback history, integrity checks, versions 1 through 9 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
 - Original pixel-adventure visual language and installable PWA shell.
 - Accurate completed, partial-primary, and partial-without-primary session states.
 
@@ -65,7 +67,8 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Switch every progress horizon and prove chart, body-lens, and headline totals equal the selected completed source sets.
 - Select the calendar quarter, show monthly quarter points, inspect exact movement mix and priority attention, and preserve exact-width phone containment without turning volume share into a stimulus or enjoyment claim.
 - Preview a 30-minute plan revision, apply it, preserve partial history, inspect both plan versions, reload, and recover the active version from local persistence.
-- Export and preview a verified version 9 backup containing expanded records, athlete celebration preferences, plan versions, the correction ledger, cycle-review history, substitution learning, survey evidence, and deferred-feedback provenance.
+- Export and preview a verified version 10 backup containing expanded records, athlete celebration preferences, plan versions, the history and catalog ledger, cycle-review history, substitution learning, survey evidence, and deferred-feedback provenance.
+- Create a distinct custom movement, edit its canonical metadata, block an exact alias collision, save a non-conflicting identity without changing its stable ID, inspect the zero-volume catalog ledger entry, and undo the edit.
 - Confirm a planned hold remains a hold after an athlete edits actual load, then log, provisionally recognize, save, and replay a source-backed exact-movement load record.
 - Turn quiet mode on, reload, and confirm the preference persists without changing training or record calculations.
 - Verify the achievement and settings surfaces on desktop and phone with no browser errors or horizontal overflow.

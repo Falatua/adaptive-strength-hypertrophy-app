@@ -25,10 +25,10 @@ export function YouScreen() {
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `forgepath-backup-v9-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `forgepath-backup-v10-${new Date().toISOString().slice(0, 10)}.json`
     anchor.click()
     URL.revokeObjectURL(url)
-    setNotice('Verified version 9 backup created as open JSON, including records, plans, corrections, cycle reviews, substitutions, survey evidence, and deferred feedback provenance.')
+    setNotice('Verified version 10 backup created as open JSON, including records, plans, history changes, catalog edits, cycle reviews, substitutions, survey evidence, and deferred feedback provenance.')
   }
 
   const readImport = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -103,7 +103,7 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.10.0 private alpha</strong></li><li><span>Rules</span><strong>0.10 load-first + evidence-led analytics</strong></li><li><span>Calculations</span><strong>Volume v2 · PR v2</strong></li><li><span>Backup schema</span><strong>Version 9</strong></li><li><span>Persistence</span><strong>Local v8</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.11.0 private alpha</strong></li><li><span>Rules</span><strong>0.11 load-first + governed catalog</strong></li><li><span>Calculations</span><strong>Volume v2 · PR v2</strong></li><li><span>Backup schema</span><strong>Version 10</strong></li><li><span>Persistence</span><strong>Local v8</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Reset private alpha</button>
         </aside>

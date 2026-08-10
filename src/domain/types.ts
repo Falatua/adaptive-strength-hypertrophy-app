@@ -332,7 +332,7 @@ export interface RecordOpportunity {
   ruleVersion: 'opportunity-v1'
 }
 
-export type HistoryMutationType = 'set-corrected' | 'set-deleted' | 'exercise-merged'
+export type HistoryMutationType = 'set-corrected' | 'set-deleted' | 'exercise-merged' | 'exercise-edited'
 
 export interface HistoryMutationSnapshot {
   history: CompletedSetRecord[]

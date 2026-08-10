@@ -13,7 +13,7 @@ const regionFilters: { id: BodyRegion | 'all'; label: string }[] = [
 ]
 
 export function LibraryScreen() {
-  const { exercises, history, historyMutations, substitutionEvents, toggleFavorite, setJointFeeling, addCustomExercise, correctHistorySet, deleteHistorySet, mergeExercises, undoLatestHistoryMutation, setNotice } = useAppStore()
+  const { exercises, history, historyMutations, substitutionEvents, toggleFavorite, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, undoLatestHistoryMutation, setNotice } = useAppStore()
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState<BodyRegion | 'all'>('all')
   const [selected, setSelected] = useState<Exercise | null>(null)
@@ -29,6 +29,8 @@ export function LibraryScreen() {
   const [mergePair, setMergePair] = useState<{ first: Exercise; second: Exercise } | null>(null)
   const [mergeTargetId, setMergeTargetId] = useState('')
   const [mergeReason, setMergeReason] = useState('Duplicate movement identity')
+  const [catalogEdit, setCatalogEdit] = useState<Exercise | null>(null)
+  const [catalogValues, setCatalogValues] = useState({ name: '', family: '', aliases: '', pattern: 'horizontal-push' as MovementPattern, primaryRegion: 'chest' as BodyRegion, equipment: '', description: '', reason: '' })
   const [formError, setFormError] = useState<string | null>(null)
 
   const filtered = useMemo(() => exercises.filter((exercise) => {
@@ -42,6 +44,17 @@ export function LibraryScreen() {
   const activeExercises = useMemo(() => exercises.filter((exercise) => !exercise.retired), [exercises])
   const duplicates = useMemo(() => customName.trim().length >= 3 ? duplicateCandidates(customName, activeExercises) : [], [customName, activeExercises])
   const duplicatePairs = useMemo(() => findExerciseDuplicatePairs(exercises), [exercises])
+  const catalogCandidates = useMemo(() => {
+    if (!catalogEdit) return []
+    const alternatives = activeExercises.filter((exercise) => exercise.id !== catalogEdit.id)
+    const queries = [catalogValues.name, ...catalogValues.aliases.split(',')].map((value) => value.trim()).filter((value) => value.length >= 3)
+    const byId = new Map<string, { exercise: Exercise; score: number }>()
+    queries.forEach((query) => duplicateCandidates(query, alternatives).forEach((candidate) => {
+      const current = byId.get(candidate.exercise.id)
+      if (!current || candidate.score > current.score) byId.set(candidate.exercise.id, candidate)
+    }))
+    return [...byId.values()].sort((a, b) => b.score - a.score).slice(0, 3)
+  }, [activeExercises, catalogEdit, catalogValues.aliases, catalogValues.name])
   const selectedHistory = selected ? history.filter((set) => set.exerciseId === selected.id).sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()) : []
   const groupedDates = selectedHistory.reduce<Record<string, typeof selectedHistory>>((groups, set) => {
     const key = set.completedAt.slice(0, 10)
@@ -96,6 +109,32 @@ export function LibraryScreen() {
     setMergePair(null)
     setQualityOpen(false)
     setSelected(null)
+  }
+
+  const openCatalogEdit = (exercise: Exercise) => {
+    setSelected(null)
+    setCatalogEdit(exercise)
+    setCatalogValues({
+      name: exercise.name, family: exercise.family, aliases: exercise.aliases.join(', '), pattern: exercise.pattern,
+      primaryRegion: exercise.primaryRegion, equipment: exercise.equipment.join(', '), description: exercise.description, reason: ''
+    })
+    setFormError(null)
+  }
+
+  const submitCatalogEdit = () => {
+    if (!catalogEdit) return
+    const result = updateExerciseCatalog(catalogEdit.id, {
+      name: catalogValues.name,
+      family: catalogValues.family,
+      aliases: catalogValues.aliases.split(','),
+      pattern: catalogValues.pattern,
+      primaryRegion: catalogValues.primaryRegion,
+      equipment: catalogValues.equipment.split(','),
+      description: catalogValues.description
+    }, catalogValues.reason)
+    if (!result.ok) return setFormError(result.error ?? 'The movement could not be updated.')
+    setCatalogEdit(null)
+    setSelected(result.exercise ?? null)
   }
 
   const createCustom = () => {
@@ -165,6 +204,7 @@ export function LibraryScreen() {
               <div><small>Completed sets</small><strong>{selectedHistory.length}</strong></div>
               <div><small>Joint response</small><strong>{selected.jointFeeling}</strong></div>
             </div>
+            <div className="catalog-control"><span><Pencil size={17} /><span><strong>{selected.custom ? 'Edit movement identity' : 'Manage search aliases'}</strong><small>{selected.custom ? 'Name, family, equipment, and body-part metadata can change without changing this movement’s history ID.' : 'The built-in taxonomy stays protected, but you can add the names you personally use.'}</small></span></span><button className="button button--secondary" onClick={() => openCatalogEdit(selected)}>Edit catalog</button></div>
             <div className="joint-picker"><span><Heart size={17} /><strong>How this feels on your joints</strong></span><div>{(['great', 'good', 'neutral', 'irritating', 'avoid'] as const).map((feeling) => <button key={feeling} className={selected.jointFeeling === feeling ? 'selected' : ''} onClick={() => { setJointFeeling(selected.id, feeling); setSelected({ ...selected, jointFeeling: feeling }) }}>{feeling}</button>)}</div></div>
             <section><div className="panel__header"><div><p className="eyebrow">Exact movement only</p><h3>Exposure history</h3></div><History size={18} /></div>
               <div className="history-table history-table--editable">{Object.entries(groupedDates).slice(0, 8).map(([date, sets]) => <div className="history-day" key={date}><span><Clock3 size={14} />{new Date(`${date}T12:00:00`).toLocaleDateString()} · {volumeLoad(sets).toLocaleString()} volume</span>{sets.map((workSet) => <div className="history-set-row" key={workSet.id}><span><strong>{workSet.load} × {workSet.reps}</strong><small>Set {workSet.setIndex + 1} · {workSet.rir} RIR · {workSet.qualityConfirmed ? `technique ${workSet.technique} · pain ${workSet.pain}` : 'quality not confirmed'}</small>{workSet.originalExerciseName && <small>Originally logged as {workSet.originalExerciseName}</small>}</span><span><button aria-label={`Correct ${workSet.load} by ${workSet.reps} set`} onClick={() => openCorrection(workSet)}><Pencil size={15} /> Correct</button><button className="danger-link" aria-label={`Delete ${workSet.load} by ${workSet.reps} set`} onClick={() => { setSelected(null); setDeleteOpen(workSet); setDeleteReason(''); setFormError(null) }}><Trash2 size={15} /> Delete</button></span></div>)}</div>)}</div>
@@ -175,8 +215,8 @@ export function LibraryScreen() {
       </Modal>
 
       <section className="panel mutation-ledger">
-        <div className="panel__header"><div><p className="eyebrow">Auditable history</p><h3>Correction and merge ledger</h3></div>{historyMutations.some((event) => !event.undoneAt) && <button className="button button--secondary" onClick={() => { const result = undoLatestHistoryMutation(); if (!result.ok) setNotice(result.error ?? 'Nothing to undo.') }}><Undo2 size={16} /> Undo latest change</button>}</div>
-        {historyMutations.length ? <div className="mutation-list">{[...historyMutations].reverse().slice(0, 6).map((event) => <div key={event.id} className={event.undoneAt ? 'is-undone' : ''}><span className="record-medal">{event.type === 'exercise-merged' ? '↗' : event.type === 'set-deleted' ? '−' : '±'}</span><span><strong>{event.description}</strong><small>{event.reason} · {new Date(event.createdAt).toLocaleString()}{event.undoneAt ? ' · undone' : ''}</small></span><span>{event.volumeAfter - event.volumeBefore >= 0 ? '+' : ''}{(event.volumeAfter - event.volumeBefore).toLocaleString()} volume</span></div>)}</div> : <div className="compact-empty"><ShieldCheck size={24} /><strong>No history changes yet</strong><p>Corrections, deletions, and merges will appear here with their reasons and consequences.</p></div>}
+        <div className="panel__header"><div><p className="eyebrow">Auditable data</p><h3>History and catalog ledger</h3></div>{historyMutations.some((event) => !event.undoneAt) && <button className="button button--secondary" onClick={() => { const result = undoLatestHistoryMutation(); if (!result.ok) setNotice(result.error ?? 'Nothing to undo.') }}><Undo2 size={16} /> Undo latest change</button>}</div>
+        {historyMutations.length ? <div className="mutation-list">{[...historyMutations].reverse().slice(0, 6).map((event) => <div key={event.id} className={event.undoneAt ? 'is-undone' : ''}><span className="record-medal">{event.type === 'exercise-merged' ? '↗' : event.type === 'exercise-edited' ? 'A' : event.type === 'set-deleted' ? '−' : '±'}</span><span><strong>{event.description}</strong><small>{event.reason} · {new Date(event.createdAt).toLocaleString()}{event.undoneAt ? ' · undone' : ''}</small></span><span>{event.volumeAfter - event.volumeBefore >= 0 ? '+' : ''}{(event.volumeAfter - event.volumeBefore).toLocaleString()} volume</span></div>)}</div> : <div className="compact-empty"><ShieldCheck size={24} /><strong>No data changes yet</strong><p>Catalog edits, corrections, deletions, and merges will appear here with their reasons and consequences.</p></div>}
       </section>
 
       <section className="panel substitution-ledger">
@@ -201,6 +241,25 @@ export function LibraryScreen() {
       <Modal open={qualityOpen} onClose={() => setQualityOpen(false)} title="Exercise data quality" description="Probable duplicates are suggestions, never silent changes. Review the identities and decide which movement history should remain canonical." wide>
         {duplicatePairs.length ? <div className="quality-list">{duplicatePairs.map((pair) => <div key={`${pair.first.id}:${pair.second.id}`}><span><GitMerge size={18} /><span><strong>{pair.first.name}</strong><small>and {pair.second.name}</small></span></span><span><b>{Math.round(pair.score * 100)}% likely</b><small>{pair.reason}</small></span><button className="button button--secondary" onClick={() => openMerge(pair.first, pair.second)}>Review merge</button></div>)}</div> : <div className="compact-empty"><ShieldCheck size={28} /><strong>No probable duplicates found</strong><p>All active movements currently have distinct canonical identities.</p></div>}
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setQualityOpen(false)}>Close</button></div>
+      </Modal>
+
+      <Modal open={Boolean(catalogEdit)} onClose={() => setCatalogEdit(null)} title={catalogEdit?.custom ? 'Edit custom movement' : 'Manage movement aliases'} description="The canonical ID stays fixed. Completed-set names remain historical truth, and this change can be undone from the catalog ledger." wide>
+        {catalogEdit && <>
+          {catalogEdit.custom ? <div className="form-grid catalog-edit-grid">
+            <label><span className="field-label">Movement name</span><input aria-label="Catalog movement name" value={catalogValues.name} onChange={(event) => setCatalogValues({ ...catalogValues, name: event.target.value })} /></label>
+            <label><span className="field-label">Exercise family</span><input aria-label="Catalog exercise family" value={catalogValues.family} onChange={(event) => setCatalogValues({ ...catalogValues, family: event.target.value })} /></label>
+            <label><span className="field-label">Movement type</span><select aria-label="Catalog movement type" value={catalogValues.pattern} onChange={(event) => setCatalogValues({ ...catalogValues, pattern: event.target.value as MovementPattern })}>{['squat', 'hinge', 'horizontal-push', 'vertical-push', 'horizontal-pull', 'vertical-pull', 'isolation', 'carry'].map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+            <label><span className="field-label">Primary body part</span><select aria-label="Catalog primary body part" value={catalogValues.primaryRegion} onChange={(event) => setCatalogValues({ ...catalogValues, primaryRegion: event.target.value as BodyRegion })}>{regionFilters.filter((item) => item.id !== 'all').map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+            <label className="catalog-edit-grid__wide"><span className="field-label">Equipment, separated by commas</span><input aria-label="Catalog equipment" value={catalogValues.equipment} onChange={(event) => setCatalogValues({ ...catalogValues, equipment: event.target.value })} /></label>
+            <label className="catalog-edit-grid__wide"><span className="field-label">Setup or distinction note</span><textarea aria-label="Catalog movement description" rows={3} value={catalogValues.description} onChange={(event) => setCatalogValues({ ...catalogValues, description: event.target.value })} /></label>
+          </div> : <div className="protected-taxonomy"><ShieldCheck size={20} /><span><strong>{catalogEdit.name} stays canonical</strong><p>Its name, family, movement type, body part, equipment, and history ID are protected. Add only the alternate names you use when searching or importing.</p></span></div>}
+          <label><span className="field-label">Search aliases, separated by commas</span><input aria-label="Catalog aliases" value={catalogValues.aliases} onChange={(event) => setCatalogValues({ ...catalogValues, aliases: event.target.value })} placeholder="Example: Low incline, 30 degree bench" /></label>
+          {catalogCandidates.length > 0 && <div className="duplicate-warning"><AlertTriangle size={18} /><div><strong>Check these related movements before saving</strong>{catalogCandidates.map(({ exercise, score }) => <button key={exercise.id} onClick={() => { setCatalogEdit(null); setSelected(exercise) }}><span>{exercise.name}</span><small>{Math.round(score * 100)}% match · review existing history</small></button>)}</div></div>}
+          <label><span className="field-label">Reason for catalog change</span><input aria-label="Catalog edit reason" value={catalogValues.reason} onChange={(event) => setCatalogValues({ ...catalogValues, reason: event.target.value })} placeholder="Example: Added the name I use in my notebook" /></label>
+          <p className="catalog-trust-note"><ShieldCheck size={16} /> Exact name or alias collisions are blocked. Related variations remain visible in Data quality for your review.</p>
+          {formError && <p className="form-error" role="alert">{formError}</p>}
+          <div className="modal__actions"><button className="button button--ghost" onClick={() => setCatalogEdit(null)}>Cancel</button><button className="button button--primary" onClick={submitCatalogEdit}><ShieldCheck size={17} /> Save without splitting history</button></div>
+        </>}
       </Modal>
 
       <Modal open={Boolean(editingSet)} onClose={() => setEditingSet(null)} title="Correct completed set" description="The original value remains in the correction ledger. All volume, records, and charts replay after you save.">

@@ -9,6 +9,7 @@ import { derivePersonalRecords, historyVolume, projectExerciseMerge } from '../d
 import { buildCycleReview, buildNextMicrocycle } from '../domain/cycle-review-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
 import { buildDeferredFeedbackRequest, expireDeferredFeedbackRequests, summarizeSurveyEvidence } from '../domain/survey-engine'
+import { projectExerciseCatalogEdit, type ExerciseCatalogInput } from '../domain/catalog-engine'
 import type {
   AppSettings,
   AthleteProfile,
@@ -69,6 +70,7 @@ interface AppState {
   toggleFavorite: (exerciseId: string) => void
   setJointFeeling: (exerciseId: string, jointFeeling: Exercise['jointFeeling']) => void
   addCustomExercise: (exercise: Exercise) => void
+  updateExerciseCatalog: (exerciseId: string, input: ExerciseCatalogInput, reason: string) => { ok: boolean; error?: string; exercise?: Exercise }
   correctHistorySet: (setId: string, data: Pick<CompletedSetRecord, 'reps' | 'load' | 'rir' | 'technique' | 'pain' | 'qualityConfirmed' | 'completedAt'>, reason: string) => { ok: boolean; error?: string }
   deleteHistorySet: (setId: string, reason: string) => { ok: boolean; error?: string }
   mergeExercises: (sourceIds: string[], targetId: string, reason: string) => { ok: boolean; error?: string }
@@ -374,6 +376,32 @@ export const useAppStore = create<AppState>()(
       toggleFavorite: (exerciseId) => set((state) => ({ exercises: state.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, favorite: !exercise.favorite } : exercise) })),
       setJointFeeling: (exerciseId, jointFeeling) => set((state) => ({ exercises: state.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, jointFeeling } : exercise) })),
       addCustomExercise: (exercise) => set((state) => ({ exercises: [...state.exercises, exercise] })),
+      updateExerciseCatalog: (exerciseId, input, reason) => {
+        const state = get()
+        if (!reason.trim()) return { ok: false, error: 'Add a short reason so the catalog change remains auditable.' }
+        try {
+          const projection = projectExerciseCatalogEdit(state.exercises, exerciseId, input)
+          const exercises = state.exercises.map((exercise) => exercise.id === exerciseId ? projection.exercise : exercise)
+          const affectedSetIds = state.history.filter((workSet) => workSet.exerciseId === exerciseId).map((workSet) => workSet.id)
+          const event: HistoryMutationEvent = {
+            id: nanoid(), type: 'exercise-edited', createdAt: new Date().toISOString(), reason: reason.trim(),
+            description: `${state.exercises.find((exercise) => exercise.id === exerciseId)?.name ?? 'Movement'} catalog identity updated to ${projection.exercise.name}.`,
+            affectedSetIds,
+            before: { history: state.history, exercises: state.exercises, sessions: state.sessions, athlete: state.athlete, substitutionEvents: state.substitutionEvents },
+            after: { history: state.history, exercises, sessions: state.sessions, athlete: state.athlete, substitutionEvents: state.substitutionEvents },
+            recordsBefore: state.records, recordsAfter: state.records,
+            volumeBefore: historyVolume(state.history), volumeAfter: historyVolume(state.history)
+          }
+          set({
+            exercises,
+            historyMutations: [...state.historyMutations, event],
+            notice: `${projection.exercise.name} saved with its stable history ID. Prior completed-set names remain unchanged.${projection.probableDuplicates.length ? ' A possible related variation remains in Data quality.' : ''}`
+          })
+          return { ok: true, exercise: projection.exercise }
+        } catch (error) {
+          return { ok: false, error: error instanceof Error ? error.message : 'The movement catalog could not be updated.' }
+        }
+      },
       correctHistorySet: (setId, data, reason) => {
         const state = get()
         const workSet = state.history.find((candidate) => candidate.id === setId)

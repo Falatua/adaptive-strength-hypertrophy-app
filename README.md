@@ -1,4 +1,4 @@
-# ForgePath Private Alpha 0.10.0
+# ForgePath Private Alpha 0.11.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
@@ -31,8 +31,8 @@ npm run test:e2e
 
 ## Current verification
 
-- 68 deterministic domain tests
-- twelve desktop and phone browser journeys for source-backed records, in-workout achievement feedback, quiet controls, explainable substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, persistence, console integrity, and horizontal containment
+- 74 deterministic domain tests
+- fourteen desktop and phone browser journeys for source-backed records, in-workout achievement feedback, quiet controls, explainable substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, governed catalog edits, persistence, console integrity, and horizontal containment
 - lint clean
 - production PWA build clean
 - desktop and 390 px phone browser journeys checked
@@ -41,8 +41,10 @@ npm run test:e2e
 - daily, weekly, rolling 28-day, calendar-month, calendar-quarter, yearly, and all-time analytics reconcile to completed source sets
 - editable mesocycles generate a preview before applying and version every objective, constraint, and reason for change
 - plan revisions preserve completed and partial session truth while replacing future planned work only
-- version 9 backup and restore includes expanded record definitions, celebration preferences, plan history, the correction ledger, cycle-review decisions, the substitution-learning ledger, survey evidence, and deferred-feedback provenance and safely migrates versions 1 through 8
-- source-set corrections, deletions, duplicate exercise merges, and latest-change undo replay volume and validated records
+- version 10 backup and restore includes expanded record definitions, celebration preferences, plan history, the history and catalog ledger, cycle-review decisions, the substitution-learning ledger, survey evidence, and deferred-feedback provenance and safely migrates versions 1 through 9
+- source-set corrections, deletions, duplicate exercise merges, catalog edits, and latest-change undo preserve and replay the correct source state
+- custom movements can be renamed and recategorized while retaining a stable canonical ID; built-in taxonomy is protected while athlete aliases remain editable
+- exact name and alias collisions are blocked before save, likely related variations remain reviewable, and historical completed-set names are never silently rewritten
 - criterion-based exposure-round review supports hold, progress, extension, recovery, completion, and pivot into a new plan version without rewriting completed work
 - PR v2 separates absolute load, repetitions at load, load for repetitions, exact set schemes, estimated strength, exact-movement session volume, and workout volume
 - deterministic achievement replay reveals personal records, micro wins, baselines, quality wins, return wins, and consistency without adding work to the prescription
