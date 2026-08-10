@@ -5,6 +5,7 @@ import { derivePersonalRecords, historyVolume } from './history-engine'
 import { beginPlacementVerification, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery } from './placement-verification-engine'
 import { buildMesocyclePreview, draftFromPlan } from './mesocycle-engine'
 import { equipmentGenerationEvidence } from './equipment-engine'
+import { buildPlacementAssessment, legacyPlacementForAthlete, placementRouteLabels } from './placement-engine'
 
 const stable = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`
@@ -52,6 +53,7 @@ describe('versioned backup and restore', () => {
     expect(parsed.summary.cycleReviews).toBe(0)
     expect(parsed.summary.substitutions).toBe(0)
     expect(parsed.summary.placementChecks).toBe(0)
+    expect(parsed.summary.movementPlacedAnchors).toBe(3)
     expect(parsed.summary.routeGeneratedSessions).toBe(0)
     expect(parsed.summary.equipmentProfiles).toBe(3)
     expect(parsed.summary.placementRoute).toBe('Base-Building Cycle')
@@ -298,6 +300,23 @@ describe('versioned backup and restore', () => {
     expect(parsed.warnings[0]).toMatch(/version 14/i)
   })
 
+  it('migrates a verified version 15 backup without inventing per-movement placement', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    const legacyAthlete = legacyData.athlete as typeof athlete
+    legacyAthlete.placement = legacyPlacementForAthlete(legacyAthlete)
+    legacyAthlete.entryRoute = placementRouteLabels[legacyAthlete.placement.selectedRoute]
+    legacyAthlete.level = legacyAthlete.placement.dimensions
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 15, appVersion: '0.21.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.athlete.placement.ruleVersion).toBe('placement-v1')
+    expect(parsed.backup.data.athlete.placement.movementPlacements).toBeUndefined()
+    expect(parsed.summary.movementPlacedAnchors).toBe(0)
+    expect(parsed.warnings[0]).toMatch(/version 15/i)
+  })
+
   it('round-trips route-generated sessions and rejects forged route provenance', () => {
     const current = state()
     const plan = current.mesocycles[0]
@@ -330,6 +349,42 @@ describe('versioned backup and restore', () => {
     mismatchedPlan.sessionIds = mismatched.sessions.map((session) => session.id)
     mismatched.sessions[0].generation!.equipment!.profileName = 'Forged Location'
     expect(() => parseBackup(JSON.stringify(createBackup(mismatched)))).toThrow(/equipment snapshot/i)
+  })
+
+  it('round-trips mixed per-movement route generation and rejects a forged movement snapshot', () => {
+    const current = state()
+    const placement = buildPlacementAssessment({
+      goal: 'strength', fixedEvent: null, trainingAge: 8, continuity: 'stable', movementSkill: 5,
+      strengthTolerance: 5, volumeTolerance: 4, scheduleStability: 4, dataConfidence: 5,
+      painState: 'none', weeklyOpportunities: 3, defaultMinutes: 60, equipmentProfileId: current.equipmentProfiles[0].id, skippedFields: [],
+      movementProfiles: [
+        { exerciseId: 'competition-squat', exerciseName: 'Competition Back Squat', family: 'Squat', movementSkill: 1, strengthTolerance: 2, dataConfidence: 2 },
+        { exerciseId: 'competition-bench', exerciseName: 'Competition Bench Press', family: 'Bench Press', movementSkill: 5, strengthTolerance: 5, dataConfidence: 5 },
+        { exerciseId: 'sumo-deadlift', exerciseName: 'Sumo Deadlift', family: 'Deadlift', movementSkill: 3, strengthTolerance: 3, dataConfidence: 1 }
+      ]
+    }, '2026-08-10T16:00:00.000Z')
+    current.athlete.placement = placement
+    current.athlete.entryRoute = placementRouteLabels[placement.selectedRoute]
+    current.athlete.level = placement.dimensions
+    const plan = current.mesocycles[0]
+    plan.entryRoute = placement.selectedRoute
+    plan.generationRuleVersion = 'route-session-v3'
+    plan.placementCreatedAt = placement.createdAt
+    plan.generationEquipment = equipmentGenerationEvidence(current.equipmentProfiles[0])
+    plan.movementPlacements = structuredClone(placement.movementPlacements)
+    const preview = buildMesocyclePreview(draftFromPlan(plan), {
+      exercises: current.exercises, currentSessions: current.sessions, history: current.history,
+      planId: plan.id, planVersion: plan.version, startsAt: new Date('2026-08-10T16:00:00.000Z'), equipmentProfile: current.equipmentProfiles[0]
+    })
+    current.sessions = preview.sessions
+    plan.sessionIds = preview.sessions.map((session) => session.id)
+    const parsed = parseBackup(JSON.stringify(createBackup(current)))
+    expect(parsed.summary.movementPlacedAnchors).toBe(3)
+    expect(new Set(parsed.backup.data.sessions.map((session) => session.generation?.route))).toEqual(new Set(['introductory-skill', 'strength', 'bridge-calibration']))
+    expect(parsed.backup.data.sessions.every((session) => session.generation?.ruleVersion === 'route-session-v3')).toBe(true)
+
+    current.sessions[0].generation!.movementPlacement!.exerciseName = 'Forged Squat'
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/movement snapshot|movement placement/i)
   })
 
   it('rejects placement tampering and a route label that disagrees with its evidence', () => {

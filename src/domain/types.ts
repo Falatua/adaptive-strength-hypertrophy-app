@@ -12,7 +12,32 @@ export type PlacementRoute = 'introductory-skill' | 'reacclimation' | 'bridge-ca
 export type PlacementConfidence = 'low' | 'medium' | 'high'
 export type PlacementDecision = 'confirmed' | 'conservative' | 'aggressive-test' | 'quick-start'
 export type PlacementPainState = 'none' | 'manageable' | 'modifying' | 'unknown'
-export type RouteSessionRuleVersion = 'route-session-v1' | 'route-session-v2'
+export type PlacementRuleVersion = 'placement-v1' | 'placement-v2'
+export type RouteSessionRuleVersion = 'route-session-v1' | 'route-session-v2' | 'route-session-v3'
+
+export interface MovementPlacementInput {
+  exerciseId: string
+  exerciseName: string
+  family: string
+  movementSkill: number | null
+  strengthTolerance: number | null
+  dataConfidence: number | null
+}
+
+export interface MovementPlacementAssessment {
+  ruleVersion: 'movement-placement-v1'
+  exerciseId: string
+  exerciseName: string
+  family: string
+  movementSkill: number
+  strengthTolerance: number
+  dataConfidence: number
+  recommendedRoute: PlacementRoute
+  selectedRoute: PlacementRoute
+  confidence: PlacementConfidence
+  reasons: string[]
+  uncertainInputs: string[]
+}
 
 export interface PlacementInputs {
   goal: PlacementGoal | null
@@ -29,10 +54,11 @@ export interface PlacementInputs {
   defaultMinutes: number
   equipmentProfileId: string
   skippedFields: string[]
+  movementProfiles?: MovementPlacementInput[]
 }
 
 export interface AthletePlacementAssessment {
-  ruleVersion: 'placement-v1'
+  ruleVersion: PlacementRuleVersion
   createdAt: string
   inputs: PlacementInputs
   dimensions: {
@@ -54,6 +80,7 @@ export interface AthletePlacementAssessment {
   whyNotLower: string
   whyNotHigher: string
   exitCriteria: string[]
+  movementPlacements?: MovementPlacementAssessment[]
 }
 
 export type PlacementWarmupResponse = 'better' | 'as-expected' | 'harder' | 'painful' | 'skipped' | 'not-answered'
@@ -94,6 +121,7 @@ export interface PlacementVerificationEvent {
   ruleVersion: 'placement-verification-v1'
   placementCreatedAt: string
   placementRoute: PlacementRoute
+  movementPlacement?: MovementPlacementAssessment
   sessionId: string
   sequence: number
   startedAt: string
@@ -206,9 +234,11 @@ export interface RouteSessionGenerationEvidence {
   ruleVersion: RouteSessionRuleVersion
   placementCreatedAt: string
   route: PlacementRoute
+  planRoute?: PlacementRoute
   strategy: string
   reasons: string[]
   equipment?: EquipmentGenerationEvidence
+  movementPlacement?: MovementPlacementAssessment
 }
 
 export interface TrainingSession {
@@ -262,6 +292,7 @@ export interface MesocyclePlan {
   generationRuleVersion?: RouteSessionRuleVersion
   placementCreatedAt?: string
   generationEquipment?: EquipmentGenerationEvidence
+  movementPlacements?: MovementPlacementAssessment[]
 }
 
 export interface MesocycleDraft {
@@ -284,6 +315,7 @@ export interface MesocycleDraft {
   generationRuleVersion?: RouteSessionRuleVersion
   placementCreatedAt?: string
   generationEquipment?: EquipmentGenerationEvidence
+  movementPlacements?: MovementPlacementAssessment[]
 }
 
 export interface CycleReviewEvidence {

@@ -15,7 +15,8 @@ const placement = buildPlacementAssessment({
   goal: 'strength', fixedEvent: null, trainingAge: 8, continuity: 'stable', movementSkill: 5,
   strengthTolerance: 4, volumeTolerance: 4, scheduleStability: 4, dataConfidence: 4,
   painState: 'none', weeklyOpportunities: 3, defaultMinutes: 60,
-  equipmentProfileId: 'equipment-commercial-gym', skippedFields: []
+  equipmentProfileId: 'equipment-commercial-gym', skippedFields: [],
+  movementProfiles: [{ exerciseId: 'bench', exerciseName: 'Bench Press', family: 'Bench Press', movementSkill: 5, strengthTolerance: 4, dataConfidence: 4 }]
 } satisfies PlacementInputs, '2026-08-10T10:00:00.000Z')
 
 const firstSet: PlacementVerificationFirstSet = {
@@ -29,12 +30,25 @@ const evidence = (overrides: Partial<PlacementVerificationSessionEvidence> = {})
   technique: 4, pain: 0, timeFit: 4, postSurveySkipped: false, ...overrides
 })
 
-const begun = () => beginPlacementVerification({ id: 'verify-1', placement, sessionId: 'session-1', sequence: 1, startedAt: '2026-08-10T11:00:00.000Z' })
+const begun = () => beginPlacementVerification({
+  id: 'verify-1',
+  placement,
+  sessionId: 'session-1',
+  sequence: 1,
+  startedAt: '2026-08-10T11:00:00.000Z',
+  movementPlacement: placement.movementPlacements?.[0]
+})
 
 describe('placement-verification-v1', () => {
   it('starts as a productive non-maximal check and records optional warm-up evidence', () => {
     const event = recordPlacementWarmup(begun(), 'as-expected', '2026-08-10T11:05:00.000Z')
-    expect(event).toMatchObject({ status: 'active', warmupResponse: 'as-expected', verdict: 'collecting' })
+    expect(event).toMatchObject({
+      status: 'active',
+      warmupResponse: 'as-expected',
+      verdict: 'collecting',
+      placementRoute: 'strength',
+      movementPlacement: { exerciseId: 'bench', selectedRoute: 'strength' }
+    })
   })
 
   it('uses the first completed primary set and waits for recovery', () => {

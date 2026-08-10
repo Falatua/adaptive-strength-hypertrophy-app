@@ -13,7 +13,7 @@ import { projectExerciseCatalogEdit, type ExerciseCatalogInput } from '../domain
 import { equipmentGenerationEvidence, equipmentProfileError, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad, normalizedEquipmentProfile } from '../domain/equipment-engine'
 import { legacyPlacementForAthlete, placementRouteLabels } from '../domain/placement-engine'
 import { beginPlacementVerification, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery, revisePlacementSessionEvidence } from '../domain/placement-verification-engine'
-import { ROUTE_SESSION_RULE_VERSION, routeSessionProfile } from '../domain/route-session-engine'
+import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION, routeSessionProfile } from '../domain/route-session-engine'
 import type {
   AppSettings,
   AthleteProfile,
@@ -182,7 +182,8 @@ export const useAppStore = create<AppState>()(
           entryRoute: route,
           generationRuleVersion: ROUTE_SESSION_RULE_VERSION,
           placementCreatedAt: athlete.placement.createdAt,
-          generationEquipment: equipmentGenerationEvidence(generationProfile)
+          generationEquipment: equipmentGenerationEvidence(generationProfile),
+          movementPlacements: structuredClone(athlete.placement.movementPlacements ?? [])
         }
         const routePlan = {
           ...basePlan,
@@ -274,7 +275,8 @@ export const useAppStore = create<AppState>()(
           && !placementEvents.some((event) => event.sessionId === sessionId)
         const verification = shouldVerify ? beginPlacementVerification({
           id: nanoid(), placement: state.athlete.placement, sessionId,
-          sequence: placementEvents.length + 1, startedAt
+          sequence: placementEvents.length + 1, startedAt,
+          movementPlacement: state.sessions.find((session) => session.id === sessionId)?.generation?.movementPlacement
         }) : null
         return {
           activeSessionId: sessionId,
@@ -780,9 +782,15 @@ export const useAppStore = create<AppState>()(
         const planId = `mesocycle-${nanoid()}`
         const effectiveAt = new Date().toISOString()
         const generationProfile = state.equipmentProfiles.find((candidate) => candidate.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]
+        const hasCompleteMovementPlacement = draft.strengthAnchors.every((exerciseId) => draft.movementPlacements?.some((placement) => placement.exerciseId === exerciseId))
         const nextDraft = draft.entryRoute
-          ? { ...draft, generationRuleVersion: ROUTE_SESSION_RULE_VERSION, generationEquipment: equipmentGenerationEvidence(generationProfile) }
-          : draft
+          ? {
+              ...draft,
+              generationRuleVersion: hasCompleteMovementPlacement ? ROUTE_SESSION_RULE_VERSION : EQUIPMENT_ROUTE_SESSION_RULE_VERSION,
+              generationEquipment: equipmentGenerationEvidence(generationProfile),
+              movementPlacements: hasCompleteMovementPlacement ? structuredClone(draft.movementPlacements) : undefined
+            }
+          : { ...draft, movementPlacements: undefined, generationEquipment: undefined }
         const preview = buildMesocyclePreview(nextDraft, {
           exercises: state.exercises,
           currentSessions: state.sessions,
@@ -886,7 +894,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 13,
+      version: 14,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,

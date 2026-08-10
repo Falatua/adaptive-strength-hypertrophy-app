@@ -3,7 +3,7 @@ import { AlertTriangle, ArrowRight, BrainCircuit, CalendarClock, Check, Dumbbell
 import { applyPlacementDecision, buildPlacementAssessment, placementRouteLabels } from '../domain/placement-engine'
 import { routeSessionProfile } from '../domain/route-session-engine'
 import { exerciseEquipmentFit } from '../domain/equipment-engine'
-import type { PlacementDecision, PlacementGoal, PlacementInputs, PlacementPainState } from '../domain/types'
+import type { MovementPlacementInput, PlacementDecision, PlacementGoal, PlacementInputs, PlacementPainState } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { PixelAvatar } from './PixelAvatar'
 
@@ -16,6 +16,10 @@ const times = [30, 45, 60, 75]
 
 function DimensionPicker({ label, value, onChange, low, high }: { label: string; value: number | null; onChange: (value: number | null) => void; low: string; high: string }) {
   return <fieldset className="placement-picker"><legend>{label}</legend><div>{[1, 2, 3, 4, 5].map((item) => <button type="button" key={item} className={value === item ? 'selected' : ''} aria-label={`${label}: ${item}`} onClick={() => onChange(item)}>{item}</button>)}<button type="button" className={value === null ? 'selected unknown' : 'unknown'} onClick={() => onChange(null)}>Not sure</button></div><small><span>{low}</span><span>{high}</span></small></fieldset>
+}
+
+function MovementScorePicker({ exerciseName, label, value, onChange }: { exerciseName: string; label: string; value: number | null; onChange: (value: number | null) => void }) {
+  return <fieldset className="movement-score-picker"><legend>{label}</legend><div>{[1, 2, 3, 4, 5].map((item) => <button type="button" key={item} className={value === item ? 'selected' : ''} aria-label={`${exerciseName} ${label}: ${item}`} onClick={() => onChange(item)}>{item}</button>)}<button type="button" className={value === null ? 'selected unknown' : 'unknown'} aria-label={`${exerciseName} ${label}: Not sure`} onClick={() => onChange(null)}>?</button></div></fieldset>
 }
 
 export function Onboarding() {
@@ -35,14 +39,27 @@ export function Onboarding() {
   const [dataConfidence, setDataConfidence] = useState<number | null>(3)
   const [painState, setPainState] = useState<PlacementPainState>('none')
   const [equipmentProfileId, setEquipmentProfileId] = useState(settings.activeEquipmentProfileId)
+  const [movementProfiles, setMovementProfiles] = useState<MovementPlacementInput[]>(() => athlete.strengthAnchors.flatMap((exerciseId) => {
+    const exercise = exercises.find((candidate) => candidate.id === exerciseId)
+    if (!exercise) return []
+    const existing = athlete.placement.inputs.movementProfiles?.find((profile) => profile.exerciseId === exerciseId)
+    return [{
+      exerciseId,
+      exerciseName: exercise.name,
+      family: exercise.family,
+      movementSkill: existing?.movementSkill ?? 4,
+      strengthTolerance: existing?.strengthTolerance ?? 4,
+      dataConfidence: existing?.dataConfidence ?? 3
+    }]
+  }))
   const [skippedFields, setSkippedFields] = useState<string[]>([])
   const [decision, setDecision] = useState<PlacementDecision>('confirmed')
 
   const inputs = useMemo<PlacementInputs>(() => ({
     goal, fixedEvent: fixedEvent.trim() || null, trainingAge: experience, continuity, movementSkill,
     strengthTolerance, volumeTolerance, scheduleStability, dataConfidence, painState,
-    weeklyOpportunities: opportunities, defaultMinutes: minutes, equipmentProfileId, skippedFields
-  }), [continuity, dataConfidence, equipmentProfileId, experience, fixedEvent, goal, minutes, movementSkill, opportunities, painState, scheduleStability, skippedFields, strengthTolerance, volumeTolerance])
+    weeklyOpportunities: opportunities, defaultMinutes: minutes, equipmentProfileId, skippedFields, movementProfiles
+  }), [continuity, dataConfidence, equipmentProfileId, experience, fixedEvent, goal, minutes, movementProfiles, movementSkill, opportunities, painState, scheduleStability, skippedFields, strengthTolerance, volumeTolerance])
   const assessment = useMemo(() => buildPlacementAssessment(inputs, createdAt), [createdAt, inputs])
   const selectedAssessment = useMemo(() => applyPlacementDecision(assessment, decision), [assessment, decision])
   const selectedRouteProfile = useMemo(() => routeSessionProfile(selectedAssessment.selectedRoute), [selectedAssessment.selectedRoute])
@@ -53,6 +70,7 @@ export function Onboarding() {
     const fit = exerciseEquipmentFit(exercise, selectedEquipmentProfile)
     return fit.available ? [] : [{ exercise, missing: fit.missing }]
   })
+  const updateMovementProfile = (exerciseId: string, field: 'movementSkill' | 'strengthTolerance' | 'dataConfidence', value: number | null) => setMovementProfiles((current) => current.map((profile) => profile.exerciseId === exerciseId ? { ...profile, [field]: value } : profile))
 
   const persistPlacement = (placementDecision: PlacementDecision = decision, destination: 'today' | 'library' = 'today', quick = false) => {
     const profile = equipmentProfiles.find((candidate) => candidate.id === equipmentProfileId) ?? equipmentProfiles[0]
@@ -84,6 +102,7 @@ export function Onboarding() {
       setGoal(null); setFixedEvent(''); setExperience(null); setSkippedFields((current) => [...new Set([...current, 'goal', 'structured training history'])])
     } else if (step === 1) {
       setMovementSkill(null); setStrengthTolerance(null); setVolumeTolerance(null); setDataConfidence(null); setSkippedFields((current) => [...new Set([...current, 'movement skill', 'intensity tolerance', 'volume tolerance', 'current performance evidence'])])
+      setMovementProfiles((current) => current.map((profile) => ({ ...profile, movementSkill: null, strengthTolerance: null, dataConfidence: null })))
     } else if (step === 2) {
       setContinuity(null); setScheduleStability(null); setPainState('unknown'); setSkippedFields((current) => [...new Set([...current, 'recent continuity', 'schedule stability', 'pain or restriction state'])])
     }
@@ -119,6 +138,7 @@ export function Onboarding() {
             <DimensionPicker label="Volume tolerance" value={volumeTolerance} onChange={setVolumeTolerance} low="Low current capacity" high="High recoverable capacity" />
             <DimensionPicker label="Current evidence quality" value={dataConfidence} onChange={setDataConfidence} low="Mostly uncertain" high="Recent reliable logs" />
           </div>
+          <div className="movement-placement-inputs"><div><p className="eyebrow">Protected anchors</p><h3>Place each movement separately</h3><p className="muted">A familiar bench can enter strength work while a new squat begins with skill practice. Family context never merges exact movement history.</p></div>{movementProfiles.map((profile) => <article key={profile.exerciseId}><header><strong>{profile.exerciseName}</strong><small>{profile.family} family</small></header><MovementScorePicker exerciseName={profile.exerciseName} label="Skill" value={profile.movementSkill} onChange={(value) => updateMovementProfile(profile.exerciseId, 'movementSkill', value)} /><MovementScorePicker exerciseName={profile.exerciseName} label="Heavy-work tolerance" value={profile.strengthTolerance} onChange={(value) => updateMovementProfile(profile.exerciseId, 'strengthTolerance', value)} /><MovementScorePicker exerciseName={profile.exerciseName} label="Recent evidence" value={profile.dataConfidence} onChange={(value) => updateMovementProfile(profile.exerciseId, 'dataConfidence', value)} /></article>)}</div>
         </section>}
 
         {step === 2 && <section>
@@ -143,6 +163,7 @@ export function Onboarding() {
           {selectedAssessment.selectedRoute !== selectedAssessment.recommendedRoute && <p className="placement-decision-note"><ShieldCheck size={15} /> Engine recommendation: {placementRouteLabels[selectedAssessment.recommendedRoute]}. Your conservative choice is stored separately.</p>}
           {selectedAssessment.selectedRoute === 'pain-aware-modified' && <div className="placement-safety"><AlertTriangle size={19} /><span><strong>Plan review required</strong><small>This is not medical clearance. Review movement restrictions before training and seek qualified care for new, severe, or unexplained pain.</small></span></div>}
           <div className="placement-dimensions">{Object.entries(selectedAssessment.dimensions).map(([key, value]) => <div key={key}><span>{key.replace(/([A-Z])/g, ' $1')}</span><div>{Array.from({ length: 5 }, (_, index) => <i key={index} className={index < value ? 'filled' : ''} />)}</div><strong>{value}/5</strong></div>)}</div>
+          {selectedAssessment.movementPlacements && selectedAssessment.movementPlacements.length > 0 && <div className="movement-placement-preview"><div><p className="eyebrow">Movement-placement-v1</p><h3>One cycle, individual starting lanes</h3></div>{selectedAssessment.movementPlacements.map((movement) => <article key={movement.exerciseId}><span><strong>{movement.exerciseName}</strong><small>{movement.family} family · {movement.confidence} confidence</small></span><b>{placementRouteLabels[movement.selectedRoute]}</b><small>Skill {movement.movementSkill}/5 · tolerance {movement.strengthTolerance}/5 · evidence {movement.dataConfidence}/5</small><p>{movement.reasons[0]}</p></article>)}</div>}
           <div className="placement-explanation"><h3>Why the engine recommended {placementRouteLabels[selectedAssessment.recommendedRoute]}</h3><ul>{selectedAssessment.reasons.map((reason) => <li key={reason}><Check size={15} />{reason}</li>)}</ul></div>
           {selectedAssessment.uncertainInputs.length > 0 && <details><summary>Uncertain inputs · {selectedAssessment.uncertainInputs.length}</summary><p>{selectedAssessment.uncertainInputs.join(', ')}. These stay unknown and reduce confidence.</p></details>}
           <details><summary>Why not lower or higher?</summary><p><strong>Lower:</strong> {selectedAssessment.whyNotLower}</p><p><strong>Higher:</strong> {selectedAssessment.whyNotHigher}</p></details>

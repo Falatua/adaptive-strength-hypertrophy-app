@@ -1107,6 +1107,16 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .placement-picker button.selected { border-color: var(--lime); background: rgb(231 255 88 / 8%); color: var(--lime); }
 .placement-picker button.unknown { font-size: .63rem; }
 .placement-picker > small { display: flex; justify-content: space-between; gap: 14px; margin-top: 7px; color: var(--muted); font-size: .6rem; }
+.movement-placement-inputs { display: grid; gap: 10px; margin-top: 22px; padding-top: 19px; border-top: 1px solid var(--line); }
+.movement-placement-inputs > div:first-child h3 { margin: 3px 0 6px; }
+.movement-placement-inputs > article { display: grid; grid-template-columns: minmax(145px, 1.15fr) repeat(3, minmax(130px, 1fr)); gap: 9px; align-items: end; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
+.movement-placement-inputs header strong, .movement-placement-inputs header small { display: block; }
+.movement-placement-inputs header small { margin-top: 4px; color: var(--muted); font-size: .63rem; }
+.movement-score-picker { min-width: 0; padding: 0; border: 0; }
+.movement-score-picker legend { margin-bottom: 6px; color: var(--muted); font-size: .6rem; font-weight: 800; }
+.movement-score-picker > div { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 3px; }
+.movement-score-picker button { min-width: 0; min-height: 31px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: #10140e; color: var(--muted); font-size: .66rem; font-weight: 800; }
+.movement-score-picker button.selected { border-color: var(--blue); background: rgb(124 184 255 / 9%); color: var(--blue); }
 .stacked-choices.compact { grid-template-columns: 1fr 1fr; margin-bottom: 18px; }
 .placement-result { min-height: 0 !important; }
 .placement-confidence, .placement-safety { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; margin: 13px 0; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
@@ -1127,6 +1137,12 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .placement-dimensions i { width: 100%; height: 7px; background: var(--surface-3); }
 .placement-dimensions i.filled { background: var(--lime); }
 .placement-dimensions strong { font-size: .7rem; }
+.movement-placement-preview { display: grid; gap: 8px; margin: 16px 0; }
+.movement-placement-preview > article { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(140px, auto); gap: 4px 12px; padding: 12px; border: 1px solid rgb(124 184 255 / 26%); border-radius: 10px; background: rgb(124 184 255 / 5%); }
+.movement-placement-preview article strong, .movement-placement-preview article small { display: block; }
+.movement-placement-preview article > b { color: var(--blue); font-size: .7rem; text-align: right; }
+.movement-placement-preview article > small, .movement-placement-preview article > p { grid-column: 1 / -1; color: var(--muted); font-size: .63rem; line-height: 1.45; }
+.movement-placement-preview article > p { margin: 4px 0 0; }
 .placement-explanation { padding: 14px; border-radius: 11px; background: #10140e; }
 .placement-explanation h3 { margin-bottom: 9px; font-size: .9rem; }
 .placement-explanation ul, .placement-result details ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
@@ -1165,6 +1181,10 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .placement-profile-evidence summary { cursor: pointer; color: var(--text); font-weight: 800; }
 .placement-profile-evidence p, .placement-profile-evidence ul { margin: 8px 0 0; font-size: .7rem; line-height: 1.5; }
 .placement-profile-evidence ul { padding-left: 18px; }
+.profile-movement-lanes { display: grid; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.profile-movement-lanes details { margin-top: 0; padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: rgb(0 0 0 / 12%); }
+.profile-movement-lanes summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.profile-movement-lanes summary b { color: var(--blue); font-size: .64rem; text-align: right; }
 .placement-verification-summary { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 9px; margin-top: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); text-transform: capitalize; }
 .placement-verification-summary svg { color: var(--blue); }
 .placement-verification-summary strong, .placement-verification-summary small { display: block; }
@@ -1207,4 +1227,7 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .placement-recovery-check__actions button:not(.text-button) { flex: 1; }
   .placement-verification-list summary { grid-template-columns: 1fr; }
   .route-session-preview__grid { grid-template-columns: 1fr; }
+  .movement-placement-inputs > article { grid-template-columns: 1fr; align-items: stretch; }
+  .movement-placement-preview > article, .profile-movement-lanes summary { grid-template-columns: 1fr; }
+  .movement-placement-preview article > b, .profile-movement-lanes summary b { text-align: left; }
 }

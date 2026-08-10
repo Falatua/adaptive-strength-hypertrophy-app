@@ -67,6 +67,7 @@ export function TodayScreen() {
   const whyReasons = nextSession?.generation
     ? [
         { title: `${routeLabel} route`, detail: nextSession.generation.strategy },
+        ...(nextSession.generation.movementPlacement ? [{ title: `${nextSession.generation.movementPlacement.exerciseName} has its own starting lane`, detail: `${nextSession.generation.movementPlacement.reasons[0]} Skill ${nextSession.generation.movementPlacement.movementSkill}/5, heavy-work tolerance ${nextSession.generation.movementPlacement.strengthTolerance}/5, evidence ${nextSession.generation.movementPlacement.dataConfidence}/5.` }] : []),
         ...(nextSession.generation.equipment ? [{ title: `Generated for ${nextSession.generation.equipment.profileName}`, detail: `Secondary and accessory choices matched the stored equipment snapshot. Loads used its ${nextSession.generation.equipment.incrementUnit} increments.` }] : []),
         ...nextSession.generation.reasons.map((reason) => ({ title: 'Route evidence', detail: reason })),
         { title: progression.title, detail: progression.explanation }

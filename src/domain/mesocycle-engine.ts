@@ -1,7 +1,7 @@
 import { addDays } from 'date-fns'
 import { makeSets } from './training-engine'
 import { equipmentGenerationEvidence, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad } from './equipment-engine'
-import { ROUTE_SESSION_RULE_VERSION, prescriptionForRole, routeSessionProfile, type RouteSessionProfile } from './route-session-engine'
+import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION, prescriptionForRole, routeSessionProfile, type RouteSessionProfile } from './route-session-engine'
 import type {
   BodyRegion,
   CompletedSetRecord,
@@ -201,15 +201,14 @@ export function draftFromPlan(plan: MesocyclePlan): MesocycleDraft {
     entryRoute: plan.entryRoute,
     generationRuleVersion: plan.generationRuleVersion,
     placementCreatedAt: plan.placementCreatedAt,
-    generationEquipment: plan.generationEquipment ? structuredClone(plan.generationEquipment) : undefined
+    generationEquipment: plan.generationEquipment ? structuredClone(plan.generationEquipment) : undefined,
+    movementPlacements: plan.movementPlacements ? structuredClone(plan.movementPlacements) : undefined
   }
 }
 
 export function buildMesocyclePreview(draft: MesocycleDraft, context: GenerationContext): MesocyclePreview {
-  const routeProfile = draft.entryRoute && draft.generationRuleVersion
-    ? routeSessionProfile(draft.entryRoute)
-    : undefined
-  if (draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION && !context.equipmentProfile) throw new Error(`${ROUTE_SESSION_RULE_VERSION} requires an equipment profile.`)
+  const planRouteProfile = draft.entryRoute && draft.generationRuleVersion ? routeSessionProfile(draft.entryRoute) : undefined
+  if ((draft.generationRuleVersion === EQUIPMENT_ROUTE_SESSION_RULE_VERSION || draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION) && !context.equipmentProfile) throw new Error(`${draft.generationRuleVersion} requires an equipment profile.`)
   const anchors = draft.strengthAnchors
     .map((id) => context.exercises.find((exercise) => exercise.id === id))
     .filter((exercise): exercise is Exercise => Boolean(exercise))
@@ -217,6 +216,13 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
   const startsAt = context.startsAt ?? new Date()
   const sessions = Array.from({ length: requiredExposureCount }, (_, index) => {
     const anchor = anchors[index % Math.max(1, anchors.length)] ?? context.exercises.find((exercise) => exercise.jointFeeling !== 'avoid')!
+    const movementPlacement = draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION
+      ? draft.movementPlacements?.find((placement) => placement.exerciseId === anchor.id)
+      : undefined
+    if (draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION && !movementPlacement) throw new Error(`${ROUTE_SESSION_RULE_VERSION} requires placement evidence for ${anchor.name}.`)
+    const routeProfile = movementPlacement
+      ? routeSessionProfile(movementPlacement.selectedRoute)
+      : planRouteProfile
     const sessionKey = `${context.sessionKeyPrefix ?? context.planId}-session-${index + 1}`
     const excluded = new Set<string>([anchor.id])
     const secondary = chooseSecondary(anchor, context.exercises, excluded, draft.priorityRegions, context.equipmentProfile)
@@ -260,8 +266,11 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
         route: routeProfile.route,
         strategy: routeProfile.strategy,
         reasons: [...routeProfile.reasons],
-        ...(draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION && context.equipmentProfile
+        ...((draft.generationRuleVersion === EQUIPMENT_ROUTE_SESSION_RULE_VERSION || draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION) && context.equipmentProfile
           ? { equipment: equipmentGenerationEvidence(context.equipmentProfile) }
+          : {}),
+        ...(draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION && movementPlacement && draft.entryRoute
+          ? { planRoute: draft.entryRoute, movementPlacement: structuredClone(movementPlacement) }
           : {})
       } : undefined
     } satisfies TrainingSession
@@ -281,7 +290,13 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     regionSets,
     protectedAnchors: anchors.map((anchor) => anchor.id),
     explanations: [
-      ...(routeProfile ? [`${routeProfile.label} uses ${routeProfile.primary.sets} × ${routeProfile.primary.reps} at ${routeProfile.primary.rir} RIR for primary work under ${routeProfile.ruleVersion}.`, ...routeProfile.reasons, routeProfile.progressionPolicy] : []),
+      ...(draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION ? [
+        `Per-movement placement under ${ROUTE_SESSION_RULE_VERSION} lets each protected anchor use its own starting route without changing the cycle's ${planRouteProfile?.label ?? 'global'} goal.`,
+        ...(draft.movementPlacements ?? []).map((movement) => {
+          const profile = routeSessionProfile(movement.selectedRoute)
+          return `${movement.exerciseName} uses ${profile.label}: ${profile.primary.sets} × ${profile.primary.reps} at ${profile.primary.rir} RIR.`
+        })
+      ] : planRouteProfile ? [`${planRouteProfile.label} uses ${planRouteProfile.primary.sets} × ${planRouteProfile.primary.reps} at ${planRouteProfile.primary.rir} RIR for primary work under ${planRouteProfile.ruleVersion}.`, ...planRouteProfile.reasons, planRouteProfile.progressionPolicy] : []),
       `${anchors.length} strength anchors remain protected as required exposures.`,
       `${draft.weeklyOpportunities} weekly opportunities estimate the calendar pace; exposure completion controls progression.`,
       `${draft.defaultMinutes} minutes caps each generated session before optional work is added.`,
@@ -289,7 +304,7 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
         `${context.equipmentProfile.name} filters secondary and accessory choices before generation and supplies executable ${context.equipmentProfile.incrementUnit} load increments.`,
         ...anchors.filter((anchor) => !exerciseEquipmentFit(anchor, context.equipmentProfile!).available).map((anchor) => `${anchor.name} remains protected but needs equipment review: ${exerciseEquipmentFit(anchor, context.equipmentProfile!).missing.join(', ')}.`)
       ] : []),
-      routeProfile
+      planRouteProfile
         ? 'Target loads derive from the latest exact completed set first, then an existing exact prescription, and otherwise remain a zero-load calibration. Different variations never lend each other a load.'
         : 'Load, repetitions, and sets are copied from existing prescriptions or the latest exact exposure; reacclimation alone begins conservatively.'
     ]

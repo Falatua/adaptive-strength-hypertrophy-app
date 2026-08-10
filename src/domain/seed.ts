@@ -177,7 +177,12 @@ export const athlete: AthleteProfile = {
   placement: buildPlacementAssessment({
     goal: 'powerbuilding', fixedEvent: null, trainingAge: 8, continuity: 'interrupted', movementSkill: 5,
     strengthTolerance: 4, volumeTolerance: 4, scheduleStability: 2, dataConfidence: 3, painState: 'none',
-    weeklyOpportunities: 3, defaultMinutes: 60, equipmentProfileId: 'equipment-commercial-gym', skippedFields: []
+    weeklyOpportunities: 3, defaultMinutes: 60, equipmentProfileId: 'equipment-commercial-gym', skippedFields: [],
+    movementProfiles: [
+      { exerciseId: 'competition-squat', exerciseName: 'Competition Back Squat', family: 'Squat', movementSkill: 5, strengthTolerance: 4, dataConfidence: 3 },
+      { exerciseId: 'competition-bench', exerciseName: 'Competition Bench Press', family: 'Bench Press', movementSkill: 5, strengthTolerance: 4, dataConfidence: 3 },
+      { exerciseId: 'sumo-deadlift', exerciseName: 'Sumo Deadlift', family: 'Deadlift', movementSkill: 5, strengthTolerance: 4, dataConfidence: 3 }
+    ]
   }, '2026-08-10T00:00:00.000Z'),
   level: {
     experience: 5,

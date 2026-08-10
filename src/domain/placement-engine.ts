@@ -1,13 +1,17 @@
 import type {
   AthletePlacementAssessment,
   AthleteProfile,
+  MovementPlacementAssessment,
+  MovementPlacementInput,
   PlacementDecision,
   PlacementGoal,
   PlacementInputs,
   PlacementRoute
 } from './types'
 
-export const placementRuleVersion = 'placement-v1' as const
+export const placementRuleVersion = 'placement-v2' as const
+export const legacyPlacementRuleVersion = 'placement-v1' as const
+export const movementPlacementRuleVersion = 'movement-placement-v1' as const
 
 export const placementRouteLabels: Record<PlacementRoute, string> = {
   'introductory-skill': 'Introductory Skill Cycle',
@@ -106,7 +110,46 @@ function exitCriteriaFor(route: PlacementRoute) {
   return ['Goal-specific work remains repeatable and recoverable', 'Primary movement quality stays stable', 'Cycle success criteria are met without rising pain or schedule failure']
 }
 
-export function buildPlacementAssessment(inputs: PlacementInputs, createdAt = new Date().toISOString()): AthletePlacementAssessment {
+function movementRouteFor(input: MovementPlacementInput, planRoute: PlacementRoute, placementInputs: PlacementInputs): PlacementRoute {
+  if (planRoute === 'pain-aware-modified') return 'pain-aware-modified'
+  if (planRoute === 'reacclimation' || placementInputs.continuity === 'returning') return 'reacclimation'
+  if (input.movementSkill !== null && input.movementSkill <= 1) return 'introductory-skill'
+  if (input.movementSkill === null || input.strengthTolerance === null || input.dataConfidence === null) return 'bridge-calibration'
+  if (input.movementSkill <= 2 || input.strengthTolerance <= 2 || input.dataConfidence <= 2) return 'bridge-calibration'
+  return planRoute
+}
+
+function movementPlacementFor(input: MovementPlacementInput, planRoute: PlacementRoute, placementInputs: PlacementInputs): MovementPlacementAssessment {
+  const uncertainInputs = [
+    ...(input.movementSkill === null ? ['movement skill'] : []),
+    ...(input.strengthTolerance === null ? ['current intensity tolerance'] : []),
+    ...(input.dataConfidence === null ? ['recent exact-movement evidence'] : [])
+  ]
+  const recommendedRoute = movementRouteFor(input, planRoute, placementInputs)
+  const reasons: string[] = []
+  if (recommendedRoute === 'introductory-skill') reasons.push(`${input.exerciseName} is new or not yet repeatable enough for direct goal-specific loading.`)
+  else if (recommendedRoute === 'bridge-calibration') reasons.push(`${input.exerciseName} needs exact-movement calibration before it shares the cycle's more specific loading.`)
+  else if (recommendedRoute === 'reacclimation') reasons.push(`${input.exerciseName} preserves past skill while recent tolerance is re-established.`)
+  else if (recommendedRoute === 'pain-aware-modified') reasons.push(`${input.exerciseName} remains behind the current restriction review gate.`)
+  else reasons.push(`${input.exerciseName} has enough current skill, tolerance, and evidence to use the cycle's ${placementRouteLabels[planRoute]}.`)
+  reasons.push(`${input.family} is the movement-family context, while ${input.exerciseName} keeps its own history and starting route.`)
+  return {
+    ruleVersion: movementPlacementRuleVersion,
+    exerciseId: input.exerciseId,
+    exerciseName: input.exerciseName.trim(),
+    family: input.family.trim(),
+    movementSkill: clampDimension(input.movementSkill),
+    strengthTolerance: clampDimension(input.strengthTolerance),
+    dataConfidence: clampDimension(input.dataConfidence),
+    recommendedRoute,
+    selectedRoute: recommendedRoute,
+    confidence: confidenceFor(uncertainInputs),
+    reasons,
+    uncertainInputs
+  }
+}
+
+function buildPlacementAssessmentVersion(inputs: PlacementInputs, createdAt: string, ruleVersion: AthletePlacementAssessment['ruleVersion']): AthletePlacementAssessment {
   const dimensions = {
     experience: experienceScore(inputs.trainingAge),
     recentContinuity: continuityScore(inputs.continuity),
@@ -117,9 +160,19 @@ export function buildPlacementAssessment(inputs: PlacementInputs, createdAt = ne
     dataConfidence: clampDimension(inputs.dataConfidence)
   }
   const recommendedRoute = selectedRouteFor(inputs, dimensions)
-  const uncertainInputs = uncertaintyFor(inputs)
+  const movementUncertainty = ruleVersion === placementRuleVersion
+    ? (inputs.movementProfiles ?? []).flatMap((profile) => [
+        ...(profile.movementSkill === null ? [`${profile.exerciseName} movement skill`] : []),
+        ...(profile.strengthTolerance === null ? [`${profile.exerciseName} intensity tolerance`] : []),
+        ...(profile.dataConfidence === null ? [`${profile.exerciseName} current evidence`] : [])
+      ])
+    : []
+  const uncertainInputs = [...new Set([...uncertaintyFor(inputs), ...movementUncertainty])]
+  const movementPlacements = ruleVersion === placementRuleVersion
+    ? (inputs.movementProfiles ?? []).map((input) => movementPlacementFor(input, recommendedRoute, inputs))
+    : undefined
   return {
-    ruleVersion: placementRuleVersion,
+    ruleVersion,
     createdAt,
     inputs: structuredClone(inputs),
     dimensions,
@@ -132,31 +185,49 @@ export function buildPlacementAssessment(inputs: PlacementInputs, createdAt = ne
     verificationPlan: verificationFor(recommendedRoute),
     whyNotLower: dimensions.experience >= 3 && dimensions.movementSkill >= 3 ? 'Current experience and skill do not support resetting you to a generic beginner route.' : 'No lower route is needed unless early technique, pain, or recovery evidence contradicts this estimate.',
     whyNotHigher: recommendedRoute === goalRoute(inputs.goal) ? 'A higher route would not better match the stated goal.' : 'A more specific route needs stronger current evidence, stability, skill, or tolerance first.',
-    exitCriteria: exitCriteriaFor(recommendedRoute)
+    exitCriteria: exitCriteriaFor(recommendedRoute),
+    ...(movementPlacements ? { movementPlacements } : {})
   }
+}
+
+export function buildPlacementAssessment(inputs: PlacementInputs, createdAt = new Date().toISOString()): AthletePlacementAssessment {
+  return buildPlacementAssessmentVersion(inputs, createdAt, placementRuleVersion)
 }
 
 export function applyPlacementDecision(assessment: AthletePlacementAssessment, decision: PlacementDecision): AthletePlacementAssessment {
   if (decision === 'conservative') {
     const selectedRoute = conservativeRoute(assessment.recommendedRoute)
-    return { ...assessment, selectedRoute, decision, verificationPlan: verificationFor(selectedRoute), exitCriteria: exitCriteriaFor(selectedRoute) }
+    return {
+      ...assessment,
+      selectedRoute,
+      decision,
+      verificationPlan: verificationFor(selectedRoute),
+      exitCriteria: exitCriteriaFor(selectedRoute),
+      ...(assessment.movementPlacements ? { movementPlacements: assessment.movementPlacements.map((movement) => ({ ...movement, selectedRoute: conservativeRoute(movement.recommendedRoute) })) } : {})
+    }
   }
   if (decision === 'quick-start') return {
     ...assessment,
     decision,
     confidence: 'low',
-    uncertainInputs: [...new Set([...assessment.uncertainInputs, 'unconfirmed Quick Start defaults'])]
+    uncertainInputs: [...new Set([...assessment.uncertainInputs, 'unconfirmed Quick Start defaults'])],
+    ...(assessment.movementPlacements ? { movementPlacements: assessment.movementPlacements.map((movement) => ({ ...movement, confidence: 'low' as const, uncertainInputs: [...new Set([...movement.uncertainInputs, 'unconfirmed Quick Start defaults'])] })) } : {})
   }
   if (decision === 'aggressive-test') return {
     ...assessment,
     decision,
     verificationPlan: ['Use the earliest productive session as a faster submaximal route-confirmation test. Do not require a maximal attempt or bypass pain constraints.', ...assessment.verificationPlan]
   }
-  return { ...assessment, selectedRoute: assessment.recommendedRoute, decision }
+  return {
+    ...assessment,
+    selectedRoute: assessment.recommendedRoute,
+    decision,
+    ...(assessment.movementPlacements ? { movementPlacements: assessment.movementPlacements.map((movement) => ({ ...movement, selectedRoute: movement.recommendedRoute })) } : {})
+  }
 }
 
 export function legacyPlacementForAthlete(athlete: Partial<AthleteProfile>, createdAt = '2026-08-10T00:00:00.000Z') {
-  return buildPlacementAssessment({
+  return buildPlacementAssessmentVersion({
     goal: athlete.goal?.toLowerCase().includes('return') ? 'return-to-training' : athlete.goal?.toLowerCase().includes('strength') ? 'strength' : 'powerbuilding',
     fixedEvent: null,
     trainingAge: typeof athlete.trainingAge === 'number' ? athlete.trainingAge : null,
@@ -171,14 +242,27 @@ export function legacyPlacementForAthlete(athlete: Partial<AthleteProfile>, crea
     defaultMinutes: athlete.defaultMinutes ?? 60,
     equipmentProfileId: 'equipment-commercial-gym',
     skippedFields: ['legacy placement evidence']
-  }, createdAt)
+  }, createdAt, legacyPlacementRuleVersion)
+}
+
+export function movementPlacementEvidenceError(value: unknown): string | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return 'Movement placement must be a structured record.'
+  const movement = value as Partial<MovementPlacementAssessment>
+  const routes = Object.keys(placementRouteLabels)
+  if (movement.ruleVersion !== movementPlacementRuleVersion) return 'Movement placement has an unsupported rule version.'
+  if (typeof movement.exerciseId !== 'string' || !movement.exerciseId.trim() || typeof movement.exerciseName !== 'string' || !movement.exerciseName.trim() || typeof movement.family !== 'string' || !movement.family.trim()) return 'Movement placement has incomplete identity evidence.'
+  if (![movement.movementSkill, movement.strengthTolerance, movement.dataConfidence].every((score) => Number.isInteger(score) && Number(score) >= 1 && Number(score) <= 5)) return 'Movement placement scores must be integers from one to five.'
+  if (!routes.includes(String(movement.recommendedRoute)) || !routes.includes(String(movement.selectedRoute))) return 'Movement placement has an unsupported route.'
+  if (!['low', 'medium', 'high'].includes(String(movement.confidence))) return 'Movement placement has an invalid confidence state.'
+  if (!Array.isArray(movement.reasons) || movement.reasons.some((reason) => typeof reason !== 'string') || !Array.isArray(movement.uncertainInputs) || movement.uncertainInputs.some((item) => typeof item !== 'string')) return 'Movement placement evidence lists are invalid.'
+  return null
 }
 
 export function placementAssessmentError(value: unknown): string | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return 'Placement assessment must be a structured record.'
   const assessment = value as Partial<AthletePlacementAssessment>
   const routes = Object.keys(placementRouteLabels)
-  if (assessment.ruleVersion !== placementRuleVersion) return 'Placement assessment has an unsupported rule version.'
+  if (assessment.ruleVersion !== legacyPlacementRuleVersion && assessment.ruleVersion !== placementRuleVersion) return 'Placement assessment has an unsupported rule version.'
   if (typeof assessment.createdAt !== 'string' || Number.isNaN(new Date(assessment.createdAt).getTime())) return 'Placement assessment needs a valid creation date.'
   if (!assessment.inputs || typeof assessment.inputs !== 'object') return 'Placement assessment is missing its input evidence.'
   const inputs = assessment.inputs as Partial<PlacementInputs>
@@ -190,14 +274,26 @@ export function placementAssessmentError(value: unknown): string | null {
   if (!['none', 'manageable', 'modifying', 'unknown'].includes(String(inputs.painState))) return 'Placement assessment has an invalid pain-state input.'
   if (!Number.isInteger(inputs.weeklyOpportunities) || Number(inputs.weeklyOpportunities) < 1 || Number(inputs.weeklyOpportunities) > 7 || !Number.isFinite(inputs.defaultMinutes) || Number(inputs.defaultMinutes) < 5 || Number(inputs.defaultMinutes) > 300) return 'Placement assessment has invalid schedule capacity.'
   if (typeof inputs.equipmentProfileId !== 'string' || !inputs.equipmentProfileId || !Array.isArray(inputs.skippedFields) || inputs.skippedFields.some((item) => typeof item !== 'string')) return 'Placement assessment has invalid equipment or skipped-input evidence.'
+  if (inputs.movementProfiles !== undefined) {
+    if (!Array.isArray(inputs.movementProfiles) || inputs.movementProfiles.some((profile) => typeof profile !== 'object' || profile === null)) return 'Placement assessment has invalid movement-profile input evidence.'
+    const profiles = inputs.movementProfiles as MovementPlacementInput[]
+    if (new Set(profiles.map((profile) => profile.exerciseId)).size !== profiles.length) return 'Placement assessment has duplicate movement-profile identities.'
+    if (profiles.some((profile) => typeof profile.exerciseId !== 'string' || !profile.exerciseId.trim() || typeof profile.exerciseName !== 'string' || !profile.exerciseName.trim() || typeof profile.family !== 'string' || !profile.family.trim())) return 'Placement assessment has incomplete movement-profile identity evidence.'
+    if (profiles.some((profile) => ['movementSkill', 'strengthTolerance', 'dataConfidence'].some((key) => !((profile[key as keyof MovementPlacementInput] === null) || (Number.isInteger(profile[key as keyof MovementPlacementInput]) && Number(profile[key as keyof MovementPlacementInput]) >= 1 && Number(profile[key as keyof MovementPlacementInput]) <= 5))))) return 'Placement assessment has an invalid per-movement one-to-five input.'
+  }
   if (!assessment.dimensions || Object.values(assessment.dimensions).length !== 7 || Object.values(assessment.dimensions).some((item) => !Number.isInteger(item) || item < 1 || item > 5)) return 'Placement dimensions must all be integers from one to five.'
   if (!routes.includes(String(assessment.recommendedRoute)) || !routes.includes(String(assessment.selectedRoute))) return 'Placement assessment has an unsupported route.'
   if (!['low', 'medium', 'high'].includes(String(assessment.confidence))) return 'Placement assessment has an invalid confidence state.'
   if (!['confirmed', 'conservative', 'aggressive-test', 'quick-start'].includes(String(assessment.decision))) return 'Placement assessment has an invalid athlete decision.'
   if (![assessment.reasons, assessment.uncertainInputs, assessment.verificationPlan, assessment.exitCriteria].every((list) => Array.isArray(list) && list.every((item) => typeof item === 'string'))) return 'Placement assessment evidence lists are invalid.'
   if (typeof assessment.whyNotLower !== 'string' || typeof assessment.whyNotHigher !== 'string') return 'Placement assessment is missing route comparisons.'
-  const replay = applyPlacementDecision(buildPlacementAssessment(inputs as PlacementInputs, assessment.createdAt), assessment.decision as PlacementDecision)
+  if (assessment.ruleVersion === placementRuleVersion) {
+    if (!Array.isArray(assessment.movementPlacements)) return 'Placement-v2 assessment is missing per-movement placement evidence.'
+    if (assessment.movementPlacements.length !== (inputs.movementProfiles?.length ?? 0)) return 'Per-movement placement evidence does not match its inputs.'
+    if (assessment.movementPlacements.some((movement) => movementPlacementEvidenceError(movement))) return 'Per-movement placement evidence is invalid.'
+  } else if (assessment.movementPlacements !== undefined || inputs.movementProfiles !== undefined) return 'Legacy placement cannot invent per-movement evidence.'
+  const replay = applyPlacementDecision(buildPlacementAssessmentVersion(inputs as PlacementInputs, assessment.createdAt, assessment.ruleVersion), assessment.decision as PlacementDecision)
   const sameList = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right)
-  if (!sameList(assessment.dimensions, replay.dimensions) || assessment.recommendedRoute !== replay.recommendedRoute || assessment.selectedRoute !== replay.selectedRoute || assessment.confidence !== replay.confidence || !sameList(assessment.reasons, replay.reasons) || !sameList(assessment.uncertainInputs, replay.uncertainInputs) || !sameList(assessment.verificationPlan, replay.verificationPlan) || assessment.whyNotLower !== replay.whyNotLower || assessment.whyNotHigher !== replay.whyNotHigher || !sameList(assessment.exitCriteria, replay.exitCriteria)) return 'Placement assessment does not reconcile with placement-v1 input evidence.'
+  if (!sameList(assessment.dimensions, replay.dimensions) || assessment.recommendedRoute !== replay.recommendedRoute || assessment.selectedRoute !== replay.selectedRoute || assessment.confidence !== replay.confidence || !sameList(assessment.reasons, replay.reasons) || !sameList(assessment.uncertainInputs, replay.uncertainInputs) || !sameList(assessment.verificationPlan, replay.verificationPlan) || assessment.whyNotLower !== replay.whyNotLower || assessment.whyNotHigher !== replay.whyNotHigher || !sameList(assessment.exitCriteria, replay.exitCriteria) || !sameList(assessment.movementPlacements, replay.movementPlacements)) return `Placement assessment does not reconcile with ${assessment.ruleVersion} input evidence.`
   return null
 }

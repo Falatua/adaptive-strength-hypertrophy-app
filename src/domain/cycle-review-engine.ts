@@ -120,6 +120,7 @@ export function buildNextMicrocycle(input: NextRoundInput) {
     draft.generationRuleVersion = undefined
     draft.placementCreatedAt = undefined
     draft.generationEquipment = undefined
+    draft.movementPlacements = undefined
   }
   const preview = buildMesocyclePreview(draft, {
     exercises: input.exercises,

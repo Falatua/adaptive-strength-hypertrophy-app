@@ -3,6 +3,7 @@ import { buildMesocyclePreview, draftFromPlan } from './mesocycle-engine'
 import { routeSessionGenerationError, routeSessionProfile, routeSessionProfiles } from './route-session-engine'
 import { exerciseEquipmentFit } from './equipment-engine'
 import { equipmentProfiles, exercises, history, mesocycles, sessions } from './seed'
+import { buildPlacementAssessment } from './placement-engine'
 import type { PlacementRoute } from './types'
 
 const routes: PlacementRoute[] = ['introductory-skill', 'reacclimation', 'bridge-calibration', 'base-building', 'hypertrophy', 'powerbuilding', 'strength', 'power', 'event-specific']
@@ -29,7 +30,7 @@ describe('route-specific session generation', () => {
   it('defines a bounded deterministic profile for every placement route', () => {
     expect(routeSessionProfiles).toHaveLength(10)
     routeSessionProfiles.forEach((profile) => {
-      expect(profile.ruleVersion).toBe('route-session-v2')
+      expect(profile.ruleVersion).toBe('route-session-v3')
       expect(profile.strategy.length).toBeGreaterThan(20)
       expect(profile.reasons.length).toBeGreaterThanOrEqual(2)
       expect(profile.route === 'pain-aware-modified' ? profile.primary.sets === 0 : profile.primary.sets > 0).toBe(true)
@@ -122,5 +123,31 @@ describe('route-specific session generation', () => {
     const legacy = { ...evidence, ruleVersion: 'route-session-v1' as const }
     delete legacy.equipment
     expect(routeSessionGenerationError(legacy)).toBeNull()
+  })
+
+  it('gives each protected anchor its own route prescription and immutable placement evidence', () => {
+    const placement = buildPlacementAssessment({
+      goal: 'strength', fixedEvent: null, trainingAge: 8, continuity: 'stable', movementSkill: 5,
+      strengthTolerance: 5, volumeTolerance: 4, scheduleStability: 4, dataConfidence: 5,
+      painState: 'none', weeklyOpportunities: 3, defaultMinutes: 60, equipmentProfileId: equipmentProfiles[0].id, skippedFields: [],
+      movementProfiles: [
+        { exerciseId: 'competition-squat', exerciseName: 'Competition Back Squat', family: 'Squat', movementSkill: 1, strengthTolerance: 2, dataConfidence: 2 },
+        { exerciseId: 'competition-bench', exerciseName: 'Competition Bench Press', family: 'Bench Press', movementSkill: 5, strengthTolerance: 5, dataConfidence: 5 },
+        { exerciseId: 'sumo-deadlift', exerciseName: 'Sumo Deadlift', family: 'Deadlift', movementSkill: 3, strengthTolerance: 3, dataConfidence: 1 }
+      ]
+    }, '2026-08-10T16:00:00.000Z')
+    const draft = {
+      ...draftFromPlan(mesocycles[0]), entryRoute: 'strength' as const, generationRuleVersion: 'route-session-v3' as const,
+      placementCreatedAt: placement.createdAt, movementPlacements: placement.movementPlacements
+    }
+    const preview = buildMesocyclePreview(draft, { exercises, currentSessions: sessions, history, planId: 'movement-plan', planVersion: 3, equipmentProfile: equipmentProfiles[0] })
+    const byPrimary = new Map(preview.sessions.map((session) => [session.exercises.find((planned) => planned.role === 'primary')!.exerciseId, session]))
+    expect(byPrimary.get('competition-squat')?.exercises[0].sets).toHaveLength(2)
+    expect(byPrimary.get('competition-squat')?.exercises[0].sets[0]).toMatchObject({ targetReps: 8, targetRir: 4 })
+    expect(byPrimary.get('competition-bench')?.exercises[0].sets).toHaveLength(4)
+    expect(byPrimary.get('competition-bench')?.exercises[0].sets[0]).toMatchObject({ targetReps: 4, targetRir: 2 })
+    expect(byPrimary.get('sumo-deadlift')?.exercises[0].sets).toHaveLength(3)
+    expect(byPrimary.get('sumo-deadlift')?.generation).toMatchObject({ ruleVersion: 'route-session-v3', planRoute: 'strength', route: 'bridge-calibration', movementPlacement: { exerciseId: 'sumo-deadlift', selectedRoute: 'bridge-calibration' } })
+    expect(preview.sessions.every((session) => routeSessionGenerationError(session.generation) === null)).toBe(true)
   })
 })

@@ -1,11 +1,13 @@
 import type {
   AthletePlacementAssessment,
+  MovementPlacementAssessment,
   PlacementRecoveryResponse,
   PlacementVerificationEvent,
   PlacementVerificationFirstSet,
   PlacementVerificationSessionEvidence,
   PlacementWarmupResponse
 } from './types'
+import { movementPlacementEvidenceError } from './placement-engine'
 
 export const placementVerificationRuleVersion = 'placement-verification-v1' as const
 
@@ -24,12 +26,14 @@ export function beginPlacementVerification(input: {
   sessionId: string
   sequence: number
   startedAt: string
+  movementPlacement?: MovementPlacementAssessment
 }): PlacementVerificationEvent {
   return {
     id: input.id,
     ruleVersion: placementVerificationRuleVersion,
     placementCreatedAt: input.placement.createdAt,
-    placementRoute: input.placement.selectedRoute,
+    placementRoute: input.movementPlacement?.selectedRoute ?? input.placement.selectedRoute,
+    ...(input.movementPlacement ? { movementPlacement: structuredClone(input.movementPlacement) } : {}),
     sessionId: input.sessionId,
     sequence: input.sequence,
     startedAt: input.startedAt,
@@ -167,7 +171,7 @@ export function summarizePlacementVerification(events: PlacementVerificationEven
 
 function replayPlacementVerification(event: PlacementVerificationEvent, sessionEvidence = event.sessionEvidence) {
   const placeholder = { createdAt: event.placementCreatedAt, selectedRoute: event.placementRoute } as AthletePlacementAssessment
-  let replay = beginPlacementVerification({ id: event.id, placement: placeholder, sessionId: event.sessionId, sequence: event.sequence, startedAt: event.startedAt })
+  let replay = beginPlacementVerification({ id: event.id, placement: placeholder, sessionId: event.sessionId, sequence: event.sequence, startedAt: event.startedAt, movementPlacement: event.movementPlacement })
   if (event.warmupResponse !== 'not-answered' && event.warmupCapturedAt) replay = recordPlacementWarmup(replay, event.warmupResponse, event.warmupCapturedAt)
   if (sessionEvidence && event.completedAt) replay = completePlacementVerification(replay, { firstSet: event.firstSet, sessionEvidence, completedAt: event.completedAt })
   if (event.recoveryResponse !== 'pending' && event.recoveryCapturedAt) replay = resolvePlacementRecovery(replay, event.recoveryResponse, event.recoveryCapturedAt)
@@ -188,6 +192,11 @@ export function placementVerificationError(value: unknown): string | null {
   if (event.ruleVersion !== placementVerificationRuleVersion || typeof event.id !== 'string' || typeof event.sessionId !== 'string') return 'Placement verification has invalid identity or rule provenance.'
   if (!isDate(event.placementCreatedAt) || !isDate(event.startedAt) || !Number.isInteger(event.sequence) || Number(event.sequence) < 1 || Number(event.sequence) > 3) return 'Placement verification has invalid placement, date, or sequence evidence.'
   if (!['introductory-skill', 'reacclimation', 'bridge-calibration', 'base-building', 'hypertrophy', 'powerbuilding', 'strength', 'power', 'event-specific', 'pain-aware-modified'].includes(String(event.placementRoute))) return 'Placement verification has an invalid route.'
+  if (event.movementPlacement !== undefined) {
+    const movementError = movementPlacementEvidenceError(event.movementPlacement)
+    if (movementError) return `Placement verification movement evidence is invalid: ${movementError}`
+    if (event.movementPlacement.selectedRoute !== event.placementRoute) return 'Placement verification route does not match its movement evidence.'
+  }
   if (!['active', 'awaiting-recovery', 'resolved'].includes(String(event.status)) || !['better', 'as-expected', 'harder', 'painful', 'skipped', 'not-answered'].includes(String(event.warmupResponse)) || !['recovered', 'acceptable', 'not-recovered', 'skipped', 'pending'].includes(String(event.recoveryResponse))) return 'Placement verification has an invalid response state.'
   if (!['collecting', 'pending-recovery', 'supports-route', 'needs-more-evidence', 'review-suggested', 'reassessment-required'].includes(String(event.verdict)) || !Array.isArray(event.reasons) || event.reasons.some((reason) => typeof reason !== 'string')) return 'Placement verification has an invalid verdict or explanation.'
   if (!(event.warmupCapturedAt === null || isDate(event.warmupCapturedAt)) || !(event.recoveryCapturedAt === null || isDate(event.recoveryCapturedAt)) || !(event.completedAt === null || isDate(event.completedAt))) return 'Placement verification has an invalid evidence date.'

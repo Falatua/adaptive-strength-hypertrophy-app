@@ -22,6 +22,7 @@ import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
 import { buildMesocyclePreview, draftFromPlan } from '../domain/mesocycle-engine'
 import { buildCycleReview } from '../domain/cycle-review-engine'
+import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION } from '../domain/route-session-engine'
 import type { BodyRegion, CycleReviewDecision, MesocycleDraft } from '../domain/types'
 
 const regions: BodyRegion[] = ['chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']
@@ -120,7 +121,13 @@ export function PlanScreen() {
   const updateAnchor = (slot: number, exerciseId: string) => setDraft((current) => {
     const anchors = [...current.strengthAnchors]
     anchors[slot] = exerciseId
-    return { ...current, strengthAnchors: [...new Set(anchors.filter(Boolean))] }
+    const strengthAnchors = [...new Set(anchors.filter(Boolean))]
+    const movementPlacementsComplete = strengthAnchors.every((anchorId) => current.movementPlacements?.some((placement) => placement.exerciseId === anchorId))
+    return {
+      ...current,
+      strengthAnchors,
+      ...(current.entryRoute && !movementPlacementsComplete ? { generationRuleVersion: EQUIPMENT_ROUTE_SESSION_RULE_VERSION, movementPlacements: undefined } : {})
+    }
   })
 
   const toggleRegion = (field: 'priorityRegions' | 'maintenanceRegions', region: BodyRegion) => setDraft((current) => {
@@ -221,6 +228,7 @@ export function PlanScreen() {
             <ul className="priority-list">
               <li><span>Anchors</span><strong>{activeAnchors.join(', ') || 'Choose anchors'}</strong></li>
               <li><span>Entry route</span><strong>{activePlan?.entryRoute ? `${readable(activePlan.entryRoute)} · ${activePlan.generationRuleVersion}` : 'Manual adaptation rules'}</strong></li>
+              <li><span>Movement lanes</span><strong>{activePlan?.movementPlacements?.length ? `${activePlan.movementPlacements.length} exact anchors placed independently` : 'Global route applies to all anchors'}</strong></li>
               <li><span>Generated for</span><strong>{activePlan?.generationEquipment ? `${activePlan.generationEquipment.profileName} · ${activePlan.generationEquipment.incrementUnit}` : 'Legacy or manual equipment context'}</strong></li>
               <li><span>Develop</span><strong>{(activePlan?.priorityRegions ?? athlete.priorityRegions).map(readable).join(', ')}</strong></li>
               <li><span>Maintain</span><strong>{(activePlan?.maintenanceRegions ?? []).map(readable).join(', ') || 'Set in next plan version'}</strong></li>
@@ -262,7 +270,7 @@ export function PlanScreen() {
             {activeSessionId && <div className="plan-editor__warning"><AlertCircle size={18} /><span><strong>Revision paused</strong>Finish or leave the active workout before applying a new plan.</span></div>}
             <div className="form-grid">
               <label><span className="field-label">Plan title</span><input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
-              <label><span className="field-label">Dominant adaptation</span><select value={draft.dominantAdaptation} onChange={(event) => setDraft({ ...draft, dominantAdaptation: event.target.value as MesocycleDraft['dominantAdaptation'], entryRoute: undefined, generationRuleVersion: undefined, placementCreatedAt: undefined, generationEquipment: undefined })}><option value="powerbuilding">Powerbuilding</option><option value="strength">Strength</option><option value="hypertrophy">Hypertrophy</option><option value="reacclimation">Reacclimation</option></select></label>
+              <label><span className="field-label">Dominant adaptation</span><select value={draft.dominantAdaptation} onChange={(event) => setDraft({ ...draft, dominantAdaptation: event.target.value as MesocycleDraft['dominantAdaptation'], entryRoute: undefined, generationRuleVersion: undefined, placementCreatedAt: undefined, generationEquipment: undefined, movementPlacements: undefined })}><option value="powerbuilding">Powerbuilding</option><option value="strength">Strength</option><option value="hypertrophy">Hypertrophy</option><option value="reacclimation">Reacclimation</option></select></label>
             </div>
             <label><span className="field-label">Objective</span><textarea value={draft.objective} onChange={(event) => setDraft({ ...draft, objective: event.target.value })} /></label>
             <div className="plan-editor__numbers">
