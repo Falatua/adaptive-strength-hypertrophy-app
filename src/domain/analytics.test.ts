@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { analyticsReconciliation, areaVolumeFor, buildAnalytics } from './analytics'
+import { analyticsReconciliation, areaVolumeFor, buildAnalytics, exerciseMixFor, priorityAttentionFor } from './analytics'
 import type { BodyRegion, CompletedSetRecord } from './types'
 
 const workSet = (id: string, completedAt: Date, region: BodyRegion, load = 100, reps = 10): CompletedSetRecord => ({
@@ -30,11 +30,13 @@ const fixture = [
 ]
 
 describe('multi-horizon source-set analytics', () => {
-  it('uses distinct daily, weekly, rolling, calendar-month, yearly, and all-time windows', () => {
+  it('uses distinct daily, weekly, rolling, calendar-month, quarter, yearly, and all-time windows', () => {
     expect(buildAnalytics(fixture, 'today', now).setCount).toBe(1)
     expect(buildAnalytics(fixture, '7d', now).setCount).toBe(2)
     expect(buildAnalytics(fixture, '28d', now).setCount).toBe(3)
     expect(buildAnalytics(fixture, 'month', now).setCount).toBe(3)
+    expect(buildAnalytics(fixture, 'quarter', now).setCount).toBe(4)
+    expect(buildAnalytics(fixture, 'quarter', now).points.map((point) => point.label)).toEqual(['Jul', 'Aug'])
     expect(buildAnalytics(fixture, 'year', now).setCount).toBe(5)
     expect(buildAnalytics(fixture, 'all', now).setCount).toBe(6)
   })
@@ -58,5 +60,27 @@ describe('multi-horizon source-set analytics', () => {
     expect(summary.activeDays).toBe(2)
     expect(summary.totalReps).toBe(18)
     expect(summary.averageLoad).toBe(110)
+  })
+
+  it('explains exact-movement mix without turning volume share into stimulus share', () => {
+    const mix = exerciseMixFor(fixture)
+    expect(mix[0].name).toBe('glutes movement')
+    expect(mix.reduce((sum, item) => sum + item.volumeShare, 0)).toBeCloseTo(1)
+    expect(mix.reduce((sum, item) => sum + item.setShare, 0)).toBeCloseTo(1)
+    expect(mix.every((item) => item.sessions === 1)).toBe(true)
+  })
+
+  it('shows goal-relative attention as evidence states rather than declaring neglect', () => {
+    const attention = priorityAttentionFor({
+      selectedHistory: fixture.slice(0, 2),
+      allHistory: fixture,
+      priorityRegions: ['chest', 'quadriceps', 'calves'],
+      now
+    })
+    expect(attention.map((item) => [item.region, item.status])).toEqual([
+      ['chest', 'represented'], ['quadriceps', 'outside-window'], ['calves', 'no-history']
+    ])
+    expect(attention[0].contributingExercises).toEqual(['chest movement'])
+    expect(attention[1].daysSinceLastExposure).toBe(8)
   })
 })

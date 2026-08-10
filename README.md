@@ -1,4 +1,4 @@
-# ForgePath Private Alpha 0.9.0
+# ForgePath Private Alpha 0.10.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
@@ -31,14 +31,14 @@ npm run test:e2e
 
 ## Current verification
 
-- 66 deterministic domain tests
-- ten desktop and phone browser journeys for source-backed records, in-workout achievement feedback, quiet controls, explainable substitutions, operational survey preferences, optional deferred feedback, persistence, console integrity, and horizontal containment
+- 68 deterministic domain tests
+- twelve desktop and phone browser journeys for source-backed records, in-workout achievement feedback, quiet controls, explainable substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, persistence, console integrity, and horizontal containment
 - lint clean
 - production PWA build clean
 - desktop and 390 px phone browser journeys checked
 - reload persistence, survey skip paths, substitutions, partial sessions, and progress updates verified
 - versioned backup export, validation, restore, malformed-file rejection, and one-step restore undo verified
-- daily, weekly, rolling 28-day, calendar-month, yearly, and all-time analytics reconcile to completed source sets
+- daily, weekly, rolling 28-day, calendar-month, calendar-quarter, yearly, and all-time analytics reconcile to completed source sets
 - editable mesocycles generate a preview before applying and version every objective, constraint, and reason for change
 - plan revisions preserve completed and partial session truth while replacing future planned work only
 - version 9 backup and restore includes expanded record definitions, celebration preferences, plan history, the correction ledger, cycle-review decisions, the substitution-learning ledger, survey evidence, and deferred-feedback provenance and safely migrates versions 1 through 8
@@ -53,5 +53,7 @@ npm run test:e2e
 - full, quick, minimal, ask-each-time, and off preferences now govern the real pre- and post-session flow independently
 - untouched, skipped, not-sure, and prefer-not responses remain explicit unknowns; only deliberate answers contribute to readiness confidence or PR quality validation
 - “Remind me later” finishes and credits the workout immediately, keeps one quiet optional follow-up for 24 hours, never blocks the next session, and replays quality-dependent records only from explicit later answers
+- exact-movement mix shows selected-period volume, set, repetition, session, and share evidence without relabeling tonnage as muscle stimulus or enjoyment
+- priority attention distinguishes represented, outside-window, and no-history evidence without declaring a body part neglected before planned-dose targets exist
 
 Read [docs/BUILD_REFERENCE.md](docs/BUILD_REFERENCE.md) before changing product behavior.

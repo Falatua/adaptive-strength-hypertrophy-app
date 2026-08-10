@@ -5,7 +5,9 @@ import {
   analyticsReconciliation,
   areaVolumeFor,
   buildAnalytics,
+  exerciseMixFor,
   exerciseVolumeFor,
+  priorityAttentionFor,
   progressRanges,
   rangeWindow,
   regionVolumeFor,
@@ -26,6 +28,7 @@ export function ProgressScreen() {
   const summary = useMemo(() => buildAnalytics(history, range), [history, range])
   const bodyData = useMemo(() => bodyLens === 'region' ? regionVolumeFor(summary.history) : areaVolumeFor(summary.history), [bodyLens, summary.history])
   const exerciseVolumes = useMemo(() => exerciseVolumeFor(summary.history), [summary.history])
+  const exerciseMix = useMemo(() => exerciseMixFor(summary.history), [summary.history])
   const reconciliation = useMemo(() => analyticsReconciliation(summary), [summary])
   const topExercise = exerciseVolumes[0]
   const latestTimestamp = summary.history.reduce((latest, workSet) => Math.max(latest, new Date(workSet.completedAt).getTime()), 0)
@@ -48,10 +51,7 @@ export function ProgressScreen() {
     const exercise = exerciseCatalog.find((candidate) => candidate.id === planned.exerciseId)
     return exercise ? deriveRecordOpportunities({ history, planned, exercise, readiness: nextSession.readiness ?? 'confirm' }) : []
   }).filter((opportunity) => opportunity.eligible).slice(0, 3) ?? []
-  const priorityCoverage = athlete.priorityRegions.map((region) => {
-    const point = regionVolumeFor(summary.history).find((item) => item.label === region)
-    return { region, sets: point?.sets ?? 0, volume: point?.volume ?? 0 }
-  })
+  const priorityCoverage = useMemo(() => priorityAttentionFor({ selectedHistory: summary.history, allHistory: history, priorityRegions: athlete.priorityRegions }), [athlete.priorityRegions, history, summary.history])
   const trend = summary.comparisonPercent
   const trendLabel = trend === null ? 'No matched prior window' : `${trend >= 0 ? '+' : ''}${trend.toFixed(1)}% vs prior matched window`
   const rangeDates = summary.start
@@ -66,7 +66,7 @@ export function ProgressScreen() {
   return (
     <div className="screen">
       <header className="screen-header">
-        <div><p className="eyebrow">Completed work only</p><h1>Your training, made legible.</h1><p>Daily, weekly, rolling, monthly, yearly, and all-time views reconcile to the exact completed source sets beneath them.</p></div>
+        <div><p className="eyebrow">Completed work only</p><h1>Your training, made legible.</h1><p>Daily, weekly, rolling, monthly, quarterly, yearly, and all-time views reconcile to the exact completed source sets beneath them.</p></div>
         <div className="segmented-control progress-range" aria-label="Progress range">{progressRanges.map((item) => <button key={item.id} title={item.label} aria-pressed={range === item.id} className={range === item.id ? 'selected' : ''} onClick={() => setRange(item.id)}>{item.shortLabel}</button>)}</div>
       </header>
 
@@ -92,7 +92,7 @@ export function ProgressScreen() {
 
       <div className="charts-grid">
         <section className="panel chart-panel chart-panel--wide">
-          <div className="panel__header"><div><p className="eyebrow">Volume explorer · {summary.label}</p><h3>{range === 'today' ? 'Daily' : range === 'year' ? 'Monthly' : range === 'all' ? 'Yearly' : 'Daily'} volume load</h3></div><span className={trend !== null && trend < 0 ? 'trend-down' : 'trend-up'}>{trend !== null && trend < 0 ? <ArrowDownRight size={15} /> : <ArrowUpRight size={15} />}{trendLabel}</span></div>
+          <div className="panel__header"><div><p className="eyebrow">Volume explorer · {summary.label}</p><h3>{range === 'today' ? 'Daily' : ['quarter', 'year'].includes(range) ? 'Monthly' : range === 'all' ? 'Yearly' : 'Daily'} volume load</h3></div><span className={trend !== null && trend < 0 ? 'trend-down' : 'trend-up'}>{trend !== null && trend < 0 ? <ArrowDownRight size={15} /> : <ArrowUpRight size={15} />}{trendLabel}</span></div>
           <div className="chart-wrap" aria-label={`${summary.label} volume load chart`}>
             <ResponsiveContainer width="100%" height="100%"><AreaChart data={summary.points} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}><defs><linearGradient id="volumeFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e7ff58" stopOpacity={0.42} /><stop offset="100%" stopColor="#e7ff58" stopOpacity={0} /></linearGradient></defs><CartesianGrid stroke="#2c3129" vertical={false} /><XAxis dataKey="label" stroke="#788171" tickLine={false} axisLine={false} fontSize={11} minTickGap={24} /><YAxis stroke="#788171" tickLine={false} axisLine={false} fontSize={11} tickFormatter={(value) => Number(value) >= 1000 ? `${Math.round(Number(value) / 1000)}k` : String(value)} /><Tooltip contentStyle={{ background: '#191d17', border: '1px solid #353b31', borderRadius: 10 }} formatter={(value) => [`${Number(value).toLocaleString()} ${settings.units}`, 'Volume load']} /><Area isAnimationActive={false} type="monotone" dataKey="volume" stroke="#e7ff58" strokeWidth={3} fill="url(#volumeFill)" /></AreaChart></ResponsiveContainer>
           </div>
@@ -109,9 +109,14 @@ export function ProgressScreen() {
 
       <div className="insight-grid">
         <section className="panel">
-          <div className="panel__header"><div><p className="eyebrow">Priority coverage</p><h3>Goal-relative attention</h3></div><BrainCircuit size={19} /></div>
-          <div className="priority-coverage">{priorityCoverage.map((item) => <div key={item.region}><span><strong>{item.region}</strong><small>Current priority</small></span><span><b>{item.sets} sets</b><small>{item.volume.toLocaleString()} volume load</small></span></div>)}</div>
-          <p className="chart-note">A zero inside the selected period is a review signal, not a shame label. Programming still considers phase, recovery, and intended dose.</p>
+          <div className="panel__header"><div><p className="eyebrow">Priority attention</p><h3>Goal-relative completed evidence</h3></div><BrainCircuit size={19} /></div>
+          <div className="priority-coverage">{priorityCoverage.map((item) => <div key={item.region}><span><strong>{item.region}</strong><small>{item.status === 'represented' ? item.contributingExercises.join(', ') : item.status === 'outside-window' ? `Last completed ${item.daysSinceLastExposure} days ago` : 'No completed history yet'}</small></span><span><b>{item.selectedSets} sets</b><small>{item.selectedVolume.toLocaleString()} volume load · {item.status.replace('-', ' ')}</small></span></div>)}</div>
+          <p className="chart-note">This compares completed primary-region work with current priorities. It reports represented, outside-window, or no-history evidence and does not declare a body part neglected without a planned-dose model.</p>
+        </section>
+        <section className="panel">
+          <div className="panel__header"><div><p className="eyebrow">Exact movement mix</p><h3>What filled this window</h3></div><Dumbbell size={19} /></div>
+          {exerciseMix.length ? <div className="movement-mix">{exerciseMix.slice(0, 6).map((item, index) => <div key={item.exerciseId}><span className="movement-mix__rank">{String(index + 1).padStart(2, '0')}</span><span><strong>{item.name}</strong><small>{item.sets} sets · {item.repetitions} reps · {item.sessions} {item.sessions === 1 ? 'session' : 'sessions'}</small><i><b style={{ width: `${Math.max(3, item.volumeShare * 100)}%` }} /></i></span><span><b>{(item.volumeShare * 100).toFixed(1)}%</b><small>{item.volume.toLocaleString()} volume load</small></span></div>)}</div> : <div className="compact-empty"><Dumbbell size={24} /><strong>No movement mix yet</strong><p>Complete a set inside this period to create an exact-movement breakdown.</p></div>}
+          <p className="chart-note">Percent is share of selected-period volume load, not share of hypertrophy stimulus or enjoyment. Different exercises are not mechanically interchangeable.</p>
         </section>
         <section className="panel">
           <div className="panel__header"><div><p className="eyebrow">Current record ledger</p><h3>Bests inside this window</h3></div><Trophy size={19} /></div>

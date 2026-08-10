@@ -35,8 +35,10 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Reason-aware exercise replacement with ranked evidence tiers, visible purpose and tradeoffs, exact-history or conservative calibration prescriptions, protected-primary confirmation, and preserved exact-movement clocks.
 - A durable substitution-learning ledger linking original and selected movements, candidate snapshots, prescriptions, completed source sets, outcomes, and available feedback.
 - Daily and weekly volume, body-region views, source-backed records, and micro wins.
-- Real daily, weekly, rolling-28-day, calendar-month, yearly, and all-time filters with source-set reconciliation.
+- Real daily, weekly, rolling-28-day, calendar-month, calendar-quarter, yearly, and all-time filters with source-set reconciliation.
 - Exclusive primary-region and upper-body, lower-body, arms, and trunk volume lenses.
+- Exact-movement mix with selected-period volume, sets, repetitions, sessions, volume share, and visible limits on cross-exercise interpretation.
+- Goal-relative priority attention with represented, outside-window, and no-history states. The app does not label neglect without a versioned planned-dose model.
 - Exact all-time record definitions for absolute load, repetitions at load, load for repetitions, exact set scheme, Epley estimated strength for one through twelve repetitions, exact-movement session volume, and workout session volume.
 - Deterministic achievement replay for personal records, load and repetition micro wins, quality wins, baselines, returns, and consistency, with completed source-set provenance.
 - Opportunity prompts calculated only from prescribed targets. Athlete-entered actuals can never be reclassified as an app-prescribed record attempt.
@@ -61,6 +63,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Navigate Today, Plan, Progress, Library, and You on desktop and a 390 px phone viewport.
 - Export a complete local backup, validate and preview it, restore it, and recover the pre-restore state.
 - Switch every progress horizon and prove chart, body-lens, and headline totals equal the selected completed source sets.
+- Select the calendar quarter, show monthly quarter points, inspect exact movement mix and priority attention, and preserve exact-width phone containment without turning volume share into a stimulus or enjoyment claim.
 - Preview a 30-minute plan revision, apply it, preserve partial history, inspect both plan versions, reload, and recover the active version from local persistence.
 - Export and preview a verified version 9 backup containing expanded records, athlete celebration preferences, plan versions, the correction ledger, cycle-review history, substitution learning, survey evidence, and deferred-feedback provenance.
 - Confirm a planned hold remains a hold after an athlete edits actual load, then log, provisionally recognize, save, and replay a source-backed exact-movement load record.

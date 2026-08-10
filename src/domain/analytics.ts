@@ -1,6 +1,6 @@
 import type { BodyRegion, CompletedSetRecord } from './types'
 
-export type ProgressRange = 'today' | '7d' | '28d' | 'month' | 'year' | 'all'
+export type ProgressRange = 'today' | '7d' | '28d' | 'month' | 'quarter' | 'year' | 'all'
 export type BodyLens = 'region' | 'area'
 
 export const progressRanges: { id: ProgressRange; label: string; shortLabel: string }[] = [
@@ -8,6 +8,7 @@ export const progressRanges: { id: ProgressRange; label: string; shortLabel: str
   { id: '7d', label: 'Last 7 days', shortLabel: 'Week' },
   { id: '28d', label: 'Rolling 28 days', shortLabel: '28 days' },
   { id: 'month', label: 'Calendar month', shortLabel: 'Month' },
+  { id: 'quarter', label: 'Calendar quarter', shortLabel: 'Qtr' },
   { id: 'year', label: 'Calendar year', shortLabel: 'Year' },
   { id: 'all', label: 'All time', shortLabel: 'All time' }
 ]
@@ -50,6 +51,7 @@ export function rangeWindow(range: ProgressRange, now = new Date()) {
   if (range === '7d') return { start: addDays(startOfDay(now), -6), end }
   if (range === '28d') return { start: addDays(startOfDay(now), -27), end }
   if (range === 'month') return { start: new Date(now.getFullYear(), now.getMonth(), 1), end }
+  if (range === 'quarter') return { start: new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1), end }
   return { start: new Date(now.getFullYear(), 0, 1), end }
 }
 
@@ -72,8 +74,9 @@ function emptySeries(range: ProgressRange, start: Date | null, end: Date, histor
     for (let year = first; year <= end.getFullYear(); year += 1) result.push({ key: String(year), label: String(year), volume: 0, sets: 0 })
     return result
   }
-  if (range === 'year') {
-    for (let month = 0; month <= end.getMonth(); month += 1) {
+  if (range === 'year' || range === 'quarter') {
+    const firstMonth = range === 'quarter' ? Math.floor(end.getMonth() / 3) * 3 : 0
+    for (let month = firstMonth; month <= end.getMonth(); month += 1) {
       const date = new Date(end.getFullYear(), month, 1)
       result.push({ key: monthKey(date), label: date.toLocaleDateString('en-US', { month: 'short' }), volume: 0, sets: 0 })
     }
@@ -115,7 +118,7 @@ export function buildAnalytics(history: CompletedSetRecord[], range: ProgressRan
   const pointMap = new Map(points.map((point) => [point.key, point]))
   filtered.forEach((workSet) => {
     const date = new Date(workSet.completedAt)
-    const key = range === 'all' ? String(date.getFullYear()) : range === 'year' ? monthKey(date) : dayKey(date)
+    const key = range === 'all' ? String(date.getFullYear()) : ['year', 'quarter'].includes(range) ? monthKey(date) : dayKey(date)
     const point = pointMap.get(key)
     if (!point) return
     point.volume += workSet.reps * workSet.load
@@ -181,6 +184,89 @@ export function exerciseVolumeFor(history: CompletedSetRecord[]) {
     buckets.set(workSet.exerciseId, current)
   })
   return [...buckets.values()].sort((a, b) => b.volume - a.volume)
+}
+
+export interface ExerciseMixPoint {
+  exerciseId: string
+  name: string
+  volume: number
+  sets: number
+  repetitions: number
+  sessions: number
+  lastCompletedAt: string
+  volumeShare: number
+  setShare: number
+}
+
+export function exerciseMixFor(history: CompletedSetRecord[]): ExerciseMixPoint[] {
+  const total = totalVolume(history)
+  const buckets = new Map<string, Omit<ExerciseMixPoint, 'volumeShare' | 'setShare'> & { sessionIds: Set<string> }>()
+  history.forEach((workSet) => {
+    const current = buckets.get(workSet.exerciseId) ?? {
+      exerciseId: workSet.exerciseId,
+      name: workSet.exerciseName,
+      volume: 0,
+      sets: 0,
+      repetitions: 0,
+      sessions: 0,
+      lastCompletedAt: workSet.completedAt,
+      sessionIds: new Set<string>()
+    }
+    current.volume += workSet.reps * workSet.load
+    current.sets += 1
+    current.repetitions += workSet.reps
+    current.sessionIds.add(workSet.sessionId)
+    current.sessions = current.sessionIds.size
+    if (new Date(workSet.completedAt).getTime() > new Date(current.lastCompletedAt).getTime()) current.lastCompletedAt = workSet.completedAt
+    buckets.set(workSet.exerciseId, current)
+  })
+  return [...buckets.values()].map((point) => ({
+    exerciseId: point.exerciseId,
+    name: point.name,
+    volume: point.volume,
+    sets: point.sets,
+    repetitions: point.repetitions,
+    sessions: point.sessions,
+    lastCompletedAt: point.lastCompletedAt,
+    volumeShare: total ? point.volume / total : 0,
+    setShare: history.length ? point.sets / history.length : 0
+  })).sort((a, b) => b.volume - a.volume || b.sets - a.sets || a.name.localeCompare(b.name))
+}
+
+export interface PriorityAttentionPoint {
+  region: BodyRegion
+  selectedSets: number
+  selectedVolume: number
+  contributingExercises: string[]
+  lastCompletedAt: string | null
+  daysSinceLastExposure: number | null
+  status: 'represented' | 'outside-window' | 'no-history'
+}
+
+export function priorityAttentionFor(input: {
+  selectedHistory: CompletedSetRecord[]
+  allHistory: CompletedSetRecord[]
+  priorityRegions: BodyRegion[]
+  now?: Date
+}): PriorityAttentionPoint[] {
+  const now = input.now ?? new Date()
+  return input.priorityRegions.map((region) => {
+    const selected = input.selectedHistory.filter((workSet) => workSet.primaryRegion === region)
+    const all = input.allHistory.filter((workSet) => workSet.primaryRegion === region)
+    const latest = all.reduce<CompletedSetRecord | null>((current, workSet) => !current || new Date(workSet.completedAt).getTime() > new Date(current.completedAt).getTime() ? workSet : current, null)
+    const selectedVolume = totalVolume(selected)
+    const lastCompletedAt = latest?.completedAt ?? null
+    const daysSinceLastExposure = lastCompletedAt === null ? null : Math.max(0, Math.floor((endOfDay(now).getTime() - new Date(lastCompletedAt).getTime()) / 86_400_000))
+    return {
+      region,
+      selectedSets: selected.length,
+      selectedVolume,
+      contributingExercises: [...new Set(selected.map((workSet) => workSet.exerciseName))],
+      lastCompletedAt,
+      daysSinceLastExposure,
+      status: selected.length ? 'represented' as const : latest ? 'outside-window' as const : 'no-history' as const
+    }
+  })
 }
 
 export function analyticsReconciliation(summary: AnalyticsSummary) {

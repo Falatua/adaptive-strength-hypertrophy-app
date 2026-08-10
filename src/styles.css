@@ -405,7 +405,7 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .chart-note { margin: 10px 0 0; color: var(--muted); font-size: .73rem; }
 .trend-up { display: inline-flex; align-items: center; gap: 4px; color: var(--lime) !important; }
 .trend-down { display: inline-flex; align-items: center; gap: 4px; color: var(--orange) !important; }
-.progress-range { justify-content: flex-end; flex-wrap: nowrap; }
+.progress-range { justify-content: flex-end; flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: thin; }
 .period-facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin-top: 16px; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--line); }
 .period-facts > div { display: flex; align-items: center; gap: 11px; min-width: 0; padding: 14px; background: var(--surface); }
 .period-facts svg { flex: none; color: var(--lime); }
@@ -460,6 +460,16 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .priority-coverage strong, .priority-coverage b, .priority-coverage small { display: block; text-transform: capitalize; }
 .priority-coverage b { font-size: .82rem; }
 .priority-coverage small { margin-top: 3px; font-size: .66rem; }
+.movement-mix { display: grid; }
+.movement-mix > div { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.movement-mix > div:first-child { border-top: 0; }
+.movement-mix__rank { color: var(--lime); font: 800 .63rem/1 ui-monospace, monospace; }
+.movement-mix strong, .movement-mix small, .movement-mix > div > span:last-child b { display: block; }
+.movement-mix small { margin-top: 3px; font-size: .66rem; }
+.movement-mix > div > span:last-child { min-width: 94px; text-align: right; }
+.movement-mix > div > span:last-child b { color: var(--orange); }
+.movement-mix i { display: block; height: 3px; margin-top: 7px; overflow: hidden; border-radius: 999px; background: var(--line); }
+.movement-mix i b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--lime), var(--orange)); }
 .compact-empty { display: grid; min-height: 180px; place-items: center; align-content: center; gap: 7px; padding: 20px; text-align: center; color: var(--muted); }
 .compact-empty svg { color: var(--dim); }
 .compact-empty p { margin: 0; font-size: .76rem; }

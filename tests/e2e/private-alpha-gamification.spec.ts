@@ -159,3 +159,22 @@ test('defers optional feedback without blocking training and replays quality evi
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
   expect(browserErrors).toEqual([])
 })
+
+test('shows calendar-quarter progress, exact movement mix, and honest priority attention', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Progress' }).click()
+  await page.getByRole('button', { name: 'Qtr' }).click()
+  await expect(page.getByRole('heading', { name: 'Monthly volume load' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'What filled this window' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Goal-relative completed evidence' })).toBeVisible()
+  await expect(page.getByText('share of selected-period volume load, not share of hypertrophy stimulus or enjoyment', { exact: false })).toBeVisible()
+  await expect(page.getByText('does not declare a body part neglected without a planned-dose model', { exact: false })).toBeVisible()
+  await expect(page.locator('.progress-range button')).toHaveCount(7)
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  if (testInfo.project.name === 'mobile-chromium') await page.screenshot({ path: 'output/playwright/quarter-movement-mix-mobile.png', fullPage: true })
+  expect(browserErrors).toEqual([])
+})
