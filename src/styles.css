@@ -1195,6 +1195,22 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .profile-movement-lanes summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
 .profile-movement-lanes summary b { color: var(--blue); font-size: .64rem; text-align: right; }
 .profile-movement-lanes details > small { display: flex; align-items: center; gap: 5px; margin-top: 5px; }
+.movement-lane-card[open] { border-color: rgb(124 184 255 / 28%); }
+.movement-exit-summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-top: 10px; padding: 10px; border: 1px solid rgb(124 184 255 / 25%); border-radius: 8px; background: rgb(124 184 255 / 5%); }
+.movement-exit-summary > span { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 7px; }
+.movement-exit-summary > span > svg { color: var(--blue); }
+.movement-exit-summary span strong, .movement-exit-summary span small { display: block; }
+.movement-exit-summary > b { color: var(--blue); font-size: .61rem; text-align: right; }
+.movement-exit-summary > p, .movement-exit-summary > small, .movement-exit-summary > .button { grid-column: 1 / -1; }
+.movement-exit-summary > p { margin: 2px 0 0; color: var(--muted); font-size: .65rem; line-height: 1.4; }
+.movement-exit-summary > small { margin: 0; text-transform: none; }
+.movement-exit-summary > .button { justify-self: start; margin-top: 3px; }
+.movement-exit-summary--review-advance, .movement-exit-summary--review-conservative, .movement-exit-summary--reassessment-required { border-color: rgb(255 190 72 / 34%); background: rgb(255 190 72 / 5%); }
+.movement-exit-summary--review-advance > b, .movement-exit-summary--review-conservative > b, .movement-exit-summary--reassessment-required > b { color: var(--orange); }
+.movement-exit-boundaries { margin-top: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
+.movement-exit-boundaries summary { cursor: pointer; font-size: .7rem; font-weight: 800; }
+.movement-exit-boundaries p { margin: 7px 0 0; color: var(--muted); font-size: .65rem; line-height: 1.45; }
+.movement-exit-callout { border-style: dashed; }
 .placement-history-panel { margin-bottom: 16px; }
 .placement-history-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 12px; }
 .placement-history-grid article { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }

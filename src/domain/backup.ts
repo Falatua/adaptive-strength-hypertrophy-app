@@ -9,6 +9,7 @@ import type {
   ExerciseSubstitutionEvent,
   HistoryMutationEvent,
   MesocyclePlan,
+  MovementPlacementExitReviewEvent,
   PersonalRecord,
   PlacementExitReviewEvent,
   PlacementVerificationEvent,
@@ -22,12 +23,12 @@ import { equipmentGenerationEvidenceError, equipmentProfileError } from './equip
 import { equipmentProfiles as seedEquipmentProfiles } from './seed'
 import { legacyPlacementForAthlete, movementPlacementEvidenceError, placementAssessmentError, placementRouteLabels } from './placement-engine'
 import { placementVerificationError } from './placement-verification-engine'
-import { placementExitReviewError } from './placement-exit-engine'
+import { movementPlacementExitReviewError, placementExitReviewError } from './placement-exit-engine'
 import { routeSessionGenerationError } from './route-session-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 18
-export const BACKUP_APP_VERSION = '0.24.0'
+export const BACKUP_SCHEMA_VERSION = 19
+export const BACKUP_APP_VERSION = '0.25.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -53,6 +54,7 @@ export interface RestorableAppState {
   substitutionEvents: ExerciseSubstitutionEvent[]
   placementVerifications: PlacementVerificationEvent[]
   placementExitReviews: PlacementExitReviewEvent[]
+  movementPlacementExitReviews: MovementPlacementExitReviewEvent[]
   mesocycles: MesocyclePlan[]
   activeMesocycleId: string | null
   activeSessionId: string | null
@@ -87,6 +89,7 @@ export interface BackupPreview {
     substitutions: number
     placementChecks: number
     placementExitReviews: number
+    movementPlacementExitReviews: number
     movementPlacedAnchors: number
     historyReviewedAnchors: number
     routeGeneratedSessions: number
@@ -189,6 +192,10 @@ function addLegacyPlacementExitReviews(candidate: Record<string, unknown>) {
   if (!Array.isArray(candidate.placementExitReviews)) candidate.placementExitReviews = []
 }
 
+function addLegacyMovementPlacementExitReviews(candidate: Record<string, unknown>) {
+  if (!Array.isArray(candidate.movementPlacementExitReviews)) candidate.movementPlacementExitReviews = []
+}
+
 function validateState(candidate: unknown, migrateLegacyState = false): asserts candidate is RestorableAppState {
   if (!isRecord(candidate)) throw new Error('Backup data is missing or invalid.')
   if (migrateLegacyState) {
@@ -196,9 +203,10 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
     addLegacyPlacement(candidate)
     addLegacyPlacementVerifications(candidate)
     addLegacyPlacementExitReviews(candidate)
+    addLegacyMovementPlacementExitReviews(candidate)
   }
   const errors: string[] = []
-  const arrays = ['equipmentProfiles', 'exercises', 'sessions', 'history', 'surveys', 'deferredFeedback', 'records', 'mesocycles', 'historyMutations', 'cycleReviews', 'substitutionEvents', 'placementVerifications', 'placementExitReviews'] as const
+  const arrays = ['equipmentProfiles', 'exercises', 'sessions', 'history', 'surveys', 'deferredFeedback', 'records', 'mesocycles', 'historyMutations', 'cycleReviews', 'substitutionEvents', 'placementVerifications', 'placementExitReviews', 'movementPlacementExitReviews'] as const
   arrays.forEach((key) => {
     if (!Array.isArray(candidate[key])) errors.push(`${key} must be an array.`)
     else if (candidate[key].length > 500_000) errors.push(`${key} exceeds the private-alpha restore limit.`)
@@ -234,6 +242,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   const substitutionEvents = candidate.substitutionEvents as unknown[]
   const placementVerifications = candidate.placementVerifications as unknown[]
   const placementExitReviews = candidate.placementExitReviews as unknown[]
+  const movementPlacementExitReviews = candidate.movementPlacementExitReviews as unknown[]
   requireUniqueIds(exercises, 'Exercises', errors)
   requireUniqueIds(equipmentProfiles, 'Equipment profiles', errors)
   requireUniqueIds(sessions, 'Sessions', errors)
@@ -247,6 +256,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   requireUniqueIds(substitutionEvents, 'Substitution events', errors)
   requireUniqueIds(placementVerifications, 'Placement verification events', errors)
   requireUniqueIds(placementExitReviews, 'Placement exit reviews', errors)
+  requireUniqueIds(movementPlacementExitReviews, 'Movement placement exit reviews', errors)
 
   const exerciseIds = new Set(exercises.flatMap((exercise) => isRecord(exercise) && typeof exercise.id === 'string' ? [exercise.id] : []))
   const equipmentProfileIds = new Set(equipmentProfiles.flatMap((profile) => isRecord(profile) && typeof profile.id === 'string' ? [profile.id] : []))
@@ -320,8 +330,27 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
       }
     })
   })
-  const placementSequenceKeys = placementVerifications.flatMap((event) => isRecord(event) ? [`${String(event.placementCreatedAt)}:${String(event.sequence)}`] : [])
-  if (new Set(placementSequenceKeys).size !== placementSequenceKeys.length) errors.push('Placement verification sequence numbers must be unique within one placement hypothesis.')
+  movementPlacementExitReviews.forEach((review) => {
+    const reviewError = movementPlacementExitReviewError(review)
+    if (reviewError) errors.push(`A movement placement exit review is invalid: ${reviewError}`)
+    if (!isRecord(review) || !isRecord(review.assessment)) return
+    const assessment = review.assessment
+    if (isRecord(assessment.sourcePlacement) && Array.isArray(assessment.sourcePlacement.movementPlacements)) assessment.sourcePlacement.movementPlacements.forEach((movement) => validateHistoryReviewSources(movement, 'Movement exit source placement'))
+    validateHistoryReviewSources(assessment.sourceMovementPlacement, 'Movement exit source movement')
+    if (!Array.isArray(assessment.sourceVerificationEvents)) return
+    assessment.sourceVerificationEvents.forEach((sourceEvent) => {
+      if (!isRecord(sourceEvent) || typeof sourceEvent.id !== 'string' || !placementVerificationIds.has(sourceEvent.id)) errors.push('A movement placement exit review references an unknown placement verification event.')
+      if (!isRecord(sourceEvent)) return
+      validateHistoryReviewSources(sourceEvent.movementPlacement, 'Movement exit source verification')
+      if (isRecord(sourceEvent.firstSet)) {
+        const firstSet = sourceEvent.firstSet
+        if (typeof firstSet.sourceSetId !== 'string' || !historicalSetExerciseIds.has(firstSet.sourceSetId)) errors.push('A movement placement exit review references an unknown completed source set.')
+        else if (typeof firstSet.exerciseId !== 'string' || !historicalSetExerciseIds.get(firstSet.sourceSetId)?.has(firstSet.exerciseId)) errors.push('A movement placement exit review references a completed source set from a different exercise identity.')
+      }
+    })
+  })
+  const placementSequenceKeys = placementVerifications.flatMap((event) => isRecord(event) ? [`${String(event.placementCreatedAt)}:${isRecord(event.movementPlacement) ? String(event.movementPlacement.exerciseId) : 'plan'}:${String(event.sequence)}`] : [])
+  if (new Set(placementSequenceKeys).size !== placementSequenceKeys.length) errors.push('Placement verification sequence numbers must be unique within one placement movement lane.')
 
   exercises.forEach((exercise) => {
     if (!isRecord(exercise) || typeof exercise.name !== 'string' || !Array.isArray(exercise.aliases) || !Array.isArray(exercise.equipment)) {
@@ -793,6 +822,19 @@ function migrateV17(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV18(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = { ...candidate.data, settings: normalizeSettings(candidate.data.settings), movementPlacementExitReviews: [] }
+  validateState(data, true)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 18 backup migrated safely. Existing plan-route checkpoint evidence remains valid; exact movement-lane exit reviews begin with future athlete decisions.'
+  }
+}
+
 export function parseBackup(raw: string): BackupPreview {
   let candidate: unknown
   try {
@@ -876,6 +918,10 @@ export function parseBackup(raw: string): BackupPreview {
     const migrated = migrateV17(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 18) {
+    const migrated = migrateV18(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
@@ -900,6 +946,7 @@ export function parseBackup(raw: string): BackupPreview {
       substitutions: backup.data.substitutionEvents.length,
       placementChecks: backup.data.placementVerifications.length,
       placementExitReviews: backup.data.placementExitReviews.length,
+      movementPlacementExitReviews: backup.data.movementPlacementExitReviews.length,
       movementPlacedAnchors: backup.data.athlete.placement.movementPlacements?.length ?? 0,
       historyReviewedAnchors: backup.data.athlete.placement.movementPlacements?.filter((movement) => Boolean(movement.historyReview)).length ?? 0,
       routeGeneratedSessions: backup.data.sessions.filter((session) => Boolean(session.generation)).length,
@@ -929,6 +976,7 @@ export function backupStateFrom(source: RestorableAppState): RestorableAppState 
     substitutionEvents: structuredClone(source.substitutionEvents),
     placementVerifications: structuredClone(source.placementVerifications),
     placementExitReviews: structuredClone(source.placementExitReviews),
+    movementPlacementExitReviews: structuredClone(source.movementPlacementExitReviews),
     mesocycles: structuredClone(source.mesocycles),
     activeMesocycleId: source.activeMesocycleId,
     activeSessionId: source.activeSessionId,

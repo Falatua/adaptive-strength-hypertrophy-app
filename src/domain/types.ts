@@ -212,6 +212,42 @@ export interface PlacementExitReviewEvent {
   reason: string
   assessment: PlacementExitAssessment
 }
+
+export interface MovementPlacementExitAssessment {
+  ruleVersion: 'movement-placement-exit-v1'
+  placementCreatedAt: string
+  assessedAt: string
+  exerciseId: string
+  exerciseName: string
+  currentRoute: PlacementRoute
+  recommendation: PlacementExitRecommendation
+  suggestedRoute: PlacementRoute | null
+  sourcePlacement: AthletePlacementAssessment
+  sourceMovementPlacement: MovementPlacementAssessment
+  sourceVerificationEvents: PlacementVerificationEvent[]
+  collected: number
+  resolved: number
+  supports: number
+  reviews: number
+  needsMoreEvidence: number
+  excludedOtherMovementChecks: number
+  pendingRecovery: boolean
+  reassessmentRequired: boolean
+  criteria: PlacementExitCriterion[]
+  reasons: string[]
+  limitations: string[]
+}
+
+export interface MovementPlacementExitReviewEvent {
+  id: string
+  ruleVersion: 'movement-placement-exit-review-v1'
+  placementCreatedAt: string
+  exerciseId: string
+  createdAt: string
+  decision: PlacementExitDecision
+  reason: string
+  assessment: MovementPlacementExitAssessment
+}
 export type ReadinessOutcome = 'normal' | 'confirm' | 'protect' | 'reacclimate' | 'pain-aware'
 export type ProgressionAction = 'load' | 'reps' | 'sets' | 'hold' | 'reduce' | 'reacclimate'
 export type SurveyMode = 'full' | 'quick' | 'minimal' | 'off' | 'ask'

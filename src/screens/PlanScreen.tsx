@@ -23,7 +23,7 @@ import { Modal } from '../components/Modal'
 import { buildMesocyclePreview, draftFromPlan } from '../domain/mesocycle-engine'
 import { buildCycleReview } from '../domain/cycle-review-engine'
 import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION } from '../domain/route-session-engine'
-import { buildPlacementExitAssessment } from '../domain/placement-exit-engine'
+import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from '../domain/placement-exit-engine'
 import type { BodyRegion, CycleReviewDecision, MesocycleDraft } from '../domain/types'
 
 const regions: BodyRegion[] = ['chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']
@@ -98,6 +98,7 @@ export function PlanScreen() {
     .filter(Boolean)
   const cycleReview = useMemo(() => activePlan ? buildCycleReview(activePlan, sessions, history) : null, [activePlan, sessions, history])
   const placementExit = useMemo(() => buildPlacementExitAssessment({ placement: athlete.placement, verificationEvents: placementVerifications, assessedAt: placementExitAssessedAt }), [athlete.placement, placementVerifications, placementExitAssessedAt])
+  const movementExits = useMemo(() => (athlete.placement.movementPlacements ?? []).map((movementPlacement) => buildMovementPlacementExitAssessment({ placement: athlete.placement, movementPlacement, verificationEvents: placementVerifications, assessedAt: placementExitAssessedAt })), [athlete.placement, placementVerifications, placementExitAssessedAt])
   const activeCycleReviews = activePlan ? cycleReviews.filter((review) => review.mesocycleId === activePlan.id) : []
 
   const openReview = () => {
@@ -233,6 +234,7 @@ export function PlanScreen() {
               <li><span>Entry route</span><strong>{activePlan?.entryRoute ? `${readable(activePlan.entryRoute)} · ${activePlan.generationRuleVersion}` : 'Manual adaptation rules'}</strong></li>
               <li><span>Movement lanes</span><strong>{activePlan?.movementPlacements?.length ? `${activePlan.movementPlacements.length} exact anchors placed independently${activePlan.movementPlacements.some((movement) => movement.historyReview) ? ` · ${activePlan.movementPlacements.filter((movement) => movement.historyReview).length} history reviewed` : ''}` : 'Global route applies to all anchors'}</strong></li>
               <li><span>Placement checkpoint</span><strong>{readable(placementExit.recommendation)} · {placementExit.resolved} resolved plan-route checks{placementExit.excludedDifferentRouteChecks ? ` · ${placementExit.excludedDifferentRouteChecks} different-lane excluded` : ''}</strong></li>
+              <li><span>Exact lane checkpoints</span><strong>{movementExits.filter((assessment) => assessment.recommendation !== 'collect-evidence').length} ready for review · {movementExits.reduce((total, assessment) => total + assessment.resolved, 0)} resolved exact-movement checks</strong></li>
               <li><span>Generated for</span><strong>{activePlan?.generationEquipment ? `${activePlan.generationEquipment.profileName} · ${activePlan.generationEquipment.incrementUnit}` : 'Legacy or manual equipment context'}</strong></li>
               <li><span>Develop</span><strong>{(activePlan?.priorityRegions ?? athlete.priorityRegions).map(readable).join(', ')}</strong></li>
               <li><span>Maintain</span><strong>{(activePlan?.maintenanceRegions ?? []).map(readable).join(', ') || 'Set in next plan version'}</strong></li>

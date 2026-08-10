@@ -13,7 +13,7 @@ import { projectExerciseCatalogEdit, type ExerciseCatalogInput } from '../domain
 import { equipmentGenerationEvidence, equipmentProfileError, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad, normalizedEquipmentProfile } from '../domain/equipment-engine'
 import { legacyPlacementForAthlete, placementRouteLabels } from '../domain/placement-engine'
 import { beginPlacementVerification, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery, revisePlacementSessionEvidence } from '../domain/placement-verification-engine'
-import { buildPlacementExitAssessment, placementExitReviewRuleVersion } from '../domain/placement-exit-engine'
+import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment, movementPlacementExitReviewRuleVersion, placementExitReviewRuleVersion } from '../domain/placement-exit-engine'
 import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION, routeSessionProfile } from '../domain/route-session-engine'
 import type {
   AppSettings,
@@ -35,6 +35,7 @@ import type {
   PlacementRecoveryResponse,
   PlacementExitDecision,
   PlacementExitReviewEvent,
+  MovementPlacementExitReviewEvent,
   PlacementVerificationEvent,
   PlacementWarmupResponse,
   SurveyAnswer,
@@ -60,6 +61,7 @@ interface AppState {
   substitutionEvents: ExerciseSubstitutionEvent[]
   placementVerifications: PlacementVerificationEvent[]
   placementExitReviews: PlacementExitReviewEvent[]
+  movementPlacementExitReviews: MovementPlacementExitReviewEvent[]
   activeMesocycleId: string | null
   activeSessionId: string | null
   onboardingComplete: boolean
@@ -82,6 +84,7 @@ interface AppState {
   setPlacementWarmup: (sessionId: string, response: Exclude<PlacementWarmupResponse, 'not-answered'>) => void
   resolvePlacementRecovery: (eventId: string, response: Exclude<PlacementRecoveryResponse, 'pending'>) => void
   recordPlacementExitReview: (decision: PlacementExitDecision, reason: string) => { ok: boolean; error?: string }
+  recordMovementPlacementExitReview: (exerciseId: string, decision: PlacementExitDecision, reason: string) => { ok: boolean; error?: string }
   swapExercise: (sessionId: string, plannedExerciseId: string, exerciseId: string, reason: SubstitutionReason, primaryOverrideConfirmed: boolean) => { ok: boolean; error?: string }
   finishSession: (sessionId: string, feedback: { answers: SurveyAnswer[]; note?: string; skipped: boolean; mode: EffectiveSurveyMode; deferred?: boolean }) => void
   submitDeferredFeedback: (requestId: string, answers: SurveyAnswer[], note?: string) => { ok: boolean; error?: string }
@@ -139,6 +142,7 @@ const fresh = () => ({
   substitutionEvents: [] as ExerciseSubstitutionEvent[],
   placementVerifications: [] as PlacementVerificationEvent[],
   placementExitReviews: [] as PlacementExitReviewEvent[],
+  movementPlacementExitReviews: [] as MovementPlacementExitReviewEvent[],
   activeMesocycleId: seedMesocycles[0]?.id ?? null,
   activeSessionId: null,
   onboardingComplete: false,
@@ -278,14 +282,16 @@ export const useAppStore = create<AppState>()(
         const minutes = availableMinutes ?? state.settings.availableMinutes
         const equipmentProfile = state.equipmentProfiles.find((candidate) => candidate.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]
         const startedAt = new Date().toISOString()
-        const placementEvents = state.placementVerifications.filter((event) => event.placementCreatedAt === state.athlete.placement.createdAt)
+        const movementPlacement = state.sessions.find((session) => session.id === sessionId)?.generation?.movementPlacement
+        const laneKey = movementPlacement?.exerciseId ?? 'plan'
+        const placementEvents = state.placementVerifications.filter((event) => event.placementCreatedAt === state.athlete.placement.createdAt && (event.movementPlacement?.exerciseId ?? 'plan') === laneKey)
         const shouldVerify = state.athlete.placement.selectedRoute !== 'pain-aware-modified'
           && placementEvents.length < 3
           && !placementEvents.some((event) => event.sessionId === sessionId)
         const verification = shouldVerify ? beginPlacementVerification({
           id: nanoid(), placement: state.athlete.placement, sessionId,
           sequence: placementEvents.length + 1, startedAt,
-          movementPlacement: state.sessions.find((session) => session.id === sessionId)?.generation?.movementPlacement
+          movementPlacement
         }) : null
         return {
           activeSessionId: sessionId,
@@ -408,6 +414,34 @@ export const useAppStore = create<AppState>()(
             : decision === 'defer'
               ? 'Placement checkpoint deferred with your reason. Training history and the current route remain unchanged.'
               : 'Current placement retained from athlete-reviewed criterion evidence. Normal progression remains separately governed.'
+        })
+        return { ok: true }
+      },
+      recordMovementPlacementExitReview: (exerciseId, decision, reason) => {
+        const state = get()
+        if (state.activeSessionId) return { ok: false, error: 'Finish or leave the active workout before reviewing a movement lane.' }
+        if (!reason.trim()) return { ok: false, error: 'Add a short reason so the movement decision remains explainable.' }
+        const movementPlacement = state.athlete.placement.movementPlacements?.find((movement) => movement.exerciseId === exerciseId)
+        if (!movementPlacement) return { ok: false, error: 'That exact movement lane is not part of the current placement.' }
+        const createdAt = new Date().toISOString()
+        const assessment = buildMovementPlacementExitAssessment({ placement: state.athlete.placement, movementPlacement, verificationEvents: state.placementVerifications, assessedAt: createdAt })
+        if (assessment.collected === 0) return { ok: false, error: 'Complete at least one productive check for this exact movement before recording a lane review.' }
+        if (assessment.reassessmentRequired && decision === 'continue-current') return { ok: false, error: 'Pain-changing movement evidence requires reassessment before this lane can be confirmed.' }
+        const sourceIds = assessment.sourceVerificationEvents.filter((event) => event.movementPlacement?.exerciseId === exerciseId).map((event) => event.id).sort().join('|')
+        const duplicate = state.movementPlacementExitReviews.some((review) => review.placementCreatedAt === assessment.placementCreatedAt && review.exerciseId === exerciseId && review.assessment.sourceVerificationEvents.filter((event) => event.movementPlacement?.exerciseId === exerciseId).map((event) => event.id).sort().join('|') === sourceIds)
+        if (duplicate) return { ok: false, error: 'This exact movement evidence already has an athlete review.' }
+        const event: MovementPlacementExitReviewEvent = {
+          id: nanoid(), ruleVersion: movementPlacementExitReviewRuleVersion, placementCreatedAt: assessment.placementCreatedAt,
+          exerciseId, createdAt, decision, reason: reason.trim(), assessment
+        }
+        set({
+          movementPlacementExitReviews: [...state.movementPlacementExitReviews, event],
+          ...(decision === 'reassess-now' ? { onboardingComplete: false, onboardingStartStep: 1 as const, activeSessionId: null, nav: 'today' as const } : {}),
+          notice: decision === 'reassess-now'
+            ? `${movementPlacement.exerciseName} lane review saved. Reassess the exact movement before creating the next placement and plan version.`
+            : decision === 'defer'
+              ? `${movementPlacement.exerciseName} lane checkpoint deferred with your reason.`
+              : `${movementPlacement.exerciseName} remains in its current athlete-reviewed lane.`
         })
         return { ok: true }
       },
@@ -929,7 +963,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 16,
+      version: 17,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,
@@ -945,6 +979,7 @@ export const useAppStore = create<AppState>()(
         substitutionEvents: state.substitutionEvents,
         placementVerifications: state.placementVerifications,
         placementExitReviews: state.placementExitReviews,
+        movementPlacementExitReviews: state.movementPlacementExitReviews,
         mesocycles: state.mesocycles,
         activeMesocycleId: state.activeMesocycleId,
         activeSessionId: state.activeSessionId,
@@ -983,6 +1018,7 @@ export const useAppStore = create<AppState>()(
           substitutionEvents: persisted.substitutionEvents ?? [],
           placementVerifications: persisted.placementVerifications ?? [],
           placementExitReviews: persisted.placementExitReviews ?? [],
+          movementPlacementExitReviews: persisted.movementPlacementExitReviews ?? [],
           deferredFeedback: persisted.deferredFeedback ?? [],
           records: derivePersonalRecords(persisted.history ?? [])
         }

@@ -157,7 +157,7 @@ test('defers optional feedback without blocking training and replays quality evi
   await expect(page.getByText('185 heaviest completed load', { exact: false }).first()).toBeVisible()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted?.version).toBe(16)
+  expect(persisted?.version).toBe(17)
   expect(persisted?.state?.deferredFeedback?.at(-1)).toMatchObject({ mode: 'minimal', status: 'completed' })
   expect(persisted?.state?.deferredFeedback?.at(-1)?.surveyId).toBeTruthy()
   expect(persisted?.state?.history?.filter((workSet: { sessionId: string }) => workSet.sessionId === persisted.state.deferredFeedback.at(-1).sessionId).every((workSet: { qualityConfirmed?: boolean }) => workSet.qualityConfirmed === true)).toBe(true)
@@ -457,7 +457,7 @@ test('turns imported exact history into athlete-reviewed placement evidence with
   }
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(16)
+  expect(persisted.version).toBe(17)
   expect(persisted.state.athlete.placement.ruleVersion).toBe('placement-v3')
   const benchInput = persisted.state.athlete.placement.inputs.movementProfiles.find((profile: { exerciseId: string }) => profile.exerciseId === 'competition-bench')
   const benchPlacement = persisted.state.athlete.placement.movementPlacements.find((placement: { exerciseId: string }) => placement.exerciseId === 'competition-bench')
@@ -562,7 +562,7 @@ test('filters the initial route queue through the selected training location', a
       planProfileId: state.mesocycles.find((plan: { id: string }) => plan.id === state.activeMesocycleId)?.generationEquipment?.profileId
     }
   })
-  expect(generated).toMatchObject({ persistenceVersion: 16, supportFits: true, planProfileId: 'equipment-home-gym' })
+  expect(generated).toMatchObject({ persistenceVersion: 17, supportFits: true, planProfileId: 'equipment-home-gym' })
   expect(generated.ruleVersions.every((value: string) => value === 'route-session-v3')).toBe(true)
   expect(generated.profileIds.every((value: string) => value === 'equipment-home-gym')).toBe(true)
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
@@ -633,7 +633,7 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
   await expect(page.getByText(/first work sets/i)).toBeVisible()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(16)
+  expect(persisted.version).toBe(17)
   expect(persisted.state.athlete.placement).toMatchObject({ ruleVersion: 'placement-v3', recommendedRoute: 'strength', selectedRoute: 'base-building', confidence: 'high', decision: 'conservative' })
   expect(persisted.state.athlete.placement.movementPlacements.map((movement: { exerciseId: string; selectedRoute: string }) => [movement.exerciseId, movement.selectedRoute])).toEqual([
     ['competition-squat', 'introductory-skill'], ['competition-bench', 'base-building'], ['sumo-deadlift', 'reacclimation']
@@ -690,7 +690,7 @@ test('turns warm-up, first-set, session, and recovery evidence into an auditable
   await enterRecommendedProfile(page)
 
   await page.getByRole('button', { name: 'Start without check-in' }).click()
-  await expect(page.getByText('Placement check 1 of 3')).toBeVisible()
+  await expect(page.getByText('Competition Bench Press check 1 of 3')).toBeVisible()
   await page.getByRole('button', { name: 'As expected' }).click()
   await expect(page.getByText('Warm-up saved')).toBeVisible()
   await page.getByRole('button', { name: 'Log set' }).first().click()
@@ -706,12 +706,12 @@ test('turns warm-up, first-set, session, and recovery evidence into an auditable
   if (testInfo.project.name === 'mobile-chromium') await page.locator('.placement-recovery-check').screenshot({ path: 'output/playwright/placement-recovery-check-mobile.png' })
   await page.getByRole('button', { name: 'Recovered', exact: true }).click()
   await page.getByRole('button', { name: 'You', exact: true }).click()
-  await expect(page.getByText('1 resolved · 1 of 3 productive checks started', { exact: false })).toBeVisible()
+  await expect(page.getByText('1 resolved · 1 productive checks across 1 exact lane', { exact: false })).toBeVisible()
   await expect(page.getByText('Starting route supported')).toBeVisible()
   if (testInfo.project.name === 'mobile-chromium') await page.locator('.placement-profile-evidence').screenshot({ path: 'output/playwright/placement-verification-profile-mobile.png' })
 
   let persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(16)
+  expect(persisted.version).toBe(17)
   expect(persisted.state.placementVerifications).toHaveLength(1)
   expect(persisted.state.placementVerifications[0]).toMatchObject({ ruleVersion: 'placement-verification-v1', status: 'resolved', verdict: 'supports-route', warmupResponse: 'as-expected', recoveryResponse: 'recovered' })
   expect(persisted.state.history.some((workSet: { id: string }) => workSet.id === persisted.state.placementVerifications[0].firstSet.sourceSetId)).toBe(true)
@@ -761,7 +761,7 @@ test('turns repeated productive checks into an athlete-reviewed placement checkp
 
   const completeSupportiveCheck = async (sequence: number) => {
     await page.getByRole('button', { name: 'Start without check-in' }).click()
-    await expect(page.getByText(`Placement check ${sequence} of 3`)).toBeVisible()
+    await expect(page.getByText(new RegExp(`check ${sequence} of 3$`))).toBeVisible()
     await page.getByRole('button', { name: 'As expected' }).click()
     await page.getByRole('button', { name: 'Log set' }).first().click()
     await page.getByRole('button', { name: 'Finish workout' }).click()
@@ -776,7 +776,7 @@ test('turns repeated productive checks into an athlete-reviewed placement checkp
   }
 
   await completeSupportiveCheck(1)
-  await completeSupportiveCheck(2)
+  await completeSupportiveCheck(1)
 
   await expect(page.locator('.placement-exit-callout')).toContainText('Your current route has earned confirmation.')
   if (testInfo.project.name === 'mobile-chromium') await page.locator('.placement-exit-callout').screenshot({ path: 'output/playwright/placement-exit-checkpoint-mobile.png' })
@@ -797,7 +797,7 @@ test('turns repeated productive checks into an athlete-reviewed placement checkp
   await expect(checkpoint.getByRole('button', { name: 'Current evidence reviewed' })).toBeDisabled()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(16)
+  expect(persisted.version).toBe(17)
   expect(persisted.state.placementExitReviews).toHaveLength(1)
   expect(persisted.state.placementExitReviews[0]).toMatchObject({
     ruleVersion: 'placement-exit-review-v1',
@@ -805,6 +805,81 @@ test('turns repeated productive checks into an athlete-reviewed placement checkp
     assessment: { ruleVersion: 'placement-exit-v1', recommendation: 'confirm-current', resolved: 2, supports: 2, excludedDifferentRouteChecks: 0 }
   })
   expect(persisted.state.placementExitReviews[0].assessment.sourceVerificationEvents).toHaveLength(2)
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  expect(browserErrors).toEqual([])
+})
+
+test('keeps productive checkpoints independent per exact movement and saves the athlete lane decision', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+
+  await page.evaluate(() => {
+    const key = 'forgepath-private-alpha-v1'
+    const persisted = JSON.parse(localStorage.getItem(key) ?? '{}')
+    const first = persisted.state.sessions[0]
+    const repeat = structuredClone(first)
+    repeat.id = `${first.id}-repeat`
+    repeat.title = 'Bench Powerbuilding Repeat'
+    repeat.dayLabel = 'Queued exact-lane check'
+    repeat.exercises = repeat.exercises.map((planned: { id: string; sets: Array<{ id: string }> }) => ({
+      ...planned,
+      id: `${planned.id}-repeat`,
+      sets: planned.sets.map((workSet) => ({ ...workSet, id: `${workSet.id}-repeat` }))
+    }))
+    persisted.state.sessions.splice(1, 0, repeat)
+    const plan = persisted.state.mesocycles.find((candidate: { id: string }) => candidate.id === persisted.state.activeMesocycleId)
+    plan.sessionIds = [first.id, repeat.id, ...plan.sessionIds.filter((id: string) => id !== first.id)]
+    localStorage.setItem(key, JSON.stringify(persisted))
+  })
+  await page.reload()
+
+  const completeBenchCheck = async (sequence: number) => {
+    await page.getByRole('button', { name: 'Start without check-in' }).click()
+    await expect(page.getByText(`Competition Bench Press check ${sequence} of 3`)).toBeVisible()
+    await page.getByRole('button', { name: 'As expected' }).click()
+    await page.getByRole('button', { name: 'Log set' }).first().click()
+    await page.getByRole('button', { name: 'Finish workout' }).click()
+    await page.getByRole('button', { name: /Full.*10 questions/ }).click()
+    await page.getByRole('button', { name: 'How difficult was the session overall?: 7' }).click()
+    await page.getByRole('button', { name: 'How consistent was your technique?: 4' }).click()
+    await page.getByRole('button', { name: 'Did any movement create joint pain or irritation?: 0' }).click()
+    await page.getByRole('button', { name: 'How well did the session fit the time you had?: 4' }).click()
+    await page.getByRole('button', { name: 'Save feedback & finish' }).click()
+    await page.getByRole('button', { name: 'Today' }).click()
+    await page.getByRole('button', { name: 'Recovered', exact: true }).click()
+  }
+
+  await completeBenchCheck(1)
+  await completeBenchCheck(2)
+  const movementCallout = page.locator('.movement-exit-callout')
+  await expect(movementCallout).toContainText('Competition Bench Press has an independent lane checkpoint.')
+  if (testInfo.project.name === 'mobile-chromium') await movementCallout.screenshot({ path: 'output/playwright/movement-exit-checkpoint-mobile.png' })
+  await movementCallout.click()
+  const lane = page.locator('.movement-lane-card').filter({ hasText: 'Competition Bench Press' })
+  await lane.locator('summary').click()
+  await expect(lane).toContainText('Confirm current route')
+  await expect(lane).toContainText('2/3 exact checks')
+  await lane.getByRole('button', { name: 'Review movement lane' }).click()
+  await expect(page.getByRole('heading', { name: 'Review Competition Bench Press lane' })).toBeVisible()
+  await expect(page.locator('.movement-exit-review .placement-exit-criterion--met')).toHaveCount(4)
+  if (testInfo.project.name === 'mobile-chromium') await page.getByRole('dialog').screenshot({ path: 'output/playwright/movement-exit-review-mobile.png' })
+  await page.getByLabel('Why is this the right decision for Competition Bench Press?').fill('Two exact bench exposures matched target effort and recovered normally, so I am keeping this lane.')
+  await page.getByRole('button', { name: 'Save movement decision' }).click()
+  await expect(lane).toContainText('Athlete decision: continue current')
+  await expect(lane.getByRole('button', { name: 'Current lane evidence reviewed' })).toBeDisabled()
+
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
+  expect(persisted.version).toBe(17)
+  expect(persisted.state.movementPlacementExitReviews).toHaveLength(1)
+  expect(persisted.state.movementPlacementExitReviews[0]).toMatchObject({
+    ruleVersion: 'movement-placement-exit-review-v1', exerciseId: 'competition-bench', decision: 'continue-current',
+    assessment: { ruleVersion: 'movement-placement-exit-v1', exerciseId: 'competition-bench', resolved: 2, supports: 2 }
+  })
+  expect(persisted.state.movementPlacementExitReviews[0].assessment.sourceVerificationEvents.filter((event: { movementPlacement?: { exerciseId: string } }) => event.movementPlacement?.exerciseId === 'competition-bench').map((event: { sequence: number }) => event.sequence)).toEqual([1, 2])
+  expect(persisted.state.athlete.placement.movementPlacements.find((movement: { exerciseId: string }) => movement.exerciseId === 'competition-bench').selectedRoute).toBe('powerbuilding')
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
   expect(browserErrors).toEqual([])

@@ -7,7 +7,7 @@ import { buildMesocyclePreview, draftFromPlan } from './mesocycle-engine'
 import { equipmentGenerationEvidence } from './equipment-engine'
 import { buildPlacementAssessment, legacyPlacementForAthlete, placementRouteLabels } from './placement-engine'
 import { buildPlacementHistoryEvidence } from './placement-history-engine'
-import { buildPlacementExitAssessment } from './placement-exit-engine'
+import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from './placement-exit-engine'
 
 const stable = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`
@@ -37,6 +37,7 @@ const state = (): RestorableAppState => ({
   substitutionEvents: [],
   placementVerifications: [],
   placementExitReviews: [],
+  movementPlacementExitReviews: [],
   mesocycles: structuredClone(mesocycles),
   activeMesocycleId: mesocycles[0].id,
   activeSessionId: null,
@@ -57,6 +58,7 @@ describe('versioned backup and restore', () => {
     expect(parsed.summary.substitutions).toBe(0)
     expect(parsed.summary.placementChecks).toBe(0)
     expect(parsed.summary.placementExitReviews).toBe(0)
+    expect(parsed.summary.movementPlacementExitReviews).toBe(0)
     expect(parsed.summary.movementPlacedAnchors).toBe(3)
     expect(parsed.summary.historyReviewedAnchors).toBe(0)
     expect(parsed.summary.routeGeneratedSessions).toBe(0)
@@ -359,6 +361,19 @@ describe('versioned backup and restore', () => {
     expect(parsed.warnings[0]).toMatch(/version 17/i)
   })
 
+  it('migrates a verified version 18 backup without inventing exact movement-lane review', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    delete legacyData.movementPlacementExitReviews
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 18, appVersion: '0.24.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.movementPlacementExitReviews).toEqual([])
+    expect(parsed.summary.movementPlacementExitReviews).toBe(0)
+    expect(parsed.warnings[0]).toMatch(/version 18/i)
+  })
+
   it('round-trips route-generated sessions and rejects forged route provenance', () => {
     const current = state()
     const plan = current.mesocycles[0]
@@ -542,6 +557,51 @@ describe('versioned backup and restore', () => {
 
     current.placementExitReviews[0].assessment.recommendation = 'review-conservative'
     expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/does not reconcile/i)
+  })
+
+  it('round-trips an athlete-reviewed exact movement-lane exit and rejects forged lane evidence', () => {
+    const current = state()
+    const session = current.sessions[0]
+    const planned = session.exercises.find((candidate) => candidate.role === 'primary')!
+    const exercise = current.exercises.find((candidate) => candidate.id === planned.exerciseId)!
+    const movementPlacement = current.athlete.placement.movementPlacements!.find((movement) => movement.exerciseId === exercise.id)!
+    const makeSupport = (sequence: number) => {
+      const sourceSet = {
+        ...structuredClone(current.history[0]), id: `movement-exit-source-${sequence}`, sessionId: session.id,
+        exerciseId: exercise.id, exerciseName: exercise.name, family: exercise.family, primaryRegion: exercise.primaryRegion,
+        completedAt: `2026-08-1${sequence}T12:00:00.000Z`, reps: 5, load: 180, rir: 2, technique: 4, pain: 0,
+        qualityConfirmed: true, setIndex: sequence - 1, plannedExerciseId: planned.id
+      }
+      current.history.push(sourceSet)
+      let event = beginPlacementVerification({
+        id: `movement-exit-check-${sequence}`, placement: current.athlete.placement, sessionId: session.id, sequence,
+        startedAt: `2026-08-1${sequence}T11:00:00.000Z`, movementPlacement
+      })
+      event = recordPlacementWarmup(event, 'as-expected', `2026-08-1${sequence}T11:05:00.000Z`)
+      event = completePlacementVerification(event, {
+        firstSet: { sourceSetId: sourceSet.id, plannedExerciseId: planned.id, exerciseId: exercise.id, exerciseName: exercise.name, targetLoad: 180, targetReps: 5, targetRir: 2, actualLoad: 180, actualReps: 5, actualRir: 2 },
+        sessionEvidence: { sessionStatus: 'completed', completedSets: 10, plannedSets: 10, completionRate: 1, plannedMinutes: 60, actualMinutes: 58, readiness: 'normal', difficulty: 7, technique: 4, pain: 0, timeFit: 4, postSurveySkipped: false },
+        completedAt: `2026-08-1${sequence}T12:00:00.000Z`
+      })
+      return resolvePlacementRecovery(event, 'recovered', `2026-08-1${sequence + 1}T10:00:00.000Z`)
+    }
+    current.placementVerifications = [makeSupport(1), makeSupport(2)]
+    current.records = derivePersonalRecords(current.history)
+    const assessment = buildMovementPlacementExitAssessment({ placement: current.athlete.placement, movementPlacement, verificationEvents: current.placementVerifications, assessedAt: '2026-08-13T12:00:00.000Z' })
+    current.movementPlacementExitReviews = [{
+      id: 'movement-exit-review-1', ruleVersion: 'movement-placement-exit-review-v1', placementCreatedAt: current.athlete.placement.createdAt,
+      exerciseId: exercise.id, createdAt: '2026-08-13T12:00:00.000Z', decision: 'continue-current',
+      reason: 'Two exact bench checks support this movement lane.', assessment
+    }]
+    const parsed = parseBackup(JSON.stringify(createBackup(current)))
+    expect(parsed.summary.movementPlacementExitReviews).toBe(1)
+    expect(parsed.backup.data.movementPlacementExitReviews[0]).toMatchObject({
+      exerciseId: exercise.id, decision: 'continue-current',
+      assessment: { ruleVersion: 'movement-placement-exit-v1', resolved: 2, supports: 2, excludedOtherMovementChecks: 0 }
+    })
+
+    current.movementPlacementExitReviews[0].assessment.exerciseName = 'Forged movement identity'
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/does not match its source identity/i)
   })
 
   it('rejects invalid equipment profiles and an orphaned active profile', () => {

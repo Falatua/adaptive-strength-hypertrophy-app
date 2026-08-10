@@ -12,12 +12,12 @@ import { PostSurveyModal } from '../components/PostSurveyModal'
 import { pendingDeferredFeedback } from '../domain/survey-engine'
 import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '../domain/equipment-engine'
 import { summarizePlacementVerification } from '../domain/placement-verification-engine'
-import { buildPlacementExitAssessment } from '../domain/placement-exit-engine'
+import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from '../domain/placement-exit-engine'
 
 const timeOptions = [15, 30, 45, 60, 75]
 
 export function TodayScreen() {
-  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, startSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
+  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, startSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, movementPlacementExitReviews, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
   const [surveyOpen, setSurveyOpen] = useState(false)
   const [surveyChooserOpen, setSurveyChooserOpen] = useState(false)
   const [activeSurveyMode, setActiveSurveyMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
@@ -39,7 +39,16 @@ export function TodayScreen() {
   const placementExitEvidenceKey = placementExit.sourceVerificationEvents.filter((event) => event.placementRoute === placementExit.currentRoute).map((event) => event.id).join('|')
   const placementExitReviewed = placementExitReviews.some((review) => review.placementCreatedAt === athlete.placement.createdAt && review.assessment.sourceVerificationEvents.filter((event) => event.placementRoute === review.assessment.currentRoute).map((event) => event.id).join('|') === placementExitEvidenceKey)
   const placementExitActionable = placementExit.collected > 0 && placementExit.recommendation !== 'collect-evidence' && !placementExitReviewed
+  const nextMovementPlacement = nextSession?.generation?.movementPlacement
+  const movementExits = useMemo(() => (athlete.placement.movementPlacements ?? []).map((movementPlacement) => buildMovementPlacementExitAssessment({ placement: athlete.placement, movementPlacement, verificationEvents: placementVerifications, assessedAt: placementExitAssessedAt })), [athlete.placement, placementVerifications, placementExitAssessedAt])
+  const movementExitReviewed = (assessment: (typeof movementExits)[number]) => {
+    const evidenceKey = assessment.sourceVerificationEvents.filter((event) => event.movementPlacement?.exerciseId === assessment.exerciseId).map((event) => event.id).join('|')
+    return movementPlacementExitReviews.some((review) => review.placementCreatedAt === assessment.placementCreatedAt && review.exerciseId === assessment.exerciseId && review.assessment.sourceVerificationEvents.filter((event) => event.movementPlacement?.exerciseId === assessment.exerciseId).map((event) => event.id).join('|') === evidenceKey)
+  }
+  const actionableMovementExits = movementExits.filter((assessment) => assessment.collected > 0 && assessment.recommendation !== 'collect-evidence' && !movementExitReviewed(assessment))
+  const movementExit = actionableMovementExits.find((assessment) => assessment.exerciseId === nextMovementPlacement?.exerciseId) ?? actionableMovementExits[0] ?? null
   const pendingPlacementRecovery = placementVerification.events.find((event) => event.status === 'awaiting-recovery')
+  const placementLaneCount = new Set(placementVerification.events.map((event) => event.movementPlacement?.exerciseId ?? 'plan')).size
   const placementBlocked = athlete.placement.selectedRoute === 'pain-aware-modified' || placementVerification.blocked
   const recentPrimary = primaryHistory.slice(-Math.max(1, primaryPlan?.sets.length ?? 1))
   const lastVolume = volumeLoad(recentPrimary)
@@ -141,7 +150,7 @@ export function TodayScreen() {
 
       {pendingPlacementRecovery && <section className="placement-recovery-check" aria-label="Optional placement recovery check">
         <span className="placement-recovery-check__icon"><ShieldCheck size={20} /></span>
-        <div><p className="eyebrow">Placement check {pendingPlacementRecovery.sequence} of 3 · optional</p><strong>How did you recover from {sessions.find((session) => session.id === pendingPlacementRecovery.sessionId)?.title ?? 'the last session'}?</strong><small>This completes the route check. Skipping leaves recovery unknown and never blocks training.</small></div>
+        <div><p className="eyebrow">{pendingPlacementRecovery.movementPlacement ? `${pendingPlacementRecovery.movementPlacement.exerciseName} check` : 'Placement check'} {pendingPlacementRecovery.sequence} of 3 · optional</p><strong>How did you recover from {sessions.find((session) => session.id === pendingPlacementRecovery.sessionId)?.title ?? 'the last session'}?</strong><small>This completes the exact-lane route check. Skipping leaves recovery unknown and never blocks training.</small></div>
         <div className="placement-recovery-check__actions">
           <button onClick={() => resolvePlacementRecovery(pendingPlacementRecovery.id, 'recovered')}>Recovered</button>
           <button onClick={() => resolvePlacementRecovery(pendingPlacementRecovery.id, 'acceptable')}>Acceptable</button>
@@ -152,6 +161,10 @@ export function TodayScreen() {
 
       {placementExitActionable && <button className={`placement-exit-callout placement-exit-callout--${placementExit.recommendation}`} onClick={() => setNav('you')}>
         <FileCheck2 size={20} /><span><small>{placementExit.ruleVersion} · athlete review required</small><strong>{placementExit.recommendation === 'confirm-current' ? 'Your current route has earned confirmation.' : placementExit.recommendation === 'hold-current' ? 'The current route should be reviewed and held.' : placementExit.recommendation === 'reassessment-required' ? 'Placement reassessment is required.' : 'Your placement route is ready for review.'}</strong><p>{placementExit.reasons[0]}</p></span><ChevronRight size={18} />
+      </button>}
+
+      {movementExit && <button className={`placement-exit-callout movement-exit-callout placement-exit-callout--${movementExit.recommendation}`} onClick={() => setNav('you')}>
+        <Dumbbell size={20} /><span><small>{movementExit.ruleVersion} · exact movement review</small><strong>{movementExit.exerciseName} has an independent lane checkpoint.</strong><p>{movementExit.reasons[0]}</p></span><ChevronRight size={18} />
       </button>}
 
       <section className="hero-workout">
@@ -193,7 +206,7 @@ export function TodayScreen() {
         <StatCard label="Last anchor exposure" value={`${lastVolume.toLocaleString()} ${settings.units}`} detail={`${recentPrimary.length} completed sets · exact movement`} icon={<Dumbbell size={18} />} />
         <StatCard label="Current continuity" value={athlete.continuity} detail="Calendar pressure reduced · exposure clocks preserved" icon={<CalendarClock size={18} />} tone="orange" />
         <StatCard label="Recent record" value={recentRecordValue} detail={recentRecord?.label ?? 'Complete work to create a record'} icon={<Trophy size={18} />} tone="purple" />
-        <StatCard label="Placement checks" value={`${placementVerification.resolved}/3`} detail={placementVerification.state.replaceAll('-', ' ')} icon={<ShieldCheck size={18} />} tone="blue" />
+        <StatCard label="Placement checks" value={`${placementVerification.resolved} resolved`} detail={`${placementLaneCount} exact lane${placementLaneCount === 1 ? '' : 's'} · ${placementVerification.state.replaceAll('-', ' ')}`} icon={<ShieldCheck size={18} />} tone="blue" />
       </section>
 
       <div className="today-grid">

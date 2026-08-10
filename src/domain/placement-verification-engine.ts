@@ -149,7 +149,7 @@ export function resolvePlacementRecovery(
 }
 
 export function summarizePlacementVerification(events: PlacementVerificationEvent[], placementCreatedAt: string) {
-  const current = events.filter((event) => event.placementCreatedAt === placementCreatedAt).sort((a, b) => a.sequence - b.sequence)
+  const current = events.filter((event) => event.placementCreatedAt === placementCreatedAt).sort((a, b) => a.startedAt.localeCompare(b.startedAt) || a.sequence - b.sequence)
   const resolved = current.filter((event) => event.status === 'resolved')
   const supports = resolved.filter((event) => event.verdict === 'supports-route').length
   const reviews = resolved.filter((event) => event.verdict === 'review-suggested').length

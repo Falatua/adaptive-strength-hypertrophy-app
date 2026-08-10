@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildPlacementAssessment } from './placement-engine'
-import { buildPlacementExitAssessment, placementExitAssessmentError, placementExitReviewError } from './placement-exit-engine'
+import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment, movementPlacementExitAssessmentError, movementPlacementExitReviewError, placementExitAssessmentError, placementExitReviewError } from './placement-exit-engine'
 import { beginPlacementVerification, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery } from './placement-verification-engine'
 import type { PlacementInputs, PlacementVerificationEvent, PlacementVerificationSessionEvidence } from './types'
 
@@ -19,11 +19,13 @@ const sessionEvidence: PlacementVerificationSessionEvidence = {
   technique: 4, pain: 0, timeFit: 4, postSurveySkipped: false
 }
 
-function verifiedEvent(placement: ReturnType<typeof placementFor>, sequence: number, result: 'support' | 'review' | 'pain'): PlacementVerificationEvent {
-  let event = beginPlacementVerification({ id: `verify-${sequence}`, placement, sessionId: `session-${sequence}`, sequence, startedAt: `2026-08-1${sequence}T10:00:00.000Z`, movementPlacement: placement.movementPlacements?.[0] })
+function verifiedEvent(placement: ReturnType<typeof placementFor>, sequence: number, result: 'support' | 'review' | 'pain', movementIndex = 0): PlacementVerificationEvent {
+  const movement = placement.movementPlacements?.[movementIndex]
+  const exerciseId = movement?.exerciseId ?? 'plan'
+  let event = beginPlacementVerification({ id: `verify-${exerciseId}-${sequence}`, placement, sessionId: `session-${exerciseId}-${sequence}`, sequence, startedAt: `2026-08-1${sequence}T10:00:00.000Z`, movementPlacement: movement })
   event = recordPlacementWarmup(event, result === 'pain' ? 'painful' : result === 'review' ? 'harder' : 'as-expected', `2026-08-1${sequence}T10:05:00.000Z`)
   event = completePlacementVerification(event, {
-    firstSet: { sourceSetId: `set-${sequence}`, plannedExerciseId: `planned-${sequence}`, exerciseId: 'bench', exerciseName: 'Bench Press', targetLoad: 180, targetReps: 5, targetRir: 2, actualLoad: 180, actualReps: 5, actualRir: result === 'review' ? 0 : 2 },
+    firstSet: { sourceSetId: `set-${exerciseId}-${sequence}`, plannedExerciseId: `planned-${exerciseId}-${sequence}`, exerciseId, exerciseName: movement?.exerciseName ?? 'Plan Movement', targetLoad: 180, targetReps: 5, targetRir: 2, actualLoad: 180, actualReps: 5, actualRir: result === 'review' ? 0 : 2 },
     sessionEvidence,
     completedAt: `2026-08-1${sequence}T11:00:00.000Z`
   })
@@ -74,5 +76,48 @@ describe('placement-exit-v1', () => {
     const assessment = buildPlacementExitAssessment({ placement, verificationEvents: [support, differentLane], assessedAt: '2026-08-13T12:00:00.000Z' })
     expect(assessment).toMatchObject({ collected: 1, supports: 1, excludedDifferentRouteChecks: 1, recommendation: 'collect-evidence' })
     expect(assessment.limitations.join(' ')).toMatch(/excluded.*differed from the plan route/i)
+  })
+})
+
+describe('movement-placement-exit-v1', () => {
+  const multiMovementPlacement = () => placementFor({
+    movementProfiles: [
+      { exerciseId: 'bench', exerciseName: 'Bench Press', family: 'Bench Press', movementSkill: 5, strengthTolerance: 4, dataConfidence: 4 },
+      { exerciseId: 'squat', exerciseName: 'Back Squat', family: 'Squat', movementSkill: 2, strengthTolerance: 2, dataConfidence: 2 }
+    ]
+  })
+
+  it('advances one supported transitional lane without borrowing another movement', () => {
+    const placement = multiMovementPlacement()
+    const squat = placement.movementPlacements![1]
+    expect(squat.selectedRoute).toBe('bridge-calibration')
+    const events = [verifiedEvent(placement, 1, 'support', 1), verifiedEvent(placement, 2, 'support', 1), verifiedEvent(placement, 1, 'support', 0)]
+    const assessment = buildMovementPlacementExitAssessment({ placement, movementPlacement: squat, verificationEvents: events, assessedAt: '2026-08-13T12:00:00.000Z' })
+    expect(assessment).toMatchObject({ exerciseId: 'squat', currentRoute: 'bridge-calibration', recommendation: 'review-advance', suggestedRoute: 'base-building', collected: 2, supports: 2, excludedOtherMovementChecks: 1 })
+    expect(assessment.criteria.map((item) => item.state)).toEqual(['met', 'met', 'met', 'met'])
+    expect(movementPlacementExitAssessmentError(assessment)).toBeNull()
+  })
+
+  it('does not let two supportive bench checks confirm the squat lane', () => {
+    const placement = multiMovementPlacement()
+    const squat = placement.movementPlacements![1]
+    const assessment = buildMovementPlacementExitAssessment({ placement, movementPlacement: squat, verificationEvents: [verifiedEvent(placement, 1, 'support', 0), verifiedEvent(placement, 2, 'support', 0)], assessedAt: '2026-08-13T12:00:00.000Z' })
+    expect(assessment).toMatchObject({ collected: 0, supports: 0, excludedOtherMovementChecks: 2, recommendation: 'collect-evidence' })
+  })
+
+  it('prioritizes exact-movement pain and rejects keep-current', () => {
+    const placement = multiMovementPlacement()
+    const squat = placement.movementPlacements![1]
+    const assessment = buildMovementPlacementExitAssessment({ placement, movementPlacement: squat, verificationEvents: [verifiedEvent(placement, 1, 'pain', 1)], assessedAt: '2026-08-12T12:00:00.000Z' })
+    expect(assessment).toMatchObject({ recommendation: 'reassessment-required', reassessmentRequired: true })
+    expect(movementPlacementExitReviewError({ id: 'movement-review', ruleVersion: 'movement-placement-exit-review-v1', placementCreatedAt: placement.createdAt, exerciseId: 'squat', createdAt: '2026-08-12T12:01:00.000Z', decision: 'continue-current', reason: 'Keep the lane', assessment })).toMatch(/cannot be confirmed/i)
+  })
+
+  it('rejects an altered movement recommendation and a mismatched movement snapshot', () => {
+    const placement = multiMovementPlacement()
+    const squat = placement.movementPlacements![1]
+    const assessment = buildMovementPlacementExitAssessment({ placement, movementPlacement: squat, verificationEvents: [verifiedEvent(placement, 1, 'support', 1), verifiedEvent(placement, 2, 'support', 1)], assessedAt: '2026-08-13T12:00:00.000Z' })
+    expect(movementPlacementExitAssessmentError({ ...assessment, recommendation: 'confirm-current' })).toMatch(/does not reconcile/i)
+    expect(() => buildMovementPlacementExitAssessment({ placement, movementPlacement: { ...squat, exerciseName: 'Forged Squat' }, verificationEvents: [], assessedAt: '2026-08-13T12:00:00.000Z' })).toThrow(/exact movement snapshot/i)
   })
 })

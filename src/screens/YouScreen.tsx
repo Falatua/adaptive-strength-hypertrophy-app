@@ -2,13 +2,13 @@ import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { AlertTriangle, Bell, BrainCircuit, Database, Download, Dumbbell, Eye, FileCheck2, HardDrive, MapPin, Moon, Pencil, Plus, RotateCcw, ShieldCheck, Sparkles, Undo2, Upload, UserRound, Wrench } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { useAppStore } from '../store/useAppStore'
-import type { CelebrationLevel, EquipmentProfile, EquipmentProfileKind, PlacementExitDecision, SurveyMode } from '../domain/types'
+import type { CelebrationLevel, EquipmentProfile, EquipmentProfileKind, MovementPlacementExitAssessment, PlacementExitDecision, SurveyMode } from '../domain/types'
 import { Modal } from '../components/Modal'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { createBackup, parseBackup, type BackupPreview } from '../domain/backup'
 import { placementRouteLabels } from '../domain/placement-engine'
 import { placementVerificationVerdictLabels, summarizePlacementVerification } from '../domain/placement-verification-engine'
-import { buildPlacementExitAssessment } from '../domain/placement-exit-engine'
+import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from '../domain/placement-exit-engine'
 
 const surveyModeLabels: Record<SurveyMode, string> = { full: 'Full', quick: 'Quick', minimal: 'Minimal', off: 'Off', ask: 'Ask each time' }
 const placementExitLabels = {
@@ -28,7 +28,7 @@ const placementExitChoices: { id: PlacementExitDecision; title: string; detail: 
 
 export function YouScreen() {
   const {
-    athlete, settings, updateSettings, equipmentProfiles, setActiveEquipmentProfile, saveEquipmentProfile, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, recordPlacementExitReview,
+    athlete, settings, updateSettings, equipmentProfiles, setActiveEquipmentProfile, saveEquipmentProfile, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, movementPlacementExitReviews, recordPlacementExitReview, recordMovementPlacementExitReview,
     activeMesocycleId, activeSessionId, onboardingComplete, recoverySnapshot, restoreBackup, undoLastRestore,
     restartOnboarding, resetDemo, setNotice
   } = useAppStore()
@@ -42,15 +42,25 @@ export function YouScreen() {
   const [placementExitReason, setPlacementExitReason] = useState('')
   const [placementExitError, setPlacementExitError] = useState<string | null>(null)
   const [placementExitAssessedAt] = useState(() => new Date().toISOString())
+  const [movementExitOpen, setMovementExitOpen] = useState<string | null>(null)
+  const [movementExitDecision, setMovementExitDecision] = useState<PlacementExitDecision>('defer')
+  const [movementExitReason, setMovementExitReason] = useState('')
+  const [movementExitError, setMovementExitError] = useState<string | null>(null)
+  const [movementExitAssessedAt] = useState(() => new Date().toISOString())
   const [equipmentValues, setEquipmentValues] = useState({ id: '', name: '', kind: 'custom' as EquipmentProfileKind, equipment: '', constraints: '', barbell: '5', dumbbell: '5', cable: '5', machine: '10', other: '5' })
   const fileInput = useRef<HTMLInputElement>(null)
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const knownEquipment = useMemo(() => [...new Set(exercises.flatMap((exercise) => exercise.equipment))].sort(), [exercises])
   const placementVerification = summarizePlacementVerification(placementVerifications, athlete.placement.createdAt)
+  const placementLaneCount = new Set(placementVerification.events.map((event) => event.movementPlacement?.exerciseId ?? 'plan')).size
   const placementExit = useMemo(() => buildPlacementExitAssessment({ placement: athlete.placement, verificationEvents: placementVerifications, assessedAt: placementExitAssessedAt }), [athlete.placement, placementVerifications, placementExitAssessedAt])
   const placementExitEvidenceKey = placementExit.sourceVerificationEvents.filter((event) => event.placementRoute === placementExit.currentRoute).map((event) => event.id).join('|')
   const currentPlacementExitReviews = placementExitReviews.filter((review) => review.placementCreatedAt === athlete.placement.createdAt)
   const placementExitReviewed = currentPlacementExitReviews.some((review) => review.assessment.sourceVerificationEvents.filter((event) => event.placementRoute === review.assessment.currentRoute).map((event) => event.id).join('|') === placementExitEvidenceKey)
+  const movementExitAssessments = useMemo(() => (athlete.placement.movementPlacements ?? []).map((movementPlacement) => buildMovementPlacementExitAssessment({ placement: athlete.placement, movementPlacement, verificationEvents: placementVerifications, assessedAt: movementExitAssessedAt })), [athlete.placement, placementVerifications, movementExitAssessedAt])
+  const selectedMovementExit = movementExitAssessments.find((assessment) => assessment.exerciseId === movementExitOpen) ?? null
+  const movementEvidenceKey = (assessment: MovementPlacementExitAssessment) => assessment.sourceVerificationEvents.filter((event) => event.movementPlacement?.exerciseId === assessment.exerciseId).map((event) => event.id).join('|')
+  const movementExitReviewed = (assessment: MovementPlacementExitAssessment) => movementPlacementExitReviews.some((review) => review.placementCreatedAt === assessment.placementCreatedAt && review.exerciseId === assessment.exerciseId && review.assessment.sourceVerificationEvents.filter((event) => event.movementPlacement?.exerciseId === assessment.exerciseId).map((event) => event.id).join('|') === movementEvidenceKey(assessment))
 
   const openPlacementExitReview = () => {
     const decision: PlacementExitDecision = ['review-advance', 'review-conservative', 'reassessment-required'].includes(placementExit.recommendation) ? 'reassess-now' : placementExit.recommendation === 'collect-evidence' ? 'defer' : 'continue-current'
@@ -66,16 +76,32 @@ export function YouScreen() {
     setPlacementExitOpen(false)
   }
 
+  const openMovementExitReview = (exerciseId: string) => {
+    const assessment = movementExitAssessments.find((candidate) => candidate.exerciseId === exerciseId)
+    if (!assessment) return
+    setMovementExitDecision(['review-advance', 'review-conservative', 'reassessment-required'].includes(assessment.recommendation) ? 'reassess-now' : assessment.recommendation === 'collect-evidence' ? 'defer' : 'continue-current')
+    setMovementExitReason('')
+    setMovementExitError(null)
+    setMovementExitOpen(exerciseId)
+  }
+
+  const submitMovementExitReview = () => {
+    if (!selectedMovementExit) return
+    const result = recordMovementPlacementExitReview(selectedMovementExit.exerciseId, movementExitDecision, movementExitReason)
+    if (!result.ok) return setMovementExitError(result.error ?? 'The movement checkpoint could not be saved.')
+    setMovementExitOpen(null)
+  }
+
   const exportData = () => {
-    const payload = createBackup({ athlete, settings, equipmentProfiles, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, activeMesocycleId, activeSessionId, onboardingComplete })
+    const payload = createBackup({ athlete, settings, equipmentProfiles, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, movementPlacementExitReviews, activeMesocycleId, activeSessionId, onboardingComplete })
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `forgepath-backup-v18-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `forgepath-backup-v19-${new Date().toISOString().slice(0, 10)}.json`
     anchor.click()
     URL.revokeObjectURL(url)
-    setNotice('Verified version 18 backup created as open JSON, including athlete-reviewed placement checkpoints, exact-history placement evidence, productive checks, records, plans, substitutions, and surveys.')
+    setNotice('Verified version 19 backup created as open JSON, including exact movement-lane and plan-route checkpoint reviews, productive checks, placement evidence, records, plans, substitutions, and surveys.')
   }
 
   const openEquipmentEditor = (profile?: EquipmentProfile) => {
@@ -131,11 +157,16 @@ export function YouScreen() {
             <div className="level-list">{Object.entries(athlete.level).map(([key, value]) => <div key={key}><span>{key.replace(/([A-Z])/g, ' $1')}</span><div>{Array.from({ length: 5 }, (_, index) => <i key={index} className={index < value ? 'filled' : ''} />)}</div><strong>{value}/5</strong></div>)}</div>
             <p className="chart-note">Experience and current preparedness stay separate. An interrupted schedule does not turn an experienced athlete into a beginner.</p>
             <div className="placement-profile-evidence"><span><Sparkles size={17} /><span><strong>{athlete.entryRoute}</strong><small>{athlete.placement.confidence} confidence · {athlete.placement.ruleVersion} · {athlete.placement.decision}</small>{athlete.placement.selectedRoute !== athlete.placement.recommendedRoute && <small>Engine recommendation: {placementRouteLabels[athlete.placement.recommendedRoute]}</small>}</span></span><details><summary>Why and how this will be verified</summary><p>{athlete.placement.reasons.join(' ')}</p>{athlete.placement.uncertainInputs.length > 0 && <p><strong>Still uncertain:</strong> {athlete.placement.uncertainInputs.join(', ')}.</p>}<ul>{athlete.placement.verificationPlan.map((item) => <li key={item}>{item}</li>)}</ul><p><strong>Exit criteria:</strong> {athlete.placement.exitCriteria.join('; ')}.</p></details>
-              {athlete.placement.movementPlacements && athlete.placement.movementPlacements.length > 0 && <div className="profile-movement-lanes"><p className="eyebrow">{athlete.placement.movementPlacements[0]?.ruleVersion}</p>{athlete.placement.movementPlacements.map((movement) => <details key={movement.exerciseId}><summary><span><strong>{movement.exerciseName}</strong><small>{movement.family} · {movement.confidence} confidence</small></span><b>{placementRouteLabels[movement.selectedRoute]}</b></summary><p>{movement.reasons.join(' ')}</p><small>Skill {movement.movementSkill}/5 · heavy-work tolerance {movement.strengthTolerance}/5 · evidence {movement.dataConfidence}/5</small>{movement.historyReview && <small><BrainCircuit size={13} /> History reviewed {new Date(movement.historyReview.reviewedAt).toLocaleDateString()} · {movement.historyReview.evidence.recentSetCount} recent exact sets · accepted for {movement.historyReview.acceptedFields.map((field) => field === 'dataConfidence' ? 'evidence' : 'tolerance').join(' + ')}</small>}{movement.uncertainInputs.length > 0 && <small>Unknown: {movement.uncertainInputs.join(', ')}</small>}</details>)}</div>}
+              {athlete.placement.movementPlacements && athlete.placement.movementPlacements.length > 0 && <div className="profile-movement-lanes"><p className="eyebrow">{athlete.placement.movementPlacements[0]?.ruleVersion} · exact lane checkpoints</p>{athlete.placement.movementPlacements.map((movement) => {
+                const assessment = movementExitAssessments.find((candidate) => candidate.exerciseId === movement.exerciseId)
+                const reviewed = assessment ? movementExitReviewed(assessment) : false
+                const latestReview = movementPlacementExitReviews.filter((review) => review.placementCreatedAt === athlete.placement.createdAt && review.exerciseId === movement.exerciseId).at(-1)
+                return <details key={movement.exerciseId} className="movement-lane-card"><summary><span><strong>{movement.exerciseName}</strong><small>{movement.family} · {movement.confidence} confidence</small></span><b>{placementRouteLabels[movement.selectedRoute]}</b></summary><p>{movement.reasons.join(' ')}</p><small>Skill {movement.movementSkill}/5 · heavy-work tolerance {movement.strengthTolerance}/5 · evidence {movement.dataConfidence}/5</small>{movement.historyReview && <small><BrainCircuit size={13} /> History reviewed {new Date(movement.historyReview.reviewedAt).toLocaleDateString()} · {movement.historyReview.evidence.recentSetCount} recent exact sets · accepted for {movement.historyReview.acceptedFields.map((field) => field === 'dataConfidence' ? 'evidence' : 'tolerance').join(' + ')}</small>}{movement.uncertainInputs.length > 0 && <small>Unknown: {movement.uncertainInputs.join(', ')}</small>}{assessment && <div className={`movement-exit-summary movement-exit-summary--${assessment.recommendation}`}><span><FileCheck2 size={15} /><span><small>{assessment.ruleVersion}</small><strong>{placementExitLabels[assessment.recommendation]}</strong></span></span><b>{assessment.resolved}/3 exact checks</b><p>{assessment.reasons[0]}</p>{assessment.suggestedRoute && <small>{assessment.suggestedRoute === assessment.currentRoute ? `Supported lane: ${placementRouteLabels[assessment.currentRoute]}` : `${placementRouteLabels[assessment.currentRoute]} → ${placementRouteLabels[assessment.suggestedRoute]}`}</small>}{latestReview && <small>Athlete decision: {latestReview.decision.replaceAll('-', ' ')} · {latestReview.reason}</small>}<button type="button" className="button button--small button--secondary" disabled={Boolean(activeSessionId) || assessment.collected === 0 || reviewed} onClick={(event) => { event.preventDefault(); openMovementExitReview(movement.exerciseId) }}>{reviewed ? 'Current lane evidence reviewed' : 'Review movement lane'}</button></div>}</details>
+              })}</div>}
               <div className={`placement-verification-summary placement-verification-summary--${placementVerification.state}`}>
-                <ShieldCheck size={18} /><span><strong>{placementVerification.state.replaceAll('-', ' ')}</strong><small>{placementVerification.resolved} resolved · {placementVerification.collected} of 3 productive checks started · {placementVerification.supports} support · {placementVerification.reviews} review</small></span>
+                <ShieldCheck size={18} /><span><strong>{placementVerification.state.replaceAll('-', ' ')}</strong><small>{placementVerification.resolved} resolved · {placementVerification.collected} productive checks across {placementLaneCount} exact lane{placementLaneCount === 1 ? '' : 's'} · {placementVerification.supports} support · {placementVerification.reviews} review</small></span>
               </div>
-              {placementVerification.events.length > 0 && <div className="placement-verification-list">{placementVerification.events.map((event) => <details key={event.id}><summary><span>Check {event.sequence}</span><strong>{placementVerificationVerdictLabels[event.verdict]}</strong></summary><p>{sessions.find((session) => session.id === event.sessionId)?.title ?? event.sessionId}</p><small>Warm-up: {event.warmupResponse.replace('-', ' ')} · Recovery: {event.recoveryResponse.replace('-', ' ')}</small>{event.firstSet && <small>First set: {event.firstSet.exerciseName} · {event.firstSet.actualLoad} × {event.firstSet.actualReps} · {event.firstSet.actualRir} RIR</small>}<ul>{event.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></details>)}</div>}
+              {placementVerification.events.length > 0 && <div className="placement-verification-list">{placementVerification.events.map((event) => <details key={event.id}><summary><span>{event.movementPlacement?.exerciseName ?? 'Plan route'} · Check {event.sequence}</span><strong>{placementVerificationVerdictLabels[event.verdict]}</strong></summary><p>{sessions.find((session) => session.id === event.sessionId)?.title ?? event.sessionId}</p><small>Warm-up: {event.warmupResponse.replace('-', ' ')} · Recovery: {event.recoveryResponse.replace('-', ' ')}</small>{event.firstSet && <small>First set: {event.firstSet.exerciseName} · {event.firstSet.actualLoad} × {event.firstSet.actualReps} · {event.firstSet.actualRir} RIR</small>}<ul>{event.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></details>)}</div>}
               <section className={`placement-exit-panel placement-exit-panel--${placementExit.recommendation}`} aria-label="Placement checkpoint">
                 <div className="placement-exit-panel__headline"><span><FileCheck2 size={18} /><span><small>{placementExit.ruleVersion}</small><strong>Placement checkpoint</strong></span></span><b>{placementExitLabels[placementExit.recommendation]}</b></div>
                 <p>{placementExit.reasons[0]}</p>
@@ -203,7 +234,7 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.24.0 private alpha</strong></li><li><span>Rules</span><strong>0.24 athlete-reviewed criterion exit</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Route session v3 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Equipment v1 · Load increment v1</strong></li><li><span>Backup schema</span><strong>Version 18</strong></li><li><span>Persistence</span><strong>Local v16</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.25.0 private alpha</strong></li><li><span>Rules</span><strong>0.25 exact movement-lane criterion exit</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Equipment v1 · Load increment v1</strong></li><li><span>Backup schema</span><strong>Version 19</strong></li><li><span>Persistence</span><strong>Local v17</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Reset private alpha</button>
         </aside>
@@ -222,6 +253,23 @@ export function YouScreen() {
           <p className="modal-note">A reassessment creates a new placement and plan version. This review and its source evidence remain in history. The checkpoint is not medical clearance.</p>
         </div>
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setPlacementExitOpen(false)}>Cancel</button><button className="button button--primary" disabled={!placementExitReason.trim()} onClick={submitPlacementExitReview}>Save checkpoint decision</button></div>
+      </Modal>
+
+      <Modal open={Boolean(selectedMovementExit)} onClose={() => setMovementExitOpen(null)} title={selectedMovementExit ? `Review ${selectedMovementExit.exerciseName} lane` : 'Review movement lane'} description="This checkpoint uses only productive checks from this exact movement identity. Other exercises, neighboring variations, and the overall plan route lend no confirmation evidence." wide>
+        {selectedMovementExit && <div className="placement-exit-review movement-exit-review">
+          <div className="placement-exit-review__summary"><Dumbbell size={22} /><span><small>{selectedMovementExit.ruleVersion} · deterministic recommendation</small><strong>{placementExitLabels[selectedMovementExit.recommendation]}</strong><p>{selectedMovementExit.reasons.join(' ')}</p></span></div>
+          {selectedMovementExit.suggestedRoute && <div className="placement-exit-route"><span>{selectedMovementExit.suggestedRoute === selectedMovementExit.currentRoute ? 'Supported current lane' : 'Lane for athlete review'}</span><strong>{selectedMovementExit.suggestedRoute === selectedMovementExit.currentRoute ? placementRouteLabels[selectedMovementExit.currentRoute] : `${placementRouteLabels[selectedMovementExit.currentRoute]} → ${placementRouteLabels[selectedMovementExit.suggestedRoute]}`}</strong></div>}
+          <div className="placement-exit-criteria">{selectedMovementExit.criteria.map((item) => <article key={item.id} className={`placement-exit-criterion placement-exit-criterion--${item.state}`}><span>{item.state === 'met' ? '✓' : item.state === 'not-met' ? '!' : '?'}</span><div><strong>{item.label}</strong><small>{item.detail}</small></div></article>)}</div>
+          <fieldset className="placement-exit-choice-list"><legend>Choose the athlete-reviewed lane outcome</legend>{placementExitChoices.map((choice) => {
+            const blocked = choice.id === 'continue-current' && selectedMovementExit.reassessmentRequired
+            return <button type="button" key={choice.id} aria-pressed={movementExitDecision === choice.id} className={movementExitDecision === choice.id ? 'selected' : ''} disabled={blocked} onClick={() => setMovementExitDecision(choice.id)}><span>{movementExitDecision === choice.id ? '✓' : '○'}</span><span><strong>{choice.title.replace('route', 'movement lane')}</strong><small>{choice.detail}</small>{blocked && <em>Unavailable because this exact movement recorded pain that changed training.</em>}</span></button>
+          })}</fieldset>
+          <label><span className="field-label">Why is this the right decision for {selectedMovementExit.exerciseName}?</span><textarea value={movementExitReason} onChange={(event) => setMovementExitReason(event.target.value)} placeholder="Example: Both exact squat exposures matched the target effort and recovery, so I want to review the next lane." /></label>
+          {movementExitError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Lane review not saved</strong>{movementExitError}</span></div>}
+          <details className="movement-exit-boundaries"><summary>Exact evidence boundaries</summary>{selectedMovementExit.limitations.map((item) => <p key={item}>{item}</p>)}</details>
+          <p className="modal-note">Reassess opens the current placement flow. Nothing changes until you complete a new placement and future plan version.</p>
+        </div>}
+        <div className="modal__actions"><button className="button button--ghost" onClick={() => setMovementExitOpen(null)}>Cancel</button><button className="button button--primary" disabled={!movementExitReason.trim()} onClick={submitMovementExitReview}>Save movement decision</button></div>
       </Modal>
 
       <Modal open={equipmentOpen} onClose={() => setEquipmentOpen(false)} title={equipmentValues.id ? 'Edit training location' : 'Add training location'} description="List only equipment you can actually use here. ForgePath will treat every omitted requirement as unavailable." wide>
@@ -252,6 +300,7 @@ export function YouScreen() {
             <div><small>Placement confidence</small><strong>{importPreview.summary.placementConfidence}</strong></div>
             <div><small>Placement checks</small><strong>{importPreview.summary.placementChecks}</strong></div>
             <div><small>Placement checkpoint reviews</small><strong>{importPreview.summary.placementExitReviews}</strong></div>
+            <div><small>Movement lane reviews</small><strong>{importPreview.summary.movementPlacementExitReviews}</strong></div>
             <div><small>Movement lanes</small><strong>{importPreview.summary.movementPlacedAnchors}</strong></div>
             <div><small>History-reviewed lanes</small><strong>{importPreview.summary.historyReviewedAnchors}</strong></div>
             <div><small>Route-generated sessions</small><strong>{importPreview.summary.routeGeneratedSessions}</strong></div>

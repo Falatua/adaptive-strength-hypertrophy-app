@@ -143,7 +143,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
       <main className="workout-main">
         {placementVerification && (
           <section className={`warmup-check placement-session-check ${placementVerification.warmupResponse !== 'not-answered' ? 'is-captured' : ''}`} aria-label="Placement verification warm-up">
-            <div><Sparkles size={20} /><span><strong>Placement check {placementVerification.sequence} of 3</strong><small>{placementRouteLabels[placementVerification.placementRoute]} is a hypothesis. Use a submaximal warm-up and answer only if useful.</small></span></div>
+            <div><Sparkles size={20} /><span><strong>{placementVerification.movementPlacement ? `${placementVerification.movementPlacement.exerciseName} check` : 'Placement check'} {placementVerification.sequence} of 3</strong><small>{placementRouteLabels[placementVerification.placementRoute]} is a hypothesis. Use a submaximal warm-up and answer only if useful.</small></span></div>
             {placementVerification.warmupResponse === 'not-answered' ? <div>
               <button onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'better') }}>Better</button>
               <button onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'as-expected') }}>As expected</button>
