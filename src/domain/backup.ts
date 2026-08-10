@@ -2,6 +2,7 @@ import type {
   AppSettings,
   AthleteProfile,
   CompletedSetRecord,
+  CycleReviewEvent,
   Exercise,
   HistoryMutationEvent,
   MesocyclePlan,
@@ -12,8 +13,8 @@ import type {
 import { derivePersonalRecords } from './history-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 4
-export const BACKUP_APP_VERSION = '0.4.0'
+export const BACKUP_SCHEMA_VERSION = 5
+export const BACKUP_APP_VERSION = '0.5.0'
 
 export interface RestorableAppState {
   athlete: AthleteProfile
@@ -24,6 +25,7 @@ export interface RestorableAppState {
   surveys: SurveyRecord[]
   records: PersonalRecord[]
   historyMutations: HistoryMutationEvent[]
+  cycleReviews: CycleReviewEvent[]
   mesocycles: MesocyclePlan[]
   activeMesocycleId: string | null
   activeSessionId: string | null
@@ -53,6 +55,7 @@ export interface BackupPreview {
     records: number
     planVersions: number
     historyChanges: number
+    cycleReviews: number
     athleteName: string
     exportedAt: string
   }
@@ -106,7 +109,7 @@ function requireUniqueIds(values: unknown[], label: string, errors: string[]) {
 function validateState(candidate: unknown): asserts candidate is RestorableAppState {
   if (!isRecord(candidate)) throw new Error('Backup data is missing or invalid.')
   const errors: string[] = []
-  const arrays = ['exercises', 'sessions', 'history', 'surveys', 'records', 'mesocycles', 'historyMutations'] as const
+  const arrays = ['exercises', 'sessions', 'history', 'surveys', 'records', 'mesocycles', 'historyMutations', 'cycleReviews'] as const
   arrays.forEach((key) => {
     if (!Array.isArray(candidate[key])) errors.push(`${key} must be an array.`)
     else if (candidate[key].length > 500_000) errors.push(`${key} exceeds the private-alpha restore limit.`)
@@ -125,6 +128,7 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   const records = candidate.records as unknown[]
   const mesocycles = candidate.mesocycles as unknown[]
   const historyMutations = candidate.historyMutations as unknown[]
+  const cycleReviews = candidate.cycleReviews as unknown[]
   requireUniqueIds(exercises, 'Exercises', errors)
   requireUniqueIds(sessions, 'Sessions', errors)
   requireUniqueIds(history, 'Completed sets', errors)
@@ -132,6 +136,7 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   requireUniqueIds(records, 'Records', errors)
   requireUniqueIds(mesocycles, 'Mesocycles', errors)
   requireUniqueIds(historyMutations, 'History changes', errors)
+  requireUniqueIds(cycleReviews, 'Cycle reviews', errors)
 
   const exerciseIds = new Set(exercises.flatMap((exercise) => isRecord(exercise) && typeof exercise.id === 'string' ? [exercise.id] : []))
   const sessionIds = new Set(sessions.flatMap((session) => isRecord(session) && typeof session.id === 'string' ? [session.id] : []))
@@ -185,6 +190,10 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
     if (isRecord(event) && event.undoneAt !== undefined && !isValidDate(event.undoneAt)) errors.push('A history change has an invalid undo date.')
   })
 
+  cycleReviews.forEach((review) => {
+    if (!isRecord(review) || typeof review.mesocycleId !== 'string' || !mesocycleIds.has(review.mesocycleId) || !isFiniteNonNegative(review.planVersion) || !isFiniteNonNegative(review.microcycleNumber) || !['continue-progress', 'continue-hold', 'extend', 'recover', 'complete'].includes(String(review.decision)) || !['continue-progress', 'continue-hold', 'extend', 'recover', 'complete'].includes(String(review.recommendation)) || !isValidDate(review.createdAt) || typeof review.reason !== 'string' || !Array.isArray(review.recommendationReasons) || !isRecord(review.evidence) || !Array.isArray(review.generatedSessionIds) || !Array.isArray(review.expiredSessionIds) || [...(review.generatedSessionIds as unknown[]), ...(review.expiredSessionIds as unknown[])].some((id) => typeof id !== 'string' || !sessionIds.has(id))) errors.push('A cycle review is invalid.')
+  })
+
   mesocycles.forEach((plan) => {
     if (!isRecord(plan) || typeof plan.title !== 'string' || !isFiniteNonNegative(plan.version) || !Array.isArray(plan.sessionIds) || !Array.isArray(plan.strengthAnchors)) {
       errors.push('A mesocycle plan is invalid.')
@@ -223,6 +232,7 @@ function migrateLegacyV1(candidate: Record<string, unknown>): { data: Restorable
     records: derivePersonalRecords((candidate.history as CompletedSetRecord[]) ?? []),
     mesocycles: [],
     historyMutations: [],
+    cycleReviews: [],
     activeMesocycleId: null,
     activeSessionId: typeof candidate.activeSessionId === 'string' ? candidate.activeSessionId : null,
     onboardingComplete: typeof candidate.onboardingComplete === 'boolean' ? candidate.onboardingComplete : true
@@ -246,6 +256,7 @@ function migrateV2(candidate: Record<string, unknown>): { data: RestorableAppSta
     mesocycles: [],
     activeMesocycleId: null,
     historyMutations: [],
+    cycleReviews: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
   validateState(data)
@@ -263,6 +274,7 @@ function migrateV3(candidate: Record<string, unknown>): { data: RestorableAppSta
   const data = {
     ...candidate.data,
     historyMutations: [],
+    cycleReviews: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
   validateState(data)
@@ -270,6 +282,19 @@ function migrateV3(candidate: Record<string, unknown>): { data: RestorableAppSta
     data,
     exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
     warning: 'Version 3 backup migrated safely. Records were replayed from completed source sets and the correction ledger starts empty.'
+  }
+}
+
+function migrateV4(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = { ...candidate.data, cycleReviews: [] }
+  validateState(data)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 4 backup migrated safely. Existing plan and correction history are intact; the cycle-review ledger starts empty.'
   }
 }
 
@@ -300,6 +325,10 @@ export function parseBackup(raw: string): BackupPreview {
     const migrated = migrateV3(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 4) {
+    const migrated = migrateV4(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
@@ -319,6 +348,7 @@ export function parseBackup(raw: string): BackupPreview {
       records: backup.data.records.length,
       planVersions: backup.data.mesocycles.length,
       historyChanges: backup.data.historyMutations.length,
+      cycleReviews: backup.data.cycleReviews.length,
       athleteName: backup.data.athlete.name,
       exportedAt: backup.exportedAt
     }
@@ -335,6 +365,7 @@ export function backupStateFrom(source: RestorableAppState): RestorableAppState 
     surveys: structuredClone(source.surveys),
     records: structuredClone(source.records),
     historyMutations: structuredClone(source.historyMutations),
+    cycleReviews: structuredClone(source.cycleReviews),
     mesocycles: structuredClone(source.mesocycles),
     activeMesocycleId: source.activeMesocycleId,
     activeSessionId: source.activeSessionId,

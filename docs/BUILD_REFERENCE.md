@@ -50,7 +50,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Export a complete local backup, validate and preview it, restore it, and recover the pre-restore state.
 - Switch every progress horizon and prove chart, body-lens, and headline totals equal the selected completed source sets.
 - Preview a 30-minute plan revision, apply it, preserve partial history, inspect both plan versions, reload, and recover the active version from local persistence.
-- Export and preview a verified version 4 backup containing both plan versions and the correction ledger.
+- Export and preview a verified version 5 backup containing plan versions, the correction ledger, and cycle-review history.
 
 ## Deliberately Deferred
 

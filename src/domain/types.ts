@@ -11,6 +11,7 @@ export type ProgressionAction = 'load' | 'reps' | 'sets' | 'hold' | 'reduce' | '
 export type SurveyMode = 'full' | 'quick' | 'minimal' | 'off' | 'ask'
 export type MesocycleAdaptation = 'powerbuilding' | 'strength' | 'hypertrophy' | 'reacclimation'
 export type MesocycleStatus = 'draft' | 'active' | 'superseded' | 'completed' | 'abandoned'
+export type CycleReviewDecision = 'continue-progress' | 'continue-hold' | 'extend' | 'recover' | 'complete'
 
 export interface Exercise {
   id: string
@@ -69,6 +70,7 @@ export interface TrainingSession {
   note?: string
   mesocycleId?: string
   planVersion?: number
+  microcycleNumber?: number
 }
 
 export interface MesocyclePlan {
@@ -112,6 +114,33 @@ export interface MesocycleDraft {
   strengthAnchors: string[]
   priorityRegions: BodyRegion[]
   maintenanceRegions: BodyRegion[]
+}
+
+export interface CycleReviewEvidence {
+  requiredSessions: number
+  qualifiedSessions: number
+  unresolvedSessions: number
+  totalQualifiedExposures: number
+  completedSets: number
+  volumeLoad: number
+  averageSessionRpe: number | null
+  maximumPain: number | null
+  calendarDays: number
+}
+
+export interface CycleReviewEvent {
+  id: string
+  mesocycleId: string
+  planVersion: number
+  microcycleNumber: number
+  decision: CycleReviewDecision
+  createdAt: string
+  reason: string
+  recommendation: CycleReviewDecision
+  recommendationReasons: string[]
+  evidence: CycleReviewEvidence
+  generatedSessionIds: string[]
+  expiredSessionIds: string[]
 }
 
 export interface CompletedSetRecord {

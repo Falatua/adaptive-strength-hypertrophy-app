@@ -28,6 +28,8 @@ interface GenerationContext {
   planId: string
   planVersion: number
   startsAt?: Date
+  sessionKeyPrefix?: string
+  microcycleNumber?: number
 }
 
 const adaptationCopy = {
@@ -190,7 +192,7 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
   const startsAt = context.startsAt ?? new Date()
   const sessions = Array.from({ length: requiredExposureCount }, (_, index) => {
     const anchor = anchors[index % Math.max(1, anchors.length)] ?? context.exercises.find((exercise) => exercise.jointFeeling !== 'avoid')!
-    const sessionKey = `${context.planId}-session-${index + 1}`
+    const sessionKey = `${context.sessionKeyPrefix ?? context.planId}-session-${index + 1}`
     const excluded = new Set<string>([anchor.id])
     const secondary = chooseSecondary(anchor, context.exercises, excluded, draft.priorityRegions)
     if (secondary) excluded.add(secondary.id)
@@ -223,7 +225,8 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
       durationMinutes: fitted.reduce((sum, exercise) => sum + exercise.estimatedMinutes, 0),
       exercises: fitted,
       mesocycleId: context.planId,
-      planVersion: context.planVersion
+      planVersion: context.planVersion,
+      microcycleNumber: context.microcycleNumber ?? 1
     } satisfies TrainingSession
   })
 

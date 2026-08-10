@@ -23,6 +23,7 @@ const state = (): RestorableAppState => ({
   surveys: [],
   records: structuredClone(records),
   historyMutations: [],
+  cycleReviews: [],
   mesocycles: structuredClone(mesocycles),
   activeMesocycleId: mesocycles[0].id,
   activeSessionId: null,
@@ -38,6 +39,7 @@ describe('versioned backup and restore', () => {
     expect(parsed.backup.data.surveys).toEqual([])
     expect(parsed.summary.planVersions).toBe(1)
     expect(parsed.summary.historyChanges).toBe(0)
+    expect(parsed.summary.cycleReviews).toBe(0)
     expect(parsed.warnings).toEqual([])
   })
 
@@ -108,6 +110,7 @@ describe('versioned backup and restore', () => {
     const current = state()
     const legacyData: Partial<RestorableAppState> = structuredClone(current)
     delete legacyData.historyMutations
+    delete legacyData.cycleReviews
     const legacy = {
       format: BACKUP_FORMAT,
       schemaVersion: 3,
@@ -120,6 +123,18 @@ describe('versioned backup and restore', () => {
     expect(parsed.backup.data.historyMutations).toEqual([])
     expect(parsed.backup.data.records.every((record) => record.sourceSetIds.length > 0)).toBe(true)
     expect(parsed.warnings[0]).toMatch(/version 3/i)
+  })
+
+  it('migrates a verified version 4 backup without inventing cycle reviews', () => {
+    const legacyData: Partial<RestorableAppState> = structuredClone(state())
+    delete legacyData.cycleReviews
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 4, appVersion: '0.4.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.cycleReviews).toEqual([])
+    expect(parsed.warnings[0]).toMatch(/version 4/i)
   })
 
   it('creates an isolated restore snapshot', () => {

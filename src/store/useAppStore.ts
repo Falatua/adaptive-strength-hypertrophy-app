@@ -6,10 +6,13 @@ import { compressSession, readinessFromSurvey, replanAfterMiss, sessionCompletio
 import { backupStateFrom, type RestorableAppState } from '../domain/backup'
 import { buildMesocyclePreview, createMesocyclePlan, replaceFuturePlan } from '../domain/mesocycle-engine'
 import { derivePersonalRecords, historyVolume, projectExerciseMerge } from '../domain/history-engine'
+import { buildCycleReview, buildNextMicrocycle } from '../domain/cycle-review-engine'
 import type {
   AppSettings,
   AthleteProfile,
   CompletedSetRecord,
+  CycleReviewDecision,
+  CycleReviewEvent,
   Exercise,
   HistoryMutationEvent,
   MesocycleDraft,
@@ -33,6 +36,7 @@ interface AppState {
   records: PersonalRecord[]
   mesocycles: MesocyclePlan[]
   historyMutations: HistoryMutationEvent[]
+  cycleReviews: CycleReviewEvent[]
   activeMesocycleId: string | null
   activeSessionId: string | null
   onboardingComplete: boolean
@@ -59,6 +63,7 @@ interface AppState {
   mergeExercises: (sourceIds: string[], targetId: string, reason: string) => { ok: boolean; error?: string }
   undoLatestHistoryMutation: () => { ok: boolean; error?: string }
   applyMesocycleRevision: (draft: MesocycleDraft) => { ok: boolean; error?: string }
+  applyCycleReview: (decision: CycleReviewDecision, reason: string) => { ok: boolean; error?: string }
   restoreBackup: (data: RestorableAppState) => void
   undoLastRestore: () => void
   resetDemo: () => void
@@ -86,6 +91,7 @@ const fresh = () => ({
   records: derivePersonalRecords(seedHistory),
   mesocycles: structuredClone(seedMesocycles),
   historyMutations: [] as HistoryMutationEvent[],
+  cycleReviews: [] as CycleReviewEvent[],
   activeMesocycleId: seedMesocycles[0]?.id ?? null,
   activeSessionId: null,
   onboardingComplete: false,
@@ -311,6 +317,64 @@ export const useAppStore = create<AppState>()(
         })
         return { ok: true }
       },
+      applyCycleReview: (decision, reason) => {
+        const state = get()
+        if (state.activeSessionId) return { ok: false, error: 'Finish or leave the active workout before reviewing the exposure round.' }
+        if (!reason.trim()) return { ok: false, error: 'Add a short reason so the cycle decision remains explainable.' }
+        const plan = state.mesocycles.find((candidate) => candidate.id === state.activeMesocycleId && candidate.status === 'active')
+        if (!plan) return { ok: false, error: 'There is no active mesocycle to review.' }
+        const reviewedAt = new Date()
+        const summary = buildCycleReview(plan, state.sessions, state.history, reviewedAt)
+        if (!summary.eligible[decision]) return { ok: false, error: decision === 'extend' ? 'Extension becomes available after the target date and before the maximum span.' : 'Complete the protected exposure round before choosing that decision.' }
+        const currentRoundSessions = state.sessions.filter((session) => session.mesocycleId === plan.id && (session.microcycleNumber ?? 1) === summary.microcycleNumber)
+        const unresolvedIds = currentRoundSessions.filter((session) => ['planned', 'active', 'deferred'].includes(session.status)).map((session) => session.id)
+        let sessions = state.sessions
+        let generated: TrainingSession[] = []
+        let expiredSessionIds: string[] = []
+        let mesocycles = state.mesocycles
+        let activeMesocycleId: string | null = state.activeMesocycleId
+
+        if (decision === 'extend') {
+          sessions = sessions.map((session) => unresolvedIds.includes(session.id) ? { ...session, plannedDate: new Date(new Date(session.plannedDate).getTime() + 7 * 86_400_000).toISOString(), status: 'planned' as const, dayLabel: 'Extended protected exposure' } : session)
+        } else if (decision === 'recover' || (['continue-progress', 'continue-hold'].includes(decision) && summary.evidence.unresolvedSessions === 0)) {
+          if (decision === 'recover') {
+            expiredSessionIds = unresolvedIds
+            sessions = sessions.map((session) => unresolvedIds.includes(session.id) ? { ...session, status: 'expired' as const } : session)
+          }
+          generated = buildNextMicrocycle({
+            plan, sessions, history: state.history, exercises: state.exercises,
+            decision: decision as 'continue-progress' | 'continue-hold' | 'recover',
+            nextMicrocycleNumber: summary.microcycleNumber + 1,
+            startsAt: new Date(reviewedAt.getTime() + 86_400_000),
+            key: nanoid(6)
+          })
+          sessions = [...sessions, ...generated]
+          mesocycles = mesocycles.map((candidate) => candidate.id === plan.id ? { ...candidate, sessionIds: [...candidate.sessionIds, ...generated.map((session) => session.id)] } : candidate)
+        } else if (decision === 'complete') {
+          expiredSessionIds = state.sessions.filter((session) => session.mesocycleId === plan.id && ['planned', 'active', 'deferred'].includes(session.status)).map((session) => session.id)
+          sessions = state.sessions.map((session) => expiredSessionIds.includes(session.id) ? { ...session, status: 'expired' as const } : session)
+          mesocycles = state.mesocycles.map((candidate) => candidate.id === plan.id ? { ...candidate, status: 'completed' as const } : candidate)
+          activeMesocycleId = null
+        }
+
+        const event: CycleReviewEvent = {
+          id: nanoid(), mesocycleId: plan.id, planVersion: plan.version, microcycleNumber: summary.microcycleNumber,
+          decision, createdAt: reviewedAt.toISOString(), reason: reason.trim(), recommendation: summary.recommendation,
+          recommendationReasons: summary.recommendationReasons, evidence: summary.evidence,
+          generatedSessionIds: generated.map((session) => session.id), expiredSessionIds
+        }
+        set({
+          sessions, mesocycles, activeMesocycleId, cycleReviews: [...state.cycleReviews, event],
+          notice: decision === 'complete'
+            ? 'Mesocycle completed from exposure evidence. Prior versions and completed work remain intact.'
+            : generated.length
+              ? `Exposure round ${summary.microcycleNumber + 1} is queued from the recorded review decision.`
+              : decision === 'extend'
+                ? 'The unresolved exposure round was extended without adding catch-up volume.'
+                : 'The current exposure round remains active at the same targets.'
+        })
+        return { ok: true }
+      },
       restoreBackup: (data) => set((state) => ({
         ...backupStateFrom(data),
         recoverySnapshot: backupStateFrom(state),
@@ -327,7 +391,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 3,
+      version: 4,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,
@@ -337,6 +401,7 @@ export const useAppStore = create<AppState>()(
         surveys: state.surveys,
         records: state.records,
         historyMutations: state.historyMutations,
+        cycleReviews: state.cycleReviews,
         mesocycles: state.mesocycles,
         activeMesocycleId: state.activeMesocycleId,
         activeSessionId: state.activeSessionId,
@@ -350,6 +415,7 @@ export const useAppStore = create<AppState>()(
           mesocycles: persisted.mesocycles?.length ? persisted.mesocycles : structuredClone(seedMesocycles),
           activeMesocycleId: persisted.activeMesocycleId ?? seedMesocycles[0]?.id ?? null,
           historyMutations: persisted.historyMutations ?? [],
+          cycleReviews: persisted.cycleReviews ?? [],
           records: derivePersonalRecords(persisted.history ?? [])
         }
       }

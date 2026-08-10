@@ -21,16 +21,25 @@ import {
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
 import { buildMesocyclePreview, draftFromPlan } from '../domain/mesocycle-engine'
-import type { BodyRegion, MesocycleDraft } from '../domain/types'
+import { buildCycleReview } from '../domain/cycle-review-engine'
+import type { BodyRegion, CycleReviewDecision, MesocycleDraft } from '../domain/types'
 
 const regions: BodyRegion[] = ['chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']
 
 const readable = (value: string) => value.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 
+const reviewChoices: { id: CycleReviewDecision; title: string; detail: string }[] = [
+  { id: 'continue-progress', title: 'Continue and progress', detail: 'Queue the next exposure round and let exact completed history earn the smallest load-first progression.' },
+  { id: 'continue-hold', title: 'Continue and hold', detail: 'Keep unresolved work or queue the next round at the same productive targets.' },
+  { id: 'extend', title: 'Extend this round', detail: 'Move unresolved protected work forward seven days without adding catch-up volume.' },
+  { id: 'recover', title: 'Recover next', detail: 'Expire unresolved work honestly and queue a conservative reacclimation round.' },
+  { id: 'complete', title: 'Complete mesocycle', detail: 'Close this mesocycle from completed exposure evidence and preserve its full history.' }
+]
+
 export function PlanScreen() {
   const {
-    sessions, exercises, athlete, history, mesocycles, activeMesocycleId, activeSessionId,
-    startSession, applyMesocycleRevision, setNotice
+    sessions, exercises, athlete, history, mesocycles, cycleReviews, activeMesocycleId, activeSessionId,
+    startSession, applyMesocycleRevision, applyCycleReview, setNotice
   } = useAppStore()
   const activePlan = mesocycles.find((plan) => plan.id === activeMesocycleId)
   const nextVersion = Math.max(0, ...mesocycles.map((plan) => plan.version)) + 1
@@ -53,6 +62,10 @@ export function PlanScreen() {
   })
   const [editorOpen, setEditorOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [reviewDecision, setReviewDecision] = useState<CycleReviewDecision>('continue-hold')
+  const [reviewReason, setReviewReason] = useState('')
+  const [reviewError, setReviewError] = useState<string | null>(null)
   const [draft, setDraft] = useState<MesocycleDraft>(() => activePlan ? draftFromPlan(activePlan) : blankDraft())
   const [editorError, setEditorError] = useState<string | null>(null)
 
@@ -78,6 +91,29 @@ export function PlanScreen() {
   const activeAnchors = (activePlan?.strengthAnchors ?? athlete.strengthAnchors)
     .map((id) => exercises.find((exercise) => exercise.id === id)?.name)
     .filter(Boolean)
+  const cycleReview = useMemo(() => activePlan ? buildCycleReview(activePlan, sessions, history) : null, [activePlan, sessions, history])
+  const activeCycleReviews = activePlan ? cycleReviews.filter((review) => review.mesocycleId === activePlan.id) : []
+
+  const openReview = () => {
+    if (!cycleReview) return
+    setReviewDecision(cycleReview.recommendation)
+    setReviewReason('')
+    setReviewError(null)
+    setReviewOpen(true)
+  }
+
+  const submitReview = () => {
+    const result = applyCycleReview(reviewDecision, reviewReason)
+    if (!result.ok) return setReviewError(result.error ?? 'The exposure round could not be reviewed.')
+    setReviewOpen(false)
+  }
+
+  const openPivot = () => {
+    setReviewOpen(false)
+    setDraft(activePlan ? { ...draftFromPlan(activePlan), revisionReason: '' } : blankDraft())
+    setEditorError(null)
+    setEditorOpen(true)
+  }
 
   const updateAnchor = (slot: number, exerciseId: string) => setDraft((current) => {
     const anchors = [...current.strengthAnchors]
@@ -120,11 +156,11 @@ export function PlanScreen() {
 
       <section className="cycle-hero">
         <div className="cycle-hero__copy">
-          <span className="status-chip status-chip--orange">{completed < required ? 'Exposure cycle active' : 'Ready for review'}</span>
+          <span className="status-chip status-chip--orange">{cycleReview && cycleReview.evidence.unresolvedSessions === 0 ? 'Ready for review' : cycleReview?.targetPassed ? 'Review window open' : 'Exposure cycle active'}</span>
           <p className="eyebrow">{activePlan ? `${readable(activePlan.dominantAdaptation)} · Plan v${activePlan.version}` : 'Legacy plan · Create first version'}</p>
           <h2>{activePlan?.title ?? 'Protect the next useful exposure.'}</h2>
           <p>{activePlan?.objective ?? athlete.goal}</p>
-          <div className="cycle-progress"><span><b style={{ width: `${Math.max(8, (completed / required) * 100)}%` }} /></span><small>{completed} of {required} required roles completed in this exposure round</small></div>
+          <div className="cycle-progress"><span><b style={{ width: `${Math.max(8, ((cycleReview?.evidence.qualifiedSessions ?? 0) / Math.max(1, cycleReview?.evidence.requiredSessions ?? 1)) * 100)}%` }} /></span><small>{cycleReview?.evidence.qualifiedSessions ?? 0} of {cycleReview?.evidence.requiredSessions ?? required} protected sessions qualified in exposure round {cycleReview?.microcycleNumber ?? 1}</small></div>
         </div>
         <div className="cycle-map" aria-label="Training cycle map">
           <div className="cycle-node cycle-node--done"><Check size={18} /><span>Entry<small>Profile built</small></span></div>
@@ -172,6 +208,12 @@ export function PlanScreen() {
             </div>
             <p className="callout-copy">A passed Wednesday does not become a completed bench exposure. Only completed qualified work advances the second clock.</p>
           </section>
+          {cycleReview && <section className="panel cycle-review-card">
+            <div className="panel__header"><div><p className="eyebrow">Exposure round {cycleReview.microcycleNumber}</p><h3>Criterion review</h3></div><span className={`status-chip status-chip--${cycleReview.maximumPassed ? 'orange' : 'default'}`}>{cycleReview.maximumPassed ? 'maximum passed' : cycleReview.targetPassed ? 'target passed' : 'inside target'}</span></div>
+            <div className="review-dates"><div><small>Started</small><strong>{cycleReview.startedAt.toLocaleDateString()}</strong></div><div><small>Target review</small><strong>{cycleReview.targetDate.toLocaleDateString()}</strong></div><div><small>Maximum span</small><strong>{cycleReview.maximumDate.toLocaleDateString()}</strong></div></div>
+            <div className="review-recommendation"><Sparkles size={18} /><span><small>Current recommendation</small><strong>{readable(cycleReview.recommendation)}</strong><p>{cycleReview.recommendationReasons[0]}</p></span></div>
+            <button className="button button--primary button--full" onClick={openReview}>Review exposure round</button>
+          </section>}
           <section className="panel">
             <div className="panel__header"><div><p className="eyebrow">Protected qualities</p><h3>Current contract</h3></div><Target size={19} /></div>
             <ul className="priority-list">
@@ -184,6 +226,31 @@ export function PlanScreen() {
           <button className="full-row-button full-row-button--accent" onClick={openEditor}><RefreshCcw size={17} /> Rebuild from a revision <ChevronRight size={18} /></button>
         </aside>
       </div>
+
+      <Modal open={reviewOpen} onClose={() => setReviewOpen(false)} title={`Review exposure round ${cycleReview?.microcycleNumber ?? ''}`} description="The app proposes a criterion-based decision from completed work, calendar bounds, effort, and pain. You make the final call and record why." wide>
+        {cycleReview && <div className="cycle-review-modal">
+          <section className="review-evidence">
+            <div className="review-evidence__headline"><span><Sparkles size={19} /><small>Deterministic recommendation</small></span><strong>{readable(cycleReview.recommendation)}</strong>{cycleReview.recommendationReasons.map((reason) => <p key={reason}><Check size={14} />{reason}</p>)}</div>
+            <div className="review-evidence__grid">
+              <div><small>Qualified</small><strong>{cycleReview.evidence.qualifiedSessions} / {cycleReview.evidence.requiredSessions}</strong></div>
+              <div><small>Completed sets</small><strong>{cycleReview.evidence.completedSets}</strong></div>
+              <div><small>Round volume</small><strong>{cycleReview.evidence.volumeLoad.toLocaleString()}</strong></div>
+              <div><small>Average session RPE</small><strong>{cycleReview.evidence.averageSessionRpe?.toFixed(1) ?? 'Unknown'}</strong></div>
+              <div><small>Maximum pain</small><strong>{cycleReview.evidence.maximumPain ?? 'Unknown'}</strong></div>
+              <div><small>Calendar days</small><strong>{cycleReview.evidence.calendarDays}</strong></div>
+            </div>
+          </section>
+          <fieldset className="review-choice-list"><legend>Choose this round's outcome</legend>{reviewChoices.map((choice) => {
+            const enabled = cycleReview.eligible[choice.id]
+            return <button type="button" key={choice.id} aria-pressed={reviewDecision === choice.id} className={reviewDecision === choice.id ? 'selected' : ''} disabled={!enabled} onClick={() => setReviewDecision(choice.id)}><span>{reviewDecision === choice.id ? <Check size={16} /> : <CircleDashed size={16} />}</span><span><strong>{choice.title}</strong><small>{choice.detail}</small>{!enabled && <em>Not eligible from the current exposure evidence.</em>}</span></button>
+          })}</fieldset>
+          <button className="pivot-choice" onClick={openPivot}><RefreshCcw size={18} /><span><strong>Pivot or change the training contract</strong><small>Open a new mesocycle version with different objectives, anchors, dose, or adaptation.</small></span><ChevronRight size={17} /></button>
+          <label><span className="field-label">Why is this the right decision now?</span><textarea value={reviewReason} onChange={(event) => setReviewReason(event.target.value)} placeholder="Example: The round is complete, effort stayed recoverable, and my schedule can support another exposure round." /></label>
+          {reviewError && <div className="import-error" role="alert"><AlertCircle size={17} /><span><strong>Review not saved</strong>{reviewError}</span></div>}
+          <p className="modal-note">Calendar time alone cannot complete the mesocycle. Planned work never enters completed volume, and this decision never rewrites prior sessions.</p>
+        </div>}
+        <div className="modal__actions"><button className="button button--ghost" onClick={() => setReviewOpen(false)}>Cancel</button><button className="button button--primary" disabled={!reviewReason.trim()} onClick={submitReview}>Save review decision</button></div>
+      </Modal>
 
       <Modal open={editorOpen} onClose={() => setEditorOpen(false)} title={`Preview mesocycle version ${nextVersion}`} description="Adjust the training contract, inspect the generated exposure queue, then apply it. Completed work never changes." wide>
         <div className="plan-editor">
@@ -229,6 +296,7 @@ export function PlanScreen() {
           </article>)}
           {mesocycles.length === 0 && <div className="empty-plan-history"><History size={26} /><strong>No versioned mesocycle yet</strong><p>Your current sessions are intact. Create the first plan version to begin the revision history.</p></div>}
         </div>
+        {cycleReviews.length > 0 && <section className="cycle-review-history"><div className="panel__header"><div><p className="eyebrow">Append-only decisions</p><h3>Exposure-round reviews</h3></div><span>{activeCycleReviews.length} for current plan</span></div>{[...cycleReviews].reverse().map((review) => <article key={review.id}><span>R{review.microcycleNumber}</span><div><strong>{readable(review.decision)}</strong><small>{new Date(review.createdAt).toLocaleString()} · plan v{review.planVersion}</small><p>{review.reason}</p></div><div><small>Qualified</small><strong>{review.evidence.qualifiedSessions}/{review.evidence.requiredSessions}</strong></div></article>)}</section>}
       </Modal>
     </div>
   )
