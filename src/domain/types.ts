@@ -244,6 +244,19 @@ export interface SurveyRecord {
   confidence?: EvidenceConfidence
 }
 
+export type DeferredFeedbackStatus = 'pending' | 'completed' | 'dismissed' | 'expired'
+
+export interface DeferredFeedbackRequest {
+  id: string
+  sessionId: string
+  mode: Exclude<EffectiveSurveyMode, 'off'>
+  createdAt: string
+  expiresAt: string
+  status: DeferredFeedbackStatus
+  resolvedAt?: string
+  surveyId?: string
+}
+
 export interface ProgressionDecision {
   action: ProgressionAction
   title: string

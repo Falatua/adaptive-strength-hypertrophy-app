@@ -10,9 +10,11 @@ export function PostSurveyModal({
   totalSets,
   volume,
   estimatedStrength,
+  followUp = false,
   onClose,
   onSubmit,
-  onSkip
+  onSkip,
+  onDefer
 }: {
   open: boolean
   mode: Exclude<EffectiveSurveyMode, 'off'>
@@ -20,9 +22,11 @@ export function PostSurveyModal({
   totalSets: number
   volume: number
   estimatedStrength: number
+  followUp?: boolean
   onClose: () => void
   onSubmit: (answers: SurveyAnswer[], note: string) => void
   onSkip: () => void
+  onDefer?: () => void
 }) {
   const questions = useMemo(() => questionsForSurvey('post', mode), [mode])
   const [values, setValues] = useState<Record<string, number>>(() => Object.fromEntries(questions.map((question) => [question.id, question.defaultValue])))
@@ -38,7 +42,7 @@ export function PostSurveyModal({
   })), note)
 
   return (
-    <Modal open={open} onClose={onClose} title={`${surveyModeLabel[mode]} session feedback`} description={`${questions.length} optional questions. ${completedSets} of ${totalSets} sets are complete; unfinished work creates no volume debt.`} wide>
+    <Modal open={open} onClose={onClose} title={`${followUp ? 'Optional ' : ''}${surveyModeLabel[mode]} session feedback`} description={`${questions.length} optional questions. ${completedSets} of ${totalSets} sets are complete; unfinished work creates no volume debt.`} wide>
       <div className="finish-summary">
         <div><small>Completed sets</small><strong>{completedSets}</strong></div>
         <div><small>Volume load</small><strong>{volume.toLocaleString()}</strong></div>
@@ -63,8 +67,9 @@ export function PostSurveyModal({
       <label className="field-label" htmlFor="session-note">Anything the numbers missed? <span>Optional</span></label>
       <textarea id="session-note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Equipment issue, joint feel, interruption, unusual success..." />
       <div className="modal__actions">
-        <button className="button button--ghost" onClick={onSkip}>Finish without survey</button>
-        <button className="button button--primary" onClick={submit}>Save feedback & finish</button>
+        <button className="button button--ghost" onClick={onSkip}>{followUp ? 'Dismiss feedback' : 'Finish without survey'}</button>
+        {onDefer && <button className="button button--secondary" onClick={onDefer}>Remind me later</button>}
+        <button className="button button--primary" onClick={submit}>{followUp ? 'Save feedback' : 'Save feedback & finish'}</button>
       </div>
     </Modal>
   )

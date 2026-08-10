@@ -1,4 +1,4 @@
-import type { EffectiveSurveyMode, EvidenceConfidence, SurveyAnswer } from './types'
+import type { DeferredFeedbackRequest, EffectiveSurveyMode, EvidenceConfidence, SurveyAnswer } from './types'
 
 export type SurveyCadence = 'pre' | 'post'
 
@@ -71,4 +71,37 @@ export function summarizeSurveyEvidence(answers: SurveyAnswer[], skipped: boolea
 
 export const surveyModeLabel: Record<EffectiveSurveyMode, string> = {
   full: 'Full', quick: 'Quick', minimal: 'Minimal', off: 'Off'
+}
+
+export const DEFERRED_FEEDBACK_TTL_MS = 24 * 60 * 60 * 1000
+
+export function buildDeferredFeedbackRequest(input: {
+  id: string
+  sessionId: string
+  mode: Exclude<EffectiveSurveyMode, 'off'>
+  now?: Date
+}): DeferredFeedbackRequest {
+  const now = input.now ?? new Date()
+  return {
+    id: input.id,
+    sessionId: input.sessionId,
+    mode: input.mode,
+    createdAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + DEFERRED_FEEDBACK_TTL_MS).toISOString(),
+    status: 'pending'
+  }
+}
+
+export function expireDeferredFeedbackRequests(requests: DeferredFeedbackRequest[], now = new Date()) {
+  const timestamp = now.getTime()
+  return requests.map((request) => request.status === 'pending' && new Date(request.expiresAt).getTime() <= timestamp
+    ? { ...request, status: 'expired' as const, resolvedAt: now.toISOString() }
+    : request)
+}
+
+export function pendingDeferredFeedback(requests: DeferredFeedbackRequest[], now = new Date()) {
+  const timestamp = now.getTime()
+  return requests
+    .filter((request) => request.status === 'pending' && new Date(request.expiresAt).getTime() > timestamp)
+    .sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime())
 }

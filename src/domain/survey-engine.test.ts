@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { questionsForSurvey, summarizeSurveyEvidence } from './survey-engine'
-import type { SurveyAnswer } from './types'
+import { buildDeferredFeedbackRequest, expireDeferredFeedbackRequests, pendingDeferredFeedback, questionsForSurvey, summarizeSurveyEvidence } from './survey-engine'
+import type { DeferredFeedbackRequest, SurveyAnswer } from './types'
 
 describe('survey burden and missing evidence', () => {
   it('uses stable full, quick, minimal, and off question budgets', () => {
@@ -24,5 +24,25 @@ describe('survey burden and missing evidence', () => {
 
   it('never grants confidence to a skipped survey', () => {
     expect(summarizeSurveyEvidence([{ id: 'pain', value: 0, status: 'answered' }], true).confidence).toBe('low')
+  })
+
+  it('creates one optional 24-hour deferred-feedback window', () => {
+    const created = buildDeferredFeedbackRequest({ id: 'later-1', sessionId: 'session-1', mode: 'minimal', now: new Date('2026-08-10T12:00:00.000Z') })
+    expect(created).toEqual({
+      id: 'later-1', sessionId: 'session-1', mode: 'minimal', status: 'pending',
+      createdAt: '2026-08-10T12:00:00.000Z', expiresAt: '2026-08-11T12:00:00.000Z'
+    })
+  })
+
+  it('expires deferred feedback without treating it as a training answer', () => {
+    const request: DeferredFeedbackRequest = {
+      id: 'later-1', sessionId: 'session-1', mode: 'quick', status: 'pending',
+      createdAt: '2026-08-10T12:00:00.000Z', expiresAt: '2026-08-11T12:00:00.000Z'
+    }
+    expect(pendingDeferredFeedback([request], new Date('2026-08-11T11:59:00.000Z'))).toHaveLength(1)
+    const expired = expireDeferredFeedbackRequests([request], new Date('2026-08-11T12:00:00.000Z'))[0]
+    expect(expired.status).toBe('expired')
+    expect(expired.resolvedAt).toBe('2026-08-11T12:00:00.000Z')
+    expect(pendingDeferredFeedback([expired], new Date('2026-08-11T12:00:00.000Z'))).toEqual([])
   })
 })

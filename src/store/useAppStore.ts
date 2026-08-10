@@ -8,13 +8,14 @@ import { buildMesocyclePreview, createMesocyclePlan, replaceFuturePlan } from '.
 import { derivePersonalRecords, historyVolume, projectExerciseMerge } from '../domain/history-engine'
 import { buildCycleReview, buildNextMicrocycle } from '../domain/cycle-review-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
-import { summarizeSurveyEvidence } from '../domain/survey-engine'
+import { buildDeferredFeedbackRequest, expireDeferredFeedbackRequests, summarizeSurveyEvidence } from '../domain/survey-engine'
 import type {
   AppSettings,
   AthleteProfile,
   CompletedSetRecord,
   CycleReviewDecision,
   CycleReviewEvent,
+  DeferredFeedbackRequest,
   Exercise,
   ExerciseSubstitutionEvent,
   EffectiveSurveyMode,
@@ -38,6 +39,7 @@ interface AppState {
   sessions: TrainingSession[]
   history: CompletedSetRecord[]
   surveys: SurveyRecord[]
+  deferredFeedback: DeferredFeedbackRequest[]
   records: PersonalRecord[]
   mesocycles: MesocyclePlan[]
   historyMutations: HistoryMutationEvent[]
@@ -58,7 +60,10 @@ interface AppState {
   updateSet: (sessionId: string, plannedExerciseId: string, setId: string, data: { reps?: number; load?: number; rir?: number }) => void
   toggleSetComplete: (sessionId: string, plannedExerciseId: string, setId: string) => void
   swapExercise: (sessionId: string, plannedExerciseId: string, exerciseId: string, reason: SubstitutionReason, primaryOverrideConfirmed: boolean) => { ok: boolean; error?: string }
-  finishSession: (sessionId: string, feedback: { answers: SurveyAnswer[]; note?: string; skipped: boolean; mode: EffectiveSurveyMode }) => void
+  finishSession: (sessionId: string, feedback: { answers: SurveyAnswer[]; note?: string; skipped: boolean; mode: EffectiveSurveyMode; deferred?: boolean }) => void
+  submitDeferredFeedback: (requestId: string, answers: SurveyAnswer[], note?: string) => { ok: boolean; error?: string }
+  dismissDeferredFeedback: (requestId: string) => { ok: boolean; error?: string }
+  expireDeferredFeedback: () => void
   skipExercise: (sessionId: string, plannedExerciseId: string) => void
   markMissed: (sessionId: string, context: MissedSessionReason) => void
   toggleFavorite: (exerciseId: string) => void
@@ -99,6 +104,7 @@ const fresh = () => ({
   sessions: structuredClone(seedSessions),
   history: structuredClone(seedHistory),
   surveys: [] as SurveyRecord[],
+  deferredFeedback: [] as DeferredFeedbackRequest[],
   records: derivePersonalRecords(seedHistory),
   mesocycles: structuredClone(seedMesocycles),
   historyMutations: [] as HistoryMutationEvent[],
@@ -227,7 +233,7 @@ export const useAppStore = create<AppState>()(
         const completedAt = new Date().toISOString()
         const techniqueAnswer = feedback.answers.find((answer) => answer.id === 'technique' && answer.status === 'answered')
         const painAnswer = feedback.answers.find((answer) => answer.id === 'pain' && answer.status === 'answered')
-        const qualityConfirmed = typeof techniqueAnswer?.value === 'number' && typeof painAnswer?.value === 'number'
+        const qualityConfirmed = !feedback.deferred && typeof techniqueAnswer?.value === 'number' && typeof painAnswer?.value === 'number'
         const technique = qualityConfirmed ? Number(techniqueAnswer.value) : 0
         const pain = qualityConfirmed ? Number(painAnswer.value) : 0
         const newHistory: CompletedSetRecord[] = session.exercises.flatMap((plannedExercise) => {
@@ -251,12 +257,19 @@ export const useAppStore = create<AppState>()(
           const answer = feedback.answers.find((candidate) => candidate.id === id && candidate.status === 'answered')
           return typeof answer?.value === 'number' ? answer.value : null
         }
+        const surveyId = feedback.deferred ? null : nanoid()
+        const deferredRequest = feedback.deferred && feedback.mode !== 'off'
+          ? buildDeferredFeedbackRequest({ id: nanoid(), sessionId, mode: feedback.mode, now: new Date(completedAt) })
+          : null
         set((current) => {
           const history = [...current.history, ...newHistory]
           return {
           history,
           records: derivePersonalRecords(history),
-          surveys: [...current.surveys, { id: nanoid(), sessionId, type: 'post', completedAt, answers: feedback.answers, skipped: feedback.skipped, mode: feedback.mode, ...surveyEvidence }],
+          surveys: surveyId ? [...current.surveys, { id: surveyId, sessionId, type: 'post', completedAt, answers: feedback.answers, skipped: feedback.skipped, mode: feedback.mode, ...surveyEvidence }] : current.surveys,
+          deferredFeedback: deferredRequest
+            ? [...expireDeferredFeedbackRequests(current.deferredFeedback, new Date(completedAt)), deferredRequest]
+            : current.deferredFeedback,
           sessions: current.sessions.map((candidate) => candidate.id === sessionId ? { ...candidate, status, completedAt, sessionRpe, note: feedback.note } : candidate),
           substitutionEvents: current.substitutionEvents.map((event) => {
             if (event.sessionId !== sessionId || event.outcome !== 'pending') return event
@@ -265,17 +278,88 @@ export const useAppStore = create<AppState>()(
             return {
               ...event, sourceSetIds, completedAt,
               outcome: sourceSetIds.length === 0 ? 'not-completed' as const : sourceSetIds.length >= expectedSets ? 'completed' as const : 'partial' as const,
-              postFeedback: {
+              ...(!feedback.deferred ? { postFeedback: {
                 difficulty: feedbackValue('difficulty'), targetStimulus: feedbackValue('targetStimulus'),
                 technique: feedbackValue('technique'), pain: feedbackValue('pain'), enjoyment: feedbackValue('enjoyment'), skipped: feedback.skipped
-              }
+              } } : {})
             }
           }),
           activeSessionId: null,
           nav: 'progress',
-          notice: `${newHistory.length} working sets saved. Progress clocks updated from completed work only.`
+          notice: deferredRequest
+            ? `${newHistory.length} working sets saved. Optional feedback is available for 24 hours and will not block your next workout.`
+            : `${newHistory.length} working sets saved. Progress clocks updated from completed work only.`
         }})
       },
+      submitDeferredFeedback: (requestId, answers, note) => {
+        const state = get()
+        const now = new Date()
+        const request = state.deferredFeedback.find((candidate) => candidate.id === requestId)
+        if (!request || request.status !== 'pending') return { ok: false, error: 'That feedback request is no longer available.' }
+        if (new Date(request.expiresAt).getTime() <= now.getTime()) {
+          set({ deferredFeedback: expireDeferredFeedbackRequests(state.deferredFeedback, now), notice: 'That optional feedback window expired. Nothing about your workout or progress changed.' })
+          return { ok: false, error: 'That optional feedback window has expired.' }
+        }
+        const session = state.sessions.find((candidate) => candidate.id === request.sessionId)
+        if (!session || !session.completedAt) return { ok: false, error: 'The completed workout could not be found.' }
+        const techniqueAnswer = answers.find((answer) => answer.id === 'technique' && answer.status === 'answered')
+        const painAnswer = answers.find((answer) => answer.id === 'pain' && answer.status === 'answered')
+        const qualityConfirmed = typeof techniqueAnswer?.value === 'number' && typeof painAnswer?.value === 'number'
+        const technique = qualityConfirmed ? Number(techniqueAnswer.value) : 0
+        const pain = qualityConfirmed ? Number(painAnswer.value) : 0
+        const history = state.history.map((workSet) => workSet.sessionId === request.sessionId
+          ? { ...workSet, technique, pain, qualityConfirmed }
+          : workSet)
+        const surveyId = nanoid()
+        const evidence = summarizeSurveyEvidence(answers, false)
+        const difficulty = answers.find((answer) => answer.id === 'difficulty' && answer.status === 'answered')
+        const sessionRpe = typeof difficulty?.value === 'number' ? difficulty.value : session.sessionRpe
+        const feedbackValue = (id: string) => {
+          const answer = answers.find((candidate) => candidate.id === id && candidate.status === 'answered')
+          return typeof answer?.value === 'number' ? answer.value : null
+        }
+        set({
+          history,
+          records: derivePersonalRecords(history),
+          surveys: [...state.surveys, { id: surveyId, sessionId: request.sessionId, type: 'post', completedAt: now.toISOString(), answers, skipped: false, mode: request.mode, ...evidence }],
+          sessions: state.sessions.map((candidate) => candidate.id === request.sessionId ? { ...candidate, sessionRpe, note: note?.trim() || candidate.note } : candidate),
+          substitutionEvents: state.substitutionEvents.map((event) => event.sessionId === request.sessionId ? {
+            ...event,
+            postFeedback: {
+              difficulty: feedbackValue('difficulty'), targetStimulus: feedbackValue('targetStimulus'),
+              technique: feedbackValue('technique'), pain: feedbackValue('pain'), enjoyment: feedbackValue('enjoyment'), skipped: false
+            }
+          } : event),
+          deferredFeedback: state.deferredFeedback.map((candidate) => candidate.id === requestId
+            ? { ...candidate, status: 'completed' as const, resolvedAt: now.toISOString(), surveyId }
+            : candidate),
+          notice: qualityConfirmed
+            ? 'Feedback added. Quality-dependent records were replayed from the original completed sets.'
+            : 'Feedback added. Missing technique or pain remains unknown, so numeric bests stay unverified.'
+        })
+        return { ok: true }
+      },
+      dismissDeferredFeedback: (requestId) => {
+        const state = get()
+        const request = state.deferredFeedback.find((candidate) => candidate.id === requestId)
+        if (!request || request.status !== 'pending') return { ok: false, error: 'That feedback request is no longer available.' }
+        const now = new Date()
+        if (new Date(request.expiresAt).getTime() <= now.getTime()) {
+          set({ deferredFeedback: expireDeferredFeedbackRequests(state.deferredFeedback, now), notice: 'That optional feedback window expired. Nothing about your workout or progress changed.' })
+          return { ok: true }
+        }
+        const surveyId = nanoid()
+        const evidence = summarizeSurveyEvidence([], true)
+        set({
+          surveys: [...state.surveys, { id: surveyId, sessionId: request.sessionId, type: 'post', completedAt: now.toISOString(), answers: [], skipped: true, mode: request.mode, ...evidence }],
+          deferredFeedback: state.deferredFeedback.map((candidate) => candidate.id === requestId
+            ? { ...candidate, status: 'dismissed' as const, resolvedAt: now.toISOString(), surveyId }
+            : candidate),
+          notice: 'Optional feedback dismissed. Your workout, progress, and future access are unchanged.'
+        })
+        return { ok: true }
+      },
+      expireDeferredFeedback: () => set((state) => ({ deferredFeedback: expireDeferredFeedbackRequests(state.deferredFeedback) })),
       skipExercise: (sessionId, plannedExerciseId) => set((state) => ({
         sessions: state.sessions.map((session) => session.id !== sessionId ? session : {
           ...session,
@@ -476,7 +560,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 7,
+      version: 8,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,
@@ -484,6 +568,7 @@ export const useAppStore = create<AppState>()(
         sessions: state.sessions,
         history: state.history,
         surveys: state.surveys,
+        deferredFeedback: state.deferredFeedback,
         records: state.records,
         historyMutations: state.historyMutations,
         cycleReviews: state.cycleReviews,
@@ -508,6 +593,7 @@ export const useAppStore = create<AppState>()(
           })),
           cycleReviews: persisted.cycleReviews ?? [],
           substitutionEvents: persisted.substitutionEvents ?? [],
+          deferredFeedback: persisted.deferredFeedback ?? [],
           records: derivePersonalRecords(persisted.history ?? [])
         }
       }

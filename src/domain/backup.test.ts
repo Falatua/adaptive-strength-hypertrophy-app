@@ -23,6 +23,7 @@ const state = (): RestorableAppState => ({
   sessions: structuredClone(sessions),
   history: structuredClone(history),
   surveys: [],
+  deferredFeedback: [],
   records: structuredClone(records),
   historyMutations: [],
   cycleReviews: [],
@@ -40,6 +41,7 @@ describe('versioned backup and restore', () => {
     expect(parsed.backup.schemaVersion).toBe(BACKUP_SCHEMA_VERSION)
     expect(parsed.summary.completedSets).toBe(history.length)
     expect(parsed.backup.data.surveys).toEqual([])
+    expect(parsed.summary.deferredFeedback).toBe(0)
     expect(parsed.summary.planVersions).toBe(1)
     expect(parsed.summary.historyChanges).toBe(0)
     expect(parsed.summary.cycleReviews).toBe(0)
@@ -197,6 +199,18 @@ describe('versioned backup and restore', () => {
     expect(parsed.warnings[0]).toMatch(/version 7/i)
   })
 
+  it('migrates a verified version 8 backup without inventing deferred feedback', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    delete legacyData.deferredFeedback
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 8, appVersion: '0.8.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.deferredFeedback).toEqual([])
+    expect(parsed.warnings[0]).toMatch(/version 8/i)
+  })
+
   it('preserves explicit unknown survey answers and rejects fabricated unknown values', () => {
     const current = state()
     current.surveys = [{
@@ -207,6 +221,25 @@ describe('versioned backup and restore', () => {
     expect(parseBackup(JSON.stringify(createBackup(current))).backup.data.surveys[0].answers[2].status).toBe('not-answered')
     current.surveys[0].answers[2].value = 60
     expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/missing-data semantics/i)
+  })
+
+  it('round-trips resolved deferred feedback and rejects broken survey provenance', () => {
+    const current = state()
+    current.surveys = [{
+      id: 'post-survey-1', sessionId: current.sessions[0].id, type: 'post', completedAt: '2026-08-10T13:00:00.000Z',
+      mode: 'minimal', skipped: false, answeredCount: 3, unknownCount: 0, confidence: 'medium',
+      answers: [{ id: 'difficulty', value: 7, status: 'answered' }, { id: 'technique', value: 4, status: 'answered' }, { id: 'pain', value: 0, status: 'answered' }]
+    }]
+    current.deferredFeedback = [{
+      id: 'later-1', sessionId: current.sessions[0].id, mode: 'minimal', status: 'completed',
+      createdAt: '2026-08-10T12:00:00.000Z', expiresAt: '2026-08-11T12:00:00.000Z',
+      resolvedAt: '2026-08-10T13:00:00.000Z', surveyId: 'post-survey-1'
+    }]
+    const parsed = parseBackup(JSON.stringify(createBackup(current)))
+    expect(parsed.summary.deferredFeedback).toBe(1)
+    expect(parsed.backup.data.deferredFeedback[0]).toMatchObject({ status: 'completed', surveyId: 'post-survey-1' })
+    current.deferredFeedback[0].surveyId = 'missing-survey'
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/does not reference/i)
   })
 
   it('round-trips a source-ready substitution event without losing its decision context', () => {

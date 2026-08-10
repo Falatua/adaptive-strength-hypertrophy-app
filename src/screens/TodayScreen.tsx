@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, Footprints, HelpCircle, RotateCcw, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
-import { recommendProgression, volumeLoad } from '../domain/training-engine'
+import { useEffect, useState } from 'react'
+import { AlarmClock, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, Footprints, HelpCircle, RotateCcw, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
+import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import type { EffectiveSurveyMode, MissedSessionReason, SurveyAnswer } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
@@ -8,16 +8,19 @@ import { PixelAvatar } from '../components/PixelAvatar'
 import { StatCard } from '../components/StatCard'
 import { SurveyModal } from '../components/SurveyModal'
 import { SurveyModeChooser } from '../components/SurveyModeChooser'
+import { PostSurveyModal } from '../components/PostSurveyModal'
+import { pendingDeferredFeedback } from '../domain/survey-engine'
 
 const timeOptions = [15, 30, 45, 60, 75]
 
 export function TodayScreen() {
-  const { athlete, settings, updateSettings, sessions, exercises, history, startSession, setReadiness, markMissed, records, setNav } = useAppStore()
+  const { athlete, settings, updateSettings, sessions, exercises, history, startSession, setReadiness, markMissed, records, setNav, deferredFeedback, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
   const [surveyOpen, setSurveyOpen] = useState(false)
   const [surveyChooserOpen, setSurveyChooserOpen] = useState(false)
   const [activeSurveyMode, setActiveSurveyMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
   const [whyOpen, setWhyOpen] = useState(false)
   const [missedOpen, setMissedOpen] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [missReason, setMissReason] = useState<MissedSessionReason>({ reason: 'family', nextMinutes: 45, continuing: true })
   const nextSession = sessions.find((session) => ['planned', 'deferred'].includes(session.status)) ?? sessions[0]
   const primaryPlan = nextSession?.exercises.find((exercise) => exercise.role === 'primary')
@@ -30,6 +33,16 @@ export function TodayScreen() {
     ? `${recentRecord.value.toLocaleString()}${recentRecord.unit === 'repetitions' ? ' reps' : ` ${settings.units}`}`
     : 'No record'
   const today = new Date()
+  const feedbackRequest = pendingDeferredFeedback(deferredFeedback, today)[0]
+  const feedbackSession = sessions.find((session) => session.id === feedbackRequest?.sessionId)
+  const feedbackSets = history.filter((workSet) => workSet.sessionId === feedbackRequest?.sessionId)
+  const feedbackVolume = volumeLoad(feedbackSets)
+  const feedbackEstimatedStrength = Math.max(0, ...feedbackSets.map((workSet) => estimatedOneRepMax(workSet.load, workSet.reps)))
+  const feedbackTotalSets = feedbackSession?.exercises.flatMap((exercise) => exercise.sets).length ?? feedbackSets.length
+
+  useEffect(() => {
+    expireDeferredFeedback()
+  }, [expireDeferredFeedback])
 
   const progression = recommendProgression({
     history: primaryHistory,
@@ -75,6 +88,12 @@ export function TodayScreen() {
         </div>
         <div className="local-pill"><CloudOff size={16} /><span>Local first<strong>Saved on this device</strong></span></div>
       </header>
+
+      {feedbackRequest && feedbackSession && <section className="feedback-followup" aria-label="Optional session feedback">
+        <span className="feedback-followup__icon"><AlarmClock size={20} /></span>
+        <div><p className="eyebrow">Optional follow-up · never blocks training</p><strong>{feedbackSession.title}</strong><small>{feedbackRequest.mode} feedback expires {new Date(feedbackRequest.expiresAt).toLocaleString()}</small></div>
+        <div className="feedback-followup__actions"><button className="button button--small button--primary" onClick={() => setFeedbackOpen(true)}>Add feedback</button><button className="button button--small button--ghost" onClick={() => dismissDeferredFeedback(feedbackRequest.id)}>Dismiss</button></div>
+      </section>}
 
       <section className="hero-workout">
         <div className="hero-workout__content">
@@ -139,6 +158,22 @@ export function TodayScreen() {
 
       <SurveyModeChooser open={surveyChooserOpen} cadence="pre" onClose={() => setSurveyChooserOpen(false)} onChoose={(mode) => { setActiveSurveyMode(mode); setSurveyChooserOpen(false); setSurveyOpen(true) }} onSkip={() => begin([], true, 'off')} />
       {surveyOpen && <SurveyModal open mode={activeSurveyMode} onClose={() => setSurveyOpen(false)} onSubmit={(answers) => begin(answers, false, activeSurveyMode)} onSkip={() => begin([], true, activeSurveyMode)} />}
+
+      {feedbackOpen && feedbackRequest && feedbackSession && <PostSurveyModal
+        open
+        followUp
+        mode={feedbackRequest.mode}
+        completedSets={feedbackSets.length}
+        totalSets={feedbackTotalSets}
+        volume={feedbackVolume}
+        estimatedStrength={feedbackEstimatedStrength}
+        onClose={() => setFeedbackOpen(false)}
+        onSkip={() => { dismissDeferredFeedback(feedbackRequest.id); setFeedbackOpen(false) }}
+        onSubmit={(answers, note) => {
+          const result = submitDeferredFeedback(feedbackRequest.id, answers, note)
+          if (result.ok) setFeedbackOpen(false)
+        }}
+      />}
 
       <Modal open={whyOpen} onClose={() => setWhyOpen(false)} title="Why this session is next" description="ForgePath shows the rule inputs instead of hiding them in an AI score.">
         <div className="reason-stack">

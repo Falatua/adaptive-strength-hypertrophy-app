@@ -3,6 +3,7 @@ import type {
   AthleteProfile,
   CompletedSetRecord,
   CycleReviewEvent,
+  DeferredFeedbackRequest,
   Exercise,
   ExerciseSubstitutionEvent,
   HistoryMutationEvent,
@@ -15,8 +16,8 @@ import { derivePersonalRecords } from './history-engine'
 import { summarizeSurveyEvidence } from './survey-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 8
-export const BACKUP_APP_VERSION = '0.8.0'
+export const BACKUP_SCHEMA_VERSION = 9
+export const BACKUP_APP_VERSION = '0.9.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode'> = {
   celebrationLevel: 'subtle',
@@ -33,6 +34,7 @@ export interface RestorableAppState {
   sessions: TrainingSession[]
   history: CompletedSetRecord[]
   surveys: SurveyRecord[]
+  deferredFeedback: DeferredFeedbackRequest[]
   records: PersonalRecord[]
   historyMutations: HistoryMutationEvent[]
   cycleReviews: CycleReviewEvent[]
@@ -63,6 +65,7 @@ export interface BackupPreview {
     sessions: number
     completedSets: number
     surveys: number
+    deferredFeedback: number
     records: number
     planVersions: number
     historyChanges: number
@@ -137,7 +140,7 @@ function requireUniqueIds(values: unknown[], label: string, errors: string[]) {
 function validateState(candidate: unknown): asserts candidate is RestorableAppState {
   if (!isRecord(candidate)) throw new Error('Backup data is missing or invalid.')
   const errors: string[] = []
-  const arrays = ['exercises', 'sessions', 'history', 'surveys', 'records', 'mesocycles', 'historyMutations', 'cycleReviews', 'substitutionEvents'] as const
+  const arrays = ['exercises', 'sessions', 'history', 'surveys', 'deferredFeedback', 'records', 'mesocycles', 'historyMutations', 'cycleReviews', 'substitutionEvents'] as const
   arrays.forEach((key) => {
     if (!Array.isArray(candidate[key])) errors.push(`${key} must be an array.`)
     else if (candidate[key].length > 500_000) errors.push(`${key} exceeds the private-alpha restore limit.`)
@@ -153,6 +156,7 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   const sessions = candidate.sessions as unknown[]
   const history = candidate.history as unknown[]
   const surveys = candidate.surveys as unknown[]
+  const deferredFeedback = candidate.deferredFeedback as unknown[]
   const records = candidate.records as unknown[]
   const mesocycles = candidate.mesocycles as unknown[]
   const historyMutations = candidate.historyMutations as unknown[]
@@ -162,6 +166,7 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   requireUniqueIds(sessions, 'Sessions', errors)
   requireUniqueIds(history, 'Completed sets', errors)
   requireUniqueIds(surveys, 'Surveys', errors)
+  requireUniqueIds(deferredFeedback, 'Deferred feedback requests', errors)
   requireUniqueIds(records, 'Records', errors)
   requireUniqueIds(mesocycles, 'Mesocycles', errors)
   requireUniqueIds(historyMutations, 'History changes', errors)
@@ -172,6 +177,7 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   const sessionIds = new Set(sessions.flatMap((session) => isRecord(session) && typeof session.id === 'string' ? [session.id] : []))
   const mesocycleIds = new Set(mesocycles.flatMap((plan) => isRecord(plan) && typeof plan.id === 'string' ? [plan.id] : []))
   const completedSetIds = new Set(history.flatMap((workSet) => isRecord(workSet) && typeof workSet.id === 'string' ? [workSet.id] : []))
+  const surveyIds = new Set(surveys.flatMap((survey) => isRecord(survey) && typeof survey.id === 'string' ? [survey.id] : []))
   const substitutionEventIds = new Set(substitutionEvents.flatMap((event) => isRecord(event) && typeof event.id === 'string' ? [event.id] : []))
 
   exercises.forEach((exercise) => {
@@ -219,6 +225,23 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
     if (isRecord(survey) && Array.isArray(survey.answers) && typeof survey.skipped === 'boolean' && survey.answeredCount !== undefined && survey.unknownCount !== undefined && survey.confidence !== undefined) {
       const evidence = summarizeSurveyEvidence(survey.answers as SurveyRecord['answers'], survey.skipped)
       if (survey.answeredCount !== evidence.answeredCount || survey.unknownCount !== evidence.unknownCount || survey.confidence !== evidence.confidence) errors.push('A survey record does not reconcile with its answer evidence.')
+    }
+  })
+
+  deferredFeedback.forEach((request) => {
+    if (!isRecord(request) || typeof request.sessionId !== 'string' || !sessionIds.has(request.sessionId) || !['full', 'quick', 'minimal'].includes(String(request.mode)) || !['pending', 'completed', 'dismissed', 'expired'].includes(String(request.status)) || !isValidDate(request.createdAt) || !isValidDate(request.expiresAt)) {
+      errors.push('A deferred feedback request is invalid.')
+      return
+    }
+    if (new Date(String(request.expiresAt)).getTime() <= new Date(String(request.createdAt)).getTime()) errors.push('A deferred feedback request has an invalid expiry window.')
+    if (request.status === 'pending' && (request.resolvedAt !== undefined || request.surveyId !== undefined)) errors.push('A pending feedback request cannot already be resolved.')
+    if (request.status !== 'pending' && !isValidDate(request.resolvedAt)) errors.push('A resolved feedback request is missing its resolution date.')
+    if (['completed', 'dismissed'].includes(String(request.status)) && (typeof request.surveyId !== 'string' || !surveyIds.has(request.surveyId))) errors.push('A resolved feedback request does not reference its post-session survey.')
+    if (request.status === 'expired' && request.surveyId !== undefined) errors.push('An expired feedback request cannot invent a survey response.')
+    if (typeof request.surveyId === 'string') {
+      const survey = surveys.find((candidateSurvey) => isRecord(candidateSurvey) && candidateSurvey.id === request.surveyId)
+      if (!isRecord(survey) || survey.sessionId !== request.sessionId || survey.type !== 'post') errors.push('A deferred feedback request references the wrong survey.')
+      if (request.status === 'dismissed' && isRecord(survey) && survey.skipped !== true) errors.push('Dismissed deferred feedback must remain an explicitly skipped survey.')
     }
   })
 
@@ -295,6 +318,7 @@ function migrateLegacyV1(candidate: Record<string, unknown>): { data: Restorable
     sessions: candidate.sessions,
     history: candidate.history,
     surveys: Array.isArray(candidate.surveys) ? candidate.surveys : [],
+    deferredFeedback: [],
     records: derivePersonalRecords((candidate.history as CompletedSetRecord[]) ?? []),
     mesocycles: [],
     historyMutations: [],
@@ -326,6 +350,7 @@ function migrateV2(candidate: Record<string, unknown>): { data: RestorableAppSta
     historyMutations: [],
     cycleReviews: [],
     substitutionEvents: [],
+    deferredFeedback: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
   validateState(data)
@@ -346,6 +371,7 @@ function migrateV3(candidate: Record<string, unknown>): { data: RestorableAppSta
     historyMutations: [],
     cycleReviews: [],
     substitutionEvents: [],
+    deferredFeedback: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
   validateState(data)
@@ -366,6 +392,7 @@ function migrateV4(candidate: Record<string, unknown>): { data: RestorableAppSta
     historyMutations: replayHistoryMutationRecords(candidate.data.historyMutations),
     cycleReviews: [],
     substitutionEvents: [],
+    deferredFeedback: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
   validateState(data)
@@ -380,7 +407,7 @@ function migrateV6(candidate: Record<string, unknown>): { data: RestorableAppSta
   if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
   if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
-  const data = { ...candidate.data, substitutionEvents: [] }
+  const data = { ...candidate.data, substitutionEvents: [], deferredFeedback: [] }
   validateState(data)
   return {
     data,
@@ -393,7 +420,7 @@ function migrateV7(candidate: Record<string, unknown>): { data: RestorableAppSta
   if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
   if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
-  const data = { ...candidate.data, settings: normalizeSettings(candidate.data.settings) }
+  const data = { ...candidate.data, settings: normalizeSettings(candidate.data.settings), deferredFeedback: [] }
   validateState(data)
   return {
     data,
@@ -411,6 +438,7 @@ function migrateV5(candidate: Record<string, unknown>): { data: RestorableAppSta
     settings: normalizeSettings(candidate.data.settings),
     historyMutations: replayHistoryMutationRecords(candidate.data.historyMutations),
     substitutionEvents: [],
+    deferredFeedback: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
   validateState(data)
@@ -418,6 +446,19 @@ function migrateV5(candidate: Record<string, unknown>): { data: RestorableAppSta
     data,
     exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
     warning: 'Version 5 backup migrated safely. Completed source sets were replayed through expanded record definitions and celebration controls use quiet defaults.'
+  }
+}
+
+function migrateV8(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = { ...candidate.data, settings: normalizeSettings(candidate.data.settings), deferredFeedback: [] }
+  validateState(data)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 8 backup migrated safely. Existing workout and survey evidence is intact; the optional deferred-feedback ledger starts empty.'
   }
 }
 
@@ -464,6 +505,10 @@ export function parseBackup(raw: string): BackupPreview {
     const migrated = migrateV7(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 8) {
+    const migrated = migrateV8(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
@@ -480,6 +525,7 @@ export function parseBackup(raw: string): BackupPreview {
       sessions: backup.data.sessions.length,
       completedSets: backup.data.history.length,
       surveys: backup.data.surveys.length,
+      deferredFeedback: backup.data.deferredFeedback.length,
       records: backup.data.records.length,
       planVersions: backup.data.mesocycles.length,
       historyChanges: backup.data.historyMutations.length,
@@ -499,6 +545,7 @@ export function backupStateFrom(source: RestorableAppState): RestorableAppState 
     sessions: structuredClone(source.sessions),
     history: structuredClone(source.history),
     surveys: structuredClone(source.surveys),
+    deferredFeedback: structuredClone(source.deferredFeedback),
     records: structuredClone(source.records),
     historyMutations: structuredClone(source.historyMutations),
     cycleReviews: structuredClone(source.cycleReviews),

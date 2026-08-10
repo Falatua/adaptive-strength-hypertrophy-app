@@ -93,6 +93,12 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     setFinishChooserOpen(false)
   }
 
+  const finishWithDeferredFeedback = () => {
+    finishSession(session.id, { answers: [], skipped: false, mode: activePostMode, deferred: true })
+    setFinishOpen(false)
+    setFinishChooserOpen(false)
+  }
+
   const openFinishFlow = () => {
     if (settings.postSurveyMode === 'off') return finishWithoutSurvey('off')
     if (settings.postSurveyMode === 'ask') return setFinishChooserOpen(true)
@@ -235,6 +241,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         estimatedStrength={bestEstimatedStrength}
         onClose={() => setFinishOpen(false)}
         onSkip={() => finishWithoutSurvey(activePostMode)}
+        onDefer={finishWithDeferredFeedback}
         onSubmit={(answers, feedbackNote) => {
           finishSession(session.id, { answers, note: feedbackNote, skipped: false, mode: activePostMode })
           setFinishOpen(false)
