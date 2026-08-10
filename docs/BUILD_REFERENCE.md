@@ -27,7 +27,10 @@ The first implementation is governed by the complete R-001 through R-289 registe
 - Exact exercise history, canonical IDs, aliases, duplicate warnings, preferences, and joint response.
 - Educated exercise replacement with preserved exact-movement clocks.
 - Daily and weekly volume, body-region views, records, and micro wins.
+- Real daily, weekly, rolling-28-day, calendar-month, yearly, and all-time filters with source-set reconciliation.
+- Exclusive primary-region and upper-body, lower-body, arms, and trunk volume lenses.
 - Athlete model, survey controls, focused mode, data export, and local reset.
+- Version 2 open-JSON backup with integrity checks, schema migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
 - Original pixel-adventure visual language and installable PWA shell.
 - Accurate completed, partial-primary, and partial-without-primary session states.
 
@@ -40,6 +43,8 @@ The first implementation is governed by the complete R-001 through R-289 registe
 - Replace a primary exercise from ranked candidates while freezing the original exact-movement clock.
 - Finish a partial session with or without feedback and update progress only from completed sets.
 - Navigate Today, Plan, Progress, Library, and You on desktop and a 390 px phone viewport.
+- Export a complete local backup, validate and preview it, restore it, and recover the pre-restore state.
+- Switch every progress horizon and prove chart, body-lens, and headline totals equal the selected completed source sets.
 
 ## Deliberately Deferred
 

@@ -207,7 +207,7 @@ export const history: CompletedSetRecord[] = Array.from({ length: 7 }, (_, week)
   historyTemplate.flatMap((item, itemIndex) =>
     Array.from({ length: itemIndex % 3 === 0 ? 4 : 3 }, (_, setIndex) => ({
       id: nanoid(),
-      sessionId: `history-${week}-${itemIndex}`,
+      sessionId: `history-${week}-${itemIndex % 3}`,
       exerciseId: item.exerciseId,
       exerciseName: item.name,
       family: item.family,

@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { athlete as seedAthlete, exercises as seedExercises, history as seedHistory, records as seedRecords, sessions as seedSessions } from '../domain/seed'
 import { compressSession, readinessFromSurvey, replanAfterMiss, sessionCompletionStatus } from '../domain/training-engine'
+import { backupStateFrom, type RestorableAppState } from '../domain/backup'
 import type {
   AppSettings,
   AthleteProfile,
@@ -27,6 +28,7 @@ interface AppState {
   records: PersonalRecord[]
   activeSessionId: string | null
   onboardingComplete: boolean
+  recoverySnapshot: RestorableAppState | null
   notice: string | null
   setNav: (nav: NavKey) => void
   setNotice: (notice: string | null) => void
@@ -44,6 +46,8 @@ interface AppState {
   toggleFavorite: (exerciseId: string) => void
   setJointFeeling: (exerciseId: string, jointFeeling: Exercise['jointFeeling']) => void
   addCustomExercise: (exercise: Exercise) => void
+  restoreBackup: (data: RestorableAppState) => void
+  undoLastRestore: () => void
   resetDemo: () => void
 }
 
@@ -68,7 +72,8 @@ const fresh = () => ({
   surveys: [] as SurveyRecord[],
   records: structuredClone(seedRecords),
   activeSessionId: null,
-  onboardingComplete: false
+  onboardingComplete: false,
+  recoverySnapshot: null as RestorableAppState | null
 })
 
 export const useAppStore = create<AppState>()(
@@ -181,6 +186,18 @@ export const useAppStore = create<AppState>()(
       toggleFavorite: (exerciseId) => set((state) => ({ exercises: state.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, favorite: !exercise.favorite } : exercise) })),
       setJointFeeling: (exerciseId, jointFeeling) => set((state) => ({ exercises: state.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, jointFeeling } : exercise) })),
       addCustomExercise: (exercise) => set((state) => ({ exercises: [...state.exercises, exercise] })),
+      restoreBackup: (data) => set((state) => ({
+        ...backupStateFrom(data),
+        recoverySnapshot: backupStateFrom(state),
+        nav: data.activeSessionId ? state.nav : 'today',
+        notice: `Backup restored: ${data.history.length} completed sets and ${data.exercises.length} exercises are active.`
+      })),
+      undoLastRestore: () => set((state) => state.recoverySnapshot ? ({
+        ...backupStateFrom(state.recoverySnapshot),
+        recoverySnapshot: null,
+        nav: 'you',
+        notice: 'The previous local state has been restored.'
+      }) : ({ notice: 'No restore point is available.' })),
       resetDemo: () => set({ nav: 'today', notice: 'Local demo data restored.', ...fresh() })
     }),
     {
@@ -195,7 +212,8 @@ export const useAppStore = create<AppState>()(
         surveys: state.surveys,
         records: state.records,
         activeSessionId: state.activeSessionId,
-        onboardingComplete: state.onboardingComplete
+        onboardingComplete: state.onboardingComplete,
+        recoverySnapshot: state.recoverySnapshot
       })
     }
   )

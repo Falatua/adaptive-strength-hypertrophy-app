@@ -1,24 +1,48 @@
-import { useState } from 'react'
-import { Bell, BrainCircuit, Database, Download, Dumbbell, Eye, HardDrive, MapPin, Moon, RotateCcw, ShieldCheck, Sparkles, UserRound } from 'lucide-react'
+import { useRef, useState, type ChangeEvent } from 'react'
+import { AlertTriangle, Bell, BrainCircuit, Database, Download, Dumbbell, Eye, FileCheck2, HardDrive, MapPin, Moon, RotateCcw, ShieldCheck, Sparkles, Undo2, Upload, UserRound } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import type { SurveyMode } from '../domain/types'
 import { Modal } from '../components/Modal'
 import { PixelAvatar } from '../components/PixelAvatar'
+import { createBackup, parseBackup, type BackupPreview } from '../domain/backup'
 
 export function YouScreen() {
-  const { athlete, settings, updateSettings, history, exercises, sessions, records, resetDemo, setNotice } = useAppStore()
+  const {
+    athlete, settings, updateSettings, history, exercises, sessions, surveys, records,
+    activeSessionId, onboardingComplete, recoverySnapshot, restoreBackup, undoLastRestore,
+    resetDemo, setNotice
+  } = useAppStore()
   const [resetOpen, setResetOpen] = useState(false)
+  const [importPreview, setImportPreview] = useState<BackupPreview | null>(null)
+  const [importError, setImportError] = useState<string | null>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
 
   const exportData = () => {
-    const payload = { exportedAt: new Date().toISOString(), version: 1, athlete, settings, history, exercises, sessions, records }
+    const payload = createBackup({ athlete, settings, history, exercises, sessions, surveys, records, activeSessionId, onboardingComplete })
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `forgepath-export-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `forgepath-backup-v2-${new Date().toISOString().slice(0, 10)}.json`
     anchor.click()
     URL.revokeObjectURL(url)
-    setNotice('Private training export created as open JSON.')
+    setNotice('Verified version 2 backup created as open JSON.')
+  }
+
+  const readImport = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setImportError(null)
+    if (file.size > 25 * 1024 * 1024) {
+      setImportError('That backup is larger than the 25 MB private-alpha restore limit.')
+      return
+    }
+    try {
+      setImportPreview(parseBackup(await file.text()))
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'The backup could not be read.')
+    }
   }
 
   const surveyModes: SurveyMode[] = ['full', 'quick', 'minimal', 'off', 'ask']
@@ -56,8 +80,18 @@ export function YouScreen() {
         </div>
 
         <aside className="settings-aside">
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">Local data</p><h3>Private by default</h3></div><ShieldCheck size={19} /></div><div className="privacy-status"><HardDrive size={28} /><strong>Stored on this device</strong><p>Workout execution and deterministic rules do not need Supabase or a language-model API.</p></div><button className="full-row-button" onClick={exportData}><Download size={17} /> Export open JSON</button></section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.1.0 private alpha</strong></li><li><span>Rules</span><strong>0.1 load-first</strong></li><li><span>Calculations</span><strong>Volume v1</strong></li><li><span>Persistence</span><strong>Local v1</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel">
+            <div className="panel__header"><div><p className="eyebrow">Local data</p><h3>Backup and recovery</h3></div><ShieldCheck size={19} /></div>
+            <div className="privacy-status"><HardDrive size={28} /><strong>Stored on this device</strong><p>Workout execution and deterministic rules do not need Supabase or a language-model API.</p></div>
+            <div className="data-actions">
+              <button className="full-row-button" onClick={exportData}><Download size={17} /> Export verified backup</button>
+              <button className="full-row-button" onClick={() => fileInput.current?.click()}><Upload size={17} /> Preview and restore</button>
+              <input ref={fileInput} className="sr-only" type="file" accept="application/json,.json" onChange={readImport} aria-label="Choose ForgePath backup to restore" />
+            </div>
+            {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
+            {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
+          </section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.2.0 private alpha</strong></li><li><span>Rules</span><strong>0.1 load-first</strong></li><li><span>Calculations</span><strong>Volume v2 · reconciled</strong></li><li><span>Backup schema</span><strong>Version 2</strong></li><li><span>Persistence</span><strong>Local v1</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Reset private alpha</button>
         </aside>
@@ -66,6 +100,22 @@ export function YouScreen() {
 
       <Modal open={resetOpen} onClose={() => setResetOpen(false)} title="Reset local app data" description="This replaces current local changes with the private-alpha demonstration profile. Export first if you want a recoverable copy.">
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setResetOpen(false)}>Keep my data</button><button className="button button--danger" onClick={() => { resetDemo(); setResetOpen(false) }}>Reset local data</button></div>
+      </Modal>
+
+      <Modal open={Boolean(importPreview)} onClose={() => setImportPreview(null)} title="Preview backup before restore" description="The file has passed format, integrity, identity, reference, date, and numeric-data checks. Nothing changes until you confirm.">
+        {importPreview && <>
+          <div className="backup-identity"><FileCheck2 size={28} /><div><span>Schema {importPreview.backup.schemaVersion} · App {importPreview.backup.appVersion}</span><strong>{importPreview.summary.athleteName}'s training data</strong><small>Exported {new Date(importPreview.summary.exportedAt).toLocaleString()}</small></div></div>
+          <div className="backup-summary">
+            <div><small>Completed sets</small><strong>{importPreview.summary.completedSets.toLocaleString()}</strong></div>
+            <div><small>Exercises</small><strong>{importPreview.summary.exercises}</strong></div>
+            <div><small>Sessions</small><strong>{importPreview.summary.sessions}</strong></div>
+            <div><small>Surveys</small><strong>{importPreview.summary.surveys}</strong></div>
+            <div><small>Records</small><strong>{importPreview.summary.records}</strong></div>
+          </div>
+          {importPreview.warnings.map((warning) => <div className="warning-box" key={warning}><AlertTriangle size={17} />{warning}</div>)}
+          <p className="modal-note">ForgePath will keep one automatic copy of your current local state so this restore can be undone. Exporting the current state first remains the safest long-term backup.</p>
+          <div className="modal__actions"><button className="button button--ghost" onClick={() => setImportPreview(null)}>Cancel</button><button className="button button--ghost" onClick={exportData}>Export current first</button><button className="button button--primary" onClick={() => { restoreBackup(importPreview.backup.data); setImportPreview(null) }}>Restore validated backup</button></div>
+        </>}
       </Modal>
     </div>
   )

@@ -1,4 +1,4 @@
-# ForgePath Private Alpha
+# ForgePath Private Alpha 0.2.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
@@ -30,10 +30,12 @@ npm run check
 
 ## Current verification
 
-- 14 deterministic domain tests
+- 23 deterministic domain tests
 - lint clean
 - production PWA build clean
 - desktop and 390 px phone browser journeys checked
 - reload persistence, survey skip paths, substitutions, partial sessions, and progress updates verified
+- versioned backup export, validation, restore, malformed-file rejection, and one-step restore undo verified
+- daily, weekly, rolling 28-day, calendar-month, yearly, and all-time analytics reconcile to completed source sets
 
 Read [docs/BUILD_REFERENCE.md](docs/BUILD_REFERENCE.md) before changing product behavior.
