@@ -12,6 +12,7 @@ import { buildDeferredFeedbackRequest, expireDeferredFeedbackRequests, summarize
 import { projectExerciseCatalogEdit, type ExerciseCatalogInput } from '../domain/catalog-engine'
 import { equipmentProfileError, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad, normalizedEquipmentProfile } from '../domain/equipment-engine'
 import { legacyPlacementForAthlete, placementRouteLabels } from '../domain/placement-engine'
+import { beginPlacementVerification, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery, revisePlacementSessionEvidence } from '../domain/placement-verification-engine'
 import type {
   AppSettings,
   AthleteProfile,
@@ -29,6 +30,9 @@ import type {
   MissedSessionReason,
   NavKey,
   PersonalRecord,
+  PlacementRecoveryResponse,
+  PlacementVerificationEvent,
+  PlacementWarmupResponse,
   SurveyAnswer,
   SurveyRecord,
   SubstitutionReason,
@@ -50,6 +54,7 @@ interface AppState {
   historyMutations: HistoryMutationEvent[]
   cycleReviews: CycleReviewEvent[]
   substitutionEvents: ExerciseSubstitutionEvent[]
+  placementVerifications: PlacementVerificationEvent[]
   activeMesocycleId: string | null
   activeSessionId: string | null
   onboardingComplete: boolean
@@ -68,6 +73,8 @@ interface AppState {
   setReadiness: (sessionId: string, answers: SurveyAnswer[], skipped: boolean, mode: EffectiveSurveyMode) => void
   updateSet: (sessionId: string, plannedExerciseId: string, setId: string, data: { reps?: number; load?: number; rir?: number }) => void
   toggleSetComplete: (sessionId: string, plannedExerciseId: string, setId: string) => void
+  setPlacementWarmup: (sessionId: string, response: Exclude<PlacementWarmupResponse, 'not-answered'>) => void
+  resolvePlacementRecovery: (eventId: string, response: Exclude<PlacementRecoveryResponse, 'pending'>) => void
   swapExercise: (sessionId: string, plannedExerciseId: string, exerciseId: string, reason: SubstitutionReason, primaryOverrideConfirmed: boolean) => { ok: boolean; error?: string }
   finishSession: (sessionId: string, feedback: { answers: SurveyAnswer[]; note?: string; skipped: boolean; mode: EffectiveSurveyMode; deferred?: boolean }) => void
   submitDeferredFeedback: (requestId: string, answers: SurveyAnswer[], note?: string) => { ok: boolean; error?: string }
@@ -123,6 +130,7 @@ const fresh = () => ({
   historyMutations: [] as HistoryMutationEvent[],
   cycleReviews: [] as CycleReviewEvent[],
   substitutionEvents: [] as ExerciseSubstitutionEvent[],
+  placementVerifications: [] as PlacementVerificationEvent[],
   activeMesocycleId: seedMesocycles[0]?.id ?? null,
   activeSessionId: null,
   onboardingComplete: false,
@@ -226,15 +234,25 @@ export const useAppStore = create<AppState>()(
       startSession: (sessionId, availableMinutes) => set((state) => {
         const minutes = availableMinutes ?? state.settings.availableMinutes
         const equipmentProfile = state.equipmentProfiles.find((candidate) => candidate.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]
+        const startedAt = new Date().toISOString()
+        const placementEvents = state.placementVerifications.filter((event) => event.placementCreatedAt === state.athlete.placement.createdAt)
+        const shouldVerify = state.athlete.placement.selectedRoute !== 'pain-aware-modified'
+          && placementEvents.length < 3
+          && !placementEvents.some((event) => event.sessionId === sessionId)
+        const verification = shouldVerify ? beginPlacementVerification({
+          id: nanoid(), placement: state.athlete.placement, sessionId,
+          sequence: placementEvents.length + 1, startedAt
+        }) : null
         return {
           activeSessionId: sessionId,
+          placementVerifications: verification ? [...state.placementVerifications, verification] : state.placementVerifications,
           sessions: state.sessions.map((session) => {
             if (session.id !== sessionId) return session
             const compressed = compressSession(session, minutes)
             return {
               ...compressed,
               status: 'active' as const,
-              startedAt: new Date().toISOString(),
+              startedAt,
               exercises: compressed.exercises.map((planned) => {
                 const exercise = state.exercises.find((candidate) => candidate.id === planned.exerciseId)
                 if (!exercise || !equipmentProfile) return planned
@@ -299,6 +317,29 @@ export const useAppStore = create<AppState>()(
             } : candidateSet)
           })
         }) }
+      }),
+      setPlacementWarmup: (sessionId, response) => set((state) => ({
+        placementVerifications: state.placementVerifications.map((event) => event.sessionId === sessionId && event.placementCreatedAt === state.athlete.placement.createdAt
+          ? recordPlacementWarmup(event, response, new Date().toISOString())
+          : event),
+        notice: response === 'painful'
+          ? 'Pain noted. Modify or stop the affected movement. This placement check will require review before another automatic start.'
+          : response === 'harder'
+            ? 'Harder warm-up saved. Keep the first work set submaximal so the route can be checked honestly.'
+            : 'Warm-up response saved as placement evidence.'
+      })),
+      resolvePlacementRecovery: (eventId, response) => set((state) => {
+        const target = state.placementVerifications.find((event) => event.id === eventId)
+        if (!target || target.status !== 'awaiting-recovery') return { notice: 'That recovery check is no longer pending.' }
+        const resolved = resolvePlacementRecovery(target, response, new Date().toISOString())
+        return {
+          placementVerifications: state.placementVerifications.map((event) => event.id === eventId ? resolved : event),
+          notice: resolved.verdict === 'supports-route'
+            ? 'Recovery saved. This productive exposure supports the current starting route.'
+            : resolved.verdict === 'review-suggested'
+              ? 'Recovery saved. The evidence suggests reviewing placement before progressing aggressively.'
+              : 'Recovery remains unknown. Training history is preserved and placement confidence did not increase.'
+        }
       }),
       swapExercise: (sessionId, plannedExerciseId, exerciseId, reason, primaryOverrideConfirmed) => {
         const state = get()
@@ -388,6 +429,45 @@ export const useAppStore = create<AppState>()(
         const deferredRequest = feedback.deferred && feedback.mode !== 'off'
           ? buildDeferredFeedbackRequest({ id: nanoid(), sessionId, mode: feedback.mode, now: new Date(completedAt) })
           : null
+        const placementEvent = state.placementVerifications.find((event) => event.sessionId === sessionId && event.placementCreatedAt === state.athlete.placement.createdAt && event.status === 'active')
+        const primary = session.exercises.find((plannedExercise) => plannedExercise.role === 'primary')
+        const firstPrimarySet = primary?.sets.find((workSet) => workSet.completed)
+        const firstPrimarySetIndex = primary && firstPrimarySet ? primary.sets.findIndex((workSet) => workSet.id === firstPrimarySet.id) : -1
+        const firstSourceSet = primary && firstPrimarySetIndex >= 0
+          ? newHistory.find((workSet) => workSet.plannedExerciseId === primary.id && workSet.setIndex === firstPrimarySetIndex)
+          : undefined
+        const primaryExercise = primary ? state.exercises.find((exercise) => exercise.id === primary.exerciseId) : undefined
+        const plannedSets = session.exercises.flatMap((plannedExercise) => plannedExercise.sets).length
+        const actualMinutes = Math.max(1, Math.round((new Date(completedAt).getTime() - new Date(session.startedAt ?? completedAt).getTime()) / 60_000))
+        const completedPlacementEvent = placementEvent ? completePlacementVerification(placementEvent, {
+          firstSet: firstPrimarySet && firstSourceSet && primary && primaryExercise ? {
+            sourceSetId: firstSourceSet.id,
+            plannedExerciseId: primary.id,
+            exerciseId: primaryExercise.id,
+            exerciseName: primaryExercise.name,
+            targetLoad: firstPrimarySet.targetLoad,
+            targetReps: firstPrimarySet.targetReps,
+            targetRir: firstPrimarySet.targetRir,
+            actualLoad: firstPrimarySet.completedLoad ?? firstPrimarySet.targetLoad,
+            actualReps: firstPrimarySet.completedReps ?? firstPrimarySet.targetReps,
+            actualRir: firstPrimarySet.actualRir ?? firstPrimarySet.targetRir
+          } : null,
+          sessionEvidence: {
+            sessionStatus: status,
+            completedSets: newHistory.length,
+            plannedSets,
+            completionRate: plannedSets ? newHistory.length / plannedSets : 0,
+            plannedMinutes: session.durationMinutes,
+            actualMinutes,
+            readiness: session.readiness ?? null,
+            difficulty: feedbackValue('difficulty'),
+            technique: feedbackValue('technique'),
+            pain: feedbackValue('pain'),
+            timeFit: feedbackValue('timeFit'),
+            postSurveySkipped: feedback.skipped || feedback.deferred === true
+          },
+          completedAt
+        }) : null
         set((current) => {
           const history = [...current.history, ...newHistory]
           return {
@@ -411,11 +491,18 @@ export const useAppStore = create<AppState>()(
               } } : {})
             }
           }),
+          placementVerifications: completedPlacementEvent
+            ? current.placementVerifications.map((event) => event.id === completedPlacementEvent.id ? completedPlacementEvent : event)
+            : current.placementVerifications,
           activeSessionId: null,
           nav: 'progress',
           notice: deferredRequest
             ? `${newHistory.length} working sets saved. Optional feedback is available for 24 hours and will not block your next workout.`
-            : `${newHistory.length} working sets saved. Progress clocks updated from completed work only.`
+            : completedPlacementEvent?.status === 'awaiting-recovery'
+              ? `${newHistory.length} working sets saved. Placement evidence is waiting for an optional recovery check.`
+              : completedPlacementEvent?.verdict === 'reassessment-required'
+                ? `${newHistory.length} working sets saved. Pain evidence requires placement review before another automatic start.`
+                : `${newHistory.length} working sets saved. Progress clocks updated from completed work only.`
         }})
       },
       submitDeferredFeedback: (requestId, answers, note) => {
@@ -445,6 +532,16 @@ export const useAppStore = create<AppState>()(
           const answer = answers.find((candidate) => candidate.id === id && candidate.status === 'answered')
           return typeof answer?.value === 'number' ? answer.value : null
         }
+        const placementVerifications = state.placementVerifications.map((event) => event.sessionId === request.sessionId && event.sessionEvidence
+          ? revisePlacementSessionEvidence(event, {
+            ...event.sessionEvidence,
+            difficulty: feedbackValue('difficulty'),
+            technique: feedbackValue('technique'),
+            pain: feedbackValue('pain'),
+            timeFit: feedbackValue('timeFit'),
+            postSurveySkipped: false
+          })
+          : event)
         set({
           history,
           records: derivePersonalRecords(history),
@@ -457,6 +554,7 @@ export const useAppStore = create<AppState>()(
               technique: feedbackValue('technique'), pain: feedbackValue('pain'), enjoyment: feedbackValue('enjoyment'), skipped: false
             }
           } : event),
+          placementVerifications,
           deferredFeedback: state.deferredFeedback.map((candidate) => candidate.id === requestId
             ? { ...candidate, status: 'completed' as const, resolvedAt: now.toISOString(), surveyId }
             : candidate),
@@ -749,7 +847,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 10,
+      version: 11,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,
@@ -763,6 +861,7 @@ export const useAppStore = create<AppState>()(
         historyMutations: state.historyMutations,
         cycleReviews: state.cycleReviews,
         substitutionEvents: state.substitutionEvents,
+        placementVerifications: state.placementVerifications,
         mesocycles: state.mesocycles,
         activeMesocycleId: state.activeMesocycleId,
         activeSessionId: state.activeSessionId,
@@ -799,6 +898,7 @@ export const useAppStore = create<AppState>()(
           })),
           cycleReviews: persisted.cycleReviews ?? [],
           substitutionEvents: persisted.substitutionEvents ?? [],
+          placementVerifications: persisted.placementVerifications ?? [],
           deferredFeedback: persisted.deferredFeedback ?? [],
           records: derivePersonalRecords(persisted.history ?? [])
         }

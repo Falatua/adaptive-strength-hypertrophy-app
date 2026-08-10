@@ -9,6 +9,7 @@ import { Modal } from '../components/Modal'
 import { PostSurveyModal } from '../components/PostSurveyModal'
 import { SurveyModeChooser } from '../components/SurveyModeChooser'
 import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '../domain/equipment-engine'
+import { placementRouteLabels } from '../domain/placement-engine'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary anchor',
@@ -19,7 +20,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, equipmentProfiles, history, settings, updateSet, toggleSetComplete, swapExercise, skipExercise, finishSession, setNotice } = useAppStore()
+  const { sessions, exercises, equipmentProfiles, history, settings, placementVerifications, updateSet, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, finishSession, setNotice } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
@@ -55,6 +56,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   }, [timerRunning])
 
   if (!session) return null
+
+  const placementVerification = placementVerifications.find((event) => event.sessionId === session.id && event.status === 'active')
 
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const equipmentGaps = sessionEquipmentGaps(session, exercises, activeEquipmentProfile)
@@ -138,7 +141,20 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
       </header>
 
       <main className="workout-main">
-        {!warmupConfirmed && session.readiness && session.readiness !== 'normal' && (
+        {placementVerification && (
+          <section className={`warmup-check placement-session-check ${placementVerification.warmupResponse !== 'not-answered' ? 'is-captured' : ''}`} aria-label="Placement verification warm-up">
+            <div><Sparkles size={20} /><span><strong>Placement check {placementVerification.sequence} of 3</strong><small>{placementRouteLabels[placementVerification.placementRoute]} is a hypothesis. Use a submaximal warm-up and answer only if useful.</small></span></div>
+            {placementVerification.warmupResponse === 'not-answered' ? <div>
+              <button onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'better') }}>Better</button>
+              <button onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'as-expected') }}>As expected</button>
+              <button onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'harder') }}>Harder</button>
+              <button className="pain" onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'painful') }}>Painful</button>
+              <button className="text-button" onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'skipped') }}>Skip</button>
+            </div> : <div className="placement-session-check__saved"><Check size={17} /><span><strong>Warm-up saved</strong><small>{placementVerification.warmupResponse.replace('-', ' ')}</small></span></div>}
+          </section>
+        )}
+
+        {!placementVerification && !warmupConfirmed && session.readiness && session.readiness !== 'normal' && (
           <section className="warmup-check">
             <div><Sparkles size={20} /><span><strong>Warm-up confirmation</strong><small>Readiness is {session.readiness}. Let performance confirm the plan.</small></span></div>
             <div><button onClick={() => setWarmupConfirmed(true)}>Better</button><button onClick={() => setWarmupConfirmed(true)}>Normal</button><button onClick={() => { setWarmupConfirmed(true); setNotice('Keep the anchor conservative and monitor the first set.') }}>Harder</button><button className="pain" onClick={() => { setWarmupConfirmed(true); setNotice('Pain-aware mode: change or stop the affected movement.') }}>Painful</button><button className="text-button" onClick={() => setWarmupConfirmed(true)}>Skip</button></div>

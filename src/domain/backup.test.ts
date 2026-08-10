@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { athlete, equipmentProfiles, exercises, history, mesocycles, records, sessions } from './seed'
 import { BACKUP_FORMAT, BACKUP_SCHEMA_VERSION, backupStateFrom, createBackup, fnv1a32, parseBackup, type RestorableAppState } from './backup'
 import { derivePersonalRecords, historyVolume } from './history-engine'
+import { beginPlacementVerification, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery } from './placement-verification-engine'
 
 const stable = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`
@@ -29,6 +30,7 @@ const state = (): RestorableAppState => ({
   historyMutations: [],
   cycleReviews: [],
   substitutionEvents: [],
+  placementVerifications: [],
   mesocycles: structuredClone(mesocycles),
   activeMesocycleId: mesocycles[0].id,
   activeSessionId: null,
@@ -47,6 +49,7 @@ describe('versioned backup and restore', () => {
     expect(parsed.summary.historyChanges).toBe(0)
     expect(parsed.summary.cycleReviews).toBe(0)
     expect(parsed.summary.substitutions).toBe(0)
+    expect(parsed.summary.placementChecks).toBe(0)
     expect(parsed.summary.equipmentProfiles).toBe(3)
     expect(parsed.summary.placementRoute).toBe('Base-Building Cycle')
     expect(parsed.summary.placementConfidence).toBe('high')
@@ -258,6 +261,18 @@ describe('versioned backup and restore', () => {
     expect(parsed.warnings[0]).toMatch(/version 11/i)
   })
 
+  it('migrates a verified version 12 backup without inventing productive verification evidence', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    delete legacyData.placementVerifications
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 12, appVersion: '0.18.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.placementVerifications).toEqual([])
+    expect(parsed.warnings[0]).toMatch(/version 12/i)
+  })
+
   it('rejects placement tampering and a route label that disagrees with its evidence', () => {
     const invalidDimension = state()
     invalidDimension.athlete.placement.dimensions.movementSkill = 7
@@ -266,6 +281,36 @@ describe('versioned backup and restore', () => {
     const invalidRoute = state()
     invalidRoute.athlete.entryRoute = 'Introductory Skill Cycle'
     expect(() => parseBackup(JSON.stringify(createBackup(invalidRoute)))).toThrow(/entry route/i)
+  })
+
+  it('round-trips source-linked productive placement verification and rejects a forged verdict', () => {
+    const current = state()
+    const session = current.sessions[0]
+    const planned = session.exercises.find((exercise) => exercise.role === 'primary')!
+    const exercise = current.exercises.find((candidate) => candidate.id === planned.exerciseId)!
+    const sourceSet = {
+      ...structuredClone(current.history[0]), id: 'placement-source-set', sessionId: session.id,
+      exerciseId: exercise.id, exerciseName: exercise.name, family: exercise.family, primaryRegion: exercise.primaryRegion,
+      completedAt: '2026-08-10T12:00:00.000Z', reps: 5, load: 180, rir: 2, technique: 4, pain: 0,
+      qualityConfirmed: true, setIndex: 0, plannedExerciseId: planned.id
+    }
+    current.history.push(sourceSet)
+    current.records = derivePersonalRecords(current.history)
+    let event = beginPlacementVerification({ id: 'placement-check-1', placement: current.athlete.placement, sessionId: session.id, sequence: 1, startedAt: '2026-08-10T11:00:00.000Z' })
+    event = recordPlacementWarmup(event, 'as-expected', '2026-08-10T11:05:00.000Z')
+    event = completePlacementVerification(event, {
+      firstSet: { sourceSetId: sourceSet.id, plannedExerciseId: planned.id, exerciseId: exercise.id, exerciseName: exercise.name, targetLoad: 180, targetReps: 5, targetRir: 2, actualLoad: 180, actualReps: 5, actualRir: 2 },
+      sessionEvidence: { sessionStatus: 'completed', completedSets: 10, plannedSets: 10, completionRate: 1, plannedMinutes: 60, actualMinutes: 58, readiness: 'normal', difficulty: 7, technique: 4, pain: 0, timeFit: 4, postSurveySkipped: false },
+      completedAt: '2026-08-10T12:00:00.000Z'
+    })
+    event = resolvePlacementRecovery(event, 'recovered', '2026-08-11T10:00:00.000Z')
+    current.placementVerifications = [event]
+    const parsed = parseBackup(JSON.stringify(createBackup(current)))
+    expect(parsed.summary.placementChecks).toBe(1)
+    expect(parsed.backup.data.placementVerifications[0]).toMatchObject({ verdict: 'supports-route', firstSet: { sourceSetId: 'placement-source-set' } })
+
+    current.placementVerifications[0].verdict = 'review-suggested'
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/does not reconcile/i)
   })
 
   it('rejects invalid equipment profiles and an orphaned active profile', () => {

@@ -11,11 +11,12 @@ import { SurveyModeChooser } from '../components/SurveyModeChooser'
 import { PostSurveyModal } from '../components/PostSurveyModal'
 import { pendingDeferredFeedback } from '../domain/survey-engine'
 import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '../domain/equipment-engine'
+import { summarizePlacementVerification } from '../domain/placement-verification-engine'
 
 const timeOptions = [15, 30, 45, 60, 75]
 
 export function TodayScreen() {
-  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, startSession, setReadiness, markMissed, records, setNav, deferredFeedback, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
+  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, startSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
   const [surveyOpen, setSurveyOpen] = useState(false)
   const [surveyChooserOpen, setSurveyChooserOpen] = useState(false)
   const [activeSurveyMode, setActiveSurveyMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
@@ -31,7 +32,9 @@ export function TodayScreen() {
   const primaryHistory = history.filter((set) => set.exerciseId === primaryExercise?.id)
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const equipmentGaps = nextSession ? sessionEquipmentGaps(nextSession, exercises, activeEquipmentProfile) : []
-  const placementBlocked = athlete.placement.selectedRoute === 'pain-aware-modified'
+  const placementVerification = summarizePlacementVerification(placementVerifications, athlete.placement.createdAt)
+  const pendingPlacementRecovery = placementVerification.events.find((event) => event.status === 'awaiting-recovery')
+  const placementBlocked = athlete.placement.selectedRoute === 'pain-aware-modified' || placementVerification.blocked
   const recentPrimary = primaryHistory.slice(-Math.max(1, primaryPlan?.sets.length ?? 1))
   const lastVolume = volumeLoad(recentPrimary)
   const recentRecord = records[0]
@@ -115,6 +118,17 @@ export function TodayScreen() {
         <div className="feedback-followup__actions"><button className="button button--small button--primary" onClick={() => setFeedbackOpen(true)}>Add feedback</button><button className="button button--small button--ghost" onClick={() => dismissDeferredFeedback(feedbackRequest.id)}>Dismiss</button></div>
       </section>}
 
+      {pendingPlacementRecovery && <section className="placement-recovery-check" aria-label="Optional placement recovery check">
+        <span className="placement-recovery-check__icon"><ShieldCheck size={20} /></span>
+        <div><p className="eyebrow">Placement check {pendingPlacementRecovery.sequence} of 3 · optional</p><strong>How did you recover from {sessions.find((session) => session.id === pendingPlacementRecovery.sessionId)?.title ?? 'the last session'}?</strong><small>This completes the route check. Skipping leaves recovery unknown and never blocks training.</small></div>
+        <div className="placement-recovery-check__actions">
+          <button onClick={() => resolvePlacementRecovery(pendingPlacementRecovery.id, 'recovered')}>Recovered</button>
+          <button onClick={() => resolvePlacementRecovery(pendingPlacementRecovery.id, 'acceptable')}>Acceptable</button>
+          <button onClick={() => resolvePlacementRecovery(pendingPlacementRecovery.id, 'not-recovered')}>Not recovered</button>
+          <button className="text-button" onClick={() => resolvePlacementRecovery(pendingPlacementRecovery.id, 'skipped')}>Skip</button>
+        </div>
+      </section>}
+
       <section className="hero-workout">
         <div className="hero-workout__content">
           <div className="hero-workout__meta">
@@ -125,7 +139,7 @@ export function TodayScreen() {
           <p className="eyebrow">Next best session · Exposure queue 01</p>
           <h2>{nextSession?.title}</h2>
           <p className="hero-workout__objective">{nextSession?.objective}</p>
-          {placementBlocked && <button className="placement-training-gate" onClick={() => setNav('you')}><AlertTriangle size={19} /><span><strong>Workout start paused for placement review</strong><small>Your starting profile says pain or restriction changes what can be trained. Reassess the profile before starting. This is not medical clearance.</small></span><ChevronRight size={18} /></button>}
+          {placementBlocked && <button className="placement-training-gate" onClick={() => setNav('you')}><AlertTriangle size={19} /><span><strong>Workout start paused for placement review</strong><small>{placementVerification.blocked ? 'A placement verification recorded pain that changed what could be trained.' : 'Your starting profile says pain or restriction changes what can be trained.'} Reassess the profile before starting. This is not medical clearance.</small></span><ChevronRight size={18} /></button>}
           {equipmentGaps.length > 0 && <button className="equipment-gate-callout" onClick={() => { setPendingStart(null); setEquipmentGateOpen(true) }}><AlertTriangle size={19} /><span><strong>{equipmentGaps.length} movement{equipmentGaps.length === 1 ? '' : 's'} need equipment review</strong><small>{activeEquipmentProfile.name} is missing required items. Unavailable sets cannot be logged until each movement is changed or the profile is corrected.</small></span><ChevronRight size={18} /></button>}
           <div className="anchor-prescription">
             <div className="anchor-prescription__icon"><Dumbbell size={24} /></div>
@@ -154,7 +168,7 @@ export function TodayScreen() {
         <StatCard label="Last anchor exposure" value={`${lastVolume.toLocaleString()} ${settings.units}`} detail={`${recentPrimary.length} completed sets · exact movement`} icon={<Dumbbell size={18} />} />
         <StatCard label="Current continuity" value={athlete.continuity} detail="Calendar pressure reduced · exposure clocks preserved" icon={<CalendarClock size={18} />} tone="orange" />
         <StatCard label="Recent record" value={recentRecordValue} detail={recentRecord?.label ?? 'Complete work to create a record'} icon={<Trophy size={18} />} tone="purple" />
-        <StatCard label="Confidence" value="Medium" detail="Warm-up will confirm today's readiness hypothesis" icon={<ShieldCheck size={18} />} tone="blue" />
+        <StatCard label="Placement checks" value={`${placementVerification.resolved}/3`} detail={placementVerification.state.replaceAll('-', ' ')} icon={<ShieldCheck size={18} />} tone="blue" />
       </section>
 
       <div className="today-grid">

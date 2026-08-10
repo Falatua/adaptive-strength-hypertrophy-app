@@ -10,6 +10,7 @@ import type {
   HistoryMutationEvent,
   MesocyclePlan,
   PersonalRecord,
+  PlacementVerificationEvent,
   SurveyRecord,
   TrainingSession
 } from './types'
@@ -19,10 +20,11 @@ import { exerciseMuscleMappingError } from './muscle-dose'
 import { equipmentProfileError } from './equipment-engine'
 import { equipmentProfiles as seedEquipmentProfiles } from './seed'
 import { legacyPlacementForAthlete, placementAssessmentError, placementRouteLabels } from './placement-engine'
+import { placementVerificationError } from './placement-verification-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 12
-export const BACKUP_APP_VERSION = '0.18.0'
+export const BACKUP_SCHEMA_VERSION = 13
+export const BACKUP_APP_VERSION = '0.19.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -46,6 +48,7 @@ export interface RestorableAppState {
   historyMutations: HistoryMutationEvent[]
   cycleReviews: CycleReviewEvent[]
   substitutionEvents: ExerciseSubstitutionEvent[]
+  placementVerifications: PlacementVerificationEvent[]
   mesocycles: MesocyclePlan[]
   activeMesocycleId: string | null
   activeSessionId: string | null
@@ -78,6 +81,7 @@ export interface BackupPreview {
     historyChanges: number
     cycleReviews: number
     substitutions: number
+    placementChecks: number
     equipmentProfiles: number
     athleteName: string
     placementRoute: string
@@ -168,14 +172,19 @@ function addLegacyPlacement(candidate: Record<string, unknown>) {
   }
 }
 
+function addLegacyPlacementVerifications(candidate: Record<string, unknown>) {
+  if (!Array.isArray(candidate.placementVerifications)) candidate.placementVerifications = []
+}
+
 function validateState(candidate: unknown, migrateLegacyState = false): asserts candidate is RestorableAppState {
   if (!isRecord(candidate)) throw new Error('Backup data is missing or invalid.')
   if (migrateLegacyState) {
     addLegacyEquipmentProfiles(candidate)
     addLegacyPlacement(candidate)
+    addLegacyPlacementVerifications(candidate)
   }
   const errors: string[] = []
-  const arrays = ['equipmentProfiles', 'exercises', 'sessions', 'history', 'surveys', 'deferredFeedback', 'records', 'mesocycles', 'historyMutations', 'cycleReviews', 'substitutionEvents'] as const
+  const arrays = ['equipmentProfiles', 'exercises', 'sessions', 'history', 'surveys', 'deferredFeedback', 'records', 'mesocycles', 'historyMutations', 'cycleReviews', 'substitutionEvents', 'placementVerifications'] as const
   arrays.forEach((key) => {
     if (!Array.isArray(candidate[key])) errors.push(`${key} must be an array.`)
     else if (candidate[key].length > 500_000) errors.push(`${key} exceeds the private-alpha restore limit.`)
@@ -209,6 +218,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   const historyMutations = candidate.historyMutations as unknown[]
   const cycleReviews = candidate.cycleReviews as unknown[]
   const substitutionEvents = candidate.substitutionEvents as unknown[]
+  const placementVerifications = candidate.placementVerifications as unknown[]
   requireUniqueIds(exercises, 'Exercises', errors)
   requireUniqueIds(equipmentProfiles, 'Equipment profiles', errors)
   requireUniqueIds(sessions, 'Sessions', errors)
@@ -220,6 +230,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   requireUniqueIds(historyMutations, 'History changes', errors)
   requireUniqueIds(cycleReviews, 'Cycle reviews', errors)
   requireUniqueIds(substitutionEvents, 'Substitution events', errors)
+  requireUniqueIds(placementVerifications, 'Placement verification events', errors)
 
   const exerciseIds = new Set(exercises.flatMap((exercise) => isRecord(exercise) && typeof exercise.id === 'string' ? [exercise.id] : []))
   const equipmentProfileIds = new Set(equipmentProfiles.flatMap((profile) => isRecord(profile) && typeof profile.id === 'string' ? [profile.id] : []))
@@ -228,6 +239,23 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   const completedSetIds = new Set(history.flatMap((workSet) => isRecord(workSet) && typeof workSet.id === 'string' ? [workSet.id] : []))
   const surveyIds = new Set(surveys.flatMap((survey) => isRecord(survey) && typeof survey.id === 'string' ? [survey.id] : []))
   const substitutionEventIds = new Set(substitutionEvents.flatMap((event) => isRecord(event) && typeof event.id === 'string' ? [event.id] : []))
+
+  placementVerifications.forEach((event) => {
+    const eventError = placementVerificationError(event)
+    if (eventError) errors.push(`A placement verification is invalid: ${eventError}`)
+    if (!isRecord(event)) return
+    if (typeof event.sessionId !== 'string' || !sessionIds.has(event.sessionId)) errors.push('A placement verification references an unknown session.')
+    if (isRecord(event.firstSet)) {
+      const firstSet = event.firstSet
+      const governedByHistoryMutation = typeof firstSet.sourceSetId === 'string' && historyMutations.some((mutation) => isRecord(mutation) && Array.isArray(mutation.affectedSetIds) && mutation.affectedSetIds.includes(firstSet.sourceSetId))
+      if (typeof firstSet.sourceSetId !== 'string' || (!completedSetIds.has(firstSet.sourceSetId) && !governedByHistoryMutation)) errors.push('A placement verification references an unknown completed source set.')
+      const sourceSet = history.find((workSet) => isRecord(workSet) && workSet.id === firstSet.sourceSetId)
+      const sourceMatches = isRecord(sourceSet) && sourceSet.sessionId === event.sessionId && sourceSet.exerciseId === firstSet.exerciseId && sourceSet.plannedExerciseId === firstSet.plannedExerciseId && sourceSet.load === firstSet.actualLoad && sourceSet.reps === firstSet.actualReps && sourceSet.rir === firstSet.actualRir
+      if (!sourceMatches && !governedByHistoryMutation) errors.push('A placement verification first-set snapshot does not match its completed source set or a governed history change.')
+    }
+  })
+  const placementSequenceKeys = placementVerifications.flatMap((event) => isRecord(event) ? [`${String(event.placementCreatedAt)}:${String(event.sequence)}`] : [])
+  if (new Set(placementSequenceKeys).size !== placementSequenceKeys.length) errors.push('Placement verification sequence numbers must be unique within one placement hypothesis.')
 
   exercises.forEach((exercise) => {
     if (!isRecord(exercise) || typeof exercise.name !== 'string' || !Array.isArray(exercise.aliases) || !Array.isArray(exercise.equipment)) {
@@ -577,6 +605,19 @@ function migrateV11(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV12(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = { ...candidate.data, settings: normalizeSettings(candidate.data.settings), placementVerifications: [] }
+  validateState(data, true)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 12 backup migrated safely. Existing placement remains intact; productive placement-verification evidence begins with future sessions.'
+  }
+}
+
 export function parseBackup(raw: string): BackupPreview {
   let candidate: unknown
   try {
@@ -636,6 +677,10 @@ export function parseBackup(raw: string): BackupPreview {
     const migrated = migrateV11(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 12) {
+    const migrated = migrateV12(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
@@ -658,6 +703,7 @@ export function parseBackup(raw: string): BackupPreview {
       historyChanges: backup.data.historyMutations.length,
       cycleReviews: backup.data.cycleReviews.length,
       substitutions: backup.data.substitutionEvents.length,
+      placementChecks: backup.data.placementVerifications.length,
       equipmentProfiles: backup.data.equipmentProfiles.length,
       athleteName: backup.data.athlete.name,
       placementRoute: placementRouteLabels[backup.data.athlete.placement.selectedRoute],
@@ -681,6 +727,7 @@ export function backupStateFrom(source: RestorableAppState): RestorableAppState 
     historyMutations: structuredClone(source.historyMutations),
     cycleReviews: structuredClone(source.cycleReviews),
     substitutionEvents: structuredClone(source.substitutionEvents),
+    placementVerifications: structuredClone(source.placementVerifications),
     mesocycles: structuredClone(source.mesocycles),
     activeMesocycleId: source.activeMesocycleId,
     activeSessionId: source.activeSessionId,

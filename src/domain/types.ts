@@ -54,6 +54,59 @@ export interface AthletePlacementAssessment {
   whyNotHigher: string
   exitCriteria: string[]
 }
+
+export type PlacementWarmupResponse = 'better' | 'as-expected' | 'harder' | 'painful' | 'skipped' | 'not-answered'
+export type PlacementRecoveryResponse = 'recovered' | 'acceptable' | 'not-recovered' | 'skipped' | 'pending'
+export type PlacementVerificationStatus = 'active' | 'awaiting-recovery' | 'resolved'
+export type PlacementVerificationVerdict = 'collecting' | 'pending-recovery' | 'supports-route' | 'needs-more-evidence' | 'review-suggested' | 'reassessment-required'
+
+export interface PlacementVerificationFirstSet {
+  sourceSetId: string
+  plannedExerciseId: string
+  exerciseId: string
+  exerciseName: string
+  targetLoad: number
+  targetReps: number
+  targetRir: number
+  actualLoad: number
+  actualReps: number
+  actualRir: number
+}
+
+export interface PlacementVerificationSessionEvidence {
+  sessionStatus: SessionStatus
+  completedSets: number
+  plannedSets: number
+  completionRate: number
+  plannedMinutes: number
+  actualMinutes: number
+  readiness: ReadinessOutcome | null
+  difficulty: number | null
+  technique: number | null
+  pain: number | null
+  timeFit: number | null
+  postSurveySkipped: boolean
+}
+
+export interface PlacementVerificationEvent {
+  id: string
+  ruleVersion: 'placement-verification-v1'
+  placementCreatedAt: string
+  placementRoute: PlacementRoute
+  sessionId: string
+  sequence: number
+  startedAt: string
+  status: PlacementVerificationStatus
+  warmupResponse: PlacementWarmupResponse
+  warmupCapturedAt: string | null
+  firstSet: PlacementVerificationFirstSet | null
+  sessionEvidence: PlacementVerificationSessionEvidence | null
+  recoveryResponse: PlacementRecoveryResponse
+  recoveryCapturedAt: string | null
+  verdict: PlacementVerificationVerdict
+  reasons: string[]
+  completedAt: string | null
+}
 export type ReadinessOutcome = 'normal' | 'confirm' | 'protect' | 'reacclimate' | 'pain-aware'
 export type ProgressionAction = 'load' | 'reps' | 'sets' | 'hold' | 'reduce' | 'reacclimate'
 export type SurveyMode = 'full' | 'quick' | 'minimal' | 'off' | 'ask'
