@@ -8,10 +8,13 @@ import type {
   PlacementInputs,
   PlacementRoute
 } from './types'
+import { placementHistoryEvidenceError } from './placement-history-engine'
 
-export const placementRuleVersion = 'placement-v2' as const
+export const placementRuleVersion = 'placement-v3' as const
+export const previousPlacementRuleVersion = 'placement-v2' as const
 export const legacyPlacementRuleVersion = 'placement-v1' as const
-export const movementPlacementRuleVersion = 'movement-placement-v1' as const
+export const movementPlacementRuleVersion = 'movement-placement-v2' as const
+export const previousMovementPlacementRuleVersion = 'movement-placement-v1' as const
 
 export const placementRouteLabels: Record<PlacementRoute, string> = {
   'introductory-skill': 'Introductory Skill Cycle',
@@ -119,7 +122,7 @@ function movementRouteFor(input: MovementPlacementInput, planRoute: PlacementRou
   return planRoute
 }
 
-function movementPlacementFor(input: MovementPlacementInput, planRoute: PlacementRoute, placementInputs: PlacementInputs): MovementPlacementAssessment {
+function movementPlacementFor(input: MovementPlacementInput, planRoute: PlacementRoute, placementInputs: PlacementInputs, ruleVersion: MovementPlacementAssessment['ruleVersion']): MovementPlacementAssessment {
   const uncertainInputs = [
     ...(input.movementSkill === null ? ['movement skill'] : []),
     ...(input.strengthTolerance === null ? ['current intensity tolerance'] : []),
@@ -132,9 +135,10 @@ function movementPlacementFor(input: MovementPlacementInput, planRoute: Placemen
   else if (recommendedRoute === 'reacclimation') reasons.push(`${input.exerciseName} preserves past skill while recent tolerance is re-established.`)
   else if (recommendedRoute === 'pain-aware-modified') reasons.push(`${input.exerciseName} remains behind the current restriction review gate.`)
   else reasons.push(`${input.exerciseName} has enough current skill, tolerance, and evidence to use the cycle's ${placementRouteLabels[planRoute]}.`)
+  if (ruleVersion === movementPlacementRuleVersion && input.historyReview?.acceptedFields.length) reasons.push(`Athlete-reviewed exact history informed ${input.historyReview.acceptedFields.map((field) => field === 'dataConfidence' ? 'evidence confidence' : 'heavy-work tolerance').join(' and ')} without inferring movement skill or pain.`)
   reasons.push(`${input.family} is the movement-family context, while ${input.exerciseName} keeps its own history and starting route.`)
   return {
-    ruleVersion: movementPlacementRuleVersion,
+    ruleVersion,
     exerciseId: input.exerciseId,
     exerciseName: input.exerciseName.trim(),
     family: input.family.trim(),
@@ -145,7 +149,8 @@ function movementPlacementFor(input: MovementPlacementInput, planRoute: Placemen
     selectedRoute: recommendedRoute,
     confidence: confidenceFor(uncertainInputs),
     reasons,
-    uncertainInputs
+    uncertainInputs,
+    ...(ruleVersion === movementPlacementRuleVersion && input.historyReview ? { historyReview: structuredClone(input.historyReview) } : {})
   }
 }
 
@@ -160,7 +165,8 @@ function buildPlacementAssessmentVersion(inputs: PlacementInputs, createdAt: str
     dataConfidence: clampDimension(inputs.dataConfidence)
   }
   const recommendedRoute = selectedRouteFor(inputs, dimensions)
-  const movementUncertainty = ruleVersion === placementRuleVersion
+  const hasMovementPlacement = ruleVersion === placementRuleVersion || ruleVersion === previousPlacementRuleVersion
+  const movementUncertainty = hasMovementPlacement
     ? (inputs.movementProfiles ?? []).flatMap((profile) => [
         ...(profile.movementSkill === null ? [`${profile.exerciseName} movement skill`] : []),
         ...(profile.strengthTolerance === null ? [`${profile.exerciseName} intensity tolerance`] : []),
@@ -168,8 +174,8 @@ function buildPlacementAssessmentVersion(inputs: PlacementInputs, createdAt: str
       ])
     : []
   const uncertainInputs = [...new Set([...uncertaintyFor(inputs), ...movementUncertainty])]
-  const movementPlacements = ruleVersion === placementRuleVersion
-    ? (inputs.movementProfiles ?? []).map((input) => movementPlacementFor(input, recommendedRoute, inputs))
+  const movementPlacements = hasMovementPlacement
+    ? (inputs.movementProfiles ?? []).map((input) => movementPlacementFor(input, recommendedRoute, inputs, ruleVersion === placementRuleVersion ? movementPlacementRuleVersion : previousMovementPlacementRuleVersion))
     : undefined
   return {
     ruleVersion,
@@ -249,12 +255,23 @@ export function movementPlacementEvidenceError(value: unknown): string | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return 'Movement placement must be a structured record.'
   const movement = value as Partial<MovementPlacementAssessment>
   const routes = Object.keys(placementRouteLabels)
-  if (movement.ruleVersion !== movementPlacementRuleVersion) return 'Movement placement has an unsupported rule version.'
+  if (movement.ruleVersion !== movementPlacementRuleVersion && movement.ruleVersion !== previousMovementPlacementRuleVersion) return 'Movement placement has an unsupported rule version.'
   if (typeof movement.exerciseId !== 'string' || !movement.exerciseId.trim() || typeof movement.exerciseName !== 'string' || !movement.exerciseName.trim() || typeof movement.family !== 'string' || !movement.family.trim()) return 'Movement placement has incomplete identity evidence.'
   if (![movement.movementSkill, movement.strengthTolerance, movement.dataConfidence].every((score) => Number.isInteger(score) && Number(score) >= 1 && Number(score) <= 5)) return 'Movement placement scores must be integers from one to five.'
   if (!routes.includes(String(movement.recommendedRoute)) || !routes.includes(String(movement.selectedRoute))) return 'Movement placement has an unsupported route.'
   if (!['low', 'medium', 'high'].includes(String(movement.confidence))) return 'Movement placement has an invalid confidence state.'
   if (!Array.isArray(movement.reasons) || movement.reasons.some((reason) => typeof reason !== 'string') || !Array.isArray(movement.uncertainInputs) || movement.uncertainInputs.some((item) => typeof item !== 'string')) return 'Movement placement evidence lists are invalid.'
+  if (movement.ruleVersion === previousMovementPlacementRuleVersion && movement.historyReview !== undefined) return 'Movement-placement-v1 cannot invent history-review evidence.'
+  if (movement.ruleVersion === movementPlacementRuleVersion && movement.historyReview !== undefined) {
+    const review = movement.historyReview
+    const evidenceError = placementHistoryEvidenceError(review.evidence)
+    if (evidenceError) return `Movement placement history review is invalid: ${evidenceError}`
+    if (!Array.isArray(review.acceptedFields) || review.acceptedFields.length === 0 || review.acceptedFields.some((field) => !['dataConfidence', 'strengthTolerance'].includes(field)) || new Set(review.acceptedFields).size !== review.acceptedFields.length) return 'Movement placement history review has invalid accepted fields.'
+    if (typeof review.reviewedAt !== 'string' || Number.isNaN(new Date(review.reviewedAt).getTime())) return 'Movement placement history review has an invalid review date.'
+    if (review.evidence.exerciseId !== movement.exerciseId) return 'Movement placement history review belongs to a different exercise.'
+    if (review.acceptedFields.includes('dataConfidence') && review.evidence.suggestedDataConfidence !== movement.dataConfidence) return 'Movement placement evidence confidence does not match the accepted history suggestion.'
+    if (review.acceptedFields.includes('strengthTolerance') && review.evidence.suggestedStrengthTolerance !== movement.strengthTolerance) return 'Movement placement tolerance does not match the accepted history suggestion.'
+  }
   return null
 }
 
@@ -262,7 +279,7 @@ export function placementAssessmentError(value: unknown): string | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return 'Placement assessment must be a structured record.'
   const assessment = value as Partial<AthletePlacementAssessment>
   const routes = Object.keys(placementRouteLabels)
-  if (assessment.ruleVersion !== legacyPlacementRuleVersion && assessment.ruleVersion !== placementRuleVersion) return 'Placement assessment has an unsupported rule version.'
+  if (assessment.ruleVersion !== legacyPlacementRuleVersion && assessment.ruleVersion !== previousPlacementRuleVersion && assessment.ruleVersion !== placementRuleVersion) return 'Placement assessment has an unsupported rule version.'
   if (typeof assessment.createdAt !== 'string' || Number.isNaN(new Date(assessment.createdAt).getTime())) return 'Placement assessment needs a valid creation date.'
   if (!assessment.inputs || typeof assessment.inputs !== 'object') return 'Placement assessment is missing its input evidence.'
   const inputs = assessment.inputs as Partial<PlacementInputs>
@@ -280,6 +297,18 @@ export function placementAssessmentError(value: unknown): string | null {
     if (new Set(profiles.map((profile) => profile.exerciseId)).size !== profiles.length) return 'Placement assessment has duplicate movement-profile identities.'
     if (profiles.some((profile) => typeof profile.exerciseId !== 'string' || !profile.exerciseId.trim() || typeof profile.exerciseName !== 'string' || !profile.exerciseName.trim() || typeof profile.family !== 'string' || !profile.family.trim())) return 'Placement assessment has incomplete movement-profile identity evidence.'
     if (profiles.some((profile) => ['movementSkill', 'strengthTolerance', 'dataConfidence'].some((key) => !((profile[key as keyof MovementPlacementInput] === null) || (Number.isInteger(profile[key as keyof MovementPlacementInput]) && Number(profile[key as keyof MovementPlacementInput]) >= 1 && Number(profile[key as keyof MovementPlacementInput]) <= 5))))) return 'Placement assessment has an invalid per-movement one-to-five input.'
+    if (assessment.ruleVersion !== placementRuleVersion && profiles.some((profile) => profile.historyReview !== undefined)) return 'Earlier placement versions cannot invent history-review evidence.'
+    if (assessment.ruleVersion === placementRuleVersion) {
+      for (const profile of profiles) {
+        if (!profile.historyReview) continue
+        const evidenceError = placementHistoryEvidenceError(profile.historyReview.evidence)
+        if (evidenceError) return `Placement movement input history review is invalid: ${evidenceError}`
+        if (!Array.isArray(profile.historyReview.acceptedFields) || profile.historyReview.acceptedFields.length === 0 || profile.historyReview.acceptedFields.some((field) => !['dataConfidence', 'strengthTolerance'].includes(field)) || new Set(profile.historyReview.acceptedFields).size !== profile.historyReview.acceptedFields.length) return 'Placement movement input history review has invalid accepted fields.'
+        if (profile.historyReview.evidence.exerciseId !== profile.exerciseId) return 'Placement movement input history review belongs to a different exercise.'
+        if (profile.historyReview.acceptedFields.includes('dataConfidence') && profile.dataConfidence !== profile.historyReview.evidence.suggestedDataConfidence) return 'Placement movement input evidence confidence does not match its accepted history suggestion.'
+        if (profile.historyReview.acceptedFields.includes('strengthTolerance') && profile.strengthTolerance !== profile.historyReview.evidence.suggestedStrengthTolerance) return 'Placement movement input tolerance does not match its accepted history suggestion.'
+      }
+    }
   }
   if (!assessment.dimensions || Object.values(assessment.dimensions).length !== 7 || Object.values(assessment.dimensions).some((item) => !Number.isInteger(item) || item < 1 || item > 5)) return 'Placement dimensions must all be integers from one to five.'
   if (!routes.includes(String(assessment.recommendedRoute)) || !routes.includes(String(assessment.selectedRoute))) return 'Placement assessment has an unsupported route.'
@@ -287,10 +316,12 @@ export function placementAssessmentError(value: unknown): string | null {
   if (!['confirmed', 'conservative', 'aggressive-test', 'quick-start'].includes(String(assessment.decision))) return 'Placement assessment has an invalid athlete decision.'
   if (![assessment.reasons, assessment.uncertainInputs, assessment.verificationPlan, assessment.exitCriteria].every((list) => Array.isArray(list) && list.every((item) => typeof item === 'string'))) return 'Placement assessment evidence lists are invalid.'
   if (typeof assessment.whyNotLower !== 'string' || typeof assessment.whyNotHigher !== 'string') return 'Placement assessment is missing route comparisons.'
-  if (assessment.ruleVersion === placementRuleVersion) {
-    if (!Array.isArray(assessment.movementPlacements)) return 'Placement-v2 assessment is missing per-movement placement evidence.'
+  if (assessment.ruleVersion === placementRuleVersion || assessment.ruleVersion === previousPlacementRuleVersion) {
+    if (!Array.isArray(assessment.movementPlacements)) return `${assessment.ruleVersion} assessment is missing per-movement placement evidence.`
     if (assessment.movementPlacements.length !== (inputs.movementProfiles?.length ?? 0)) return 'Per-movement placement evidence does not match its inputs.'
     if (assessment.movementPlacements.some((movement) => movementPlacementEvidenceError(movement))) return 'Per-movement placement evidence is invalid.'
+    const expectedMovementRule = assessment.ruleVersion === placementRuleVersion ? movementPlacementRuleVersion : previousMovementPlacementRuleVersion
+    if (assessment.movementPlacements.some((movement) => movement.ruleVersion !== expectedMovementRule)) return 'Per-movement placement evidence uses the wrong rule version.'
   } else if (assessment.movementPlacements !== undefined || inputs.movementProfiles !== undefined) return 'Legacy placement cannot invent per-movement evidence.'
   const replay = applyPlacementDecision(buildPlacementAssessmentVersion(inputs as PlacementInputs, assessment.createdAt, assessment.ruleVersion), assessment.decision as PlacementDecision)
   const sameList = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right)

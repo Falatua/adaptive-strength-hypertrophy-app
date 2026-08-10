@@ -1112,6 +1112,15 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .movement-placement-inputs > article { display: grid; grid-template-columns: minmax(145px, 1.15fr) repeat(3, minmax(130px, 1fr)); gap: 9px; align-items: end; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
 .movement-placement-inputs header strong, .movement-placement-inputs header small { display: block; }
 .movement-placement-inputs header small { margin-top: 4px; color: var(--muted); font-size: .63rem; }
+.placement-history-review { grid-column: 1 / -1; padding: 10px; border: 1px dashed var(--line); border-radius: 9px; background: rgb(0 0 0 / 11%); }
+.placement-history-review > span { display: flex; align-items: center; gap: 7px; color: var(--muted); }
+.placement-history-review.has-evidence > span { color: var(--lime); }
+.placement-history-review p { margin: 6px 0; color: var(--muted); font-size: .65rem; line-height: 1.4; }
+.placement-history-review > div { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 7px; }
+.placement-history-review button { display: inline-flex; align-items: center; gap: 4px; min-height: 34px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--text); font-size: .62rem; font-weight: 800; }
+.placement-history-review button.accepted { border-color: var(--lime); background: rgb(224 255 67 / 10%); color: var(--lime); }
+.placement-history-review > small, .movement-placement-preview .history-used { color: var(--muted); font-size: .6rem; line-height: 1.45; }
+.movement-placement-preview .history-used { display: flex; align-items: center; gap: 5px; color: var(--lime); }
 .movement-score-picker { min-width: 0; padding: 0; border: 0; }
 .movement-score-picker legend { margin-bottom: 6px; color: var(--muted); font-size: .6rem; font-weight: 800; }
 .movement-score-picker > div { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 3px; }
@@ -1185,6 +1194,17 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .profile-movement-lanes details { margin-top: 0; padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: rgb(0 0 0 / 12%); }
 .profile-movement-lanes summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
 .profile-movement-lanes summary b { color: var(--blue); font-size: .64rem; text-align: right; }
+.profile-movement-lanes details > small { display: flex; align-items: center; gap: 5px; margin-top: 5px; }
+.placement-history-panel { margin-bottom: 16px; }
+.placement-history-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 12px; }
+.placement-history-grid article { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.placement-history-grid article.has-evidence { border-color: rgb(224 255 67 / 26%); }
+.placement-history-grid article span strong, .placement-history-grid article span small { display: block; }
+.placement-history-grid article span small, .placement-history-grid article > small { margin-top: 4px; color: var(--muted); font-size: .61rem; line-height: 1.4; }
+.placement-history-grid article > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.placement-history-grid article b { padding: 5px 7px; border-radius: 6px; background: rgb(124 184 255 / 8%); color: var(--blue); font-size: .61rem; }
+.placement-history-action { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.placement-history-action > span { display: flex; align-items: center; gap: 8px; color: var(--muted); }
 .placement-verification-summary { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 9px; margin-top: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); text-transform: capitalize; }
 .placement-verification-summary svg { color: var(--blue); }
 .placement-verification-summary strong, .placement-verification-summary small { display: block; }
@@ -1230,4 +1250,6 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .movement-placement-inputs > article { grid-template-columns: 1fr; align-items: stretch; }
   .movement-placement-preview > article, .profile-movement-lanes summary { grid-template-columns: 1fr; }
   .movement-placement-preview article > b, .profile-movement-lanes summary b { text-align: left; }
+  .placement-history-grid { grid-template-columns: 1fr; }
+  .placement-history-action { align-items: stretch; flex-direction: column; }
 }

@@ -16,8 +16,9 @@ The first implementation is governed by the complete R-001 through R-295 registe
 
 - Today, Plan, Progress, Library, and You navigation.
 - Four-stage, fully skippable starting-profile onboarding with Quick Start and history-import routes.
-- Versioned `placement-v2` inputs and independent one-to-five dimensions for experience, recent continuity, global movement skill, strength tolerance, volume tolerance, schedule stability, and data confidence.
-- `movement-placement-v1` stores an exact protected movement, family context, current skill, heavy-work tolerance, evidence confidence, recommended route, athlete-selected route, reasons, and unknowns without combining exact exercise history.
+- Versioned `placement-v3` inputs and independent one-to-five dimensions for experience, recent continuity, global movement skill, strength tolerance, volume tolerance, schedule stability, and data confidence.
+- `movement-placement-v2` stores an exact protected movement, family context, current skill, heavy-work tolerance, evidence confidence, recommended route, athlete-selected route, reasons, unknowns, and any explicitly accepted history review without combining exact exercise history.
+- `placement-history-v1` summarizes exact source sets inside a 42-day review window, dates, imported and numeric-only status, RIR availability, quality confirmation, latest exposure, bounded suggestions, limitations, and source-set IDs. The athlete must explicitly accept confidence or tolerance, and the engine never infers skill, pain, recovery, or family transfer.
 - Deterministic introductory, reacclimation, bridge, base-building, hypertrophy, powerbuilding, strength, power, event-specific, and pain-aware route selection with explicit confidence, reasons, unknown inputs, lower and higher route comparisons, first-session verification, and criterion-based exit evidence.
 - Athlete-controlled confirmation, conservative placement, faster submaximal test request, answer correction, goal change, and history import. Quick Start defaults remain visibly low-confidence until confirmed by completed work.
 - Pain-modified placement carries a non-medical boundary, routes to the athlete profile, and pauses both surveyed and survey-free workout starts until reassessment.
@@ -74,7 +75,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - A fully validated PR requires confirmed technique and pain feedback. Survey-free sessions keep their numbers as visibly numeric-only bests.
 - Athlete-controlled celebration level, quiet mode, opportunity prompts, session achievements, reduced motion, pixel confetti, sounds preference, and supported-device haptics.
 - Athlete model, survey controls, focused mode, data export, and local reset.
-- Version 16 open-JSON backup with per-movement placement, equipment-aware route-session provenance, placement decisions, productive verification and recovery evidence, expanded record definitions, celebration controls, equipment profiles, plan, review, history and catalog changes, substitution, survey-evidence, and deferred-feedback history, integrity checks, versions 1 through 15 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
+- Version 17 open-JSON backup with athlete-reviewed exact-history placement, per-movement placement, equipment-aware route-session provenance, placement decisions, productive verification and recovery evidence, expanded record definitions, celebration controls, equipment profiles, plan, review, history and catalog changes, substitution, survey-evidence, and deferred-feedback history, integrity checks, versions 1 through 16 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
 - Original pixel-adventure visual language and installable PWA shell.
 - Accurate completed, partial-primary, and partial-without-primary session states.
 
@@ -93,7 +94,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Switch every progress horizon and prove chart, body-lens, and headline totals equal the selected completed source sets.
 - Select the calendar quarter, show monthly quarter points, inspect exact movement mix and priority attention, and preserve exact-width phone containment without turning volume share into a stimulus or enjoyment claim.
 - Preview a 30-minute plan revision, apply it, preserve partial history, inspect both plan versions, reload, and recover the active version from local persistence.
-- Export and preview a verified version 16 backup containing replay-validated per-movement placement, equipment-aware route-generated session provenance, productive verification evidence, expanded records, athlete preferences, training locations, plan versions, ledgers, survey evidence, and deferred-feedback provenance.
+- Export and preview a verified version 17 backup containing replay-validated exact-history review, per-movement placement, equipment-aware route-generated session provenance, productive verification evidence, expanded records, athlete preferences, training locations, plan versions, ledgers, survey evidence, and deferred-feedback provenance.
 - Create a distinct custom movement, edit its canonical metadata, block an exact alias collision, save a non-conflicting identity without changing its stable ID, inspect the zero-volume catalog ledger entry, and undo the edit.
 - Document two intentionally separate exact-name matches, review the resulting three-identity cleanup group, keep Competition Bench Press, retire both copies in one merge, verify the group disappears, and restore both identities through undo.
 - Complete one set from a stored sixteen-set route-generated session, show one of sixteen linked sets, distinguish older completed sets with no stored plan, classify chest from its exact planned mappings, and preserve all unlinked work in Progress without counting it as plan compliance.

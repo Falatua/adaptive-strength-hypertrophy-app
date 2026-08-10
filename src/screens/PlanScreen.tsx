@@ -228,7 +228,7 @@ export function PlanScreen() {
             <ul className="priority-list">
               <li><span>Anchors</span><strong>{activeAnchors.join(', ') || 'Choose anchors'}</strong></li>
               <li><span>Entry route</span><strong>{activePlan?.entryRoute ? `${readable(activePlan.entryRoute)} · ${activePlan.generationRuleVersion}` : 'Manual adaptation rules'}</strong></li>
-              <li><span>Movement lanes</span><strong>{activePlan?.movementPlacements?.length ? `${activePlan.movementPlacements.length} exact anchors placed independently` : 'Global route applies to all anchors'}</strong></li>
+              <li><span>Movement lanes</span><strong>{activePlan?.movementPlacements?.length ? `${activePlan.movementPlacements.length} exact anchors placed independently${activePlan.movementPlacements.some((movement) => movement.historyReview) ? ` · ${activePlan.movementPlacements.filter((movement) => movement.historyReview).length} history reviewed` : ''}` : 'Global route applies to all anchors'}</strong></li>
               <li><span>Generated for</span><strong>{activePlan?.generationEquipment ? `${activePlan.generationEquipment.profileName} · ${activePlan.generationEquipment.incrementUnit}` : 'Legacy or manual equipment context'}</strong></li>
               <li><span>Develop</span><strong>{(activePlan?.priorityRegions ?? athlete.priorityRegions).map(readable).join(', ')}</strong></li>
               <li><span>Maintain</span><strong>{(activePlan?.maintenanceRegions ?? []).map(readable).join(', ') || 'Set in next plan version'}</strong></li>

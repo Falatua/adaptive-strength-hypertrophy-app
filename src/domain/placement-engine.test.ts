@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { applyPlacementDecision, buildPlacementAssessment, legacyPlacementForAthlete, placementAssessmentError } from './placement-engine'
-import type { PlacementInputs } from './types'
+import { buildPlacementHistoryEvidence } from './placement-history-engine'
+import type { CompletedSetRecord, PlacementInputs } from './types'
 
 const inputs = (overrides: Partial<PlacementInputs> = {}): PlacementInputs => ({
   goal: 'strength', fixedEvent: null, trainingAge: 8, continuity: 'stable', movementSkill: 5,
@@ -9,7 +10,7 @@ const inputs = (overrides: Partial<PlacementInputs> = {}): PlacementInputs => ({
   equipmentProfileId: 'equipment-commercial-gym', skippedFields: [], ...overrides
 })
 
-describe('placement-v2 with placement-v1 compatibility', () => {
+describe('placement-v3 with placement-v1 and placement-v2 compatibility', () => {
   it('sends a prepared experienced athlete directly into goal-specific strength work', () => {
     const result = buildPlacementAssessment(inputs(), '2026-08-10T12:00:00.000Z')
     expect(result.recommendedRoute).toBe('strength')
@@ -74,7 +75,8 @@ describe('placement-v2 with placement-v1 compatibility', () => {
         { exerciseId: 'sumo-deadlift', exerciseName: 'Sumo Deadlift', family: 'Deadlift', movementSkill: 3, strengthTolerance: 3, dataConfidence: 1 }
       ]
     }))
-    expect(result).toMatchObject({ ruleVersion: 'placement-v2', recommendedRoute: 'strength' })
+    expect(result).toMatchObject({ ruleVersion: 'placement-v3', recommendedRoute: 'strength' })
+    expect(result.movementPlacements?.every((movement) => movement.ruleVersion === 'movement-placement-v2')).toBe(true)
     expect(result.movementPlacements?.map((movement) => [movement.exerciseId, movement.selectedRoute])).toEqual([
       ['competition-squat', 'introductory-skill'],
       ['competition-bench', 'strength'],
@@ -105,5 +107,35 @@ describe('placement-v2 with placement-v1 compatibility', () => {
     expect(legacy.ruleVersion).toBe('placement-v1')
     expect(legacy.movementPlacements).toBeUndefined()
     expect(placementAssessmentError(legacy)).toBeNull()
+    const prior = structuredClone(result)
+    prior.ruleVersion = 'placement-v2'
+    prior.movementPlacements = prior.movementPlacements?.map((movement) => ({ ...movement, ruleVersion: 'movement-placement-v1' as const, historyReview: undefined }))
+    expect(placementAssessmentError(prior)).toBeNull()
+  })
+
+  it('preserves explicitly accepted exact-history suggestions without inferring skill', () => {
+    const history = [1, 2, 3, 4].map((index): CompletedSetRecord => ({
+      id: `set-${index}`, sessionId: `session-${Math.ceil(index / 2)}`, exerciseId: 'competition-bench', exerciseName: 'Competition Bench Press',
+      family: 'Bench Press', primaryRegion: 'chest', completedAt: index <= 2 ? '2026-08-01T12:00:00.000Z' : '2026-08-06T12:00:00.000Z',
+      reps: 5, load: 185, rir: 2, rirKnown: true, technique: 0, pain: 0, qualityConfirmed: false, setIndex: index % 2,
+      importBatchId: 'batch', importSourceName: 'history.csv', importRow: index, importFingerprint: `fingerprint-${index}`, importUnits: 'lb'
+    }))
+    const evidence = buildPlacementHistoryEvidence({ exercise: { id: 'competition-bench', name: 'Competition Bench Press' }, history, assessedAt: '2026-08-10T12:00:00.000Z' })
+    const result = buildPlacementAssessment(inputs({
+      movementProfiles: [{
+        exerciseId: 'competition-bench', exerciseName: 'Competition Bench Press', family: 'Bench Press', movementSkill: 4,
+        strengthTolerance: evidence.suggestedStrengthTolerance, dataConfidence: evidence.suggestedDataConfidence,
+        historyReview: { evidence, acceptedFields: ['dataConfidence', 'strengthTolerance'], reviewedAt: '2026-08-10T12:01:00.000Z' }
+      }]
+    }), '2026-08-10T12:02:00.000Z')
+    expect(result.movementPlacements?.[0]).toMatchObject({
+      ruleVersion: 'movement-placement-v2', movementSkill: 4, dataConfidence: 4, strengthTolerance: 3,
+      historyReview: { acceptedFields: ['dataConfidence', 'strengthTolerance'], evidence: { ruleVersion: 'placement-history-v1', sourceSetIds: ['set-3', 'set-4', 'set-1', 'set-2'] } }
+    })
+    expect(result.movementPlacements?.[0].reasons.join(' ')).toMatch(/athlete-reviewed exact history.*without inferring movement skill or pain/i)
+    expect(placementAssessmentError(result)).toBeNull()
+    const forged = structuredClone(result)
+    forged.inputs.movementProfiles![0].dataConfidence = 5
+    expect(placementAssessmentError(forged)).toMatch(/does not match|reconcile/i)
   })
 })

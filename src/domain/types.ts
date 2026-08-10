@@ -12,8 +12,39 @@ export type PlacementRoute = 'introductory-skill' | 'reacclimation' | 'bridge-ca
 export type PlacementConfidence = 'low' | 'medium' | 'high'
 export type PlacementDecision = 'confirmed' | 'conservative' | 'aggressive-test' | 'quick-start'
 export type PlacementPainState = 'none' | 'manageable' | 'modifying' | 'unknown'
-export type PlacementRuleVersion = 'placement-v1' | 'placement-v2'
+export type PlacementRuleVersion = 'placement-v1' | 'placement-v2' | 'placement-v3'
 export type RouteSessionRuleVersion = 'route-session-v1' | 'route-session-v2' | 'route-session-v3'
+
+export type PlacementHistoryAcceptedField = 'dataConfidence' | 'strengthTolerance'
+
+export interface PlacementHistoryEvidence {
+  ruleVersion: 'placement-history-v1'
+  exerciseId: string
+  exerciseName: string
+  assessedAt: string
+  windowDays: number
+  basis: 'recent-window' | 'latest-stale' | 'none'
+  sourceSetIds: string[]
+  totalSetCount: number
+  recentSetCount: number
+  recentExposureDateCount: number
+  recentImportedSetCount: number
+  recentRirKnownSetCount: number
+  recentQualityConfirmedSetCount: number
+  recentRepresentativeStrengthSetCount: number
+  recentRepresentativeStrengthExposureDateCount: number
+  recentRepresentativeStrengthQualityConfirmedSetCount: number
+  latestCompletedAt: string | null
+  suggestedDataConfidence: number
+  suggestedStrengthTolerance: number | null
+  limitations: string[]
+}
+
+export interface PlacementHistoryReview {
+  evidence: PlacementHistoryEvidence
+  acceptedFields: PlacementHistoryAcceptedField[]
+  reviewedAt: string
+}
 
 export interface MovementPlacementInput {
   exerciseId: string
@@ -22,10 +53,11 @@ export interface MovementPlacementInput {
   movementSkill: number | null
   strengthTolerance: number | null
   dataConfidence: number | null
+  historyReview?: PlacementHistoryReview
 }
 
 export interface MovementPlacementAssessment {
-  ruleVersion: 'movement-placement-v1'
+  ruleVersion: 'movement-placement-v1' | 'movement-placement-v2'
   exerciseId: string
   exerciseName: string
   family: string
@@ -37,6 +69,7 @@ export interface MovementPlacementAssessment {
   confidence: PlacementConfidence
   reasons: string[]
   uncertainInputs: string[]
+  historyReview?: PlacementHistoryReview
 }
 
 export interface PlacementInputs {

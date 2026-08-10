@@ -1,5 +1,5 @@
 import { useMemo, useState, type ChangeEvent } from 'react'
-import { AlertTriangle, ChevronRight, Clock3, Download, Dumbbell, FileCheck2, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Star, Target, Trash2, Undo2, Upload } from 'lucide-react'
+import { AlertTriangle, BrainCircuit, ChevronRight, Clock3, Download, Dumbbell, FileCheck2, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Star, Target, Trash2, Undo2, Upload } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { duplicateCandidates, volumeLoad } from '../domain/training-engine'
 import { findExerciseDuplicateGroups } from '../domain/catalog-engine'
@@ -7,6 +7,7 @@ import { buildTrainingHistoryImport, parseTrainingHistoryCsv, type ImportUnit, t
 import type { BodyRegion, CompletedSetRecord, Exercise, MuscleId, MovementPattern } from '../domain/types'
 import { muscleCreditsFor, muscleDefinitions } from '../domain/muscle-dose'
 import { exerciseEquipmentFit } from '../domain/equipment-engine'
+import { buildPlacementHistoryEvidence } from '../domain/placement-history-engine'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
 
@@ -17,7 +18,8 @@ const regionFilters: { id: BodyRegion | 'all'; label: string }[] = [
 const muscleLabel = new Map(muscleDefinitions.map((muscle) => [muscle.id, muscle.label]))
 
 export function LibraryScreen() {
-  const { exercises, equipmentProfiles, history, historyMutations, substitutionEvents, settings, toggleFavorite, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, undoLatestHistoryMutation, setNotice } = useAppStore()
+  const { athlete, activeSessionId, exercises, equipmentProfiles, history, historyMutations, substitutionEvents, settings, toggleFavorite, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, undoLatestHistoryMutation, restartOnboarding, setNotice } = useAppStore()
+  const [placementEvidenceAssessedAt] = useState(() => new Date().toISOString())
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState<BodyRegion | 'all'>('all')
   const [availability, setAvailability] = useState<'all' | 'available' | 'unavailable'>('all')
@@ -60,6 +62,10 @@ export function LibraryScreen() {
   }), [activeEquipmentProfile, availability, exercises, search, region])
 
   const activeExercises = useMemo(() => exercises.filter((exercise) => !exercise.retired), [exercises])
+  const placementEvidence = useMemo(() => athlete.strengthAnchors.flatMap((exerciseId) => {
+    const exercise = exercises.find((candidate) => candidate.id === exerciseId)
+    return exercise ? [buildPlacementHistoryEvidence({ exercise, history, assessedAt: placementEvidenceAssessedAt })] : []
+  }), [athlete.strengthAnchors, exercises, history, placementEvidenceAssessedAt])
   const duplicates = useMemo(() => customName.trim().length >= 3 ? duplicateCandidates(customName, activeExercises) : [], [customName, activeExercises])
   const duplicateGroups = useMemo(() => findExerciseDuplicateGroups(exercises), [exercises])
   const exactCreationDuplicate = duplicates.some((candidate) => candidate.score === 1)
@@ -242,6 +248,13 @@ export function LibraryScreen() {
         <div><p className="eyebrow">Canonical exercise knowledge</p><h1>One movement. One history.</h1><p>Browse by body part, movement type, role, goal, equipment, and personal response without fragmenting progression.</p></div>
         <div className="screen-header__actions"><button className="button button--secondary" onClick={openImport}><Upload size={17} /> Import history</button><button className="button button--secondary" onClick={() => setQualityOpen(true)}><ListChecks size={17} /> Data quality {duplicateGroups.length ? `(${duplicateGroups.length})` : ''}</button><button className="button button--primary" onClick={() => { setFormError(null); setAddOpen(true) }}><Plus size={17} /> Add movement</button></div>
       </header>
+
+      <section className="panel placement-history-panel">
+        <div className="panel__header"><div><p className="eyebrow">Placement-history-v1</p><h3>Use exact history without guessing</h3></div><BrainCircuit size={20} /></div>
+        <p className="chart-note">ForgePath can summarize exact recent work and suggest evidence confidence or heavy-work tolerance. You must review and accept each suggestion. Skill, pain, recovery, and neighboring variations are never inferred.</p>
+        <div className="placement-history-grid">{placementEvidence.map((evidence) => <article key={evidence.exerciseId} className={evidence.totalSetCount ? 'has-evidence' : ''}><span><strong>{evidence.exerciseName}</strong><small>{evidence.basis === 'recent-window' ? `${evidence.recentSetCount} sets · ${evidence.recentExposureDateCount} dates in ${evidence.windowDays} days` : evidence.basis === 'latest-stale' ? 'Exact history exists, but it is stale' : 'No exact history'}</small></span><div><b>Evidence {evidence.suggestedDataConfidence}/5</b><b>{evidence.suggestedStrengthTolerance === null ? 'Tolerance not inferred' : `Tolerance ${evidence.suggestedStrengthTolerance}/5`}</b></div>{evidence.recentImportedSetCount > 0 && <small>{evidence.recentImportedSetCount} recent imported set{evidence.recentImportedSetCount === 1 ? '' : 's'} remain numeric-only.</small>}</article>)}</div>
+        <div className="placement-history-action"><span><ShieldCheck size={17} /><small>Reviewing creates a new placement version and future plan. Completed history is never rewritten.</small></span><button className="button button--secondary" disabled={Boolean(activeSessionId) || !placementEvidence.some((evidence) => evidence.totalSetCount > 0)} onClick={() => restartOnboarding(1)}>Review in placement</button></div>
+      </section>
 
       <section className="library-categories">
         {[

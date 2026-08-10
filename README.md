@@ -1,4 +1,4 @@
-# ForgePath Private Alpha 0.22.0
+# ForgePath Private Alpha 0.23.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
@@ -31,8 +31,8 @@ npm run test:e2e
 
 ## Current verification
 
-- 133 deterministic domain tests
-- thirty-four desktop and phone browser journeys for source-backed records, explainable athlete placement, equipment-aware route generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
+- 146 deterministic domain tests
+- thirty-six desktop and phone browser journeys for source-backed records, explainable athlete placement, athlete-reviewed exact-history evidence, equipment-aware route generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
 - lint clean
 - production PWA build clean
 - desktop and 390 px phone browser journeys checked
@@ -41,9 +41,11 @@ npm run test:e2e
 - daily, weekly, rolling 28-day, calendar-month, calendar-quarter, yearly, and all-time analytics reconcile to completed source sets
 - editable mesocycles generate a preview before applying and version every objective, constraint, and reason for change
 - plan revisions preserve completed and partial session truth while replacing future planned work only
-- version 16 backup and restore includes per-movement placement, equipment-aware route-generation snapshots, productive verification events, source-linked first-set evidence, recovery responses, equipment profiles, expanded record definitions, plan history, ledgers, survey evidence, and safely migrates versions 1 through 15
-- placement-v2 separates experience, continuity, global movement skill, intensity tolerance, volume tolerance, schedule stability, and evidence confidence before selecting an introductory, reacclimation, bridge, base, hypertrophy, powerbuilding, strength, power, event-specific, or pain-aware cycle route
-- movement-placement-v1 separately records skill, heavy-work tolerance, evidence confidence, family context, reasons, unknowns, and an effective starting route for every protected exact movement
+- version 17 backup and restore includes athlete-reviewed exact-history placement evidence, per-movement placement, equipment-aware route-generation snapshots, productive verification events, source-linked first-set evidence, recovery responses, equipment profiles, plan history, ledgers, survey evidence, and safely migrates versions 1 through 16
+- placement-v3 separates experience, continuity, global movement skill, intensity tolerance, volume tolerance, schedule stability, and evidence confidence before selecting an introductory, reacclimation, bridge, base, hypertrophy, powerbuilding, strength, power, event-specific, or pain-aware cycle route
+- movement-placement-v2 separately records skill, heavy-work tolerance, evidence confidence, family context, reasons, unknowns, accepted exact-history review, and an effective starting route for every protected exact movement
+- placement-history-v1 summarizes only the exact movement's recent completed sets, exposure dates, source type, RIR availability, quality confirmation, latest exposure, bounded confidence and tolerance suggestions, limitations, and source-set IDs
+- history suggestions never apply automatically: the athlete accepts evidence confidence or tolerance separately, any manual score change clears that field's accepted provenance, and skill, pain, recovery, or neighboring variations are never inferred
 - every onboarding section is skippable; unknown inputs reduce confidence, Quick Start remains explicitly unconfirmed, and the recommendation explains why lower and higher routes were not selected
 - athletes can confirm the route, choose a more conservative route, request faster submaximal verification, correct or import history, or change the goal without losing existing training data
 - pain-modified placement is not treated as medical clearance and pauses automatic workout starts until the athlete reassesses the restriction state

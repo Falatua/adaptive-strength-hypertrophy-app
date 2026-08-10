@@ -24,8 +24,8 @@ import { placementVerificationError } from './placement-verification-engine'
 import { routeSessionGenerationError } from './route-session-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 16
-export const BACKUP_APP_VERSION = '0.22.0'
+export const BACKUP_SCHEMA_VERSION = 17
+export const BACKUP_APP_VERSION = '0.23.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -84,6 +84,7 @@ export interface BackupPreview {
     substitutions: number
     placementChecks: number
     movementPlacedAnchors: number
+    historyReviewedAnchors: number
     routeGeneratedSessions: number
     equipmentGeneratedSessions: number
     equipmentProfiles: number
@@ -243,17 +244,42 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   const completedSetIds = new Set(history.flatMap((workSet) => isRecord(workSet) && typeof workSet.id === 'string' ? [workSet.id] : []))
   const surveyIds = new Set(surveys.flatMap((survey) => isRecord(survey) && typeof survey.id === 'string' ? [survey.id] : []))
   const substitutionEventIds = new Set(substitutionEvents.flatMap((event) => isRecord(event) && typeof event.id === 'string' ? [event.id] : []))
+  const historicalSetExerciseIds = new Map<string, Set<string>>()
+  const rememberHistoricalSet = (workSet: unknown) => {
+    if (!isRecord(workSet) || typeof workSet.id !== 'string' || typeof workSet.exerciseId !== 'string') return
+    const exerciseIds = historicalSetExerciseIds.get(workSet.id) ?? new Set<string>()
+    exerciseIds.add(workSet.exerciseId)
+    historicalSetExerciseIds.set(workSet.id, exerciseIds)
+  }
+  history.forEach(rememberHistoricalSet)
+  historyMutations.forEach((mutation) => {
+    if (!isRecord(mutation)) return
+    for (const snapshotName of ['before', 'after']) {
+      const snapshot = mutation[snapshotName]
+      if (!isRecord(snapshot) || !Array.isArray(snapshot.history)) continue
+      snapshot.history.forEach(rememberHistoricalSet)
+    }
+  })
+  const validateHistoryReviewSources = (movement: unknown, label: string) => {
+    if (!isRecord(movement) || !isRecord(movement.historyReview) || !isRecord(movement.historyReview.evidence) || !Array.isArray(movement.historyReview.evidence.sourceSetIds)) return
+    const evidence = movement.historyReview.evidence
+    const sourceSetIds = evidence.sourceSetIds as unknown[]
+    if (sourceSetIds.some((id) => typeof id !== 'string' || !historicalSetExerciseIds.has(id))) errors.push(`${label} history review references an unknown completed source set.`)
+    if (typeof evidence.exerciseId === 'string' && sourceSetIds.some((id) => typeof id === 'string' && historicalSetExerciseIds.has(id) && !historicalSetExerciseIds.get(id)?.has(evidence.exerciseId as string))) errors.push(`${label} history review references a completed source set from a different exercise identity.`)
+  }
 
   if (placement && Array.isArray(placement.movementPlacements)) placement.movementPlacements.forEach((movement) => {
     if (!isRecord(movement)) return
     const exercise = exercises.find((candidate) => isRecord(candidate) && candidate.id === movement.exerciseId)
     if (!isRecord(exercise)) errors.push('Athlete movement placement references an unknown exercise identity.')
+    validateHistoryReviewSources(movement, 'Athlete movement placement')
   })
 
   placementVerifications.forEach((event) => {
     const eventError = placementVerificationError(event)
     if (eventError) errors.push(`A placement verification is invalid: ${eventError}`)
     if (!isRecord(event)) return
+    validateHistoryReviewSources(event.movementPlacement, 'Placement verification')
     if (typeof event.sessionId !== 'string' || !sessionIds.has(event.sessionId)) errors.push('A placement verification references an unknown session.')
     if (isRecord(event.firstSet)) {
       const firstSet = event.firstSet
@@ -325,6 +351,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
           const primaryMatchesPlacement = isRecord(plannedPrimary) && isRecord(movementEvidence) && (plannedPrimary.exerciseId === movementEvidence.exerciseId || plannedPrimary.substitutedFrom === movementEvidence.exerciseId || governedMergeMatches)
           if (!primaryMatchesPlacement) errors.push('A movement-placed session does not match its protected primary identity or governed substitution.')
           if (!isRecord(planMovement) || stableStringify(planMovement) !== stableStringify(movementEvidence)) errors.push('A movement-placed session does not match its mesocycle movement snapshot.')
+          validateHistoryReviewSources(movementEvidence, 'Movement-placed session')
           if ((session.microcycleNumber ?? 1) === 1 && (!isRecord(plan) || stableStringify(plan.generationEquipment) !== stableStringify(session.generation.equipment))) errors.push('A movement-placed starting session does not match its mesocycle equipment snapshot.')
         }
       }
@@ -442,6 +469,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
           const movementError = movementPlacementEvidenceError(movement)
           if (movementError) errors.push(`A mesocycle movement placement is invalid: ${movementError}`)
           if (isRecord(movement) && !(plan.strengthAnchors as unknown[]).includes(movement.exerciseId)) errors.push('A mesocycle movement placement is not a protected anchor.')
+          validateHistoryReviewSources(movement, 'Mesocycle movement placement')
         })
       }
     } else if (plan.movementPlacements !== undefined) errors.push('A legacy mesocycle cannot invent per-movement placement evidence.')
@@ -709,6 +737,19 @@ function migrateV15(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV16(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = { ...candidate.data, settings: normalizeSettings(candidate.data.settings) }
+  validateState(data, true)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 16 backup migrated safely. Existing placement-v2 and movement-placement-v1 evidence remains valid; exact-history review begins with a future reassessment.'
+  }
+}
+
 export function parseBackup(raw: string): BackupPreview {
   let candidate: unknown
   try {
@@ -784,6 +825,10 @@ export function parseBackup(raw: string): BackupPreview {
     const migrated = migrateV15(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 16) {
+    const migrated = migrateV16(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
@@ -808,6 +853,7 @@ export function parseBackup(raw: string): BackupPreview {
       substitutions: backup.data.substitutionEvents.length,
       placementChecks: backup.data.placementVerifications.length,
       movementPlacedAnchors: backup.data.athlete.placement.movementPlacements?.length ?? 0,
+      historyReviewedAnchors: backup.data.athlete.placement.movementPlacements?.filter((movement) => Boolean(movement.historyReview)).length ?? 0,
       routeGeneratedSessions: backup.data.sessions.filter((session) => Boolean(session.generation)).length,
       equipmentGeneratedSessions: backup.data.sessions.filter((session) => session.generation?.ruleVersion === 'route-session-v2' || session.generation?.ruleVersion === 'route-session-v3').length,
       equipmentProfiles: backup.data.equipmentProfiles.length,

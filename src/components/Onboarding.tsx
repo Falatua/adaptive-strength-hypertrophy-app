@@ -3,7 +3,8 @@ import { AlertTriangle, ArrowRight, BrainCircuit, CalendarClock, Check, Dumbbell
 import { applyPlacementDecision, buildPlacementAssessment, placementRouteLabels } from '../domain/placement-engine'
 import { routeSessionProfile } from '../domain/route-session-engine'
 import { exerciseEquipmentFit } from '../domain/equipment-engine'
-import type { MovementPlacementInput, PlacementDecision, PlacementGoal, PlacementInputs, PlacementPainState } from '../domain/types'
+import { buildPlacementHistoryEvidence } from '../domain/placement-history-engine'
+import type { MovementPlacementInput, PlacementDecision, PlacementGoal, PlacementHistoryAcceptedField, PlacementInputs, PlacementPainState } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { PixelAvatar } from './PixelAvatar'
 
@@ -23,22 +24,24 @@ function MovementScorePicker({ exerciseName, label, value, onChange }: { exercis
 }
 
 export function Onboarding() {
-  const { completeOnboarding, equipmentProfiles, exercises, athlete, settings, setActiveEquipmentProfile, setNav, setNotice } = useAppStore()
+  const { completeOnboarding, equipmentProfiles, exercises, history, athlete, settings, onboardingStartStep, setActiveEquipmentProfile, setNav, setNotice } = useAppStore()
+  const priorInputs = athlete.placement.inputs
+  const isHistoryReview = onboardingStartStep === 1
   const [createdAt] = useState(() => new Date().toISOString())
-  const [step, setStep] = useState(0)
-  const [goal, setGoal] = useState<PlacementGoal | null>('powerbuilding')
-  const [fixedEvent, setFixedEvent] = useState('')
-  const [minutes, setMinutes] = useState(60)
-  const [opportunities, setOpportunities] = useState(3)
-  const [experience, setExperience] = useState<number | null>(8)
-  const [continuity, setContinuity] = useState<PlacementInputs['continuity']>('interrupted')
-  const [movementSkill, setMovementSkill] = useState<number | null>(4)
-  const [strengthTolerance, setStrengthTolerance] = useState<number | null>(4)
-  const [volumeTolerance, setVolumeTolerance] = useState<number | null>(4)
-  const [scheduleStability, setScheduleStability] = useState<number | null>(3)
-  const [dataConfidence, setDataConfidence] = useState<number | null>(3)
-  const [painState, setPainState] = useState<PlacementPainState>('none')
-  const [equipmentProfileId, setEquipmentProfileId] = useState(settings.activeEquipmentProfileId)
+  const [step, setStep] = useState<number>(onboardingStartStep)
+  const [goal, setGoal] = useState<PlacementGoal | null>(isHistoryReview ? priorInputs.goal : 'powerbuilding')
+  const [fixedEvent, setFixedEvent] = useState(isHistoryReview ? priorInputs.fixedEvent ?? '' : '')
+  const [minutes, setMinutes] = useState(isHistoryReview ? priorInputs.defaultMinutes : 60)
+  const [opportunities, setOpportunities] = useState(isHistoryReview ? priorInputs.weeklyOpportunities : 3)
+  const [experience, setExperience] = useState<number | null>(isHistoryReview ? priorInputs.trainingAge : 8)
+  const [continuity, setContinuity] = useState<PlacementInputs['continuity']>(isHistoryReview ? priorInputs.continuity : 'interrupted')
+  const [movementSkill, setMovementSkill] = useState<number | null>(isHistoryReview ? priorInputs.movementSkill : 4)
+  const [strengthTolerance, setStrengthTolerance] = useState<number | null>(isHistoryReview ? priorInputs.strengthTolerance : 4)
+  const [volumeTolerance, setVolumeTolerance] = useState<number | null>(isHistoryReview ? priorInputs.volumeTolerance : 4)
+  const [scheduleStability, setScheduleStability] = useState<number | null>(isHistoryReview ? priorInputs.scheduleStability : 3)
+  const [dataConfidence, setDataConfidence] = useState<number | null>(isHistoryReview ? priorInputs.dataConfidence : 3)
+  const [painState, setPainState] = useState<PlacementPainState>(isHistoryReview ? priorInputs.painState : 'none')
+  const [equipmentProfileId, setEquipmentProfileId] = useState(isHistoryReview ? priorInputs.equipmentProfileId : settings.activeEquipmentProfileId)
   const [movementProfiles, setMovementProfiles] = useState<MovementPlacementInput[]>(() => athlete.strengthAnchors.flatMap((exerciseId) => {
     const exercise = exercises.find((candidate) => candidate.id === exerciseId)
     if (!exercise) return []
@@ -49,10 +52,11 @@ export function Onboarding() {
       family: exercise.family,
       movementSkill: existing?.movementSkill ?? 4,
       strengthTolerance: existing?.strengthTolerance ?? 4,
-      dataConfidence: existing?.dataConfidence ?? 3
+      dataConfidence: existing?.dataConfidence ?? 3,
+      ...(existing?.historyReview ? { historyReview: structuredClone(existing.historyReview) } : {})
     }]
   }))
-  const [skippedFields, setSkippedFields] = useState<string[]>([])
+  const [skippedFields, setSkippedFields] = useState<string[]>(isHistoryReview ? priorInputs.skippedFields : [])
   const [decision, setDecision] = useState<PlacementDecision>('confirmed')
 
   const inputs = useMemo<PlacementInputs>(() => ({
@@ -70,7 +74,29 @@ export function Onboarding() {
     const fit = exerciseEquipmentFit(exercise, selectedEquipmentProfile)
     return fit.available ? [] : [{ exercise, missing: fit.missing }]
   })
-  const updateMovementProfile = (exerciseId: string, field: 'movementSkill' | 'strengthTolerance' | 'dataConfidence', value: number | null) => setMovementProfiles((current) => current.map((profile) => profile.exerciseId === exerciseId ? { ...profile, [field]: value } : profile))
+  const historyEvidence = useMemo(() => new Map(athlete.strengthAnchors.flatMap((exerciseId) => {
+    const exercise = exercises.find((candidate) => candidate.id === exerciseId)
+    return exercise ? [[exerciseId, buildPlacementHistoryEvidence({ exercise, history, assessedAt: createdAt })] as const] : []
+  })), [athlete.strengthAnchors, createdAt, exercises, history])
+  const updateMovementProfile = (exerciseId: string, field: 'movementSkill' | 'strengthTolerance' | 'dataConfidence', value: number | null) => setMovementProfiles((current) => current.map((profile) => {
+    if (profile.exerciseId !== exerciseId) return profile
+    if (!profile.historyReview || field === 'movementSkill') return { ...profile, [field]: value }
+    const acceptedFields = profile.historyReview.acceptedFields.filter((accepted) => accepted !== field)
+    return { ...profile, [field]: value, ...(acceptedFields.length ? { historyReview: { ...profile.historyReview, acceptedFields } } : { historyReview: undefined }) }
+  }))
+  const acceptHistorySuggestion = (exerciseId: string, field: PlacementHistoryAcceptedField) => setMovementProfiles((current) => current.map((profile) => {
+    if (profile.exerciseId !== exerciseId) return profile
+    const evidence = historyEvidence.get(exerciseId)
+    if (!evidence || evidence.totalSetCount === 0 || (field === 'strengthTolerance' && evidence.suggestedStrengthTolerance === null)) return profile
+    const priorAccepted = (profile.historyReview?.acceptedFields ?? []).filter((accepted) => accepted !== 'strengthTolerance' || evidence.suggestedStrengthTolerance !== null)
+    const acceptedFields = [...new Set([...priorAccepted, field])]
+    return {
+      ...profile,
+      ...(acceptedFields.includes('dataConfidence') ? { dataConfidence: evidence.suggestedDataConfidence } : {}),
+      ...(acceptedFields.includes('strengthTolerance') ? { strengthTolerance: evidence.suggestedStrengthTolerance! } : {}),
+      historyReview: { evidence: structuredClone(evidence), acceptedFields, reviewedAt: createdAt }
+    }
+  }))
 
   const persistPlacement = (placementDecision: PlacementDecision = decision, destination: 'today' | 'library' = 'today', quick = false) => {
     const profile = equipmentProfiles.find((candidate) => candidate.id === equipmentProfileId) ?? equipmentProfiles[0]
@@ -138,7 +164,12 @@ export function Onboarding() {
             <DimensionPicker label="Volume tolerance" value={volumeTolerance} onChange={setVolumeTolerance} low="Low current capacity" high="High recoverable capacity" />
             <DimensionPicker label="Current evidence quality" value={dataConfidence} onChange={setDataConfidence} low="Mostly uncertain" high="Recent reliable logs" />
           </div>
-          <div className="movement-placement-inputs"><div><p className="eyebrow">Protected anchors</p><h3>Place each movement separately</h3><p className="muted">A familiar bench can enter strength work while a new squat begins with skill practice. Family context never merges exact movement history.</p></div>{movementProfiles.map((profile) => <article key={profile.exerciseId}><header><strong>{profile.exerciseName}</strong><small>{profile.family} family</small></header><MovementScorePicker exerciseName={profile.exerciseName} label="Skill" value={profile.movementSkill} onChange={(value) => updateMovementProfile(profile.exerciseId, 'movementSkill', value)} /><MovementScorePicker exerciseName={profile.exerciseName} label="Heavy-work tolerance" value={profile.strengthTolerance} onChange={(value) => updateMovementProfile(profile.exerciseId, 'strengthTolerance', value)} /><MovementScorePicker exerciseName={profile.exerciseName} label="Recent evidence" value={profile.dataConfidence} onChange={(value) => updateMovementProfile(profile.exerciseId, 'dataConfidence', value)} /></article>)}</div>
+          <div className="movement-placement-inputs"><div><p className="eyebrow">Protected anchors</p><h3>Place each movement separately</h3><p className="muted">A familiar bench can enter strength work while a new squat begins with skill practice. Family context never merges exact movement history.</p></div>{movementProfiles.map((profile) => {
+            const evidence = historyEvidence.get(profile.exerciseId)
+            const usingConfidence = profile.historyReview?.acceptedFields.includes('dataConfidence') ?? false
+            const usingTolerance = profile.historyReview?.acceptedFields.includes('strengthTolerance') ?? false
+            return <article key={profile.exerciseId}><header><strong>{profile.exerciseName}</strong><small>{profile.family} family</small></header><MovementScorePicker exerciseName={profile.exerciseName} label="Skill" value={profile.movementSkill} onChange={(value) => updateMovementProfile(profile.exerciseId, 'movementSkill', value)} /><MovementScorePicker exerciseName={profile.exerciseName} label="Heavy-work tolerance" value={profile.strengthTolerance} onChange={(value) => updateMovementProfile(profile.exerciseId, 'strengthTolerance', value)} /><MovementScorePicker exerciseName={profile.exerciseName} label="Recent evidence" value={profile.dataConfidence} onChange={(value) => updateMovementProfile(profile.exerciseId, 'dataConfidence', value)} />{evidence && <div className={`placement-history-review ${evidence.totalSetCount ? 'has-evidence' : ''}`}><span><BrainCircuit size={16} /><strong>Exact-history review</strong></span>{evidence.totalSetCount ? <><p>{evidence.recentSetCount} recent set{evidence.recentSetCount === 1 ? '' : 's'} across {evidence.recentExposureDateCount} date{evidence.recentExposureDateCount === 1 ? '' : 's'} · latest {new Date(evidence.latestCompletedAt!).toLocaleDateString()}</p><div><button type="button" className={usingConfidence ? 'accepted' : ''} onClick={() => acceptHistorySuggestion(profile.exerciseId, 'dataConfidence')}>{usingConfidence && <Check size={14} />} {usingConfidence ? 'Using' : 'Use'} evidence {evidence.suggestedDataConfidence}/5</button>{evidence.suggestedStrengthTolerance !== null && <button type="button" className={usingTolerance ? 'accepted' : ''} onClick={() => acceptHistorySuggestion(profile.exerciseId, 'strengthTolerance')}>{usingTolerance && <Check size={14} />} {usingTolerance ? 'Using' : 'Use'} tolerance {evidence.suggestedStrengthTolerance}/5</button>}</div><small>{evidence.limitations[0]}</small></> : <p>No exact history available. No family evidence was borrowed.</p>}</div>}</article>
+          })}</div>
         </section>}
 
         {step === 2 && <section>
@@ -163,7 +194,7 @@ export function Onboarding() {
           {selectedAssessment.selectedRoute !== selectedAssessment.recommendedRoute && <p className="placement-decision-note"><ShieldCheck size={15} /> Engine recommendation: {placementRouteLabels[selectedAssessment.recommendedRoute]}. Your conservative choice is stored separately.</p>}
           {selectedAssessment.selectedRoute === 'pain-aware-modified' && <div className="placement-safety"><AlertTriangle size={19} /><span><strong>Plan review required</strong><small>This is not medical clearance. Review movement restrictions before training and seek qualified care for new, severe, or unexplained pain.</small></span></div>}
           <div className="placement-dimensions">{Object.entries(selectedAssessment.dimensions).map(([key, value]) => <div key={key}><span>{key.replace(/([A-Z])/g, ' $1')}</span><div>{Array.from({ length: 5 }, (_, index) => <i key={index} className={index < value ? 'filled' : ''} />)}</div><strong>{value}/5</strong></div>)}</div>
-          {selectedAssessment.movementPlacements && selectedAssessment.movementPlacements.length > 0 && <div className="movement-placement-preview"><div><p className="eyebrow">Movement-placement-v1</p><h3>One cycle, individual starting lanes</h3></div>{selectedAssessment.movementPlacements.map((movement) => <article key={movement.exerciseId}><span><strong>{movement.exerciseName}</strong><small>{movement.family} family · {movement.confidence} confidence</small></span><b>{placementRouteLabels[movement.selectedRoute]}</b><small>Skill {movement.movementSkill}/5 · tolerance {movement.strengthTolerance}/5 · evidence {movement.dataConfidence}/5</small><p>{movement.reasons[0]}</p></article>)}</div>}
+          {selectedAssessment.movementPlacements && selectedAssessment.movementPlacements.length > 0 && <div className="movement-placement-preview"><div><p className="eyebrow">Movement-placement-v2</p><h3>One cycle, individual starting lanes</h3></div>{selectedAssessment.movementPlacements.map((movement) => <article key={movement.exerciseId}><span><strong>{movement.exerciseName}</strong><small>{movement.family} family · {movement.confidence} confidence</small></span><b>{placementRouteLabels[movement.selectedRoute]}</b><small>Skill {movement.movementSkill}/5 · tolerance {movement.strengthTolerance}/5 · evidence {movement.dataConfidence}/5</small>{movement.historyReview && <small className="history-used"><BrainCircuit size={13} /> Exact history accepted for {movement.historyReview.acceptedFields.map((field) => field === 'dataConfidence' ? 'evidence' : 'tolerance').join(' + ')}</small>}<p>{movement.reasons[0]}</p></article>)}</div>}
           <div className="placement-explanation"><h3>Why the engine recommended {placementRouteLabels[selectedAssessment.recommendedRoute]}</h3><ul>{selectedAssessment.reasons.map((reason) => <li key={reason}><Check size={15} />{reason}</li>)}</ul></div>
           {selectedAssessment.uncertainInputs.length > 0 && <details><summary>Uncertain inputs · {selectedAssessment.uncertainInputs.length}</summary><p>{selectedAssessment.uncertainInputs.join(', ')}. These stay unknown and reduce confidence.</p></details>}
           <details><summary>Why not lower or higher?</summary><p><strong>Lower:</strong> {selectedAssessment.whyNotLower}</p><p><strong>Higher:</strong> {selectedAssessment.whyNotHigher}</p></details>

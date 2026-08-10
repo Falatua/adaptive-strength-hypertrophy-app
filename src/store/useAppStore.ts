@@ -59,12 +59,13 @@ interface AppState {
   activeMesocycleId: string | null
   activeSessionId: string | null
   onboardingComplete: boolean
+  onboardingStartStep: 0 | 1
   recoverySnapshot: RestorableAppState | null
   notice: string | null
   setNav: (nav: NavKey) => void
   setNotice: (notice: string | null) => void
   completeOnboarding: (profile: Partial<AthleteProfile>) => void
-  restartOnboarding: () => void
+  restartOnboarding: (startStep?: 0 | 1) => void
   updateAthlete: (profile: Partial<AthleteProfile>) => void
   updateSettings: (settings: Partial<AppSettings>) => void
   setActiveEquipmentProfile: (profileId: string) => { ok: boolean; error?: string }
@@ -135,6 +136,7 @@ const fresh = () => ({
   activeMesocycleId: seedMesocycles[0]?.id ?? null,
   activeSessionId: null,
   onboardingComplete: false,
+  onboardingStartStep: 0 as 0 | 1,
   recoverySnapshot: null as RestorableAppState | null
 })
 
@@ -221,12 +223,13 @@ export const useAppStore = create<AppState>()(
           sessions: [...preservedSessions, ...generatedSessions],
           activeMesocycleId: replacementPlanId,
           onboardingComplete: true,
+          onboardingStartStep: 0,
           notice: route === 'pain-aware-modified'
             ? 'Pain-aware placement saved. Automatic session generation is paused until movement restrictions are reassessed.'
             : `${placementRouteLabels[route]} saved as a ${athlete.placement.confidence}-confidence hypothesis. ${generatedSessions.length} route-specific sessions were queued under ${ROUTE_SESSION_RULE_VERSION}.`
         }
       }),
-      restartOnboarding: () => set({ onboardingComplete: false, activeSessionId: null, nav: 'today', notice: null }),
+      restartOnboarding: (startStep = 0) => set({ onboardingComplete: false, onboardingStartStep: startStep, activeSessionId: null, nav: 'today', notice: null }),
       updateAthlete: (profile) => set((state) => ({ athlete: { ...state.athlete, ...profile } })),
       updateSettings: (settings) => set((state) => ({ settings: { ...state.settings, ...settings } })),
       setActiveEquipmentProfile: (profileId) => {
@@ -894,7 +897,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 14,
+      version: 15,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,

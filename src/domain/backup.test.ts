@@ -6,6 +6,7 @@ import { beginPlacementVerification, completePlacementVerification, recordPlacem
 import { buildMesocyclePreview, draftFromPlan } from './mesocycle-engine'
 import { equipmentGenerationEvidence } from './equipment-engine'
 import { buildPlacementAssessment, legacyPlacementForAthlete, placementRouteLabels } from './placement-engine'
+import { buildPlacementHistoryEvidence } from './placement-history-engine'
 
 const stable = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`
@@ -54,6 +55,7 @@ describe('versioned backup and restore', () => {
     expect(parsed.summary.substitutions).toBe(0)
     expect(parsed.summary.placementChecks).toBe(0)
     expect(parsed.summary.movementPlacedAnchors).toBe(3)
+    expect(parsed.summary.historyReviewedAnchors).toBe(0)
     expect(parsed.summary.routeGeneratedSessions).toBe(0)
     expect(parsed.summary.equipmentProfiles).toBe(3)
     expect(parsed.summary.placementRoute).toBe('Base-Building Cycle')
@@ -317,6 +319,30 @@ describe('versioned backup and restore', () => {
     expect(parsed.warnings[0]).toMatch(/version 15/i)
   })
 
+  it('migrates a verified version 16 backup without inventing exact-history review', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    const legacyAthlete = (legacyData.athlete as typeof athlete)
+    legacyAthlete.placement.ruleVersion = 'placement-v2'
+    legacyAthlete.placement.movementPlacements = legacyAthlete.placement.movementPlacements?.map((movement) => {
+      const prior = structuredClone(movement)
+      delete prior.historyReview
+      return { ...prior, ruleVersion: 'movement-placement-v1' }
+    })
+    legacyAthlete.placement.inputs.movementProfiles = legacyAthlete.placement.inputs.movementProfiles?.map((profile) => {
+      const prior = structuredClone(profile)
+      delete prior.historyReview
+      return prior
+    })
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 16, appVersion: '0.22.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.athlete.placement.ruleVersion).toBe('placement-v2')
+    expect(parsed.summary.historyReviewedAnchors).toBe(0)
+    expect(parsed.warnings[0]).toMatch(/version 16/i)
+  })
+
   it('round-trips route-generated sessions and rejects forged route provenance', () => {
     const current = state()
     const plan = current.mesocycles[0]
@@ -385,6 +411,41 @@ describe('versioned backup and restore', () => {
 
     current.sessions[0].generation!.movementPlacement!.exerciseName = 'Forged Squat'
     expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/movement snapshot|movement placement/i)
+  })
+
+  it('round-trips athlete-reviewed history placement and rejects unknown or cross-movement source evidence', () => {
+    const current = state()
+    const bench = current.exercises.find((exercise) => exercise.id === 'competition-bench')!
+    const evidence = buildPlacementHistoryEvidence({ exercise: bench, history: current.history, assessedAt: '2026-08-10T18:00:00.000Z' })
+    const priorProfiles = current.athlete.placement.inputs.movementProfiles!
+    const placement = buildPlacementAssessment({
+      ...current.athlete.placement.inputs,
+      movementProfiles: priorProfiles.map((profile) => profile.exerciseId === bench.id ? {
+        ...profile,
+        dataConfidence: evidence.suggestedDataConfidence,
+        ...(evidence.suggestedStrengthTolerance !== null ? { strengthTolerance: evidence.suggestedStrengthTolerance } : {}),
+        historyReview: {
+          evidence,
+          acceptedFields: evidence.suggestedStrengthTolerance === null ? ['dataConfidence'] : ['dataConfidence', 'strengthTolerance'],
+          reviewedAt: '2026-08-10T18:01:00.000Z'
+        }
+      } : profile)
+    }, '2026-08-10T18:02:00.000Z')
+    current.athlete.placement = placement
+    current.athlete.level = placement.dimensions
+    current.athlete.entryRoute = placementRouteLabels[placement.selectedRoute]
+    const parsed = parseBackup(JSON.stringify(createBackup(current)))
+    expect(parsed.summary.historyReviewedAnchors).toBe(1)
+    expect(parsed.backup.data.athlete.placement.movementPlacements?.find((movement) => movement.exerciseId === bench.id)?.historyReview?.evidence.sourceSetIds.length).toBeGreaterThan(0)
+
+    current.athlete.placement.inputs.movementProfiles!.find((profile) => profile.exerciseId === bench.id)!.historyReview!.evidence.sourceSetIds[0] = 'unknown-set'
+    current.athlete.placement.movementPlacements!.find((movement) => movement.exerciseId === bench.id)!.historyReview!.evidence.sourceSetIds[0] = 'unknown-set'
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/unknown completed source set/i)
+
+    const wrongMovementSet = current.history.find((workSet) => workSet.exerciseId !== bench.id)!
+    current.athlete.placement.inputs.movementProfiles!.find((profile) => profile.exerciseId === bench.id)!.historyReview!.evidence.sourceSetIds[0] = wrongMovementSet.id
+    current.athlete.placement.movementPlacements!.find((movement) => movement.exerciseId === bench.id)!.historyReview!.evidence.sourceSetIds[0] = wrongMovementSet.id
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/different exercise identity/i)
   })
 
   it('rejects placement tampering and a route label that disagrees with its evidence', () => {
