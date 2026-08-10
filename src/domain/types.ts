@@ -169,6 +169,49 @@ export interface PlacementVerificationEvent {
   reasons: string[]
   completedAt: string | null
 }
+export type PlacementExitRecommendation = 'collect-evidence' | 'hold-current' | 'confirm-current' | 'review-advance' | 'review-conservative' | 'reassessment-required'
+export type PlacementExitDecision = 'continue-current' | 'reassess-now' | 'defer'
+export type PlacementExitCriterionState = 'met' | 'not-met' | 'unknown'
+
+export interface PlacementExitCriterion {
+  id: 'resolved-checks' | 'route-support' | 'pain-boundary' | 'recovery-evidence'
+  label: string
+  state: PlacementExitCriterionState
+  detail: string
+}
+
+export interface PlacementExitAssessment {
+  ruleVersion: 'placement-exit-v1'
+  placementCreatedAt: string
+  assessedAt: string
+  currentRoute: PlacementRoute
+  recommendation: PlacementExitRecommendation
+  suggestedRoute: PlacementRoute | null
+  sourcePlacement: AthletePlacementAssessment
+  sourceVerificationEvents: PlacementVerificationEvent[]
+  collected: number
+  resolved: number
+  supports: number
+  reviews: number
+  needsMoreEvidence: number
+  excludedDifferentRouteChecks: number
+  pendingRecovery: boolean
+  reassessmentRequired: boolean
+  criteria: PlacementExitCriterion[]
+  declaredExitCriteria: string[]
+  reasons: string[]
+  limitations: string[]
+}
+
+export interface PlacementExitReviewEvent {
+  id: string
+  ruleVersion: 'placement-exit-review-v1'
+  placementCreatedAt: string
+  createdAt: string
+  decision: PlacementExitDecision
+  reason: string
+  assessment: PlacementExitAssessment
+}
 export type ReadinessOutcome = 'normal' | 'confirm' | 'protect' | 'reacclimate' | 'pain-aware'
 export type ProgressionAction = 'load' | 'reps' | 'sets' | 'hold' | 'reduce' | 'reacclimate'
 export type SurveyMode = 'full' | 'quick' | 'minimal' | 'off' | 'ask'

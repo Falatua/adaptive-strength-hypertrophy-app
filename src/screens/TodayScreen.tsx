@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { AlarmClock, AlertTriangle, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, Footprints, HelpCircle, RotateCcw, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { AlarmClock, AlertTriangle, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, FileCheck2, Footprints, HelpCircle, RotateCcw, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import type { EffectiveSurveyMode, MissedSessionReason, SurveyAnswer } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
@@ -12,11 +12,12 @@ import { PostSurveyModal } from '../components/PostSurveyModal'
 import { pendingDeferredFeedback } from '../domain/survey-engine'
 import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '../domain/equipment-engine'
 import { summarizePlacementVerification } from '../domain/placement-verification-engine'
+import { buildPlacementExitAssessment } from '../domain/placement-exit-engine'
 
 const timeOptions = [15, 30, 45, 60, 75]
 
 export function TodayScreen() {
-  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, startSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
+  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, startSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
   const [surveyOpen, setSurveyOpen] = useState(false)
   const [surveyChooserOpen, setSurveyChooserOpen] = useState(false)
   const [activeSurveyMode, setActiveSurveyMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
@@ -25,6 +26,7 @@ export function TodayScreen() {
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [equipmentGateOpen, setEquipmentGateOpen] = useState(false)
   const [pendingStart, setPendingStart] = useState<{ answers: SurveyAnswer[]; skipped: boolean; mode: EffectiveSurveyMode; minutes: number } | null>(null)
+  const [placementExitAssessedAt] = useState(() => new Date().toISOString())
   const [missReason, setMissReason] = useState<MissedSessionReason>({ reason: 'family', nextMinutes: 45, continuing: true })
   const nextSession = sessions.find((session) => ['planned', 'deferred'].includes(session.status)) ?? sessions[0]
   const primaryPlan = nextSession?.exercises.find((exercise) => exercise.role === 'primary')
@@ -33,6 +35,10 @@ export function TodayScreen() {
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const equipmentGaps = nextSession ? sessionEquipmentGaps(nextSession, exercises, activeEquipmentProfile) : []
   const placementVerification = summarizePlacementVerification(placementVerifications, athlete.placement.createdAt)
+  const placementExit = useMemo(() => buildPlacementExitAssessment({ placement: athlete.placement, verificationEvents: placementVerifications, assessedAt: placementExitAssessedAt }), [athlete.placement, placementVerifications, placementExitAssessedAt])
+  const placementExitEvidenceKey = placementExit.sourceVerificationEvents.filter((event) => event.placementRoute === placementExit.currentRoute).map((event) => event.id).join('|')
+  const placementExitReviewed = placementExitReviews.some((review) => review.placementCreatedAt === athlete.placement.createdAt && review.assessment.sourceVerificationEvents.filter((event) => event.placementRoute === review.assessment.currentRoute).map((event) => event.id).join('|') === placementExitEvidenceKey)
+  const placementExitActionable = placementExit.collected > 0 && placementExit.recommendation !== 'collect-evidence' && !placementExitReviewed
   const pendingPlacementRecovery = placementVerification.events.find((event) => event.status === 'awaiting-recovery')
   const placementBlocked = athlete.placement.selectedRoute === 'pain-aware-modified' || placementVerification.blocked
   const recentPrimary = primaryHistory.slice(-Math.max(1, primaryPlan?.sets.length ?? 1))
@@ -143,6 +149,10 @@ export function TodayScreen() {
           <button className="text-button" onClick={() => resolvePlacementRecovery(pendingPlacementRecovery.id, 'skipped')}>Skip</button>
         </div>
       </section>}
+
+      {placementExitActionable && <button className={`placement-exit-callout placement-exit-callout--${placementExit.recommendation}`} onClick={() => setNav('you')}>
+        <FileCheck2 size={20} /><span><small>{placementExit.ruleVersion} · athlete review required</small><strong>{placementExit.recommendation === 'confirm-current' ? 'Your current route has earned confirmation.' : placementExit.recommendation === 'hold-current' ? 'The current route should be reviewed and held.' : placementExit.recommendation === 'reassessment-required' ? 'Placement reassessment is required.' : 'Your placement route is ready for review.'}</strong><p>{placementExit.reasons[0]}</p></span><ChevronRight size={18} />
+      </button>}
 
       <section className="hero-workout">
         <div className="hero-workout__content">

@@ -25,6 +25,9 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - `placement-verification-v1` turns the first one to three normal training sessions into productive route checks without a maximal test. It stores optional warm-up response, the first completed primary set, planned versus actual load, repetitions and RIR, completion, duration, readiness, post-session quality, pain, time fit, and optional recovery.
 - Verification verdicts remain explainable and athlete-controlled: support the route, collect more evidence, suggest review, or require reassessment before another automatic start. No verification event silently changes the selected route.
 - Deferred post-session feedback replays the same verification event from source evidence rather than creating a second interpretation.
+- `placement-exit-v1` joins productive verification events only to the exact placement identity and matching cycle-level route. It evaluates two resolved checks, repeated route support, the pain-changing boundary, and supportive recovery evidence while disclosing movement-lane checks excluded because their effective route differs.
+- Checkpoint recommendations are collect evidence, hold current, confirm current, review advance, review conservative, or reassessment required. The assessment stores its complete placement and verification snapshots so restore validation can replay the decision rather than trusting a label.
+- `placement-exit-review-v1` requires the athlete to keep the current route, open placement reassessment, or defer with a reason. Reassessment creates a future placement and plan version; prior evidence remains historical truth. Pain-changing evidence blocks keep-current, and no recommendation silently changes programming.
 - `route-session-v3` applies the exact anchor's movement placement to its generated session while preserving the cycle-level goal route separately. A new squat can use skill-first work while a prepared bench uses strength work in the same cycle.
 - Every trainable route retains its distinct primary, secondary, accessory, set, repetition, RIR, intensity, rest, warm-up, dose, progression, explanation, and equipment rules. Version 1 and version 2 history remains valid and unchanged.
 - The selected training location removes unavailable secondary and accessory candidates before generation, applies movement-class load increments immediately, and stores the exact normalized equipment snapshot on the plan and every generated session.
@@ -75,7 +78,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - A fully validated PR requires confirmed technique and pain feedback. Survey-free sessions keep their numbers as visibly numeric-only bests.
 - Athlete-controlled celebration level, quiet mode, opportunity prompts, session achievements, reduced motion, pixel confetti, sounds preference, and supported-device haptics.
 - Athlete model, survey controls, focused mode, data export, and local reset.
-- Version 17 open-JSON backup with athlete-reviewed exact-history placement, per-movement placement, equipment-aware route-session provenance, placement decisions, productive verification and recovery evidence, expanded record definitions, celebration controls, equipment profiles, plan, review, history and catalog changes, substitution, survey-evidence, and deferred-feedback history, integrity checks, versions 1 through 16 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
+- Version 18 open-JSON backup with replay-validated placement checkpoint reviews, athlete-reviewed exact-history placement, per-movement placement, equipment-aware route-session provenance, placement decisions, productive verification and recovery evidence, expanded record definitions, celebration controls, equipment profiles, plan, review, history and catalog changes, substitution, survey-evidence, and deferred-feedback history, integrity checks, versions 1 through 17 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
 - Original pixel-adventure visual language and installable PWA shell.
 - Accurate completed, partial-primary, and partial-without-primary session states.
 
@@ -94,7 +97,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Switch every progress horizon and prove chart, body-lens, and headline totals equal the selected completed source sets.
 - Select the calendar quarter, show monthly quarter points, inspect exact movement mix and priority attention, and preserve exact-width phone containment without turning volume share into a stimulus or enjoyment claim.
 - Preview a 30-minute plan revision, apply it, preserve partial history, inspect both plan versions, reload, and recover the active version from local persistence.
-- Export and preview a verified version 17 backup containing replay-validated exact-history review, per-movement placement, equipment-aware route-generated session provenance, productive verification evidence, expanded records, athlete preferences, training locations, plan versions, ledgers, survey evidence, and deferred-feedback provenance.
+- Export and preview a verified version 18 backup containing replay-validated placement checkpoint and exact-history reviews, per-movement placement, equipment-aware route-generated session provenance, productive verification evidence, expanded records, athlete preferences, training locations, plan versions, ledgers, survey evidence, and deferred-feedback provenance.
 - Create a distinct custom movement, edit its canonical metadata, block an exact alias collision, save a non-conflicting identity without changing its stable ID, inspect the zero-volume catalog ledger entry, and undo the edit.
 - Document two intentionally separate exact-name matches, review the resulting three-identity cleanup group, keep Competition Bench Press, retire both copies in one merge, verify the group disappears, and restore both identities through undo.
 - Complete one set from a stored sixteen-set route-generated session, show one of sixteen linked sets, distinguish older completed sets with no stored plan, classify chest from its exact planned mappings, and preserve all unlinked work in Progress without counting it as plan compliance.
@@ -110,10 +113,11 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Report that pain changes movement choice, receive a pain-aware modified route with a non-medical warning, prove both workout-start paths remain disabled, and reopen onboarding without deleting existing history.
 - Complete a normal placement check through warm-up, a source-linked first primary set, post-session quality and time-fit feedback, and a recovery response; inspect the final verdict and complete evidence on the athlete profile after reload.
 - Mark the warm-up painful, finish without fabricating a set or survey, and prove the next automatic workout start is paused for athlete reassessment without silently rewriting the selected route.
+- Complete two supportive source-linked productive checks, resolve recovery, receive a confirm-current checkpoint, inspect all four measurable criteria, save an athlete-authored keep-current reason, and preserve the complete replayable evidence without silent reclassification.
 
 ## Deliberately Deferred
 
-- Imported-history placement inference, automatic per-movement criterion exits, complete fixed-event periodization, calibrated velocity or power evidence, and athlete-reviewed automatic reclassification after repeated verification evidence.
+- Imported-history placement inference, automatic per-movement criterion exits, complete fixed-event periodization, and calibrated velocity or power evidence.
 - Supabase authentication, Postgres system of record, Row Level Security, and multi-device sync.
 - React Native client and SQLite migration after the private web workflow is validated.
 - Cloud AI provider, research retrieval, and voice interpretation.

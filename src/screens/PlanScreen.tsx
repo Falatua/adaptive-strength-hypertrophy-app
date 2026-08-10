@@ -23,6 +23,7 @@ import { Modal } from '../components/Modal'
 import { buildMesocyclePreview, draftFromPlan } from '../domain/mesocycle-engine'
 import { buildCycleReview } from '../domain/cycle-review-engine'
 import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION } from '../domain/route-session-engine'
+import { buildPlacementExitAssessment } from '../domain/placement-exit-engine'
 import type { BodyRegion, CycleReviewDecision, MesocycleDraft } from '../domain/types'
 
 const regions: BodyRegion[] = ['chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']
@@ -39,7 +40,7 @@ const reviewChoices: { id: CycleReviewDecision; title: string; detail: string }[
 
 export function PlanScreen() {
   const {
-    sessions, exercises, athlete, history, mesocycles, cycleReviews, activeMesocycleId, activeSessionId, equipmentProfiles, settings,
+    sessions, exercises, athlete, history, mesocycles, cycleReviews, placementVerifications, activeMesocycleId, activeSessionId, equipmentProfiles, settings,
     startSession, applyMesocycleRevision, applyCycleReview, setNotice
   } = useAppStore()
   const activePlan = mesocycles.find((plan) => plan.id === activeMesocycleId)
@@ -68,6 +69,7 @@ export function PlanScreen() {
   const [reviewDecision, setReviewDecision] = useState<CycleReviewDecision>('continue-hold')
   const [reviewReason, setReviewReason] = useState('')
   const [reviewError, setReviewError] = useState<string | null>(null)
+  const [placementExitAssessedAt] = useState(() => new Date().toISOString())
   const [draft, setDraft] = useState<MesocycleDraft>(() => activePlan ? draftFromPlan(activePlan) : blankDraft())
   const [editorError, setEditorError] = useState<string | null>(null)
 
@@ -95,6 +97,7 @@ export function PlanScreen() {
     .map((id) => exercises.find((exercise) => exercise.id === id)?.name)
     .filter(Boolean)
   const cycleReview = useMemo(() => activePlan ? buildCycleReview(activePlan, sessions, history) : null, [activePlan, sessions, history])
+  const placementExit = useMemo(() => buildPlacementExitAssessment({ placement: athlete.placement, verificationEvents: placementVerifications, assessedAt: placementExitAssessedAt }), [athlete.placement, placementVerifications, placementExitAssessedAt])
   const activeCycleReviews = activePlan ? cycleReviews.filter((review) => review.mesocycleId === activePlan.id) : []
 
   const openReview = () => {
@@ -229,6 +232,7 @@ export function PlanScreen() {
               <li><span>Anchors</span><strong>{activeAnchors.join(', ') || 'Choose anchors'}</strong></li>
               <li><span>Entry route</span><strong>{activePlan?.entryRoute ? `${readable(activePlan.entryRoute)} · ${activePlan.generationRuleVersion}` : 'Manual adaptation rules'}</strong></li>
               <li><span>Movement lanes</span><strong>{activePlan?.movementPlacements?.length ? `${activePlan.movementPlacements.length} exact anchors placed independently${activePlan.movementPlacements.some((movement) => movement.historyReview) ? ` · ${activePlan.movementPlacements.filter((movement) => movement.historyReview).length} history reviewed` : ''}` : 'Global route applies to all anchors'}</strong></li>
+              <li><span>Placement checkpoint</span><strong>{readable(placementExit.recommendation)} · {placementExit.resolved} resolved plan-route checks{placementExit.excludedDifferentRouteChecks ? ` · ${placementExit.excludedDifferentRouteChecks} different-lane excluded` : ''}</strong></li>
               <li><span>Generated for</span><strong>{activePlan?.generationEquipment ? `${activePlan.generationEquipment.profileName} · ${activePlan.generationEquipment.incrementUnit}` : 'Legacy or manual equipment context'}</strong></li>
               <li><span>Develop</span><strong>{(activePlan?.priorityRegions ?? athlete.priorityRegions).map(readable).join(', ')}</strong></li>
               <li><span>Maintain</span><strong>{(activePlan?.maintenanceRegions ?? []).map(readable).join(', ') || 'Set in next plan version'}</strong></li>

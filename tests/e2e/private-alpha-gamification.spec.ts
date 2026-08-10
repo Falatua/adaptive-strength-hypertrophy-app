@@ -157,7 +157,7 @@ test('defers optional feedback without blocking training and replays quality evi
   await expect(page.getByText('185 heaviest completed load', { exact: false }).first()).toBeVisible()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted?.version).toBe(15)
+  expect(persisted?.version).toBe(16)
   expect(persisted?.state?.deferredFeedback?.at(-1)).toMatchObject({ mode: 'minimal', status: 'completed' })
   expect(persisted?.state?.deferredFeedback?.at(-1)?.surveyId).toBeTruthy()
   expect(persisted?.state?.history?.filter((workSet: { sessionId: string }) => workSet.sessionId === persisted.state.deferredFeedback.at(-1).sessionId).every((workSet: { qualityConfirmed?: boolean }) => workSet.qualityConfirmed === true)).toBe(true)
@@ -457,7 +457,7 @@ test('turns imported exact history into athlete-reviewed placement evidence with
   }
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(15)
+  expect(persisted.version).toBe(16)
   expect(persisted.state.athlete.placement.ruleVersion).toBe('placement-v3')
   const benchInput = persisted.state.athlete.placement.inputs.movementProfiles.find((profile: { exerciseId: string }) => profile.exerciseId === 'competition-bench')
   const benchPlacement = persisted.state.athlete.placement.movementPlacements.find((placement: { exerciseId: string }) => placement.exerciseId === 'competition-bench')
@@ -562,7 +562,7 @@ test('filters the initial route queue through the selected training location', a
       planProfileId: state.mesocycles.find((plan: { id: string }) => plan.id === state.activeMesocycleId)?.generationEquipment?.profileId
     }
   })
-  expect(generated).toMatchObject({ persistenceVersion: 15, supportFits: true, planProfileId: 'equipment-home-gym' })
+  expect(generated).toMatchObject({ persistenceVersion: 16, supportFits: true, planProfileId: 'equipment-home-gym' })
   expect(generated.ruleVersions.every((value: string) => value === 'route-session-v3')).toBe(true)
   expect(generated.profileIds.every((value: string) => value === 'equipment-home-gym')).toBe(true)
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
@@ -633,7 +633,7 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
   await expect(page.getByText(/first work sets/i)).toBeVisible()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(15)
+  expect(persisted.version).toBe(16)
   expect(persisted.state.athlete.placement).toMatchObject({ ruleVersion: 'placement-v3', recommendedRoute: 'strength', selectedRoute: 'base-building', confidence: 'high', decision: 'conservative' })
   expect(persisted.state.athlete.placement.movementPlacements.map((movement: { exerciseId: string; selectedRoute: string }) => [movement.exerciseId, movement.selectedRoute])).toEqual([
     ['competition-squat', 'introductory-skill'], ['competition-bench', 'base-building'], ['sumo-deadlift', 'reacclimation']
@@ -711,7 +711,7 @@ test('turns warm-up, first-set, session, and recovery evidence into an auditable
   if (testInfo.project.name === 'mobile-chromium') await page.locator('.placement-profile-evidence').screenshot({ path: 'output/playwright/placement-verification-profile-mobile.png' })
 
   let persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(15)
+  expect(persisted.version).toBe(16)
   expect(persisted.state.placementVerifications).toHaveLength(1)
   expect(persisted.state.placementVerifications[0]).toMatchObject({ ruleVersion: 'placement-verification-v1', status: 'resolved', verdict: 'supports-route', warmupResponse: 'as-expected', recoveryResponse: 'recovered' })
   expect(persisted.state.history.some((workSet: { id: string }) => workSet.id === persisted.state.placementVerifications[0].firstSet.sourceSetId)).toBe(true)
@@ -748,6 +748,63 @@ test('requires placement review after painful productive verification without di
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
   expect(persisted.state.placementVerifications[0]).toMatchObject({ warmupResponse: 'painful', status: 'resolved', verdict: 'reassessment-required', firstSet: null })
   expect(persisted.state.athlete.placement.selectedRoute).not.toBe('pain-aware-modified')
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  expect(browserErrors).toEqual([])
+})
+
+test('turns repeated productive checks into an athlete-reviewed placement checkpoint without silent reclassification', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+
+  const completeSupportiveCheck = async (sequence: number) => {
+    await page.getByRole('button', { name: 'Start without check-in' }).click()
+    await expect(page.getByText(`Placement check ${sequence} of 3`)).toBeVisible()
+    await page.getByRole('button', { name: 'As expected' }).click()
+    await page.getByRole('button', { name: 'Log set' }).first().click()
+    await page.getByRole('button', { name: 'Finish workout' }).click()
+    await page.getByRole('button', { name: /Full.*10 questions/ }).click()
+    await page.getByRole('button', { name: 'How difficult was the session overall?: 7' }).click()
+    await page.getByRole('button', { name: 'How consistent was your technique?: 4' }).click()
+    await page.getByRole('button', { name: 'Did any movement create joint pain or irritation?: 0' }).click()
+    await page.getByRole('button', { name: 'How well did the session fit the time you had?: 4' }).click()
+    await page.getByRole('button', { name: 'Save feedback & finish' }).click()
+    await page.getByRole('button', { name: 'Today' }).click()
+    await page.getByRole('button', { name: 'Recovered', exact: true }).click()
+  }
+
+  await completeSupportiveCheck(1)
+  await completeSupportiveCheck(2)
+
+  await expect(page.locator('.placement-exit-callout')).toContainText('Your current route has earned confirmation.')
+  if (testInfo.project.name === 'mobile-chromium') await page.locator('.placement-exit-callout').screenshot({ path: 'output/playwright/placement-exit-checkpoint-mobile.png' })
+  await page.locator('.placement-exit-callout').click()
+  const dismissNotice = page.getByRole('button', { name: 'Dismiss message' })
+  if (await dismissNotice.isVisible()) await dismissNotice.click()
+  const checkpoint = page.locator('.placement-exit-panel')
+  await expect(checkpoint).toContainText('Confirm current route')
+  await expect(checkpoint.locator('.placement-exit-criterion--met')).toHaveCount(4)
+  await expect(checkpoint).toContainText('2 resolved plan-route checks')
+  if (testInfo.project.name === 'mobile-chromium') await checkpoint.screenshot({ path: 'output/playwright/placement-exit-profile-mobile.png' })
+  await checkpoint.getByRole('button', { name: 'Review criterion outcome' }).click()
+  await expect(page.getByRole('heading', { name: 'Review placement checkpoint' })).toBeVisible()
+  await expect(page.locator('.placement-exit-choice-list button').first()).toHaveAttribute('aria-pressed', 'true')
+  await page.getByLabel('Why is this the right decision now?').fill('Both source-linked sessions matched the expected effort, technique stayed stable, and recovery was normal.')
+  await page.getByRole('button', { name: 'Save checkpoint decision' }).click()
+  await expect(checkpoint).toContainText('Saved athlete review')
+  await expect(checkpoint.getByRole('button', { name: 'Current evidence reviewed' })).toBeDisabled()
+
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
+  expect(persisted.version).toBe(16)
+  expect(persisted.state.placementExitReviews).toHaveLength(1)
+  expect(persisted.state.placementExitReviews[0]).toMatchObject({
+    ruleVersion: 'placement-exit-review-v1',
+    decision: 'continue-current',
+    assessment: { ruleVersion: 'placement-exit-v1', recommendation: 'confirm-current', resolved: 2, supports: 2, excludedDifferentRouteChecks: 0 }
+  })
+  expect(persisted.state.placementExitReviews[0].assessment.sourceVerificationEvents).toHaveLength(2)
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
   expect(browserErrors).toEqual([])

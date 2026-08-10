@@ -2,18 +2,33 @@ import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { AlertTriangle, Bell, BrainCircuit, Database, Download, Dumbbell, Eye, FileCheck2, HardDrive, MapPin, Moon, Pencil, Plus, RotateCcw, ShieldCheck, Sparkles, Undo2, Upload, UserRound, Wrench } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { useAppStore } from '../store/useAppStore'
-import type { CelebrationLevel, EquipmentProfile, EquipmentProfileKind, SurveyMode } from '../domain/types'
+import type { CelebrationLevel, EquipmentProfile, EquipmentProfileKind, PlacementExitDecision, SurveyMode } from '../domain/types'
 import { Modal } from '../components/Modal'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { createBackup, parseBackup, type BackupPreview } from '../domain/backup'
 import { placementRouteLabels } from '../domain/placement-engine'
 import { placementVerificationVerdictLabels, summarizePlacementVerification } from '../domain/placement-verification-engine'
+import { buildPlacementExitAssessment } from '../domain/placement-exit-engine'
 
 const surveyModeLabels: Record<SurveyMode, string> = { full: 'Full', quick: 'Quick', minimal: 'Minimal', off: 'Off', ask: 'Ask each time' }
+const placementExitLabels = {
+  'collect-evidence': 'Collect more evidence',
+  'hold-current': 'Hold current route',
+  'confirm-current': 'Confirm current route',
+  'review-advance': 'Review a more advanced route',
+  'review-conservative': 'Review a more conservative route',
+  'reassessment-required': 'Reassessment required'
+} as const
+
+const placementExitChoices: { id: PlacementExitDecision; title: string; detail: string }[] = [
+  { id: 'continue-current', title: 'Keep the current route', detail: 'Record that the evidence and your experience support continuing this plan route.' },
+  { id: 'reassess-now', title: 'Reassess placement now', detail: 'Return to the placement questions. Completing them creates a new version without rewriting this evidence.' },
+  { id: 'defer', title: 'Decide later', detail: 'Keep the current route unchanged and record why you want more time or evidence.' }
+]
 
 export function YouScreen() {
   const {
-    athlete, settings, updateSettings, equipmentProfiles, setActiveEquipmentProfile, saveEquipmentProfile, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications,
+    athlete, settings, updateSettings, equipmentProfiles, setActiveEquipmentProfile, saveEquipmentProfile, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, recordPlacementExitReview,
     activeMesocycleId, activeSessionId, onboardingComplete, recoverySnapshot, restoreBackup, undoLastRestore,
     restartOnboarding, resetDemo, setNotice
   } = useAppStore()
@@ -22,22 +37,45 @@ export function YouScreen() {
   const [importError, setImportError] = useState<string | null>(null)
   const [equipmentOpen, setEquipmentOpen] = useState(false)
   const [equipmentError, setEquipmentError] = useState<string | null>(null)
+  const [placementExitOpen, setPlacementExitOpen] = useState(false)
+  const [placementExitDecision, setPlacementExitDecision] = useState<PlacementExitDecision>('defer')
+  const [placementExitReason, setPlacementExitReason] = useState('')
+  const [placementExitError, setPlacementExitError] = useState<string | null>(null)
+  const [placementExitAssessedAt] = useState(() => new Date().toISOString())
   const [equipmentValues, setEquipmentValues] = useState({ id: '', name: '', kind: 'custom' as EquipmentProfileKind, equipment: '', constraints: '', barbell: '5', dumbbell: '5', cable: '5', machine: '10', other: '5' })
   const fileInput = useRef<HTMLInputElement>(null)
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const knownEquipment = useMemo(() => [...new Set(exercises.flatMap((exercise) => exercise.equipment))].sort(), [exercises])
   const placementVerification = summarizePlacementVerification(placementVerifications, athlete.placement.createdAt)
+  const placementExit = useMemo(() => buildPlacementExitAssessment({ placement: athlete.placement, verificationEvents: placementVerifications, assessedAt: placementExitAssessedAt }), [athlete.placement, placementVerifications, placementExitAssessedAt])
+  const placementExitEvidenceKey = placementExit.sourceVerificationEvents.filter((event) => event.placementRoute === placementExit.currentRoute).map((event) => event.id).join('|')
+  const currentPlacementExitReviews = placementExitReviews.filter((review) => review.placementCreatedAt === athlete.placement.createdAt)
+  const placementExitReviewed = currentPlacementExitReviews.some((review) => review.assessment.sourceVerificationEvents.filter((event) => event.placementRoute === review.assessment.currentRoute).map((event) => event.id).join('|') === placementExitEvidenceKey)
+
+  const openPlacementExitReview = () => {
+    const decision: PlacementExitDecision = ['review-advance', 'review-conservative', 'reassessment-required'].includes(placementExit.recommendation) ? 'reassess-now' : placementExit.recommendation === 'collect-evidence' ? 'defer' : 'continue-current'
+    setPlacementExitDecision(decision)
+    setPlacementExitReason('')
+    setPlacementExitError(null)
+    setPlacementExitOpen(true)
+  }
+
+  const submitPlacementExitReview = () => {
+    const result = recordPlacementExitReview(placementExitDecision, placementExitReason)
+    if (!result.ok) return setPlacementExitError(result.error ?? 'The placement checkpoint could not be saved.')
+    setPlacementExitOpen(false)
+  }
 
   const exportData = () => {
-    const payload = createBackup({ athlete, settings, equipmentProfiles, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, activeMesocycleId, activeSessionId, onboardingComplete })
+    const payload = createBackup({ athlete, settings, equipmentProfiles, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, activeMesocycleId, activeSessionId, onboardingComplete })
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `forgepath-backup-v17-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `forgepath-backup-v18-${new Date().toISOString().slice(0, 10)}.json`
     anchor.click()
     URL.revokeObjectURL(url)
-    setNotice('Verified version 17 backup created as open JSON, including athlete-reviewed exact-history placement evidence, per-movement placement, route generation, productive checks, records, plans, substitutions, and surveys.')
+    setNotice('Verified version 18 backup created as open JSON, including athlete-reviewed placement checkpoints, exact-history placement evidence, productive checks, records, plans, substitutions, and surveys.')
   }
 
   const openEquipmentEditor = (profile?: EquipmentProfile) => {
@@ -98,6 +136,15 @@ export function YouScreen() {
                 <ShieldCheck size={18} /><span><strong>{placementVerification.state.replaceAll('-', ' ')}</strong><small>{placementVerification.resolved} resolved · {placementVerification.collected} of 3 productive checks started · {placementVerification.supports} support · {placementVerification.reviews} review</small></span>
               </div>
               {placementVerification.events.length > 0 && <div className="placement-verification-list">{placementVerification.events.map((event) => <details key={event.id}><summary><span>Check {event.sequence}</span><strong>{placementVerificationVerdictLabels[event.verdict]}</strong></summary><p>{sessions.find((session) => session.id === event.sessionId)?.title ?? event.sessionId}</p><small>Warm-up: {event.warmupResponse.replace('-', ' ')} · Recovery: {event.recoveryResponse.replace('-', ' ')}</small>{event.firstSet && <small>First set: {event.firstSet.exerciseName} · {event.firstSet.actualLoad} × {event.firstSet.actualReps} · {event.firstSet.actualRir} RIR</small>}<ul>{event.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></details>)}</div>}
+              <section className={`placement-exit-panel placement-exit-panel--${placementExit.recommendation}`} aria-label="Placement checkpoint">
+                <div className="placement-exit-panel__headline"><span><FileCheck2 size={18} /><span><small>{placementExit.ruleVersion}</small><strong>Placement checkpoint</strong></span></span><b>{placementExitLabels[placementExit.recommendation]}</b></div>
+                <p>{placementExit.reasons[0]}</p>
+                {placementExit.suggestedRoute && <div className="placement-exit-route"><span>{placementExit.suggestedRoute === placementExit.currentRoute ? 'Supported current route' : 'Route for athlete review'}</span><strong>{placementExit.suggestedRoute === placementExit.currentRoute ? placementRouteLabels[placementExit.currentRoute] : `${placementRouteLabels[placementExit.currentRoute]} → ${placementRouteLabels[placementExit.suggestedRoute]}`}</strong></div>}
+                <div className="placement-exit-criteria">{placementExit.criteria.map((item) => <article key={item.id} className={`placement-exit-criterion placement-exit-criterion--${item.state}`}><span>{item.state === 'met' ? '✓' : item.state === 'not-met' ? '!' : '?'}</span><div><strong>{item.label}</strong><small>{item.detail}</small></div></article>)}</div>
+                <details><summary>Evidence boundaries and declared route criteria</summary><p><strong>Source:</strong> {placementExit.resolved} resolved plan-route checks, {placementExit.supports} supportive, {placementExit.reviews} review-suggested.</p>{placementExit.excludedDifferentRouteChecks > 0 && <p><strong>Excluded:</strong> {placementExit.excludedDifferentRouteChecks} movement-lane check{placementExit.excludedDifferentRouteChecks === 1 ? '' : 's'} used a different effective route and cannot confirm this plan route.</p>}<ul>{placementExit.declaredExitCriteria.map((item) => <li key={item}>{item}</li>)}</ul>{placementExit.limitations.map((item) => <p key={item}>{item}</p>)}</details>
+                {currentPlacementExitReviews.length > 0 && <div className="placement-exit-history"><span>Saved athlete review</span><strong>{currentPlacementExitReviews.at(-1)?.decision.replaceAll('-', ' ')}</strong><small>{currentPlacementExitReviews.at(-1)?.reason}</small></div>}
+                <button className="button button--small button--primary" disabled={Boolean(activeSessionId) || placementExit.collected === 0 || placementExitReviewed} onClick={openPlacementExitReview}>{placementExitReviewed ? 'Current evidence reviewed' : 'Review criterion outcome'}</button>
+              </section>
               <button className="button button--small button--secondary" disabled={Boolean(activeSessionId)} onClick={() => restartOnboarding()}>Reassess starting placement</button></div>
           </section>
 
@@ -156,12 +203,26 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.23.0 private alpha</strong></li><li><span>Rules</span><strong>0.23 athlete-reviewed history placement</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Route session v3 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Equipment v1 · Load increment v1</strong></li><li><span>Backup schema</span><strong>Version 17</strong></li><li><span>Persistence</span><strong>Local v15</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.24.0 private alpha</strong></li><li><span>Rules</span><strong>0.24 athlete-reviewed criterion exit</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Route session v3 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Equipment v1 · Load increment v1</strong></li><li><span>Backup schema</span><strong>Version 18</strong></li><li><span>Persistence</span><strong>Local v16</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Reset private alpha</button>
         </aside>
       </div>
       <footer className="screen-footer"><Moon size={16} /> ForgePath Private Alpha · Built from the Obsidian Build Bible · Local state only</footer>
+
+      <Modal open={placementExitOpen} onClose={() => setPlacementExitOpen(false)} title="Review placement checkpoint" description="ForgePath has interpreted the source-linked productive checks for this exact placement version. It will not change your route until you choose what happens next." wide>
+        <div className="placement-exit-review">
+          <div className="placement-exit-review__summary"><FileCheck2 size={22} /><span><small>Deterministic recommendation</small><strong>{placementExitLabels[placementExit.recommendation]}</strong><p>{placementExit.reasons.join(' ')}</p></span></div>
+          <fieldset className="placement-exit-choice-list"><legend>Choose the athlete-reviewed outcome</legend>{placementExitChoices.map((choice) => {
+            const blocked = choice.id === 'continue-current' && placementExit.reassessmentRequired
+            return <button type="button" key={choice.id} aria-pressed={placementExitDecision === choice.id} className={placementExitDecision === choice.id ? 'selected' : ''} disabled={blocked} onClick={() => setPlacementExitDecision(choice.id)}><span>{placementExitDecision === choice.id ? '✓' : '○'}</span><span><strong>{choice.title}</strong><small>{choice.detail}</small>{blocked && <em>Unavailable because a productive check recorded pain that changed training.</em>}</span></button>
+          })}</fieldset>
+          <label><span className="field-label">Why is this the right decision now?</span><textarea value={placementExitReason} onChange={(event) => setPlacementExitReason(event.target.value)} placeholder="Example: Both sessions matched the expected effort, technique stayed stable, and recovery was normal." /></label>
+          {placementExitError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Checkpoint not saved</strong>{placementExitError}</span></div>}
+          <p className="modal-note">A reassessment creates a new placement and plan version. This review and its source evidence remain in history. The checkpoint is not medical clearance.</p>
+        </div>
+        <div className="modal__actions"><button className="button button--ghost" onClick={() => setPlacementExitOpen(false)}>Cancel</button><button className="button button--primary" disabled={!placementExitReason.trim()} onClick={submitPlacementExitReview}>Save checkpoint decision</button></div>
+      </Modal>
 
       <Modal open={equipmentOpen} onClose={() => setEquipmentOpen(false)} title={equipmentValues.id ? 'Edit training location' : 'Add training location'} description="List only equipment you can actually use here. ForgePath will treat every omitted requirement as unavailable." wide>
         <div className="form-grid equipment-profile-form">
@@ -190,6 +251,7 @@ export function YouScreen() {
             <div><small>Starting route</small><strong>{importPreview.summary.placementRoute}</strong></div>
             <div><small>Placement confidence</small><strong>{importPreview.summary.placementConfidence}</strong></div>
             <div><small>Placement checks</small><strong>{importPreview.summary.placementChecks}</strong></div>
+            <div><small>Placement checkpoint reviews</small><strong>{importPreview.summary.placementExitReviews}</strong></div>
             <div><small>Movement lanes</small><strong>{importPreview.summary.movementPlacedAnchors}</strong></div>
             <div><small>History-reviewed lanes</small><strong>{importPreview.summary.historyReviewedAnchors}</strong></div>
             <div><small>Route-generated sessions</small><strong>{importPreview.summary.routeGeneratedSessions}</strong></div>

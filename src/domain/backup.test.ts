@@ -7,6 +7,7 @@ import { buildMesocyclePreview, draftFromPlan } from './mesocycle-engine'
 import { equipmentGenerationEvidence } from './equipment-engine'
 import { buildPlacementAssessment, legacyPlacementForAthlete, placementRouteLabels } from './placement-engine'
 import { buildPlacementHistoryEvidence } from './placement-history-engine'
+import { buildPlacementExitAssessment } from './placement-exit-engine'
 
 const stable = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`
@@ -35,6 +36,7 @@ const state = (): RestorableAppState => ({
   cycleReviews: [],
   substitutionEvents: [],
   placementVerifications: [],
+  placementExitReviews: [],
   mesocycles: structuredClone(mesocycles),
   activeMesocycleId: mesocycles[0].id,
   activeSessionId: null,
@@ -54,6 +56,7 @@ describe('versioned backup and restore', () => {
     expect(parsed.summary.cycleReviews).toBe(0)
     expect(parsed.summary.substitutions).toBe(0)
     expect(parsed.summary.placementChecks).toBe(0)
+    expect(parsed.summary.placementExitReviews).toBe(0)
     expect(parsed.summary.movementPlacedAnchors).toBe(3)
     expect(parsed.summary.historyReviewedAnchors).toBe(0)
     expect(parsed.summary.routeGeneratedSessions).toBe(0)
@@ -343,6 +346,19 @@ describe('versioned backup and restore', () => {
     expect(parsed.warnings[0]).toMatch(/version 16/i)
   })
 
+  it('migrates a verified version 17 backup without inventing criterion-exit review', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    delete legacyData.placementExitReviews
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 17, appVersion: '0.23.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.placementExitReviews).toEqual([])
+    expect(parsed.summary.placementExitReviews).toBe(0)
+    expect(parsed.warnings[0]).toMatch(/version 17/i)
+  })
+
   it('round-trips route-generated sessions and rejects forged route provenance', () => {
     const current = state()
     const plan = current.mesocycles[0]
@@ -485,6 +501,46 @@ describe('versioned backup and restore', () => {
     expect(parsed.backup.data.placementVerifications[0]).toMatchObject({ verdict: 'supports-route', firstSet: { sourceSetId: 'placement-source-set' } })
 
     current.placementVerifications[0].verdict = 'review-suggested'
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/does not reconcile/i)
+  })
+
+  it('round-trips athlete-reviewed placement exit evidence and rejects a forged recommendation', () => {
+    const current = state()
+    const makeSupport = (sequence: number) => {
+      const session = current.sessions[sequence - 1]
+      const planned = session.exercises.find((exercise) => exercise.role === 'primary')!
+      const exercise = current.exercises.find((candidate) => candidate.id === planned.exerciseId)!
+      const sourceSet = {
+        ...structuredClone(current.history[0]), id: `exit-source-${sequence}`, sessionId: session.id,
+        exerciseId: exercise.id, exerciseName: exercise.name, family: exercise.family, primaryRegion: exercise.primaryRegion,
+        completedAt: `2026-08-1${sequence}T12:00:00.000Z`, reps: 5, load: 180, rir: 2, technique: 4, pain: 0,
+        qualityConfirmed: true, setIndex: 0, plannedExerciseId: planned.id
+      }
+      current.history.push(sourceSet)
+      let event = beginPlacementVerification({
+        id: `exit-check-${sequence}`, placement: current.athlete.placement, sessionId: session.id, sequence,
+        startedAt: `2026-08-1${sequence}T11:00:00.000Z`, movementPlacement: current.athlete.placement.movementPlacements?.find((movement) => movement.exerciseId === exercise.id)
+      })
+      event = recordPlacementWarmup(event, 'as-expected', `2026-08-1${sequence}T11:05:00.000Z`)
+      event = completePlacementVerification(event, {
+        firstSet: { sourceSetId: sourceSet.id, plannedExerciseId: planned.id, exerciseId: exercise.id, exerciseName: exercise.name, targetLoad: 180, targetReps: 5, targetRir: 2, actualLoad: 180, actualReps: 5, actualRir: 2 },
+        sessionEvidence: { sessionStatus: 'completed', completedSets: 10, plannedSets: 10, completionRate: 1, plannedMinutes: 60, actualMinutes: 58, readiness: 'normal', difficulty: 7, technique: 4, pain: 0, timeFit: 4, postSurveySkipped: false },
+        completedAt: `2026-08-1${sequence}T12:00:00.000Z`
+      })
+      return resolvePlacementRecovery(event, 'recovered', `2026-08-1${sequence + 1}T10:00:00.000Z`)
+    }
+    current.placementVerifications = [makeSupport(1), makeSupport(2)]
+    current.records = derivePersonalRecords(current.history)
+    const assessment = buildPlacementExitAssessment({ placement: current.athlete.placement, verificationEvents: current.placementVerifications, assessedAt: '2026-08-13T12:00:00.000Z' })
+    current.placementExitReviews = [{
+      id: 'exit-review-1', ruleVersion: 'placement-exit-review-v1', placementCreatedAt: current.athlete.placement.createdAt,
+      createdAt: '2026-08-13T12:00:00.000Z', decision: 'continue-current', reason: 'Two productive checks support this starting route.', assessment
+    }]
+    const parsed = parseBackup(JSON.stringify(createBackup(current)))
+    expect(parsed.summary.placementExitReviews).toBe(1)
+    expect(parsed.backup.data.placementExitReviews[0]).toMatchObject({ decision: 'continue-current', assessment: { ruleVersion: 'placement-exit-v1', supports: 2 } })
+
+    current.placementExitReviews[0].assessment.recommendation = 'review-conservative'
     expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/does not reconcile/i)
   })
 
