@@ -3,10 +3,11 @@ import { ArrowLeft, Check, CheckCircle2, ChevronDown, Clock3, Info, Pause, Play,
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
-import type { CompletedSetRecord, PlannedExercise, SubstitutionReason } from '../domain/types'
+import type { CompletedSetRecord, EffectiveSurveyMode, PlannedExercise, SubstitutionReason } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
 import { PostSurveyModal } from '../components/PostSurveyModal'
+import { SurveyModeChooser } from '../components/SurveyModeChooser'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary anchor',
@@ -24,6 +25,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const [primaryOverrideConfirmed, setPrimaryOverrideConfirmed] = useState(false)
   const [swapError, setSwapError] = useState<string | null>(null)
   const [finishOpen, setFinishOpen] = useState(false)
+  const [finishChooserOpen, setFinishChooserOpen] = useState(false)
+  const [activePostMode, setActivePostMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
   const [warmupConfirmed, setWarmupConfirmed] = useState(false)
   const [timerRunning, setTimerRunning] = useState(false)
   const [elapsed, setElapsed] = useState(0)
@@ -84,9 +87,17 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     setSwapTarget(null)
   }
 
-  const finishWithoutSurvey = () => {
-    finishSession(session.id, { answers: [], skipped: true })
+  const finishWithoutSurvey = (mode: EffectiveSurveyMode = 'off') => {
+    finishSession(session.id, { answers: [], skipped: true, mode })
     setFinishOpen(false)
+    setFinishChooserOpen(false)
+  }
+
+  const openFinishFlow = () => {
+    if (settings.postSurveyMode === 'off') return finishWithoutSurvey('off')
+    if (settings.postSurveyMode === 'ask') return setFinishChooserOpen(true)
+    setActivePostMode(settings.postSurveyMode)
+    setFinishOpen(true)
   }
 
   const logSet = (plannedExerciseId: string, setId: string, currentlyComplete: boolean) => {
@@ -122,7 +133,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
           </section>
         )}
 
-        <div className="workout-objective"><span className="status-chip status-chip--lime">{session.readiness ?? 'survey skipped'}</span><p>{session.objective}</p><span><Clock3 size={15} /> {session.durationMinutes} minute version</span></div>
+        <div className="workout-objective"><span className="status-chip status-chip--lime">{session.readiness ?? 'baseline plan'}</span><span className="status-chip">{session.readinessConfidence ?? 'low'} survey confidence</span><p>{session.objective}</p><span><Clock3 size={15} /> {session.durationMinutes} minute version</span></div>
 
         <div className="exercise-stack">
           {session.exercises.map((planned, exerciseIndex) => {
@@ -192,7 +203,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
 
       <footer className="workout-footer">
         <div><TimerReset size={18} /><span><strong>Every set is already saved.</strong><small>Only completed work enters volume and progression.</small></span></div>
-        <button className="button button--primary" onClick={() => setFinishOpen(true)}>Finish workout <CheckCircle2 size={18} /></button>
+        <button className="button button--primary" onClick={openFinishFlow}>Finish workout <CheckCircle2 size={18} /></button>
       </footer>
 
       <Modal open={Boolean(swapTarget)} onClose={() => setSwapTarget(null)} title="Choose an educated replacement" description="Tell ForgePath why you are changing it. The ranking and prescription update without borrowing the original movement's load." wide>
@@ -215,19 +226,21 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         <p className="modal-note">The selected movement receives a prescription from its own exact history or a conservative calibration. The original exact-movement progression clock remains frozen.</p>
       </Modal>
 
-      <PostSurveyModal
-        open={finishOpen}
+      {finishOpen && <PostSurveyModal
+        open
+        mode={activePostMode}
         completedSets={completedSets}
         totalSets={totalSets}
         volume={currentVolume}
         estimatedStrength={bestEstimatedStrength}
         onClose={() => setFinishOpen(false)}
-        onSkip={finishWithoutSurvey}
+        onSkip={() => finishWithoutSurvey(activePostMode)}
         onSubmit={(answers, feedbackNote) => {
-          finishSession(session.id, { answers, note: feedbackNote, skipped: false })
+          finishSession(session.id, { answers, note: feedbackNote, skipped: false, mode: activePostMode })
           setFinishOpen(false)
         }}
-      />
+      />}
+      <SurveyModeChooser open={finishChooserOpen} cadence="post" onClose={() => setFinishChooserOpen(false)} onChoose={(mode) => { setActivePostMode(mode); setFinishChooserOpen(false); setFinishOpen(true) }} onSkip={() => finishWithoutSurvey('off')} />
     </div>
   )
 }

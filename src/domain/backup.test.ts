@@ -186,6 +186,29 @@ describe('versioned backup and restore', () => {
     expect(parsed.warnings[0]).toMatch(/version 6/i)
   })
 
+  it('migrates a verified version 7 backup without inventing survey evidence', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 7, appVersion: '0.7.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.surveys).toEqual([])
+    expect(parsed.warnings[0]).toMatch(/version 7/i)
+  })
+
+  it('preserves explicit unknown survey answers and rejects fabricated unknown values', () => {
+    const current = state()
+    current.surveys = [{
+      id: 'survey-1', sessionId: current.sessions[0].id, type: 'pre', completedAt: '2026-08-10T12:00:00.000Z',
+      mode: 'minimal', skipped: false, answeredCount: 1, unknownCount: 2, confidence: 'low',
+      answers: [{ id: 'energy', value: 3, status: 'answered' }, { id: 'pain', value: null, status: 'not-sure' }, { id: 'time', value: null, status: 'not-answered' }]
+    }]
+    expect(parseBackup(JSON.stringify(createBackup(current))).backup.data.surveys[0].answers[2].status).toBe('not-answered')
+    current.surveys[0].answers[2].value = 60
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/missing-data semantics/i)
+  })
+
   it('round-trips a source-ready substitution event without losing its decision context', () => {
     const current = state()
     const session = current.sessions[0]

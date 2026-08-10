@@ -1,18 +1,21 @@
 import { useState } from 'react'
 import { ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, Footprints, HelpCircle, RotateCcw, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
 import { recommendProgression, volumeLoad } from '../domain/training-engine'
-import type { MissedSessionReason, SurveyAnswer } from '../domain/types'
+import type { EffectiveSurveyMode, MissedSessionReason, SurveyAnswer } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { StatCard } from '../components/StatCard'
 import { SurveyModal } from '../components/SurveyModal'
+import { SurveyModeChooser } from '../components/SurveyModeChooser'
 
 const timeOptions = [15, 30, 45, 60, 75]
 
 export function TodayScreen() {
   const { athlete, settings, updateSettings, sessions, exercises, history, startSession, setReadiness, markMissed, records, setNav } = useAppStore()
   const [surveyOpen, setSurveyOpen] = useState(false)
+  const [surveyChooserOpen, setSurveyChooserOpen] = useState(false)
+  const [activeSurveyMode, setActiveSurveyMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
   const [whyOpen, setWhyOpen] = useState(false)
   const [missedOpen, setMissedOpen] = useState(false)
   const [missReason, setMissReason] = useState<MissedSessionReason>({ reason: 'family', nextMinutes: 45, continuing: true })
@@ -39,12 +42,28 @@ export function TodayScreen() {
     readiness: nextSession?.readiness ?? 'confirm'
   })
 
-  const begin = (answers?: SurveyAnswer[], skipped = false) => {
+  const begin = (answers: SurveyAnswer[] = [], skipped = false, mode: EffectiveSurveyMode = 'off') => {
     if (!nextSession) return
-    setReadiness(nextSession.id, answers ?? [], skipped)
-    startSession(nextSession.id, settings.availableMinutes)
+    const timeAnswer = answers.find((answer) => answer.id === 'time' && answer.status === 'answered')
+    const sessionMinutes = typeof timeAnswer?.value === 'number' ? timeAnswer.value : settings.availableMinutes
+    setReadiness(nextSession.id, answers, skipped, mode)
+    startSession(nextSession.id, sessionMinutes)
     setSurveyOpen(false)
+    setSurveyChooserOpen(false)
   }
+
+  const openPreferredCheckIn = () => {
+    if (settings.preSurveyMode === 'off') return begin([], true, 'off')
+    if (settings.preSurveyMode === 'ask') return setSurveyChooserOpen(true)
+    setActiveSurveyMode(settings.preSurveyMode)
+    setSurveyOpen(true)
+  }
+
+  const checkInLabel = settings.preSurveyMode === 'off'
+    ? 'Start workout now'
+    : settings.preSurveyMode === 'ask'
+      ? 'Choose check-in & start'
+      : `${settings.preSurveyMode[0].toUpperCase()}${settings.preSurveyMode.slice(1)} check-in & start`
 
   return (
     <div className="screen screen--today">
@@ -73,8 +92,8 @@ export function TodayScreen() {
             <div className="anchor-prescription__decision"><span>{progression.action}</span><strong>{progression.title}</strong></div>
           </div>
           <div className="hero-workout__actions">
-            <button className="button button--primary button--large" onClick={() => setSurveyOpen(true)}>Check in & start <ArrowRight size={18} /></button>
-            <button className="button button--secondary" onClick={() => begin([], true)}>Start without check-in</button>
+            <button className="button button--primary button--large" onClick={openPreferredCheckIn}>{checkInLabel} <ArrowRight size={18} /></button>
+            {settings.preSurveyMode !== 'off' && <button className="button button--secondary" onClick={() => begin([], true, 'off')}>Start without check-in</button>}
             <button className="button button--ghost" onClick={() => setWhyOpen(true)}><HelpCircle size={17} /> Why this session?</button>
           </div>
           <div className="time-budget" aria-label="Available workout time">
@@ -118,7 +137,8 @@ export function TodayScreen() {
         </section>
       </div>
 
-      <SurveyModal open={surveyOpen} onClose={() => setSurveyOpen(false)} onSubmit={(answers) => begin(answers, false)} onSkip={() => begin([], true)} />
+      <SurveyModeChooser open={surveyChooserOpen} cadence="pre" onClose={() => setSurveyChooserOpen(false)} onChoose={(mode) => { setActiveSurveyMode(mode); setSurveyChooserOpen(false); setSurveyOpen(true) }} onSkip={() => begin([], true, 'off')} />
+      {surveyOpen && <SurveyModal open mode={activeSurveyMode} onClose={() => setSurveyOpen(false)} onSubmit={(answers) => begin(answers, false, activeSurveyMode)} onSkip={() => begin([], true, activeSurveyMode)} />}
 
       <Modal open={whyOpen} onClose={() => setWhyOpen(false)} title="Why this session is next" description="ForgePath shows the rule inputs instead of hiding them in an AI score.">
         <div className="reason-stack">

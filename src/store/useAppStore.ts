@@ -8,6 +8,7 @@ import { buildMesocyclePreview, createMesocyclePlan, replaceFuturePlan } from '.
 import { derivePersonalRecords, historyVolume, projectExerciseMerge } from '../domain/history-engine'
 import { buildCycleReview, buildNextMicrocycle } from '../domain/cycle-review-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
+import { summarizeSurveyEvidence } from '../domain/survey-engine'
 import type {
   AppSettings,
   AthleteProfile,
@@ -16,6 +17,7 @@ import type {
   CycleReviewEvent,
   Exercise,
   ExerciseSubstitutionEvent,
+  EffectiveSurveyMode,
   HistoryMutationEvent,
   MesocycleDraft,
   MesocyclePlan,
@@ -52,11 +54,11 @@ interface AppState {
   updateAthlete: (profile: Partial<AthleteProfile>) => void
   updateSettings: (settings: Partial<AppSettings>) => void
   startSession: (sessionId: string, availableMinutes?: number) => void
-  setReadiness: (sessionId: string, answers: SurveyAnswer[], skipped: boolean) => void
+  setReadiness: (sessionId: string, answers: SurveyAnswer[], skipped: boolean, mode: EffectiveSurveyMode) => void
   updateSet: (sessionId: string, plannedExerciseId: string, setId: string, data: { reps?: number; load?: number; rir?: number }) => void
   toggleSetComplete: (sessionId: string, plannedExerciseId: string, setId: string) => void
   swapExercise: (sessionId: string, plannedExerciseId: string, exerciseId: string, reason: SubstitutionReason, primaryOverrideConfirmed: boolean) => { ok: boolean; error?: string }
-  finishSession: (sessionId: string, feedback: { answers: SurveyAnswer[]; note?: string; skipped: boolean }) => void
+  finishSession: (sessionId: string, feedback: { answers: SurveyAnswer[]; note?: string; skipped: boolean; mode: EffectiveSurveyMode }) => void
   skipExercise: (sessionId: string, plannedExerciseId: string) => void
   markMissed: (sessionId: string, context: MissedSessionReason) => void
   toggleFavorite: (exerciseId: string) => void
@@ -129,11 +131,15 @@ export const useAppStore = create<AppState>()(
           notice: 'Workout saved locally. You can train offline.'
         }
       }),
-      setReadiness: (sessionId, answers, skipped) => set((state) => {
-        const readiness = skipped ? undefined : readinessFromSurvey(answers, state.athlete.continuity)
+      setReadiness: (sessionId, answers, skipped, mode) => set((state) => {
+        const evidence = summarizeSurveyEvidence(answers, skipped)
+        const readiness = skipped || evidence.answeredCount === 0 ? undefined : readinessFromSurvey(answers, state.athlete.continuity)
         return {
-          surveys: [...state.surveys, { id: nanoid(), sessionId, type: 'pre', completedAt: new Date().toISOString(), answers, skipped }],
-          sessions: state.sessions.map((session) => session.id === sessionId ? { ...session, readiness } : session)
+          surveys: [...state.surveys, { id: nanoid(), sessionId, type: 'pre', completedAt: new Date().toISOString(), answers, skipped, mode, ...evidence }],
+          sessions: state.sessions.map((session) => session.id === sessionId ? {
+            ...session, readiness, readinessSurveyMode: mode, readinessAnsweredCount: evidence.answeredCount,
+            readinessUnknownCount: evidence.unknownCount, readinessConfidence: evidence.confidence
+          } : session)
         }
       }),
       updateSet: (sessionId, plannedExerciseId, setId, data) => set((state) => ({
@@ -238,6 +244,7 @@ export const useAppStore = create<AppState>()(
           }] : [])
         })
         const status = sessionCompletionStatus(session)
+        const surveyEvidence = summarizeSurveyEvidence(feedback.answers, feedback.skipped)
         const difficulty = feedback.answers.find((answer) => answer.id === 'difficulty' && answer.status === 'answered')
         const sessionRpe = typeof difficulty?.value === 'number' ? difficulty.value : undefined
         const feedbackValue = (id: string) => {
@@ -249,7 +256,7 @@ export const useAppStore = create<AppState>()(
           return {
           history,
           records: derivePersonalRecords(history),
-          surveys: [...current.surveys, { id: nanoid(), sessionId, type: 'post', completedAt, answers: feedback.answers, skipped: feedback.skipped }],
+          surveys: [...current.surveys, { id: nanoid(), sessionId, type: 'post', completedAt, answers: feedback.answers, skipped: feedback.skipped, mode: feedback.mode, ...surveyEvidence }],
           sessions: current.sessions.map((candidate) => candidate.id === sessionId ? { ...candidate, status, completedAt, sessionRpe, note: feedback.note } : candidate),
           substitutionEvents: current.substitutionEvents.map((event) => {
             if (event.sessionId !== sessionId || event.outcome !== 'pending') return event
@@ -469,7 +476,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 6,
+      version: 7,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,

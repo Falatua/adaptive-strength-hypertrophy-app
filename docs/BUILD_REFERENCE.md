@@ -16,7 +16,8 @@ The first implementation is governed by the complete R-001 through R-295 registe
 
 - Today, Plan, Progress, Library, and You navigation.
 - Optional onboarding with direct-entry and returning routes.
-- Optional ten-question readiness survey, optional ten-question post-session survey, per-question skipping, and immediate survey-free start.
+- Independent full 10, quick 5, minimal 3, ask-each-time, and off modes for pre- and post-session surveys.
+- Per-question answer, skip, not-sure, and prefer-not states plus immediate survey-free start and finish. Untouched defaults remain unknown rather than becoming fabricated answers.
 - Active workout logging with local persistence.
 - Primary, secondary builder, priority, maintenance, and optional exercise roles.
 - Load-first, repetition-second, recovered-set-third progression decisions.
@@ -41,7 +42,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - A fully validated PR requires confirmed technique and pain feedback. Survey-free sessions keep their numbers as visibly numeric-only bests.
 - Athlete-controlled celebration level, quiet mode, opportunity prompts, session achievements, reduced motion, pixel confetti, sounds preference, and supported-device haptics.
 - Athlete model, survey controls, focused mode, data export, and local reset.
-- Version 7 open-JSON backup with expanded record definitions, celebration controls, plan, review, correction, and substitution history, integrity checks, versions 1 through 6 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
+- Version 8 open-JSON backup with expanded record definitions, celebration controls, plan, review, correction, substitution, and survey-evidence history, integrity checks, versions 1 through 7 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
 - Original pixel-adventure visual language and installable PWA shell.
 - Accurate completed, partial-primary, and partial-without-primary session states.
 
@@ -49,6 +50,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 
 - Complete onboarding and start directly at an experience-appropriate route.
 - Open readiness, skip an individual question, and submit the remaining evidence.
+- Select a minimal three-question check-in, mark one item not sure, submit two explicit answers, display low evidence confidence, set post-session surveys off, and finish directly without a modal or loss of training credit.
 - Start immediately without a survey.
 - Log an actual set, reload the app, and recover the active session locally.
 - Explain why a primary exercise is being changed, inspect ranked evidence and tradeoffs, confirm the protected-anchor change, receive a movement-specific prescription, and freeze the original exact-movement clock.
@@ -57,7 +59,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Export a complete local backup, validate and preview it, restore it, and recover the pre-restore state.
 - Switch every progress horizon and prove chart, body-lens, and headline totals equal the selected completed source sets.
 - Preview a 30-minute plan revision, apply it, preserve partial history, inspect both plan versions, reload, and recover the active version from local persistence.
-- Export and preview a verified version 7 backup containing expanded records, athlete celebration preferences, plan versions, the correction ledger, cycle-review history, and substitution learning.
+- Export and preview a verified version 8 backup containing expanded records, athlete celebration preferences, plan versions, the correction ledger, cycle-review history, substitution learning, and survey evidence provenance.
 - Confirm a planned hold remains a hold after an athlete edits actual load, then log, provisionally recognize, save, and replay a source-backed exact-movement load record.
 - Turn quiet mode on, reload, and confirm the preference persists without changing training or record calculations.
 - Verify the achievement and settings surfaces on desktop and phone with no browser errors or horizontal overflow.
@@ -74,8 +76,9 @@ The first implementation is governed by the complete R-001 through R-295 registe
 
 1. Planned work never counts as completed work.
 2. Missing survey data stays unknown.
-3. Missed training earns no progression and creates no volume debt.
-4. Exercise substitutions own their own completed history.
-5. Gamification cannot change the training prescription.
-6. The deterministic engine must function offline and without an AI provider.
-7. Changes to rules, calculations, or exercise identity must remain versionable and testable.
+3. Untouched interface defaults are not athlete answers.
+4. Missed training earns no progression and creates no volume debt.
+5. Exercise substitutions own their own completed history.
+6. Gamification cannot change the training prescription.
+7. The deterministic engine must function offline and without an AI provider.
+8. Changes to rules, calculations, exercise identity, or evidence semantics must remain versionable and testable.

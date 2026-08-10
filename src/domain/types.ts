@@ -9,6 +9,8 @@ export type ContinuityState = 'stable' | 'interrupted' | 'returning'
 export type ReadinessOutcome = 'normal' | 'confirm' | 'protect' | 'reacclimate' | 'pain-aware'
 export type ProgressionAction = 'load' | 'reps' | 'sets' | 'hold' | 'reduce' | 'reacclimate'
 export type SurveyMode = 'full' | 'quick' | 'minimal' | 'off' | 'ask'
+export type EffectiveSurveyMode = Exclude<SurveyMode, 'ask'>
+export type EvidenceConfidence = 'low' | 'medium' | 'high'
 export type MesocycleAdaptation = 'powerbuilding' | 'strength' | 'hypertrophy' | 'reacclimation'
 export type MesocycleStatus = 'draft' | 'active' | 'superseded' | 'completed' | 'abandoned'
 export type CycleReviewDecision = 'continue-progress' | 'continue-hold' | 'extend' | 'recover' | 'complete'
@@ -73,6 +75,10 @@ export interface TrainingSession {
   durationMinutes: number
   exercises: PlannedExercise[]
   readiness?: ReadinessOutcome
+  readinessSurveyMode?: EffectiveSurveyMode
+  readinessAnsweredCount?: number
+  readinessUnknownCount?: number
+  readinessConfidence?: EvidenceConfidence
   startedAt?: string
   completedAt?: string
   sessionRpe?: number
@@ -222,7 +228,7 @@ export interface ExerciseSubstitutionEvent {
 export interface SurveyAnswer {
   id: string
   value: number | string | null
-  status: 'answered' | 'skipped' | 'not-sure' | 'prefer-not'
+  status: 'answered' | 'skipped' | 'not-sure' | 'prefer-not' | 'not-answered'
 }
 
 export interface SurveyRecord {
@@ -232,6 +238,10 @@ export interface SurveyRecord {
   completedAt: string
   answers: SurveyAnswer[]
   skipped: boolean
+  mode?: EffectiveSurveyMode
+  answeredCount?: number
+  unknownCount?: number
+  confidence?: EvidenceConfidence
 }
 
 export interface ProgressionDecision {

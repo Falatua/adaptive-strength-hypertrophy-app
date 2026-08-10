@@ -12,10 +12,11 @@ import type {
   TrainingSession
 } from './types'
 import { derivePersonalRecords } from './history-engine'
+import { summarizeSurveyEvidence } from './survey-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 7
-export const BACKUP_APP_VERSION = '0.7.0'
+export const BACKUP_SCHEMA_VERSION = 8
+export const BACKUP_APP_VERSION = '0.8.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode'> = {
   celebrationLevel: 'subtle',
@@ -209,11 +210,21 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   })
 
   surveys.forEach((survey) => {
-    if (!isRecord(survey) || typeof survey.sessionId !== 'string' || !Array.isArray(survey.answers) || !isValidDate(survey.completedAt)) errors.push('A survey record is invalid.')
+    if (!isRecord(survey) || typeof survey.sessionId !== 'string' || !sessionIds.has(survey.sessionId) || !['pre', 'post'].includes(String(survey.type)) || typeof survey.skipped !== 'boolean' || !Array.isArray(survey.answers) || !isValidDate(survey.completedAt)) errors.push('A survey record is invalid.')
+    if (isRecord(survey) && Array.isArray(survey.answers) && survey.answers.some((answer) => !isRecord(answer) || typeof answer.id !== 'string' || !['answered', 'skipped', 'not-sure', 'prefer-not', 'not-answered'].includes(String(answer.status)) || (answer.status === 'answered' ? !(typeof answer.value === 'number' || typeof answer.value === 'string') : answer.value !== null))) errors.push('A survey answer has invalid missing-data semantics.')
+    if (isRecord(survey) && survey.mode !== undefined && !['full', 'quick', 'minimal', 'off'].includes(String(survey.mode))) errors.push('A survey record has an invalid effective mode.')
+    if (isRecord(survey) && survey.answeredCount !== undefined && !isFiniteNonNegative(survey.answeredCount)) errors.push('A survey record has an invalid answered count.')
+    if (isRecord(survey) && survey.unknownCount !== undefined && !isFiniteNonNegative(survey.unknownCount)) errors.push('A survey record has an invalid unknown count.')
+    if (isRecord(survey) && survey.confidence !== undefined && !['low', 'medium', 'high'].includes(String(survey.confidence))) errors.push('A survey record has an invalid confidence state.')
+    if (isRecord(survey) && Array.isArray(survey.answers) && typeof survey.skipped === 'boolean' && survey.answeredCount !== undefined && survey.unknownCount !== undefined && survey.confidence !== undefined) {
+      const evidence = summarizeSurveyEvidence(survey.answers as SurveyRecord['answers'], survey.skipped)
+      if (survey.answeredCount !== evidence.answeredCount || survey.unknownCount !== evidence.unknownCount || survey.confidence !== evidence.confidence) errors.push('A survey record does not reconcile with its answer evidence.')
+    }
   })
 
   const settings = candidate.settings as Record<string, unknown>
   if (!['off', 'subtle', 'normal', 'high-energy'].includes(String(settings.celebrationLevel)) || typeof settings.opportunityPrompts !== 'boolean' || typeof settings.sessionAchievements !== 'boolean' || typeof settings.confetti !== 'boolean' || typeof settings.quietMode !== 'boolean') errors.push('Gamification settings are invalid.')
+  if (!['full', 'quick', 'minimal', 'off', 'ask'].includes(String(settings.preSurveyMode)) || !['full', 'quick', 'minimal', 'off', 'ask'].includes(String(settings.postSurveyMode))) errors.push('Survey preferences are invalid.')
 
   records.forEach((record) => {
     const exactExercise = isRecord(record) && typeof record.exerciseId === 'string' && exerciseIds.has(record.exerciseId)
@@ -378,6 +389,19 @@ function migrateV6(candidate: Record<string, unknown>): { data: RestorableAppSta
   }
 }
 
+function migrateV7(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = { ...candidate.data, settings: normalizeSettings(candidate.data.settings) }
+  validateState(data)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 7 backup migrated safely. Existing survey answers remain unchanged; new question-budget and confidence provenance begins with future check-ins.'
+  }
+}
+
 function migrateV5(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
   if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
@@ -434,6 +458,10 @@ export function parseBackup(raw: string): BackupPreview {
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 6) {
     const migrated = migrateV6(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 7) {
+    const migrated = migrateV7(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {

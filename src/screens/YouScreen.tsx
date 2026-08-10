@@ -6,6 +6,8 @@ import { Modal } from '../components/Modal'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { createBackup, parseBackup, type BackupPreview } from '../domain/backup'
 
+const surveyModeLabels: Record<SurveyMode, string> = { full: 'Full', quick: 'Quick', minimal: 'Minimal', off: 'Off', ask: 'Ask each time' }
+
 export function YouScreen() {
   const {
     athlete, settings, updateSettings, history, exercises, sessions, surveys, records, mesocycles, historyMutations, cycleReviews, substitutionEvents,
@@ -23,10 +25,10 @@ export function YouScreen() {
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `forgepath-backup-v7-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `forgepath-backup-v8-${new Date().toISOString().slice(0, 10)}.json`
     anchor.click()
     URL.revokeObjectURL(url)
-    setNotice('Verified version 7 backup created as open JSON, including records, plans, corrections, cycle reviews, and substitution learning.')
+    setNotice('Verified version 8 backup created as open JSON, including records, plans, corrections, cycle reviews, substitution learning, and survey evidence provenance.')
   }
 
   const readImport = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -65,8 +67,8 @@ export function YouScreen() {
 
           <section className="panel">
             <div className="panel__header"><div><p className="eyebrow">Question burden</p><h3>Survey preferences</h3></div><BrainCircuit size={19} /></div>
-            <label className="setting-row"><span><strong>Pre-session check-in</strong><small>Sleep, readiness, pain, and available time.</small></span><select value={settings.preSurveyMode} onChange={(event) => updateSettings({ preSurveyMode: event.target.value as SurveyMode })}>{surveyModes.map((mode) => <option key={mode} value={mode}>{mode}</option>)}</select></label>
-            <label className="setting-row"><span><strong>Post-session feedback</strong><small>Difficulty, stimulus, joints, fatigue, and fit.</small></span><select value={settings.postSurveyMode} onChange={(event) => updateSettings({ postSurveyMode: event.target.value as SurveyMode })}>{surveyModes.map((mode) => <option key={mode} value={mode}>{mode}</option>)}</select></label>
+            <label className="setting-row"><span><strong>Pre-session check-in</strong><small>Full 10, quick 5, minimal 3, off, or choose each workout.</small></span><select aria-label="Pre-session check-in mode" value={settings.preSurveyMode} onChange={(event) => updateSettings({ preSurveyMode: event.target.value as SurveyMode })}>{surveyModes.map((mode) => <option key={mode} value={mode}>{surveyModeLabels[mode]}</option>)}</select></label>
+            <label className="setting-row"><span><strong>Post-session feedback</strong><small>Full 10, quick 5, minimal 3, off, or choose each workout.</small></span><select aria-label="Post-session feedback mode" value={settings.postSurveyMode} onChange={(event) => updateSettings({ postSurveyMode: event.target.value as SurveyMode })}>{surveyModes.map((mode) => <option key={mode} value={mode}>{surveyModeLabels[mode]}</option>)}</select></label>
             <p className="chart-note">Every question and whole survey remains skippable. Missing means unknown and never lowers adherence or readiness.</p>
           </section>
 
@@ -101,7 +103,7 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.7.0 private alpha</strong></li><li><span>Rules</span><strong>0.7 load-first + substitutions</strong></li><li><span>Calculations</span><strong>Volume v2 · PR v2</strong></li><li><span>Backup schema</span><strong>Version 7</strong></li><li><span>Persistence</span><strong>Local v6</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.8.0 private alpha</strong></li><li><span>Rules</span><strong>0.8 load-first + optional evidence</strong></li><li><span>Calculations</span><strong>Volume v2 · PR v2</strong></li><li><span>Backup schema</span><strong>Version 8</strong></li><li><span>Persistence</span><strong>Local v7</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Reset private alpha</button>
         </aside>
