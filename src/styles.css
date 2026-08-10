@@ -491,6 +491,50 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .dose-status--below-plan b { color: var(--orange); }
 .dose-status--above-plan b { color: var(--blue); }
 .dose-status--no-dose b { color: var(--muted); }
+.muscle-dose-panel { margin-top: 16px; }
+.muscle-dose-header { align-items: flex-start; }
+.muscle-dose-header .mini-toggle { flex-wrap: wrap; justify-content: flex-end; }
+.muscle-dose-header .mini-toggle button { text-transform: capitalize; }
+.muscle-dose-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.muscle-dose-summary > div { min-width: 0; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.muscle-dose-summary small, .muscle-dose-summary strong, .muscle-dose-summary span { display: block; }
+.muscle-dose-summary strong { margin: 7px 0 4px; font-size: 1.1rem; }
+.muscle-dose-summary span { color: var(--muted); font-size: .65rem; }
+.muscle-area-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; margin: 12px 0; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--line); }
+.muscle-area-strip > div { min-width: 0; padding: 11px 12px; background: #11150f; }
+.muscle-area-strip small, .muscle-area-strip strong, .muscle-area-strip span { display: block; }
+.muscle-area-strip strong { margin: 5px 0 2px; color: var(--lime); }
+.muscle-area-strip span { color: var(--muted); font-size: .61rem; }
+.muscle-dose-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(260px, .55fr); gap: 14px; }
+.muscle-dose-list { display: grid; }
+.muscle-dose-list > button { display: grid; grid-template-columns: minmax(145px, .8fr) minmax(100px, 1fr) minmax(145px, auto); align-items: center; gap: 13px; width: 100%; padding: 11px 8px; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--text); text-align: left; }
+.muscle-dose-list > button:first-child { border-top: 0; }
+.muscle-dose-list > button:hover, .muscle-dose-list > button.selected { background: rgb(231 255 88 / 5%); }
+.muscle-dose-list > button.selected { box-shadow: inset 2px 0 var(--lime); }
+.muscle-dose-list strong, .muscle-dose-list small, .muscle-dose-list > button > span:last-child b { display: block; }
+.muscle-dose-list small { margin-top: 3px; color: var(--muted); font-size: .64rem; }
+.muscle-dose-list > button > span:last-child { text-align: right; }
+.muscle-dose-list > button > span:last-child b { color: var(--lime); }
+.muscle-dose-list i { display: flex; height: 6px; overflow: hidden; border-radius: 999px; background: var(--line); }
+.muscle-dose-list i b { display: block; height: 100%; }
+.muscle-dose-bar--direct { background: var(--lime); }
+.muscle-dose-bar--fractional { background: var(--orange); }
+.muscle-dose-detail { min-width: 0; padding: 15px; border: 1px solid var(--line); border-radius: 12px; background: #11150f; }
+.muscle-dose-detail > svg { color: var(--dim); }
+.muscle-dose-detail h4 { margin: 8px 0 6px; font-size: 1rem; }
+.muscle-dose-detail > p:not(.eyebrow) { margin: 0; color: var(--muted); font-size: .74rem; line-height: 1.5; }
+.muscle-dose-detail__empty { margin-top: 12px; padding: 11px; border: 1px dashed var(--line); color: var(--muted); font-size: .67rem; line-height: 1.45; }
+.muscle-dose-exercises { display: grid; margin-top: 12px; }
+.muscle-dose-exercises > div { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.muscle-dose-exercises strong, .muscle-dose-exercises small { display: block; }
+.muscle-dose-exercises small { margin-top: 3px; overflow-wrap: anywhere; color: var(--muted); font-size: .59rem; }
+.muscle-dose-exercises > div > b { flex: none; color: var(--lime); text-align: right; }
+.muscle-dose-exercises details { margin-top: 7px; color: var(--blue); font-size: .6rem; }
+.muscle-dose-exercises summary { cursor: pointer; }
+.muscle-dose-exercises code { display: block; max-height: 82px; margin-top: 6px; overflow: auto; overflow-wrap: anywhere; white-space: normal; color: var(--muted); font-size: .55rem; line-height: 1.45; }
+.muscle-unmapped { display: flex; gap: 9px; margin-top: 12px; padding: 11px 13px; border: 1px solid rgb(255 122 69 / 28%); border-radius: 9px; background: rgb(255 122 69 / 6%); font-size: .68rem; }
+.muscle-unmapped strong { flex: none; color: var(--orange); }
+.muscle-unmapped span { color: var(--muted); }
 .compact-empty { display: grid; min-height: 180px; place-items: center; align-content: center; gap: 7px; padding: 20px; text-align: center; color: var(--muted); }
 .compact-empty svg { color: var(--dim); }
 .compact-empty p { margin: 0; font-size: .76rem; }
@@ -823,6 +867,8 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .screen-header .segmented-control { width: 100%; overflow: auto; flex-wrap: nowrap; }
   .today-grid, .insight-grid, .charts-grid, .long-horizon { grid-template-columns: 1fr; }
   .dose-summary { grid-template-columns: 1fr 1fr; }
+  .muscle-dose-summary { grid-template-columns: 1fr 1fr; }
+  .muscle-dose-layout { grid-template-columns: 1fr; }
   .reconciliation-grid { grid-template-columns: 1fr 1fr; }
   .onboarding { grid-template-columns: 1fr; }
   .onboarding__art { min-height: 430px; }
@@ -899,6 +945,13 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .dose-regions > div { grid-template-columns: 1fr auto; }
   .dose-regions i { grid-column: 1 / -1; grid-row: 2; }
   .dose-status { grid-column: 2; grid-row: 1; }
+  .muscle-dose-header { display: grid; }
+  .muscle-dose-header .mini-toggle { width: 100%; justify-content: flex-start; }
+  .muscle-area-strip { grid-template-columns: 1fr 1fr; }
+  .muscle-area-strip > div:first-child { grid-column: 1 / -1; }
+  .muscle-dose-list > button { grid-template-columns: minmax(0, 1fr) auto; }
+  .muscle-dose-list > button i { grid-column: 1 / -1; grid-row: 2; }
+  .muscle-unmapped { display: grid; }
   .catalog-edit-grid__wide { grid-column: auto; }
   .catalog-control { align-items: stretch; flex-direction: column; }
   .catalog-control .button { width: 100%; }

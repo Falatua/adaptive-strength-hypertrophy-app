@@ -179,6 +179,31 @@ test('shows calendar-quarter progress, exact movement mix, and honest priority a
   expect(browserErrors).toEqual([])
 })
 
+test('shows transparent individual muscle dose with overlap-safe area rollups and source drilldown', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Progress' }).click()
+  await page.getByRole('button', { name: 'All time' }).click()
+  await expect(page.getByRole('heading', { name: 'Direct work and secondary set credit' })).toBeVisible()
+  await expect(page.getByText('Muscle totals are non-additive across rows', { exact: false })).toBeVisible()
+  await expect(page.getByLabel('Overlap-safe area dose')).toContainText('Whole body')
+  await page.getByRole('button', { name: 'arms', exact: true }).click()
+  await expect(page.getByLabel('arms individual muscle dose')).toBeVisible()
+  const triceps = page.getByLabel('arms individual muscle dose').getByRole('button', { name: /Triceps/ })
+  await triceps.click()
+  await expect(page.getByText('Dose provenance')).toBeVisible()
+  const sourceIdentifiers = page.locator('.muscle-dose-exercises summary').first()
+  await expect(sourceIdentifiers).toContainText('source set identifiers')
+  await sourceIdentifiers.click()
+  await expect(page.locator('.muscle-dose-exercises code').first()).not.toBeEmpty()
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  if (testInfo.project.name === 'mobile-chromium') await page.screenshot({ path: 'output/playwright/muscle-dose-mobile.png', fullPage: true })
+  expect(browserErrors).toEqual([])
+})
+
 test('edits a custom movement without splitting history and blocks alias collisions', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })

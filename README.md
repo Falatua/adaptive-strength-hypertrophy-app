@@ -1,4 +1,4 @@
-# ForgePath Private Alpha 0.14.0
+# ForgePath Private Alpha 0.15.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
@@ -31,8 +31,8 @@ npm run test:e2e
 
 ## Current verification
 
-- 84 deterministic domain tests
-- twenty desktop and phone browser journeys for source-backed records, validated CSV history import, in-workout achievement feedback, quiet controls, explainable substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, governed catalog edits, grouped duplicate cleanup, persistence, console integrity, and horizontal containment
+- 89 deterministic domain tests
+- twenty-two desktop and phone browser journeys for source-backed records, validated CSV history import, in-workout achievement feedback, quiet controls, explainable substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, persistence, console integrity, and horizontal containment
 - lint clean
 - production PWA build clean
 - desktop and 390 px phone browser journeys checked
@@ -62,5 +62,7 @@ npm run test:e2e
 - completed-only priority attention distinguishes represented, outside-window, and no-history evidence without declaring a body part neglected from absence alone
 - plan-versus-completed dose-v1 compares dated stored-session set targets with source sets linked to those sessions, preserves unknown planned loads, and keeps completed history with no stored plan separate instead of fabricating compliance
 - region status can report below plan, within plan, above plan, unplanned completed, or no dose, but one below-plan window is never called neglect or converted into catch-up volume
+- muscle-dose-v1 gives every built-in exercise an explicit conservative mapping, separates 1.0 direct from 0.5 secondary set credit, gives stabilizers no credit, and leaves custom or unknown movements visibly unmapped
+- individual-muscle rows expose exact exercise and source-set provenance; upper, lower, arms, trunk, and whole-body parents conserve each source set at its highest child credit while cross-muscle totals remain explicitly non-additive
 
 Read [docs/BUILD_REFERENCE.md](docs/BUILD_REFERENCE.md) before changing product behavior.

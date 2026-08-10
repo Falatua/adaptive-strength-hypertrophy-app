@@ -19,12 +19,15 @@ import { useAppStore } from '../store/useAppStore'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { StatCard } from '../components/StatCard'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
+import { filterMuscleDose, muscleDoseFor, type MuscleDoseLens, type MuscleId } from '../domain/muscle-dose'
 import type { RecordCategory } from '../domain/types'
 
 export function ProgressScreen() {
   const { history, records, athlete, settings, sessions, exercises: exerciseCatalog } = useAppStore()
   const [range, setRange] = useState<ProgressRange>('28d')
   const [bodyLens, setBodyLens] = useState<BodyLens>('region')
+  const [muscleLens, setMuscleLens] = useState<MuscleDoseLens>('all')
+  const [selectedMuscle, setSelectedMuscle] = useState<MuscleId | null>(null)
   const [recordCategory, setRecordCategory] = useState<RecordCategory | 'all'>('all')
   const summary = useMemo(() => buildAnalytics(history, range), [history, range])
   const bodyData = useMemo(() => bodyLens === 'region' ? regionVolumeFor(summary.history) : areaVolumeFor(summary.history), [bodyLens, summary.history])
@@ -54,6 +57,10 @@ export function ProgressScreen() {
   }).filter((opportunity) => opportunity.eligible).slice(0, 3) ?? []
   const priorityCoverage = useMemo(() => priorityAttentionFor({ selectedHistory: summary.history, allHistory: history, priorityRegions: athlete.priorityRegions }), [athlete.priorityRegions, history, summary.history])
   const plannedDose = useMemo(() => plannedVsCompletedDoseFor({ sessions, history, exercises: exerciseCatalog, range, focusRegions: athlete.priorityRegions }), [athlete.priorityRegions, exerciseCatalog, history, range, sessions])
+  const muscleDose = useMemo(() => muscleDoseFor(summary.history), [summary.history])
+  const visibleMuscles = useMemo(() => filterMuscleDose(muscleDose.muscles, muscleLens), [muscleDose.muscles, muscleLens])
+  const muscleDetail = selectedMuscle ? visibleMuscles.find((point) => point.muscle === selectedMuscle) ?? null : null
+  const maxMuscleDose = Math.max(1, ...visibleMuscles.map((point) => point.totalDose))
   const trend = summary.comparisonPercent
   const trendLabel = trend === null ? 'No matched prior window' : `${trend >= 0 ? '+' : ''}${trend.toFixed(1)}% vs prior matched window`
   const rangeDates = summary.start
@@ -105,7 +112,7 @@ export function ProgressScreen() {
           <div className="chart-wrap chart-wrap--small" aria-label={`Volume by ${bodyLens}`}>
             <ResponsiveContainer width="100%" height="100%"><BarChart data={bodyData.slice(0, 8)} layout="vertical" margin={{ top: 0, right: 8, left: 8, bottom: 0 }}><XAxis type="number" hide /><YAxis dataKey="label" type="category" stroke="#aeb6a7" tickLine={false} axisLine={false} width={78} fontSize={11} /><Tooltip contentStyle={{ background: '#191d17', border: '1px solid #353b31', borderRadius: 10 }} formatter={(value) => [`${Number(value).toLocaleString()} ${settings.units}`, 'Volume load']} /><Bar isAnimationActive={false} dataKey="volume" fill="#ff7a45" radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer>
           </div>
-          <p className="chart-note">Exclusive primary-region assignment keeps totals conserved. Fractional muscle-credit views remain a later, separately labeled calculation.</p>
+          <p className="chart-note">Exclusive primary-region assignment keeps totals conserved. The separately labeled muscle-dose view below answers a different question with fractional credit.</p>
         </section>
       </div>
 
@@ -123,6 +130,31 @@ export function ProgressScreen() {
           <span className={`dose-status dose-status--${point.status}`}><b>{point.completionRate === null ? point.status.replace('-', ' ') : `${Math.round(point.completionRate * 100)}%`}</b><small>{point.status.replace('-', ' ')}</small></span>
         </div>)}</div> : <div className="compact-empty"><Target size={24} /><strong>No stored dose in this window</strong><p>Completed history remains visible above, but no dated plan is available for an honest plan comparison.</p></div>}
         <p className="chart-note">Only completed source sets linked to a stored session count toward plan completion. The {plannedDose.unlinkedCompletedSets} other completed {plannedDose.unlinkedCompletedSets === 1 ? 'set stays' : 'sets stay'} in progress totals but cannot be assigned to a missing plan. Below plan is execution evidence, not a neglect label or a recommendation to add catch-up volume.</p>
+      </section>
+
+      <section className="panel muscle-dose-panel">
+        <div className="panel__header muscle-dose-header"><div><p className="eyebrow">Individual muscle dose · {muscleDose.ruleVersion}</p><h3>Direct work and secondary set credit</h3></div><div className="mini-toggle" aria-label="Muscle dose grouping">{(['all', 'upper', 'lower', 'arms', 'trunk'] as const).map((lens) => <button key={lens} aria-pressed={muscleLens === lens} className={muscleLens === lens ? 'selected' : ''} onClick={() => { setMuscleLens(lens); setSelectedMuscle(null) }}>{lens}</button>)}</div></div>
+        <div className="muscle-dose-summary">
+          <div><small>Completed source sets</small><strong>{muscleDose.sourceSetCount}</strong><span>Selected {summary.label.toLowerCase()}</span></div>
+          <div><small>Mapped sets</small><strong>{muscleDose.mappedSourceSetCount}</strong><span>{muscleDose.unmappedSourceSetCount} visibly unmapped</span></div>
+          <div><small>Direct credit</small><strong>{muscleDose.directSetEquivalents.toFixed(1)}</strong><span>1.0 per direct muscle assignment</span></div>
+          <div><small>Secondary credit</small><strong>{muscleDose.fractionalSetEquivalents.toFixed(1)}</strong><span>0.5 per secondary assignment</span></div>
+        </div>
+        <div className="muscle-area-strip" aria-label="Overlap-safe area dose">{muscleDose.areas.map((area) => <div key={area.lens}><small>{area.label}</small><strong>{area.conservedDose.toFixed(1)}</strong><span>{area.sourceSetCount} source {area.sourceSetCount === 1 ? 'set' : 'sets'}</span></div>)}</div>
+        {visibleMuscles.length ? <div className="muscle-dose-layout">
+          <div className="muscle-dose-list" aria-label={`${muscleLens} individual muscle dose`}>
+            {visibleMuscles.map((point) => <button key={point.muscle} className={selectedMuscle === point.muscle ? 'selected' : ''} aria-pressed={selectedMuscle === point.muscle} onClick={() => setSelectedMuscle((current) => current === point.muscle ? null : point.muscle)}>
+              <span><strong>{point.label}</strong><small>{point.sourceSetCount} source {point.sourceSetCount === 1 ? 'set' : 'sets'} · last {point.lastCompletedAt ? new Date(point.lastCompletedAt).toLocaleDateString() : 'never'}</small></span>
+              <i aria-hidden="true"><b className="muscle-dose-bar--direct" style={{ width: `${point.directDose / maxMuscleDose * 100}%` }} /><b className="muscle-dose-bar--fractional" style={{ width: `${point.fractionalDose / maxMuscleDose * 100}%` }} /></i>
+              <span><b>{point.totalDose.toFixed(1)}</b><small>{point.directDose.toFixed(1)} direct + {point.fractionalDose.toFixed(1)} secondary</small></span>
+            </button>)}
+          </div>
+          <aside className="muscle-dose-detail" aria-live="polite">
+            {muscleDetail ? <><p className="eyebrow">Dose provenance</p><h4>{muscleDetail.label}</h4><p>{muscleDetail.totalDose.toFixed(1)} muscle set-equivalents from {muscleDetail.sourceSetCount} completed source {muscleDetail.sourceSetCount === 1 ? 'set' : 'sets'}.</p>{muscleDetail.exercises.length ? <div className="muscle-dose-exercises">{muscleDetail.exercises.map((exercise) => <div key={exercise.exerciseId}><span><strong>{exercise.exerciseName}</strong><small>Last {new Date(exercise.lastCompletedAt).toLocaleDateString()} · {exercise.sourceSetCount} source {exercise.sourceSetCount === 1 ? 'set' : 'sets'}</small><details><summary>View {exercise.sourceSetCount} source set {exercise.sourceSetCount === 1 ? 'identifier' : 'identifiers'}</summary><code>{exercise.sourceSetIds.join(', ')}</code></details></span><b>{exercise.totalDose.toFixed(1)}<small>{exercise.directDose.toFixed(1)} + {exercise.fractionalDose.toFixed(1)}</small></b></div>)}</div> : <div className="muscle-dose-detail__empty">No contributing exercise or source set exists inside this selected window.</div>}</> : <><Layers3 size={24} /><h4>Open a muscle</h4><p>Select a row to inspect the exact exercises and source-set identifiers behind its credit.</p></>}
+          </aside>
+        </div> : <div className="compact-empty"><Layers3 size={24} /><strong>No mapped muscle dose in this lens</strong><p>Choose another area or complete a built-in movement. Unknown mappings remain unknown.</p></div>}
+        {muscleDose.unmappedSourceSetCount > 0 && <div className="muscle-unmapped" role="note"><strong>{muscleDose.unmappedSourceSetCount} unmapped source {muscleDose.unmappedSourceSetCount === 1 ? 'set' : 'sets'}</strong><span>{muscleDose.unmappedExerciseNames.join(', ')}. These sets remain in completed volume but receive no inferred muscle credit.</span></div>}
+        <p className="chart-note">Muscle totals are non-additive across rows: one source set can credit several muscles. Direct means 1.0, secondary means 0.5, stabilizers receive no credit, and parent areas conserve each source set at its highest child credit. This is an unadjusted programming heuristic, not measured activation, recovery cost, or exact hypertrophy stimulus.</p>
       </section>
 
       <div className="insight-grid">
