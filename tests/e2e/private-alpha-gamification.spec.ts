@@ -195,6 +195,51 @@ test('shows calendar-quarter progress, exact movement mix, and honest priority a
   expect(browserErrors).toEqual([])
 })
 
+test('links calendar dates to exact completed-exposure order without creating missed-work debt', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Progress' }).click()
+  await expect(page.getByRole('heading', { name: 'When training happened versus what progressed' })).toBeVisible()
+  await expect(page.getByLabel('Fixed event countdown')).toContainText('No fixed event declared')
+  await expect(page.getByLabel(/training calendar/)).toBeVisible()
+  const completedDay = page.locator('.calendar-grid > button.has-completion:not(.outside-month)').first()
+  await expect(completedDay).toBeVisible()
+  await completedDay.click()
+  await expect(page.locator('.calendar-day-detail')).toContainText('completed sets')
+  await expect(page.locator('.calendar-day-detail')).toContainText('Completed training')
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.locator('.skip-link').evaluate((element) => { (element as HTMLElement).style.display = 'none' })
+    await page.locator('.training-timeline').screenshot({ path: 'output/playwright/calendar-history-mobile.png' })
+  }
+
+  await page.getByRole('button', { name: 'Exposure order' }).click()
+  await page.locator('.exposure-picker').getByRole('button', { name: 'Competition Bench Press' }).click()
+  await expect(page.locator('.exposure-summary')).toContainText('exact completed exposures')
+  await expect(page.locator('.exposure-sequence')).toContainText('calendar-day gap')
+  await expect(page.locator('.exposure-sequence')).toContainText('heaviest load')
+  await expect(page.getByText('Family movements and neighboring variations are not borrowed.', { exact: false })).toHaveCount(0)
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  if (testInfo.project.name === 'mobile-chromium') await page.locator('.training-timeline').screenshot({ path: 'output/playwright/exposure-order-mobile.png' })
+
+  await page.evaluate(() => {
+    const key = 'forgepath-private-alpha-v1'
+    const persisted = JSON.parse(localStorage.getItem(key) ?? '{}')
+    const eventDate = new Date()
+    eventDate.setDate(eventDate.getDate() + 10)
+    const isoDate = [eventDate.getFullYear(), String(eventDate.getMonth() + 1).padStart(2, '0'), String(eventDate.getDate()).padStart(2, '0')].join('-')
+    persisted.state.athlete.placement.inputs.fixedEvent = `Powerlifting meet · ${isoDate}`
+    localStorage.setItem(key, JSON.stringify(persisted))
+  })
+  await page.reload()
+  await page.getByRole('button', { name: 'Progress' }).click()
+  await expect(page.getByLabel('Fixed event countdown')).toContainText('Powerlifting meet')
+  await expect(page.getByLabel('Fixed event countdown')).toContainText('10 calendar days remain')
+  expect(browserErrors).toEqual([])
+})
+
 test('shows transparent individual muscle dose with overlap-safe area rollups and source drilldown', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })

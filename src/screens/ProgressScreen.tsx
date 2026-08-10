@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, BrainCircuit, CalendarDays, CheckCircle2, Dumbbell, HeartPulse, Layers3, Sparkles, Target, Trophy } from 'lucide-react'
+import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, BrainCircuit, CalendarClock, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Dumbbell, HeartPulse, Layers3, Link2, ListOrdered, Sparkles, Target, Trophy } from 'lucide-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import {
   analyticsReconciliation,
@@ -21,6 +21,9 @@ import { StatCard } from '../components/StatCard'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { filterMuscleDose, filterPlannedMuscleDose, muscleDoseFor, plannedMuscleDoseFor, type MuscleDoseLens } from '../domain/muscle-dose'
 import type { MuscleId, RecordCategory } from '../domain/types'
+import { buildCalendarMonth, buildExerciseExposureSequence, buildFixedEventCountdown, calendarDayKey } from '../domain/timeline-engine'
+
+type TimelineAxis = 'calendar' | 'exposure'
 
 export function ProgressScreen() {
   const { history, records, athlete, settings, sessions, exercises: exerciseCatalog } = useAppStore()
@@ -29,6 +32,10 @@ export function ProgressScreen() {
   const [muscleLens, setMuscleLens] = useState<MuscleDoseLens>('all')
   const [selectedMuscle, setSelectedMuscle] = useState<MuscleId | null>(null)
   const [recordCategory, setRecordCategory] = useState<RecordCategory | 'all'>('all')
+  const [timelineAxis, setTimelineAxis] = useState<TimelineAxis>('calendar')
+  const [calendarCursor, setCalendarCursor] = useState(() => new Date())
+  const [selectedCalendarDayKey, setSelectedCalendarDayKey] = useState(() => calendarDayKey(new Date())!)
+  const [selectedExposureExerciseId, setSelectedExposureExerciseId] = useState(() => athlete.strengthAnchors[0] ?? history[0]?.exerciseId ?? '')
   const summary = useMemo(() => buildAnalytics(history, range), [history, range])
   const bodyData = useMemo(() => bodyLens === 'region' ? regionVolumeFor(summary.history) : areaVolumeFor(summary.history), [bodyLens, summary.history])
   const exerciseVolumes = useMemo(() => exerciseVolumeFor(summary.history), [summary.history])
@@ -63,6 +70,17 @@ export function ProgressScreen() {
   const visiblePlannedMuscles = useMemo(() => filterPlannedMuscleDose(plannedMuscleDose.points, muscleLens).filter((point) => point.plannedTotal > 0 || point.completedTotal > 0), [muscleLens, plannedMuscleDose.points])
   const muscleDetail = selectedMuscle ? visibleMuscles.find((point) => point.muscle === selectedMuscle) ?? null : null
   const maxMuscleDose = Math.max(1, ...visibleMuscles.map((point) => point.totalDose))
+  const calendarView = useMemo(() => buildCalendarMonth({ sessions, history, month: calendarCursor }), [calendarCursor, history, sessions])
+  const selectedCalendarDay = calendarView.days.find((day) => day.key === selectedCalendarDayKey) ?? calendarView.days.find((day) => day.inSelectedMonth)!
+  const exposureOptions = useMemo(() => {
+    const ids = [...new Set([...athlete.strengthAnchors, ...history.map((workSet) => workSet.exerciseId)])]
+    return ids.map((exerciseId) => ({
+      exerciseId,
+      name: exerciseCatalog.find((exercise) => exercise.id === exerciseId)?.name ?? history.find((workSet) => workSet.exerciseId === exerciseId)?.exerciseName ?? exerciseId
+    }))
+  }, [athlete.strengthAnchors, exerciseCatalog, history])
+  const exposureSequence = useMemo(() => buildExerciseExposureSequence(history, selectedExposureExerciseId), [history, selectedExposureExerciseId])
+  const fixedEvent = useMemo(() => buildFixedEventCountdown(athlete.placement.inputs.fixedEvent), [athlete.placement.inputs.fixedEvent])
   const trend = summary.comparisonPercent
   const trendLabel = trend === null ? 'No matched prior window' : `${trend >= 0 ? '+' : ''}${trend.toFixed(1)}% vs prior matched window`
   const rangeDates = summary.start
@@ -73,6 +91,19 @@ export function ProgressScreen() {
     : trend !== null && trend > 0
       ? 'Your completed workload moved forward.'
       : 'Every useful exposure remains visible.'
+
+  const showMonth = (offset: number) => {
+    const next = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + offset, 1)
+    const now = new Date()
+    setCalendarCursor(next)
+    setSelectedCalendarDayKey(calendarDayKey(now.getFullYear() === next.getFullYear() && now.getMonth() === next.getMonth() ? now : next)!)
+  }
+
+  const showCurrentMonth = () => {
+    const now = new Date()
+    setCalendarCursor(now)
+    setSelectedCalendarDayKey(calendarDayKey(now)!)
+  }
 
   return (
     <div className="screen">
@@ -99,6 +130,55 @@ export function ProgressScreen() {
         <div><Layers3 size={17} /><span><small>Sessions</small><strong>{summary.sessionCount}</strong></span></div>
         <div><Activity size={17} /><span><small>Total reps</small><strong>{summary.totalReps.toLocaleString()}</strong></span></div>
         <div><Dumbbell size={17} /><span><small>Average set load</small><strong>{Math.round(summary.averageLoad).toLocaleString()} {settings.units}</strong></span></div>
+      </section>
+
+      <section className="panel training-timeline" aria-label="Calendar and completed exposure history">
+        <div className="panel__header training-timeline__header">
+          <div><p className="eyebrow">Two linked clocks · {calendarView.ruleVersion}</p><h3>When training happened versus what progressed</h3></div>
+          <div className="mini-toggle" aria-label="Timeline axis"><button aria-pressed={timelineAxis === 'calendar'} className={timelineAxis === 'calendar' ? 'selected' : ''} onClick={() => setTimelineAxis('calendar')}><CalendarDays size={15} /> Calendar</button><button aria-pressed={timelineAxis === 'exposure'} className={timelineAxis === 'exposure' ? 'selected' : ''} onClick={() => setTimelineAxis('exposure')}><ListOrdered size={15} /> Exposure order</button></div>
+        </div>
+
+        <div className={`fixed-event-strip fixed-event-strip--${fixedEvent.state}`} aria-label="Fixed event countdown">
+          <CalendarClock size={19} />
+          {fixedEvent.state === 'none' ? <span><strong>No fixed event declared</strong><small>Calendar history and exposure order remain available without inventing a deadline.</small></span>
+            : fixedEvent.state === 'unparsed' ? <span><strong>{fixedEvent.label}</strong><small>Add an ISO date such as 2026-12-12 during placement review to enable an exact countdown.</small></span>
+              : <span><strong>{fixedEvent.label}</strong><small>{fixedEvent.state === 'upcoming' ? `${fixedEvent.daysRemaining} calendar days remain` : fixedEvent.state === 'today' ? 'Event date is today' : `${Math.abs(fixedEvent.daysRemaining ?? 0)} calendar days past`} · the deadline never changes completed-exposure order</small></span>}
+        </div>
+
+        {timelineAxis === 'calendar' ? <div className="calendar-explorer">
+          <div className="calendar-toolbar">
+            <button aria-label="Previous month" onClick={() => showMonth(-1)}><ChevronLeft size={17} /></button>
+            <div><strong>{calendarView.label}</strong><small>{calendarView.plannedOpportunityCount} planned · {calendarView.completedActivityCount} completed activities · {calendarView.missedOrMovedCount} moved or stopped</small></div>
+            <button className="calendar-today" aria-label="Show current month" onClick={showCurrentMonth}>Today</button>
+            <button aria-label="Next month" onClick={() => showMonth(1)}><ChevronRight size={17} /></button>
+          </div>
+          <div className="calendar-layout">
+            <div className="training-calendar" aria-label={`${calendarView.label} training calendar`}>
+              <div className="calendar-weekdays" aria-hidden="true">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => <span key={day}>{day}</span>)}</div>
+              <div className="calendar-grid">{calendarView.days.map((day) => <button key={day.key} className={`${day.inSelectedMonth ? '' : 'outside-month'} ${day.isToday ? 'today' : ''} ${selectedCalendarDay.key === day.key ? 'selected' : ''} ${day.completedSets ? 'has-completion' : ''} ${day.missedOrMovedCount ? 'has-moved' : ''}`} aria-pressed={selectedCalendarDay.key === day.key} aria-label={`${new Date(day.date).toLocaleDateString()}: ${day.plans.length} planned, ${day.completedSets} completed sets, ${day.volumeLoad} volume load`} onClick={() => setSelectedCalendarDayKey(day.key)}>
+                <span>{day.dayOfMonth}</span>
+                <i aria-hidden="true">{day.plans.length > 0 && <b className="calendar-dot calendar-dot--plan" />}{day.completedSets > 0 && <b className="calendar-dot calendar-dot--complete" />}{day.missedOrMovedCount > 0 && <b className="calendar-dot calendar-dot--moved" />}</i>
+                {day.completedSets > 0 && <small>{day.completedSets} sets</small>}
+              </button>)}</div>
+            </div>
+            <aside className="calendar-day-detail" aria-live="polite">
+              <p className="eyebrow">Selected date</p><h4>{new Date(selectedCalendarDay.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</h4>
+              <div className="calendar-day-metrics"><span><strong>{selectedCalendarDay.completedSets}</strong><small>completed sets</small></span><span><strong>{selectedCalendarDay.volumeLoad.toLocaleString()}</strong><small>{settings.units} volume load</small></span></div>
+              {selectedCalendarDay.plans.map((plan) => <div className={`calendar-entry calendar-entry--plan calendar-entry--${plan.status}`} key={`plan:${plan.sessionId}`}><CalendarDays size={16} /><span><strong>{plan.title}</strong><small>Planned opportunity · {plan.status.replaceAll('-', ' ')}{plan.driftDays === null ? '' : plan.driftDays === 0 ? ' · completed as planned' : ` · actual ${Math.abs(plan.driftDays)} day${Math.abs(plan.driftDays) === 1 ? '' : 's'} ${plan.driftDays > 0 ? 'later' : 'earlier'}`}</small></span></div>)}
+              {selectedCalendarDay.completions.map((completion) => <div className="calendar-entry calendar-entry--complete" key={completion.id}><CheckCircle2 size={16} /><span><strong>{completion.title}</strong><small>{completion.completedSets} sets · {completion.repetitions} reps · {completion.volumeLoad.toLocaleString()} {settings.units}</small><em>{completion.exerciseNames.join(', ')} · {completion.linkedToStoredSession ? completion.driftDays === 0 ? 'linked to same-day plan' : `linked to plan${completion.driftDays === null ? '' : ` · ${Math.abs(completion.driftDays)} day${Math.abs(completion.driftDays) === 1 ? '' : 's'} ${completion.driftDays > 0 ? 'later' : 'earlier'}`}` : completion.imported ? 'imported, no stored plan' : 'completed, no stored plan'}</em></span></div>)}
+              {selectedCalendarDay.plans.length === 0 && selectedCalendarDay.completions.length === 0 && <div className="calendar-day-empty"><CalendarDays size={22} /><strong>No stored training event</strong><p>An empty date creates no missed-work debt and says nothing about readiness.</p></div>}
+            </aside>
+          </div>
+          <div className="calendar-legend"><span><i className="calendar-dot calendar-dot--plan" /> Planned opportunity</span><span><i className="calendar-dot calendar-dot--complete" /> Completed source sets</span><span><i className="calendar-dot calendar-dot--moved" /> Moved, expired, or stopped</span></div>
+        </div> : <div className="exposure-explorer">
+          <div className="exposure-picker" aria-label="Exact movement exposure history">{exposureOptions.map((option) => <button key={option.exerciseId} aria-pressed={selectedExposureExerciseId === option.exerciseId} className={selectedExposureExerciseId === option.exerciseId ? 'selected' : ''} onClick={() => setSelectedExposureExerciseId(option.exerciseId)}>{option.name}</button>)}</div>
+          <div className="exposure-summary"><ListOrdered size={20} /><span><strong>{exposureSequence.length} exact completed {exposureSequence.length === 1 ? 'exposure' : 'exposures'}</strong><small>{exposureSequence.length ? `${new Date(exposureSequence[0].completedAt).toLocaleDateString()} through ${new Date(exposureSequence.at(-1)!.completedAt).toLocaleDateString()}` : 'No completed source sets for this exact movement'}</small></span><b>{exposureSequence.length ? `#${exposureSequence.at(-1)!.sequence}` : 'EMPTY'}</b></div>
+          {exposureSequence.length ? <ol className="exposure-sequence">{[...exposureSequence].reverse().map((point) => {
+            const session = sessions.find((candidate) => candidate.id === point.sessionId)
+            return <li key={`${point.sessionId}:${point.sequence}`} className={`exposure-point exposure-point--${point.changeKind}`}><span className="exposure-point__sequence">{String(point.sequence).padStart(2, '0')}</span><div><p className="eyebrow">{new Date(point.completedAt).toLocaleDateString()} · {point.daysSincePrior === null ? 'first exact exposure' : `${point.daysSincePrior} calendar-day gap`}</p><h4>{session?.title ?? (point.imported ? 'Imported training' : point.exerciseName)}</h4><p>{point.completedSets} sets · {point.repetitions} reps · {point.volumeLoad.toLocaleString()} {settings.units} volume · {point.heaviestLoad} {settings.units} heaviest</p><small>{point.qualityConfirmedSets}/{point.completedSets} quality-confirmed sets · {point.averageRir.toFixed(1)} average RIR · {point.sourceSetIds.length} source IDs</small></div><span className="exposure-change"><b>{point.changeKind.replaceAll('-', ' ')}</b><small>{point.changeLabel}</small></span></li>
+          })}</ol> : <div className="compact-empty"><ListOrdered size={25} /><strong>No exact exposure sequence yet</strong><p>Family movements and neighboring variations are not borrowed. Complete or import this exact movement to begin its sequence.</p></div>}
+        </div>}
+        <p className="chart-note"><Link2 size={14} /> Calendar dates show when opportunities and work occurred. Exposure order shows only completed exact-movement evidence. Gaps stay visible, but they never become fake completed weeks, automatic progression, or catch-up volume.</p>
       </section>
 
       <div className="charts-grid">
