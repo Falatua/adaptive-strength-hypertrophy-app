@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { athlete, exercises, history, mesocycles, records, sessions } from './seed'
+import { athlete, equipmentProfiles, exercises, history, mesocycles, records, sessions } from './seed'
 import { BACKUP_FORMAT, BACKUP_SCHEMA_VERSION, backupStateFrom, createBackup, fnv1a32, parseBackup, type RestorableAppState } from './backup'
 import { derivePersonalRecords, historyVolume } from './history-engine'
 
@@ -17,8 +17,9 @@ const state = (): RestorableAppState => ({
   settings: {
     units: 'lb', preSurveyMode: 'ask', postSurveyMode: 'ask', focusedMode: false,
     reducedMotion: false, sounds: false, haptics: true, celebrationLevel: 'subtle', opportunityPrompts: true,
-    sessionAchievements: true, confetti: false, quietMode: false, availableMinutes: 60, equipmentLocation: 'Commercial Gym'
+    sessionAchievements: true, confetti: false, quietMode: false, availableMinutes: 60, equipmentLocation: 'Commercial Gym', activeEquipmentProfileId: 'equipment-commercial-gym'
   },
+  equipmentProfiles: structuredClone(equipmentProfiles),
   exercises: structuredClone(exercises),
   sessions: structuredClone(sessions),
   history: structuredClone(history),
@@ -46,6 +47,7 @@ describe('versioned backup and restore', () => {
     expect(parsed.summary.historyChanges).toBe(0)
     expect(parsed.summary.cycleReviews).toBe(0)
     expect(parsed.summary.substitutions).toBe(0)
+    expect(parsed.summary.equipmentProfiles).toBe(3)
     expect(parsed.warnings).toEqual([])
   })
 
@@ -220,6 +222,31 @@ describe('versioned backup and restore', () => {
     const parsed = parseBackup(JSON.stringify(legacy))
     expect(parsed.backup.data.historyMutations).toEqual([])
     expect(parsed.warnings[0]).toMatch(/version 9/i)
+  })
+
+  it('migrates a verified version 10 backup into an explicit equipment profile', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    delete legacyData.equipmentProfiles
+    const legacySettings = legacyData.settings as Record<string, unknown>
+    delete legacySettings.activeEquipmentProfileId
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 10, appVersion: '0.16.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.settings.activeEquipmentProfileId).toBe('equipment-commercial-gym')
+    expect(parsed.backup.data.equipmentProfiles).toHaveLength(3)
+    expect(parsed.warnings[0]).toMatch(/version 10/i)
+  })
+
+  it('rejects invalid equipment profiles and an orphaned active profile', () => {
+    const invalidIncrement = state()
+    invalidIncrement.equipmentProfiles[0].increments.barbell = 0
+    expect(() => parseBackup(JSON.stringify(createBackup(invalidIncrement)))).toThrow(/equipment profile.*increment/i)
+
+    const missingActive = state()
+    missingActive.settings.activeEquipmentProfileId = 'missing-profile'
+    expect(() => parseBackup(JSON.stringify(createBackup(missingActive)))).toThrow(/active equipment profile/i)
   })
 
   it('round-trips an auditable catalog edit with unchanged source history', () => {

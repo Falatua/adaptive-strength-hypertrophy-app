@@ -4,6 +4,7 @@ import type {
   CompletedSetRecord,
   CycleReviewEvent,
   DeferredFeedbackRequest,
+  EquipmentProfile,
   Exercise,
   ExerciseSubstitutionEvent,
   HistoryMutationEvent,
@@ -15,22 +16,26 @@ import type {
 import { derivePersonalRecords } from './history-engine'
 import { summarizeSurveyEvidence } from './survey-engine'
 import { exerciseMuscleMappingError } from './muscle-dose'
+import { equipmentProfileError } from './equipment-engine'
+import { equipmentProfiles as seedEquipmentProfiles } from './seed'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 10
-export const BACKUP_APP_VERSION = '0.16.0'
+export const BACKUP_SCHEMA_VERSION = 11
+export const BACKUP_APP_VERSION = '0.17.0'
 
-const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode'> = {
+const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
   opportunityPrompts: true,
   sessionAchievements: true,
   confetti: false,
-  quietMode: false
+  quietMode: false,
+  activeEquipmentProfileId: 'equipment-commercial-gym'
 }
 
 export interface RestorableAppState {
   athlete: AthleteProfile
   settings: AppSettings
+  equipmentProfiles: EquipmentProfile[]
   exercises: Exercise[]
   sessions: TrainingSession[]
   history: CompletedSetRecord[]
@@ -72,6 +77,7 @@ export interface BackupPreview {
     historyChanges: number
     cycleReviews: number
     substitutions: number
+    equipmentProfiles: number
     athleteName: string
     exportedAt: string
   }
@@ -138,10 +144,21 @@ function requireUniqueIds(values: unknown[], label: string, errors: string[]) {
   if (new Set(ids).size !== ids.length) errors.push(`${label} contain duplicate IDs.`)
 }
 
-function validateState(candidate: unknown): asserts candidate is RestorableAppState {
+function addLegacyEquipmentProfiles(candidate: Record<string, unknown>) {
+  if (Array.isArray(candidate.equipmentProfiles) && candidate.equipmentProfiles.length > 0) return
+  const profiles = structuredClone(seedEquipmentProfiles)
+  const legacySettings = normalizeSettings(candidate.settings)
+  const active = profiles.find((profile) => profile.name === legacySettings.equipmentLocation) ?? profiles[0]
+  candidate.equipmentProfiles = profiles
+  candidate.settings = { ...legacySettings, activeEquipmentProfileId: active.id, equipmentLocation: active.name }
+  if (isRecord(candidate.athlete)) candidate.athlete = { ...candidate.athlete, equipmentProfile: active.name }
+}
+
+function validateState(candidate: unknown, migrateLegacyEquipment = false): asserts candidate is RestorableAppState {
   if (!isRecord(candidate)) throw new Error('Backup data is missing or invalid.')
+  if (migrateLegacyEquipment) addLegacyEquipmentProfiles(candidate)
   const errors: string[] = []
-  const arrays = ['exercises', 'sessions', 'history', 'surveys', 'deferredFeedback', 'records', 'mesocycles', 'historyMutations', 'cycleReviews', 'substitutionEvents'] as const
+  const arrays = ['equipmentProfiles', 'exercises', 'sessions', 'history', 'surveys', 'deferredFeedback', 'records', 'mesocycles', 'historyMutations', 'cycleReviews', 'substitutionEvents'] as const
   arrays.forEach((key) => {
     if (!Array.isArray(candidate[key])) errors.push(`${key} must be an array.`)
     else if (candidate[key].length > 500_000) errors.push(`${key} exceeds the private-alpha restore limit.`)
@@ -154,6 +171,7 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   if (errors.length) throw new Error(errors.join(' '))
 
   const exercises = candidate.exercises as unknown[]
+  const equipmentProfiles = candidate.equipmentProfiles as unknown[]
   const sessions = candidate.sessions as unknown[]
   const history = candidate.history as unknown[]
   const surveys = candidate.surveys as unknown[]
@@ -164,6 +182,7 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   const cycleReviews = candidate.cycleReviews as unknown[]
   const substitutionEvents = candidate.substitutionEvents as unknown[]
   requireUniqueIds(exercises, 'Exercises', errors)
+  requireUniqueIds(equipmentProfiles, 'Equipment profiles', errors)
   requireUniqueIds(sessions, 'Sessions', errors)
   requireUniqueIds(history, 'Completed sets', errors)
   requireUniqueIds(surveys, 'Surveys', errors)
@@ -175,6 +194,7 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   requireUniqueIds(substitutionEvents, 'Substitution events', errors)
 
   const exerciseIds = new Set(exercises.flatMap((exercise) => isRecord(exercise) && typeof exercise.id === 'string' ? [exercise.id] : []))
+  const equipmentProfileIds = new Set(equipmentProfiles.flatMap((profile) => isRecord(profile) && typeof profile.id === 'string' ? [profile.id] : []))
   const sessionIds = new Set(sessions.flatMap((session) => isRecord(session) && typeof session.id === 'string' ? [session.id] : []))
   const mesocycleIds = new Set(mesocycles.flatMap((plan) => isRecord(plan) && typeof plan.id === 'string' ? [plan.id] : []))
   const completedSetIds = new Set(history.flatMap((workSet) => isRecord(workSet) && typeof workSet.id === 'string' ? [workSet.id] : []))
@@ -191,6 +211,11 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
       const mappingError = exerciseMuscleMappingError(exercise.muscleMapping)
       if (mappingError) errors.push(`An exercise has an invalid muscle mapping: ${mappingError}`)
     }
+  })
+
+  equipmentProfiles.forEach((profile) => {
+    const profileError = equipmentProfileError(profile)
+    if (profileError) errors.push(`An equipment profile is invalid: ${profileError}`)
   })
 
   history.forEach((workSet) => {
@@ -258,6 +283,10 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   const settings = candidate.settings as Record<string, unknown>
   if (!['off', 'subtle', 'normal', 'high-energy'].includes(String(settings.celebrationLevel)) || typeof settings.opportunityPrompts !== 'boolean' || typeof settings.sessionAchievements !== 'boolean' || typeof settings.confetti !== 'boolean' || typeof settings.quietMode !== 'boolean') errors.push('Gamification settings are invalid.')
   if (!['full', 'quick', 'minimal', 'off', 'ask'].includes(String(settings.preSurveyMode)) || !['full', 'quick', 'minimal', 'off', 'ask'].includes(String(settings.postSurveyMode))) errors.push('Survey preferences are invalid.')
+  if (typeof settings.activeEquipmentProfileId !== 'string' || !equipmentProfileIds.has(settings.activeEquipmentProfileId)) errors.push('The active equipment profile is missing or invalid.')
+  const activeEquipmentProfile = equipmentProfiles.find((profile) => isRecord(profile) && profile.id === settings.activeEquipmentProfileId)
+  if (isRecord(activeEquipmentProfile) && settings.equipmentLocation !== activeEquipmentProfile.name) errors.push('The equipment location label does not match the active equipment profile.')
+  if (isRecord(activeEquipmentProfile) && isRecord(candidate.athlete) && candidate.athlete.equipmentProfile !== activeEquipmentProfile.name) errors.push('The athlete equipment label does not match the active equipment profile.')
 
   records.forEach((record) => {
     const exactExercise = isRecord(record) && typeof record.exerciseId === 'string' && exerciseIds.has(record.exerciseId)
@@ -347,7 +376,7 @@ function migrateLegacyV1(candidate: Record<string, unknown>): { data: Restorable
     activeSessionId: typeof candidate.activeSessionId === 'string' ? candidate.activeSessionId : null,
     onboardingComplete: typeof candidate.onboardingComplete === 'boolean' ? candidate.onboardingComplete : true
   }
-  validateState(data)
+  validateState(data, true)
   return {
     data,
     exportedAt: typeof legacyExportedAt === 'string' && isValidDate(legacyExportedAt) ? legacyExportedAt : new Date().toISOString(),
@@ -372,7 +401,7 @@ function migrateV2(candidate: Record<string, unknown>): { data: RestorableAppSta
     deferredFeedback: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
-  validateState(data)
+  validateState(data, true)
   return {
     data,
     exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
@@ -393,7 +422,7 @@ function migrateV3(candidate: Record<string, unknown>): { data: RestorableAppSta
     deferredFeedback: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
-  validateState(data)
+  validateState(data, true)
   return {
     data,
     exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
@@ -414,7 +443,7 @@ function migrateV4(candidate: Record<string, unknown>): { data: RestorableAppSta
     deferredFeedback: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
-  validateState(data)
+  validateState(data, true)
   return {
     data,
     exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
@@ -427,7 +456,7 @@ function migrateV6(candidate: Record<string, unknown>): { data: RestorableAppSta
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
   if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
   const data = { ...candidate.data, substitutionEvents: [], deferredFeedback: [] }
-  validateState(data)
+  validateState(data, true)
   return {
     data,
     exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
@@ -440,7 +469,7 @@ function migrateV7(candidate: Record<string, unknown>): { data: RestorableAppSta
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
   if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
   const data = { ...candidate.data, settings: normalizeSettings(candidate.data.settings), deferredFeedback: [] }
-  validateState(data)
+  validateState(data, true)
   return {
     data,
     exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
@@ -460,7 +489,7 @@ function migrateV5(candidate: Record<string, unknown>): { data: RestorableAppSta
     deferredFeedback: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
-  validateState(data)
+  validateState(data, true)
   return {
     data,
     exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
@@ -473,7 +502,7 @@ function migrateV8(candidate: Record<string, unknown>): { data: RestorableAppSta
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
   if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
   const data = { ...candidate.data, settings: normalizeSettings(candidate.data.settings), deferredFeedback: [] }
-  validateState(data)
+  validateState(data, true)
   return {
     data,
     exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
@@ -486,11 +515,24 @@ function migrateV9(candidate: Record<string, unknown>): { data: RestorableAppSta
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
   if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
   const data = { ...candidate.data, settings: normalizeSettings(candidate.data.settings) }
-  validateState(data)
+  validateState(data, true)
   return {
     data,
     exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
     warning: 'Version 9 backup migrated safely. Existing training and deferred-feedback evidence is intact; auditable catalog edits begin with future changes.'
+  }
+}
+
+function migrateV10(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = { ...candidate.data, settings: normalizeSettings(candidate.data.settings) }
+  validateState(data, true)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 10 backup migrated safely. Existing training truth is intact; equipment availability begins with the matching seeded location profile.'
   }
 }
 
@@ -545,6 +587,10 @@ export function parseBackup(raw: string): BackupPreview {
     const migrated = migrateV9(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 10) {
+    const migrated = migrateV10(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
@@ -567,6 +613,7 @@ export function parseBackup(raw: string): BackupPreview {
       historyChanges: backup.data.historyMutations.length,
       cycleReviews: backup.data.cycleReviews.length,
       substitutions: backup.data.substitutionEvents.length,
+      equipmentProfiles: backup.data.equipmentProfiles.length,
       athleteName: backup.data.athlete.name,
       exportedAt: backup.exportedAt
     }
@@ -577,6 +624,7 @@ export function backupStateFrom(source: RestorableAppState): RestorableAppState 
   return {
     athlete: structuredClone(source.athlete),
     settings: structuredClone(source.settings),
+    equipmentProfiles: structuredClone(source.equipmentProfiles),
     exercises: structuredClone(source.exercises),
     sessions: structuredClone(source.sessions),
     history: structuredClone(source.history),

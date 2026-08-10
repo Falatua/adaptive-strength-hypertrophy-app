@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlarmClock, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, Footprints, HelpCircle, RotateCcw, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
+import { AlarmClock, AlertTriangle, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, Footprints, HelpCircle, RotateCcw, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import type { EffectiveSurveyMode, MissedSessionReason, SurveyAnswer } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
@@ -10,22 +10,27 @@ import { SurveyModal } from '../components/SurveyModal'
 import { SurveyModeChooser } from '../components/SurveyModeChooser'
 import { PostSurveyModal } from '../components/PostSurveyModal'
 import { pendingDeferredFeedback } from '../domain/survey-engine'
+import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '../domain/equipment-engine'
 
 const timeOptions = [15, 30, 45, 60, 75]
 
 export function TodayScreen() {
-  const { athlete, settings, updateSettings, sessions, exercises, history, startSession, setReadiness, markMissed, records, setNav, deferredFeedback, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
+  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, startSession, setReadiness, markMissed, records, setNav, deferredFeedback, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
   const [surveyOpen, setSurveyOpen] = useState(false)
   const [surveyChooserOpen, setSurveyChooserOpen] = useState(false)
   const [activeSurveyMode, setActiveSurveyMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
   const [whyOpen, setWhyOpen] = useState(false)
   const [missedOpen, setMissedOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [equipmentGateOpen, setEquipmentGateOpen] = useState(false)
+  const [pendingStart, setPendingStart] = useState<{ answers: SurveyAnswer[]; skipped: boolean; mode: EffectiveSurveyMode; minutes: number } | null>(null)
   const [missReason, setMissReason] = useState<MissedSessionReason>({ reason: 'family', nextMinutes: 45, continuing: true })
   const nextSession = sessions.find((session) => ['planned', 'deferred'].includes(session.status)) ?? sessions[0]
   const primaryPlan = nextSession?.exercises.find((exercise) => exercise.role === 'primary')
   const primaryExercise = exercises.find((exercise) => exercise.id === primaryPlan?.exerciseId)
   const primaryHistory = history.filter((set) => set.exerciseId === primaryExercise?.id)
+  const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
+  const equipmentGaps = nextSession ? sessionEquipmentGaps(nextSession, exercises, activeEquipmentProfile) : []
   const recentPrimary = primaryHistory.slice(-Math.max(1, primaryPlan?.sets.length ?? 1))
   const lastVolume = volumeLoad(recentPrimary)
   const recentRecord = records[0]
@@ -50,19 +55,32 @@ export function TodayScreen() {
     targetReps: primaryPlan?.sets[0]?.targetReps ?? 0,
     targetSets: primaryPlan?.sets.length ?? 0,
     repRange: [4, 6],
-    increment: 5,
+    increment: primaryExercise ? loadIncrementFor(primaryExercise, activeEquipmentProfile).value : 5,
     continuity: athlete.continuity,
     readiness: nextSession?.readiness ?? 'confirm'
   })
 
-  const begin = (answers: SurveyAnswer[] = [], skipped = false, mode: EffectiveSurveyMode = 'off') => {
+  const commitStart = (start: { answers: SurveyAnswer[]; skipped: boolean; mode: EffectiveSurveyMode; minutes: number }) => {
     if (!nextSession) return
-    const timeAnswer = answers.find((answer) => answer.id === 'time' && answer.status === 'answered')
-    const sessionMinutes = typeof timeAnswer?.value === 'number' ? timeAnswer.value : settings.availableMinutes
-    setReadiness(nextSession.id, answers, skipped, mode)
-    startSession(nextSession.id, sessionMinutes)
+    setReadiness(nextSession.id, start.answers, start.skipped, start.mode)
+    startSession(nextSession.id, start.minutes)
     setSurveyOpen(false)
     setSurveyChooserOpen(false)
+    setEquipmentGateOpen(false)
+    setPendingStart(null)
+  }
+
+  const begin = (answers: SurveyAnswer[] = [], skipped = false, mode: EffectiveSurveyMode = 'off') => {
+    const timeAnswer = answers.find((answer) => answer.id === 'time' && answer.status === 'answered')
+    const start = { answers, skipped, mode, minutes: typeof timeAnswer?.value === 'number' ? timeAnswer.value : settings.availableMinutes }
+    if (equipmentGaps.length) {
+      setPendingStart(start)
+      setSurveyOpen(false)
+      setSurveyChooserOpen(false)
+      setEquipmentGateOpen(true)
+      return
+    }
+    commitStart(start)
   }
 
   const openPreferredCheckIn = () => {
@@ -100,11 +118,12 @@ export function TodayScreen() {
           <div className="hero-workout__meta">
             <span className="status-chip status-chip--lime"><BatteryCharging size={14} /> {athlete.continuity}</span>
             <span className="status-chip"><Clock3 size={14} /> {settings.availableMinutes} min</span>
-            <span className="status-chip"><Dumbbell size={14} /> {settings.equipmentLocation}</span>
+            <span className={`status-chip ${equipmentGaps.length ? 'status-chip--warning' : ''}`}><Dumbbell size={14} /> {activeEquipmentProfile.name}</span>
           </div>
           <p className="eyebrow">Next best session · Exposure queue 01</p>
           <h2>{nextSession?.title}</h2>
           <p className="hero-workout__objective">{nextSession?.objective}</p>
+          {equipmentGaps.length > 0 && <button className="equipment-gate-callout" onClick={() => { setPendingStart(null); setEquipmentGateOpen(true) }}><AlertTriangle size={19} /><span><strong>{equipmentGaps.length} movement{equipmentGaps.length === 1 ? '' : 's'} need equipment review</strong><small>{activeEquipmentProfile.name} is missing required items. Unavailable sets cannot be logged until each movement is changed or the profile is corrected.</small></span><ChevronRight size={18} /></button>}
           <div className="anchor-prescription">
             <div className="anchor-prescription__icon"><Dumbbell size={24} /></div>
             <div><span>Primary anchor</span><strong>{primaryExercise?.name}</strong><small>{primaryPlan?.sets.length} sets × {primaryPlan?.sets[0]?.targetReps} reps · {primaryPlan?.sets[0]?.targetLoad} {settings.units} · {primaryPlan?.sets[0]?.targetRir} RIR</small></div>
@@ -141,7 +160,8 @@ export function TodayScreen() {
           <ol className="session-map">
             {nextSession?.exercises.map((planned, index) => {
               const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)
-              return <li key={planned.id}><span className={`role-dot role-dot--${planned.role}`}>{index + 1}</span><div><strong>{exercise?.name}</strong><small>{planned.role} · {planned.purpose}</small></div><span>{planned.sets.length} × {planned.sets[0]?.targetReps}</span></li>
+              const fit = exercise ? exerciseEquipmentFit(exercise, activeEquipmentProfile) : null
+              return <li key={planned.id} className={fit && !fit.available ? 'equipment-unavailable' : ''}><span className={`role-dot role-dot--${planned.role}`}>{index + 1}</span><div><strong>{exercise?.name}</strong><small>{planned.role} · {planned.purpose}{fit && !fit.available ? ` · missing ${fit.missing.join(', ')}` : ''}</small></div><span>{fit?.available ? 'ready' : `${planned.sets.length} × ${planned.sets[0]?.targetReps}`}</span></li>
             })}
           </ol>
         </section>
@@ -158,6 +178,16 @@ export function TodayScreen() {
 
       <SurveyModeChooser open={surveyChooserOpen} cadence="pre" onClose={() => setSurveyChooserOpen(false)} onChoose={(mode) => { setActiveSurveyMode(mode); setSurveyChooserOpen(false); setSurveyOpen(true) }} onSkip={() => begin([], true, 'off')} />
       {surveyOpen && <SurveyModal open mode={activeSurveyMode} onClose={() => setSurveyOpen(false)} onSubmit={(answers) => begin(answers, false, activeSurveyMode)} onSkip={() => begin([], true, activeSurveyMode)} />}
+
+      <Modal open={equipmentGateOpen} onClose={() => { setEquipmentGateOpen(false); setPendingStart(null) }} title="Resolve equipment before logging" description={`${activeEquipmentProfile.name} does not currently satisfy every explicit movement requirement. ForgePath will not pretend those movements are available.`} wide>
+        <div className="equipment-gap-list">{equipmentGaps.map((gap) => {
+          const original = exercises.find((exercise) => exercise.id === gap.exerciseId)
+          const availableAlternatives = original ? exercises.filter((exercise) => !exercise.retired && exercise.id !== original.id && exerciseEquipmentFit(exercise, activeEquipmentProfile).available && (exercise.pattern === original.pattern || exercise.regions.includes(original.primaryRegion))).length : 0
+          return <div key={gap.plannedExerciseId}><AlertTriangle size={18} /><span><strong>{gap.exerciseName}</strong><small>{gap.role} · missing {gap.missing.join(', ')} · {availableAlternatives} plausible available alternative{availableAlternatives === 1 ? '' : 's'}</small></span></div>
+        })}</div>
+        <p className="modal-note">You can correct the location profile, or enter the workout and replace each unavailable movement. Protected primary changes still require explicit confirmation.</p>
+        <div className="modal__actions"><button className="button button--ghost" onClick={() => { setEquipmentGateOpen(false); setPendingStart(null) }}>Cancel</button><button className="button button--secondary" onClick={() => { setEquipmentGateOpen(false); setPendingStart(null); setNav('you') }}>Edit location</button>{pendingStart && <button className="button button--primary" onClick={() => commitStart(pendingStart)}>Start and resolve movements</button>}</div>
+      </Modal>
 
       {feedbackOpen && feedbackRequest && feedbackSession && <PostSurveyModal
         open

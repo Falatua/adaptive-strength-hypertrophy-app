@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { athlete, exercises, history, sessions } from './seed'
+import { athlete, equipmentProfiles, exercises, history, sessions } from './seed'
 import { rankExerciseSubstitutions } from './substitution-engine'
 
 const benchSession = structuredClone(sessions.find((session) => session.id === 'session-bench')!)
@@ -48,5 +48,15 @@ describe('explainable exercise substitutions', () => {
     const equipment = ranked('equipment').find((item) => item.candidate.id === 'coffin-press')!
     expect(equipment.snapshot.score).toBeGreaterThan(neutral.snapshot.score)
     expect(equipment.snapshot.reasons).toContain('changes the required equipment')
+  })
+
+  it('excludes every replacement that is unavailable at the active location', () => {
+    const travel = equipmentProfiles.find((profile) => profile.id === 'equipment-travel')!
+    const result = rankExerciseSubstitutions({
+      planned: structuredClone(benchPlan), original: bench, exercises: structuredClone(exercises), history: structuredClone(history),
+      athlete: structuredClone(athlete), readiness: 'normal', reason: 'equipment', equipmentProfile: travel
+    })
+    expect(result.map((item) => item.candidate.id)).toEqual(['incline-db-press', 'hammer-curl'])
+    expect(result.every((item) => item.snapshot.reasons.includes('available at Travel Setup'))).toBe(true)
   })
 })

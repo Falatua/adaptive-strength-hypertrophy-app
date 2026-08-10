@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { athlete as seedAthlete, exercises as seedExercises, history as seedHistory, mesocycles as seedMesocycles, sessions as seedSessions } from '../domain/seed'
+import { athlete as seedAthlete, equipmentProfiles as seedEquipmentProfiles, exercises as seedExercises, history as seedHistory, mesocycles as seedMesocycles, sessions as seedSessions } from '../domain/seed'
 import { compressSession, readinessFromSurvey, replanAfterMiss, sessionCompletionStatus } from '../domain/training-engine'
 import { backupStateFrom, type RestorableAppState } from '../domain/backup'
 import { buildMesocyclePreview, createMesocyclePlan, replaceFuturePlan } from '../domain/mesocycle-engine'
@@ -10,6 +10,7 @@ import { buildCycleReview, buildNextMicrocycle } from '../domain/cycle-review-en
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
 import { buildDeferredFeedbackRequest, expireDeferredFeedbackRequests, summarizeSurveyEvidence } from '../domain/survey-engine'
 import { projectExerciseCatalogEdit, type ExerciseCatalogInput } from '../domain/catalog-engine'
+import { equipmentProfileError, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad, normalizedEquipmentProfile } from '../domain/equipment-engine'
 import type {
   AppSettings,
   AthleteProfile,
@@ -17,6 +18,7 @@ import type {
   CycleReviewDecision,
   CycleReviewEvent,
   DeferredFeedbackRequest,
+  EquipmentProfile,
   Exercise,
   ExerciseSubstitutionEvent,
   EffectiveSurveyMode,
@@ -36,6 +38,7 @@ interface AppState {
   nav: NavKey
   athlete: AthleteProfile
   settings: AppSettings
+  equipmentProfiles: EquipmentProfile[]
   exercises: Exercise[]
   sessions: TrainingSession[]
   history: CompletedSetRecord[]
@@ -56,6 +59,9 @@ interface AppState {
   completeOnboarding: (profile: Partial<AthleteProfile>) => void
   updateAthlete: (profile: Partial<AthleteProfile>) => void
   updateSettings: (settings: Partial<AppSettings>) => void
+  setActiveEquipmentProfile: (profileId: string) => { ok: boolean; error?: string }
+  saveEquipmentProfile: (profile: EquipmentProfile) => { ok: boolean; error?: string }
+  deleteEquipmentProfile: (profileId: string) => { ok: boolean; error?: string }
   startSession: (sessionId: string, availableMinutes?: number) => void
   setReadiness: (sessionId: string, answers: SurveyAnswer[], skipped: boolean, mode: EffectiveSurveyMode) => void
   updateSet: (sessionId: string, plannedExerciseId: string, setId: string, data: { reps?: number; load?: number; rir?: number }) => void
@@ -97,12 +103,14 @@ const initialSettings: AppSettings = {
   confetti: false,
   quietMode: false,
   availableMinutes: 60,
-  equipmentLocation: 'Commercial Gym'
+  equipmentLocation: 'Commercial Gym',
+  activeEquipmentProfileId: 'equipment-commercial-gym'
 }
 
 const fresh = () => ({
   athlete: structuredClone(seedAthlete),
   settings: structuredClone(initialSettings),
+  equipmentProfiles: structuredClone(seedEquipmentProfiles),
   exercises: structuredClone(seedExercises),
   sessions: structuredClone(seedSessions),
   history: structuredClone(seedHistory),
@@ -130,14 +138,71 @@ export const useAppStore = create<AppState>()(
       completeOnboarding: (profile) => set((state) => ({ athlete: { ...state.athlete, ...profile }, onboardingComplete: true })),
       updateAthlete: (profile) => set((state) => ({ athlete: { ...state.athlete, ...profile } })),
       updateSettings: (settings) => set((state) => ({ settings: { ...state.settings, ...settings } })),
+      setActiveEquipmentProfile: (profileId) => {
+        const state = get()
+        const profile = state.equipmentProfiles.find((candidate) => candidate.id === profileId)
+        if (!profile) return { ok: false, error: 'Choose an equipment profile that still exists.' }
+        set({
+          settings: { ...state.settings, activeEquipmentProfileId: profile.id, equipmentLocation: profile.name },
+          athlete: { ...state.athlete, equipmentProfile: profile.name },
+          notice: `${profile.name} is active. Exercise availability and load increments now use this profile.`
+        })
+        return { ok: true }
+      },
+      saveEquipmentProfile: (profile) => {
+        const state = get()
+        const normalized = normalizedEquipmentProfile({ ...profile, source: 'athlete', updatedAt: new Date().toISOString() })
+        const error = equipmentProfileError(normalized)
+        if (error) return { ok: false, error }
+        if (state.equipmentProfiles.some((candidate) => candidate.id !== normalized.id && candidate.name.toLowerCase() === normalized.name.toLowerCase())) return { ok: false, error: 'Use a distinct equipment-profile name.' }
+        const exists = state.equipmentProfiles.some((candidate) => candidate.id === normalized.id)
+        const isActive = state.settings.activeEquipmentProfileId === normalized.id
+        set({
+          equipmentProfiles: exists ? state.equipmentProfiles.map((candidate) => candidate.id === normalized.id ? normalized : candidate) : [...state.equipmentProfiles, normalized],
+          settings: isActive ? { ...state.settings, equipmentLocation: normalized.name } : state.settings,
+          athlete: isActive ? { ...state.athlete, equipmentProfile: normalized.name } : state.athlete,
+          notice: `${normalized.name} saved with ${normalized.equipment.length} available equipment item${normalized.equipment.length === 1 ? '' : 's'}.`
+        })
+        return { ok: true }
+      },
+      deleteEquipmentProfile: (profileId) => {
+        const state = get()
+        const profile = state.equipmentProfiles.find((candidate) => candidate.id === profileId)
+        if (!profile) return { ok: false, error: 'That equipment profile no longer exists.' }
+        if (seedEquipmentProfiles.some((seedProfile) => seedProfile.id === profileId)) return { ok: false, error: 'Seed profiles can be customized but not deleted.' }
+        if (state.settings.activeEquipmentProfileId === profileId) return { ok: false, error: 'Activate another location before deleting this profile.' }
+        set({ equipmentProfiles: state.equipmentProfiles.filter((candidate) => candidate.id !== profileId), notice: `${profile.name} removed. Training history was unchanged.` })
+        return { ok: true }
+      },
       startSession: (sessionId, availableMinutes) => set((state) => {
         const minutes = availableMinutes ?? state.settings.availableMinutes
+        const equipmentProfile = state.equipmentProfiles.find((candidate) => candidate.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]
         return {
           activeSessionId: sessionId,
-          sessions: state.sessions.map((session) => session.id === sessionId
-            ? { ...compressSession(session, minutes), status: 'active', startedAt: new Date().toISOString() }
-            : session),
-          notice: 'Workout saved locally. You can train offline.'
+          sessions: state.sessions.map((session) => {
+            if (session.id !== sessionId) return session
+            const compressed = compressSession(session, minutes)
+            return {
+              ...compressed,
+              status: 'active' as const,
+              startedAt: new Date().toISOString(),
+              exercises: compressed.exercises.map((planned) => {
+                const exercise = state.exercises.find((candidate) => candidate.id === planned.exerciseId)
+                if (!exercise || !equipmentProfile) return planned
+                const increment = loadIncrementFor(exercise, equipmentProfile).value
+                return {
+                  ...planned,
+                  sets: planned.sets.map((workSet) => ({
+                    ...workSet,
+                    targetLoad: nearestExecutableLoad(workSet.targetLoad, increment)
+                  }))
+                }
+              })
+            }
+          }),
+          notice: equipmentProfile
+            ? `Workout saved locally. Loads now follow ${equipmentProfile.name}'s executable increments.`
+            : 'Workout saved locally. You can train offline.'
         }
       }),
       setReadiness: (sessionId, answers, skipped, mode) => set((state) => {
@@ -165,21 +230,27 @@ export const useAppStore = create<AppState>()(
           })
         })
       })),
-      toggleSetComplete: (sessionId, plannedExerciseId, setId) => set((state) => ({
-        sessions: state.sessions.map((session) => session.id !== sessionId ? session : {
-          ...session,
-          exercises: session.exercises.map((exercise) => exercise.id !== plannedExerciseId ? exercise : {
+      toggleSetComplete: (sessionId, plannedExerciseId, setId) => set((state) => {
+        const session = state.sessions.find((candidate) => candidate.id === sessionId)
+        const planned = session?.exercises.find((candidate) => candidate.id === plannedExerciseId)
+        const workSet = planned?.sets.find((candidate) => candidate.id === setId)
+        const exercise = state.exercises.find((candidate) => candidate.id === planned?.exerciseId)
+        const profile = state.equipmentProfiles.find((candidate) => candidate.id === state.settings.activeEquipmentProfileId)
+        if (workSet && !workSet.completed && exercise && profile && !exerciseEquipmentFit(exercise, profile).available) return { notice: `${exercise.name} cannot be logged at ${profile.name} until its equipment profile or movement is changed.` }
+        return { sessions: state.sessions.map((candidateSession) => candidateSession.id !== sessionId ? candidateSession : {
+          ...candidateSession,
+          exercises: candidateSession.exercises.map((exercise) => exercise.id !== plannedExerciseId ? exercise : {
             ...exercise,
-            sets: exercise.sets.map((workSet) => workSet.id === setId ? {
-              ...workSet,
-              completed: !workSet.completed,
-              completedReps: workSet.completedReps ?? workSet.targetReps,
-              completedLoad: workSet.completedLoad ?? workSet.targetLoad,
-              actualRir: workSet.actualRir ?? workSet.targetRir
-            } : workSet)
+            sets: exercise.sets.map((candidateSet) => candidateSet.id === setId ? {
+              ...candidateSet,
+              completed: !candidateSet.completed,
+              completedReps: candidateSet.completedReps ?? candidateSet.targetReps,
+              completedLoad: candidateSet.completedLoad ?? candidateSet.targetLoad,
+              actualRir: candidateSet.actualRir ?? candidateSet.targetRir
+            } : candidateSet)
           })
-        })
-      })),
+        }) }
+      }),
       swapExercise: (sessionId, plannedExerciseId, exerciseId, reason, primaryOverrideConfirmed) => {
         const state = get()
         const session = state.sessions.find((candidate) => candidate.id === sessionId)
@@ -187,10 +258,14 @@ export const useAppStore = create<AppState>()(
         const original = state.exercises.find((candidate) => candidate.id === planned?.exerciseId)
         const selected = state.exercises.find((candidate) => candidate.id === exerciseId && !candidate.retired)
         if (!session || !planned || !original || !selected) return { ok: false, error: 'That substitution is no longer available.' }
+        const equipmentProfile = state.equipmentProfiles.find((candidate) => candidate.id === state.settings.activeEquipmentProfileId)
+        if (!equipmentProfile) return { ok: false, error: 'Choose an active equipment profile before changing this movement.' }
+        const equipmentFit = exerciseEquipmentFit(selected, equipmentProfile)
+        if (!equipmentFit.available) return { ok: false, error: `${selected.name} is unavailable at ${equipmentProfile.name}. Missing: ${equipmentFit.missing.join(', ')}.` }
         if (planned.role === 'primary' && !primaryOverrideConfirmed) return { ok: false, error: 'Confirm the protected-primary tradeoff before changing this anchor.' }
         const ranked = rankExerciseSubstitutions({
           planned, original, exercises: state.exercises, history: state.history, athlete: state.athlete,
-          readiness: session.readiness ?? 'confirm', reason
+          readiness: session.readiness ?? 'confirm', reason, equipmentProfile
         })
         const choice = ranked.find((item) => item.candidate.id === exerciseId)
         if (!choice) return { ok: false, error: 'Choose an eligible active movement.' }
@@ -209,7 +284,7 @@ export const useAppStore = create<AppState>()(
         const event: ExerciseSubstitutionEvent = {
           id: eventId, sessionId, plannedExerciseId, originalExerciseId: original.id, selectedExerciseId: selected.id,
           role: planned.role, purpose: planned.purpose, reason, createdAt: new Date().toISOString(), readiness: session.readiness ?? 'confirm',
-          availableMinutes: session.durationMinutes, equipmentLocation: state.settings.equipmentLocation,
+          availableMinutes: session.durationMinutes, equipmentLocation: equipmentProfile.name,
           primaryOverrideConfirmed: planned.role === 'primary' ? primaryOverrideConfirmed : false,
           candidates: ranked.slice(0, 6).map((item) => item.snapshot), originalPrescription: structuredClone(planned.sets),
           replacementPrescription: structuredClone(choice.prescription), prescriptionMethod: choice.prescriptionMethod,
@@ -625,10 +700,11 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 8,
+      version: 9,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,
+        equipmentProfiles: state.equipmentProfiles,
         exercises: state.exercises,
         sessions: state.sessions,
         history: state.history,
@@ -646,9 +722,16 @@ export const useAppStore = create<AppState>()(
       }),
       migrate: (persistedState) => {
         const persisted = persistedState as AppState
+        const equipmentProfiles = persisted.equipmentProfiles?.length ? persisted.equipmentProfiles : structuredClone(seedEquipmentProfiles)
+        const requestedProfileId = persisted.settings?.activeEquipmentProfileId
+        const legacyProfile = equipmentProfiles.find((profile) => profile.id === requestedProfileId)
+          ?? equipmentProfiles.find((profile) => profile.name === persisted.settings?.equipmentLocation)
+          ?? equipmentProfiles[0]
         return {
           ...persisted,
-          settings: { ...structuredClone(initialSettings), ...(persisted.settings ?? {}) },
+          settings: { ...structuredClone(initialSettings), ...(persisted.settings ?? {}), activeEquipmentProfileId: legacyProfile.id, equipmentLocation: legacyProfile.name },
+          equipmentProfiles,
+          athlete: { ...persisted.athlete, equipmentProfile: legacyProfile.name },
           mesocycles: persisted.mesocycles?.length ? persisted.mesocycles : structuredClone(seedMesocycles),
           activeMesocycleId: persisted.activeMesocycleId ?? seedMesocycles[0]?.id ?? null,
           historyMutations: (persisted.historyMutations ?? []).map((event) => ({

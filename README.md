@@ -1,4 +1,4 @@
-# ForgePath Private Alpha 0.16.0
+# ForgePath Private Alpha 0.17.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
@@ -31,8 +31,8 @@ npm run test:e2e
 
 ## Current verification
 
-- 93 deterministic domain tests
-- twenty-two desktop and phone browser journeys for source-backed records, validated CSV history import, in-workout achievement feedback, quiet controls, explainable substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, persistence, console integrity, and horizontal containment
+- 101 deterministic domain tests
+- twenty-four desktop and phone browser journeys for source-backed records, validated CSV history import, in-workout achievement feedback, quiet controls, explainable and equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
 - lint clean
 - production PWA build clean
 - desktop and 390 px phone browser journeys checked
@@ -41,7 +41,10 @@ npm run test:e2e
 - daily, weekly, rolling 28-day, calendar-month, calendar-quarter, yearly, and all-time analytics reconcile to completed source sets
 - editable mesocycles generate a preview before applying and version every objective, constraint, and reason for change
 - plan revisions preserve completed and partial session truth while replacing future planned work only
-- version 10 backup and restore includes expanded record definitions, celebration preferences, plan history, the history and catalog ledger, cycle-review decisions, the substitution-learning ledger, survey evidence, and deferred-feedback provenance and safely migrates versions 1 through 9
+- version 11 backup and restore includes expanded record definitions, celebration preferences, equipment profiles, plan history, the history and catalog ledger, cycle-review decisions, the substitution-learning ledger, survey evidence, and deferred-feedback provenance and safely migrates versions 1 through 10
+- named commercial, home, travel, hotel, bodyweight, and custom training-location profiles persist exact available equipment, constraints, units, and separate barbell, dumbbell, cable, machine, and other load increments
+- Today exposes equipment conflicts before starting, Workout blocks unavailable logging until the athlete substitutes, and Library can filter by active-location availability with exact missing-item explanations
+- substitution candidates are filtered against the active profile, chosen replacements retain the location in their evidence ledger, and workout-start targets round to real executable load jumps
 - source-set corrections, deletions, duplicate exercise merges, catalog edits, and latest-change undo preserve and replay the correct source state
 - custom movements can be renamed and recategorized while retaining a stable canonical ID; built-in taxonomy is protected while athlete aliases remain editable
 - exact name and alias collisions are blocked before save, likely related variations remain reviewable, and historical completed-set names are never silently rewritten

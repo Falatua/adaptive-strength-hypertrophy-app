@@ -1,6 +1,7 @@
 import type {
   AthleteProfile,
   CompletedSetRecord,
+  EquipmentProfile,
   Exercise,
   PlannedExercise,
   ReadinessOutcome,
@@ -10,6 +11,7 @@ import type {
   SubstitutionTier
 } from './types'
 import { recommendProgression } from './training-engine'
+import { exerciseEquipmentFit, loadIncrementFor } from './equipment-engine'
 
 export interface RankedSubstitution {
   candidate: Exercise
@@ -40,8 +42,9 @@ function replacementPrescription(input: {
   history: CompletedSetRecord[]
   athlete: AthleteProfile
   readiness: ReadinessOutcome
+  equipmentProfile?: EquipmentProfile
 }) {
-  const { planned, candidate, history, athlete, readiness } = input
+  const { planned, candidate, history, athlete, readiness, equipmentProfile } = input
   const exactHistory = history.filter((workSet) => workSet.exerciseId === candidate.id)
   const latest = latestExactSession(history, candidate.id)
   if (!latest.length) {
@@ -66,7 +69,7 @@ function replacementPrescription(input: {
   const repRange = repRangeFor(planned)
   const targetReps = Math.min(repRange[1], Math.max(repRange[0], reference.reps))
   const targetSets = Math.min(planned.sets.length, latest.length)
-  const increment = reference.load > 0 && reference.load < 100 ? 2.5 : 5
+  const increment = equipmentProfile ? loadIncrementFor(candidate, equipmentProfile).value : reference.load > 0 && reference.load < 100 ? 2.5 : 5
   const decision = recommendProgression({
     history: exactHistory,
     targetLoad: reference.load,
@@ -103,10 +106,12 @@ export function rankExerciseSubstitutions(input: {
   athlete: AthleteProfile
   readiness: ReadinessOutcome
   reason: SubstitutionReason
+  equipmentProfile?: EquipmentProfile
 }): RankedSubstitution[] {
-  const { planned, original, exercises, history, athlete, readiness, reason } = input
+  const { planned, original, exercises, history, athlete, readiness, reason, equipmentProfile } = input
   return exercises
     .filter((candidate) => candidate.id !== original.id && !candidate.retired && candidate.jointFeeling !== 'avoid')
+    .filter((candidate) => !equipmentProfile || exerciseEquipmentFit(candidate, equipmentProfile).available)
     .map((candidate) => {
       const reasons: string[] = []
       let score = 0
@@ -119,6 +124,7 @@ export function rankExerciseSubstitutions(input: {
       else if (candidate.jointFeeling === 'good') { score += 2; reasons.push('good prior joint response') }
       else if (candidate.jointFeeling === 'irritating') { score -= 6; reasons.push('irritating prior joint response') }
       if (candidate.favorite) { score += 2; reasons.push('preferred movement') }
+      if (equipmentProfile) reasons.unshift(`available at ${equipmentProfile.name}`)
 
       const prior = history.filter((workSet) => workSet.exerciseId === candidate.id)
       const latest = prior.length ? [...prior].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0] : null
@@ -142,7 +148,7 @@ export function rankExerciseSubstitutions(input: {
 
       score = Math.max(0, score)
 
-      const prescription = replacementPrescription({ planned, candidate, history, athlete, readiness })
+      const prescription = replacementPrescription({ planned, candidate, history, athlete, readiness, equipmentProfile })
       const samePurpose = candidate.pattern === original.pattern && candidate.regions.includes(original.primaryRegion)
       const snapshot: SubstitutionCandidateSnapshot = {
         exerciseId: candidate.id,

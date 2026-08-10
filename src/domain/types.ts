@@ -21,6 +21,20 @@ export type AchievementCategory = RecordCategory | 'quality' | 'consistency' | '
 export type CelebrationLevel = 'off' | 'subtle' | 'normal' | 'high-energy'
 export type SubstitutionReason = 'none' | 'pain' | 'equipment' | 'time' | 'fatigue' | 'target-feel' | 'variety' | 'preference' | 'harder' | 'easier' | 'other'
 export type SubstitutionTier = 'best-match' | 'good-alternative' | 'changes-focus'
+export type EquipmentProfileKind = 'commercial-gym' | 'home-gym' | 'travel' | 'hotel' | 'bodyweight' | 'custom'
+export type LoadIncrementKind = 'barbell' | 'dumbbell' | 'cable' | 'machine' | 'other'
+
+export interface EquipmentProfile {
+  id: string
+  name: string
+  kind: EquipmentProfileKind
+  equipment: string[]
+  increments: Record<LoadIncrementKind, number>
+  incrementUnit: 'lb' | 'kg'
+  constraints: string[]
+  source: 'seed' | 'athlete'
+  updatedAt: string
+}
 
 export interface Exercise {
   id: string
@@ -410,6 +424,7 @@ export interface AppSettings {
   quietMode: boolean
   availableMinutes: number
   equipmentLocation: string
+  activeEquipmentProfileId: string
 }
 
 export interface MissedSessionReason {

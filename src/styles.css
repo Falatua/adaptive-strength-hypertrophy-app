@@ -1029,3 +1029,67 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+.status-chip--warning { border-color: rgb(255 121 67 / 55%); color: var(--orange); }
+.equipment-gate-callout { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; margin: 14px 0; padding: 13px; border: 1px solid rgb(255 121 67 / 42%); border-radius: 12px; background: rgb(255 121 67 / 8%); color: var(--orange); text-align: left; }
+.equipment-gate-callout span, .equipment-gate-callout strong, .equipment-gate-callout small { display: block; min-width: 0; }
+.equipment-gate-callout small { margin-top: 4px; color: var(--muted); line-height: 1.4; }
+.session-map li.equipment-unavailable { border-color: rgb(255 121 67 / 30%); background: rgb(255 121 67 / 4%); }
+.session-map li.equipment-unavailable > span:last-child { color: var(--orange); }
+.equipment-gap-list { display: grid; gap: 8px; }
+.equipment-gap-list > div { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.equipment-gap-list svg { color: var(--orange); }
+.equipment-gap-list strong, .equipment-gap-list small { display: block; }
+.equipment-gap-list small { margin-top: 4px; color: var(--muted); line-height: 1.4; }
+.filter-stack { display: grid; gap: 8px; margin-bottom: 18px; }
+.filter-chips--availability { align-items: center; margin: 0; }
+.filter-chips--availability > span { margin-right: 4px; color: var(--muted); font: 700 .62rem var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+.library-card.is-unavailable { border-color: rgb(255 121 67 / 24%); }
+.library-card__tags .equipment-available { color: var(--lime); }
+.library-card__tags .equipment-missing { color: var(--orange); }
+.exercise-equipment-fit { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding: 13px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
+.exercise-equipment-fit strong, .exercise-equipment-fit small { display: block; }
+.exercise-equipment-fit small { margin-top: 4px; color: var(--muted); line-height: 1.45; }
+.exercise-equipment-fit.is-available svg { color: var(--lime); }
+.exercise-equipment-fit.is-unavailable { border-color: rgb(255 121 67 / 32%); }
+.exercise-equipment-fit.is-unavailable svg, .exercise-equipment-fit.is-unavailable strong { color: var(--orange); }
+.equipment-profile-list { display: grid; gap: 8px; margin-top: 14px; }
+.equipment-profile-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.equipment-profile-list article.active { border-color: rgb(222 255 66 / 46%); box-shadow: inset 3px 0 var(--lime); }
+.equipment-profile-select { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 11px; min-width: 0; padding: 13px; border: 0; background: transparent; color: var(--text); text-align: left; }
+.equipment-profile-select > span, .equipment-profile-select strong, .equipment-profile-select small { display: block; min-width: 0; }
+.equipment-profile-select small { margin-top: 3px; color: var(--muted); font-size: .63rem; text-transform: capitalize; }
+.equipment-profile-select > b { color: var(--lime); font: 700 .61rem var(--mono); text-transform: uppercase; letter-spacing: .07em; }
+.equipment-profile-icon { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 9px; color: var(--orange); }
+.equipment-profile-list .icon-button { margin-right: 9px; }
+.equipment-profile-summary { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; margin-top: 12px; padding: 12px; border-radius: 10px; background: #10140e; color: var(--lime); }
+.equipment-profile-summary strong, .equipment-profile-summary small { display: block; overflow-wrap: anywhere; }
+.equipment-profile-summary strong { color: var(--text); font-size: .7rem; line-height: 1.5; }
+.equipment-profile-summary small { margin-top: 5px; color: var(--muted); font-size: .62rem; line-height: 1.45; }
+.equipment-profile-form textarea { resize: vertical; }
+.increment-editor { margin: 15px 0; padding: 14px; border: 1px solid var(--line); border-radius: 11px; }
+.increment-editor legend { padding: 0 7px; color: var(--muted); font: 700 .66rem var(--mono); text-transform: uppercase; letter-spacing: .07em; }
+.increment-editor > div { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.increment-editor label span { display: block; margin-bottom: 5px; color: var(--muted); font-size: .65rem; text-transform: capitalize; }
+.exercise-card--equipment-blocked { border-color: rgb(255 121 67 / 40%); }
+.equipment-block { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 11px; margin: 0 17px 12px; padding: 12px; border: 1px solid rgb(255 121 67 / 36%); border-radius: 10px; background: rgb(255 121 67 / 7%); color: var(--orange); }
+.equipment-block strong, .equipment-block small { display: block; }
+.equipment-block small { margin-top: 3px; color: var(--muted); line-height: 1.4; }
+.equipment-block button { padding: 8px 11px; border: 1px solid var(--orange); border-radius: 8px; background: transparent; color: var(--orange); font-weight: 800; }
+.set-row input:disabled, .set-row select:disabled, .complete-set:disabled { cursor: not-allowed; opacity: .42; }
+.onboarding-equipment { align-items: stretch; }
+.onboarding-equipment button { display: grid; gap: 3px; min-height: 58px; }
+.onboarding-equipment small { color: var(--muted); font-size: .58rem; }
+
+@media (max-width: 620px) {
+  .filter-chips--availability > span { width: 100%; }
+  .equipment-profile-select { grid-template-columns: auto minmax(0, 1fr); }
+  .equipment-profile-select > b { grid-column: 2; }
+  .increment-editor > div { grid-template-columns: 1fr 1fr; }
+  .increment-editor label:last-child { grid-column: 1 / -1; }
+  .equipment-block { grid-template-columns: auto minmax(0, 1fr); margin-inline: 12px; }
+  .equipment-block button { grid-column: 1 / -1; width: 100%; }
+  .equipment-gate-callout { grid-template-columns: auto minmax(0, 1fr); }
+  .equipment-gate-callout > svg:last-child { display: none; }
+  .onboarding-equipment { display: grid; grid-template-columns: 1fr; }
+}

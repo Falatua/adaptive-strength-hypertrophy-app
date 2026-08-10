@@ -7,22 +7,28 @@ const goals = ['Powerbuilding', 'Strength', 'Hypertrophy', 'Return to training']
 const times = [30, 45, 60, 75]
 
 export function Onboarding() {
-  const { completeOnboarding } = useAppStore()
+  const { completeOnboarding, equipmentProfiles, setActiveEquipmentProfile } = useAppStore()
   const [step, setStep] = useState(0)
   const [goal, setGoal] = useState('Powerbuilding')
   const [minutes, setMinutes] = useState(60)
   const [opportunities, setOpportunities] = useState(3)
   const [experience, setExperience] = useState(8)
   const [continuity, setContinuity] = useState<'stable' | 'interrupted' | 'returning'>('interrupted')
+  const [equipmentProfileId, setEquipmentProfileId] = useState('equipment-commercial-gym')
 
-  const finish = () => completeOnboarding({
-    trainingAge: experience,
-    weeklyOpportunities: opportunities,
-    defaultMinutes: minutes,
-    goal: `${goal}: protect squat, bench, and sumo while building priority muscles`,
-    continuity,
-    entryRoute: continuity === 'returning' ? 'Reacclimation + Productive Strength Work' : experience >= 2 ? 'Direct Strength + Hypertrophy Development' : 'Introductory Skill Cycle'
-  })
+  const finish = () => {
+    const profile = equipmentProfiles.find((candidate) => candidate.id === equipmentProfileId)
+    setActiveEquipmentProfile(equipmentProfileId)
+    completeOnboarding({
+      trainingAge: experience,
+      weeklyOpportunities: opportunities,
+      defaultMinutes: minutes,
+      equipmentProfile: profile?.name ?? 'Commercial Gym',
+      goal: `${goal}: protect squat, bench, and sumo while building priority muscles`,
+      continuity,
+      entryRoute: continuity === 'returning' ? 'Reacclimation + Productive Strength Work' : experience >= 2 ? 'Direct Strength + Hypertrophy Development' : 'Introductory Skill Cycle'
+    })
+  }
 
   return (
     <div className="onboarding">
@@ -60,6 +66,8 @@ export function Onboarding() {
             <div className="choice-row">{[2, 3, 4, 5].map((item) => <button key={item} className={opportunities === item ? 'selected' : ''} onClick={() => setOpportunities(item)}>{item}×</button>)}</div>
             <label className="field-label">Usual time per session</label>
             <div className="choice-row">{times.map((item) => <button key={item} className={minutes === item ? 'selected' : ''} onClick={() => setMinutes(item)}>{item}m</button>)}</div>
+            <label className="field-label">Usual training location</label>
+            <div className="choice-row onboarding-equipment">{equipmentProfiles.map((profile) => <button key={profile.id} className={equipmentProfileId === profile.id ? 'selected' : ''} onClick={() => setEquipmentProfileId(profile.id)}>{profile.name}<small>{profile.equipment.length} items</small></button>)}</div>
             <label className="field-label">Recent training continuity</label>
             <div className="stacked-choices">
               {([

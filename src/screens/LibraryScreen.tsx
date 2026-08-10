@@ -6,6 +6,7 @@ import { findExerciseDuplicateGroups } from '../domain/catalog-engine'
 import { buildTrainingHistoryImport, parseTrainingHistoryCsv, type ImportUnit, type TrainingHistoryImportPreview } from '../domain/import-engine'
 import type { BodyRegion, CompletedSetRecord, Exercise, MuscleId, MovementPattern } from '../domain/types'
 import { muscleCreditsFor, muscleDefinitions } from '../domain/muscle-dose'
+import { exerciseEquipmentFit } from '../domain/equipment-engine'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
 
@@ -16,14 +17,16 @@ const regionFilters: { id: BodyRegion | 'all'; label: string }[] = [
 const muscleLabel = new Map(muscleDefinitions.map((muscle) => [muscle.id, muscle.label]))
 
 export function LibraryScreen() {
-  const { exercises, history, historyMutations, substitutionEvents, settings, toggleFavorite, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, undoLatestHistoryMutation, setNotice } = useAppStore()
+  const { exercises, equipmentProfiles, history, historyMutations, substitutionEvents, settings, toggleFavorite, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, undoLatestHistoryMutation, setNotice } = useAppStore()
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState<BodyRegion | 'all'>('all')
+  const [availability, setAvailability] = useState<'all' | 'available' | 'unavailable'>('all')
   const [selected, setSelected] = useState<Exercise | null>(null)
   const [addOpen, setAddOpen] = useState(false)
   const [customName, setCustomName] = useState('')
   const [customPattern, setCustomPattern] = useState<MovementPattern>('horizontal-push')
   const [customRegion, setCustomRegion] = useState<BodyRegion>('chest')
+  const [customEquipment, setCustomEquipment] = useState('')
   const [customDistinction, setCustomDistinction] = useState('')
   const [customMappingEnabled, setCustomMappingEnabled] = useState(false)
   const [customDirectMuscle, setCustomDirectMuscle] = useState<MuscleId | ''>('')
@@ -45,13 +48,16 @@ export function LibraryScreen() {
   const [importMappings, setImportMappings] = useState<Record<string, string>>({})
   const [importError, setImportError] = useState<string | null>(null)
 
+  const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const filtered = useMemo(() => exercises.filter((exercise) => {
     if (exercise.retired) return false
     const needle = search.toLowerCase()
     const matchesSearch = !needle || [exercise.name, exercise.family, ...exercise.aliases, ...exercise.roleTags].join(' ').toLowerCase().includes(needle)
     const matchesRegion = region === 'all' || exercise.regions.includes(region)
-    return matchesSearch && matchesRegion
-  }), [exercises, search, region])
+    const fit = exerciseEquipmentFit(exercise, activeEquipmentProfile)
+    const matchesAvailability = availability === 'all' || (availability === 'available' ? fit.available : !fit.available)
+    return matchesSearch && matchesRegion && matchesAvailability
+  }), [activeEquipmentProfile, availability, exercises, search, region])
 
   const activeExercises = useMemo(() => exercises.filter((exercise) => !exercise.retired), [exercises])
   const duplicates = useMemo(() => customName.trim().length >= 3 ? duplicateCandidates(customName, activeExercises) : [], [customName, activeExercises])
@@ -70,6 +76,7 @@ export function LibraryScreen() {
   }, [activeExercises, catalogEdit, catalogValues.aliases, catalogValues.name])
   const selectedHistory = selected ? history.filter((set) => set.exerciseId === selected.id).sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()) : []
   const selectedMuscleCredits = selected ? muscleCreditsFor(selected.id, exercises) : undefined
+  const selectedEquipmentFit = selected ? exerciseEquipmentFit(selected, activeEquipmentProfile) : undefined
   const groupedDates = selectedHistory.reduce<Record<string, typeof selectedHistory>>((groups, set) => {
     const key = set.completedAt.slice(0, 10)
     groups[key] = [...(groups[key] ?? []), set]
@@ -163,7 +170,7 @@ export function LibraryScreen() {
     if (customMappingEnabled && !customDirectMuscle) return setFormError('Choose one direct muscle or leave this movement unmapped.')
     addCustomExercise({
       id: nanoid(), name: customName.trim(), family: customName.trim(), aliases: [], pattern: customPattern,
-      regions: [customRegion], primaryRegion: customRegion, equipment: ['custom'], description: customDistinction.trim() ? `Athlete-created movement. Distinct because: ${customDistinction.trim()}` : 'Athlete-created movement. Add setup and history as you train it.',
+      regions: [customRegion], primaryRegion: customRegion, equipment: customEquipment.split(',').map((item) => item.trim()).filter(Boolean), description: customDistinction.trim() ? `Athlete-created movement. Distinct because: ${customDistinction.trim()}` : 'Athlete-created movement. Add setup and history as you train it.',
       roleTags: ['custom'], favorite: false, jointFeeling: 'neutral', custom: true,
       muscleMapping: customMappingEnabled && customDirectMuscle ? {
         ruleVersion: 'exercise-muscle-map-v1', direct: customDirectMuscle,
@@ -173,6 +180,7 @@ export function LibraryScreen() {
     })
     setCustomName('')
     setCustomDistinction('')
+    setCustomEquipment('')
     setCustomMappingEnabled(false)
     setCustomDirectMuscle('')
     setCustomSecondaryMuscles([])
@@ -238,7 +246,7 @@ export function LibraryScreen() {
       <section className="library-categories">
         {[
           ['Body part', '11 regions', 'chest'], ['Movement type', '8 patterns', 'squat'], ['Training role', 'Anchor to accessory', 'primary'],
-          ['Goal / weak point', 'Builder relationships', 'target'], ['Equipment', 'Current gym profile', 'equipment'], ['My movements', `${activeExercises.filter((exercise) => exercise.favorite).length} preferred`, 'heart']
+          ['Goal / weak point', 'Builder relationships', 'target'], ['Equipment', activeEquipmentProfile.name, 'equipment'], ['My movements', `${activeExercises.filter((exercise) => exercise.favorite).length} preferred`, 'heart']
         ].map(([title, detail, icon]) => <button key={title} onClick={() => title === 'My movements' ? setSearch('preferred:') : setNotice(`${title} view is using the shared canonical taxonomy.`)}><span className={`category-pixel category-pixel--${icon}`}><Dumbbell size={19} /></span><strong>{title}</strong><small>{detail}</small><ChevronRight size={16} /></button>)}
       </section>
 
@@ -248,26 +256,27 @@ export function LibraryScreen() {
           <button className="filter-button"><Filter size={17} /> Filters</button>
           <span>{filtered.length} movements</span>
         </div>
-        <div className="filter-chips">{regionFilters.map((item) => <button key={item.id} className={region === item.id ? 'selected' : ''} onClick={() => setRegion(item.id)}>{item.label}</button>)}</div>
+        <div className="filter-stack"><div className="filter-chips" aria-label="Body part filter">{regionFilters.map((item) => <button key={item.id} className={region === item.id ? 'selected' : ''} onClick={() => setRegion(item.id)}>{item.label}</button>)}</div><div className="filter-chips filter-chips--availability" aria-label="Equipment availability filter"><span>{activeEquipmentProfile.name}</span>{(['all', 'available', 'unavailable'] as const).map((item) => <button key={item} className={availability === item ? 'selected' : ''} onClick={() => setAvailability(item)}>{item === 'all' ? 'All equipment' : item === 'available' ? 'Available here' : 'Missing equipment'}</button>)}</div></div>
         {filtered.length ? (
           <div className="exercise-grid">
             {filtered.map((exercise) => {
               const exactHistory = history.filter((set) => set.exerciseId === exercise.id)
               const latest = [...exactHistory].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0]
+              const equipmentFit = exerciseEquipmentFit(exercise, activeEquipmentProfile)
               return (
-                <article className="library-card" key={exercise.id}>
+                <article className={`library-card ${equipmentFit.available ? 'is-available' : 'is-unavailable'}`} key={exercise.id}>
                   <div className="library-card__top"><span className={`movement-emblem movement-emblem--${exercise.pattern}`}>{exercise.name.slice(0, 1)}</span><button className={exercise.favorite ? 'favorite active' : 'favorite'} onClick={() => toggleFavorite(exercise.id)} aria-label={`${exercise.favorite ? 'Remove' : 'Add'} ${exercise.name} ${exercise.favorite ? 'from' : 'to'} favorites`}><Star size={17} fill={exercise.favorite ? 'currentColor' : 'none'} /></button></div>
                   <p className="eyebrow">{exercise.family} · {exercise.pattern.replace('-', ' ')}</p>
                   <h3>{exercise.name}</h3>
                   <p>{exercise.description}</p>
-                  <div className="library-card__tags"><span>{exercise.primaryRegion}</span><span className={`joint joint--${exercise.jointFeeling}`}>{exercise.jointFeeling}</span>{exercise.custom && <span>custom</span>}</div>
+                  <div className="library-card__tags"><span>{exercise.primaryRegion}</span><span className={`joint joint--${exercise.jointFeeling}`}>{exercise.jointFeeling}</span>{exercise.custom && <span>custom</span>}<span className={equipmentFit.available ? 'equipment-available' : 'equipment-missing'}>{equipmentFit.available ? 'available here' : `missing ${equipmentFit.missing.length}`}</span></div>
                   <div className="library-card__history"><History size={15} /><span>{latest ? <>Last: <strong>{latest.load} × {latest.reps}</strong> · {new Date(latest.completedAt).toLocaleDateString()}</> : 'No exact history yet'}</span></div>
                   <button className="library-card__open" onClick={() => setSelected(exercise)}>Open movement <ChevronRight size={16} /></button>
                 </article>
               )
             })}
           </div>
-        ) : <div className="empty-state"><Search size={32} /><h3>No movements match this exact filter.</h3><p>Remove a filter or create a distinct custom movement. ForgePath will warn about likely duplicates first.</p><button className="button button--secondary" onClick={() => { setSearch(''); setRegion('all') }}>Clear filters</button></div>}
+        ) : <div className="empty-state"><Search size={32} /><h3>No movements match this exact filter.</h3><p>{availability === 'available' ? `No movement meets every selected constraint at ${activeEquipmentProfile.name}. Review the profile or relax only the visible filter.` : 'Remove a filter or create a distinct custom movement. ForgePath will warn about likely duplicates first.'}</p><button className="button button--secondary" onClick={() => { setSearch(''); setRegion('all'); setAvailability('all') }}>Clear filters</button></div>}
       </section>
 
       <Modal open={Boolean(selected)} onClose={() => setSelected(null)} title={selected?.name ?? 'Movement'} description={selected?.description} wide>
@@ -287,6 +296,7 @@ export function LibraryScreen() {
               <span><Target size={18} /><span><strong>{selected.custom ? selected.muscleMapping ? 'Athlete-reviewed muscle dose' : 'Muscle dose unmapped' : 'Built-in muscle-dose-v1 mapping'}</strong><small>{selected.custom && selected.muscleMapping ? `Reviewed ${new Date(selected.muscleMapping.reviewedAt).toLocaleDateString()} · editable and undoable` : selected.custom ? 'Completed and planned sets receive no muscle credit until you review a mapping.' : 'Protected product heuristic · editable mappings are limited to custom movements.'}</small></span></span>
               {selectedMuscleCredits ? <span className="exercise-muscle-map__credits"><b>Direct · {muscleLabel.get(Object.entries(selectedMuscleCredits).find(([, credit]) => credit === 1)?.[0] as MuscleId) ?? 'Unknown'}</b><small>Secondary · {Object.entries(selectedMuscleCredits).filter(([, credit]) => credit === 0.5).map(([muscle]) => muscleLabel.get(muscle as MuscleId)).join(', ') || 'None'}</small></span> : <b>No inferred credit</b>}
             </div>
+            {selectedEquipmentFit && <div className={`exercise-equipment-fit ${selectedEquipmentFit.available ? 'is-available' : 'is-unavailable'}`}><Dumbbell size={18} /><span><strong>{selectedEquipmentFit.available ? `Available at ${activeEquipmentProfile.name}` : `Unavailable at ${activeEquipmentProfile.name}`}</strong><small>{selectedEquipmentFit.available ? `All required items are present: ${selectedEquipmentFit.required.join(', ')}.` : `Missing: ${selectedEquipmentFit.missing.join(', ')}. Other history and analytics remain available.`}</small></span></div>}
             <div className="catalog-control"><span><Pencil size={17} /><span><strong>{selected.custom ? 'Edit movement identity' : 'Manage search aliases'}</strong><small>{selected.custom ? 'Name, family, equipment, and body-part metadata can change without changing this movement’s history ID.' : 'The built-in taxonomy stays protected, but you can add the names you personally use.'}</small></span></span><button className="button button--secondary" onClick={() => openCatalogEdit(selected)}>Edit catalog</button></div>
             <div className="joint-picker"><span><Heart size={17} /><strong>How this feels on your joints</strong></span><div>{(['great', 'good', 'neutral', 'irritating', 'avoid'] as const).map((feeling) => <button key={feeling} className={selected.jointFeeling === feeling ? 'selected' : ''} onClick={() => { setJointFeeling(selected.id, feeling); setSelected({ ...selected, jointFeeling: feeling }) }}>{feeling}</button>)}</div></div>
             <section><div className="panel__header"><div><p className="eyebrow">Exact movement only</p><h3>Exposure history</h3></div><History size={18} /></div>
@@ -347,10 +357,11 @@ export function LibraryScreen() {
         {duplicates.length > 0 && <div className="duplicate-warning"><AlertTriangle size={18} /><div><strong>Possible existing movement{duplicates.length > 1 ? 's' : ''}</strong>{duplicates.slice(0, 3).map(({ exercise, score }) => <button key={exercise.id} onClick={() => { setAddOpen(false); setSelected(exercise) }}><span>{exercise.name}</span><small>{Math.round(score * 100)}% match · use existing history</small></button>)}</div></div>}
         {exactCreationDuplicate && <label><span className="field-label">Why is this a distinct movement?</span><textarea aria-label="Distinct movement reason" rows={3} value={customDistinction} onChange={(event) => setCustomDistinction(event.target.value)} placeholder="Example: Fixed 30-degree bench with a different grip and setup" /><small className="field-help">An exact name match can create a separate history only when you record the meaningful setup difference.</small></label>}
         <div className="form-grid"><label><span className="field-label">Movement type</span><select value={customPattern} onChange={(event) => setCustomPattern(event.target.value as MovementPattern)}>{['squat', 'hinge', 'horizontal-push', 'vertical-push', 'horizontal-pull', 'vertical-pull', 'isolation', 'carry'].map((item) => <option key={item} value={item}>{item}</option>)}</select></label><label><span className="field-label">Primary body part</span><select value={customRegion} onChange={(event) => setCustomRegion(event.target.value as BodyRegion)}>{regionFilters.filter((item) => item.id !== 'all').map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label></div>
+        <label><span className="field-label">Required equipment, separated by commas</span><input aria-label="Custom movement equipment" value={customEquipment} onChange={(event) => setCustomEquipment(event.target.value)} placeholder="Example: dumbbells, adjustable bench" /><small className="field-help">Use the same terms as your location profile so availability remains explicit.</small></label>
         <label className="toggle-row muscle-map-toggle"><span><strong>Map muscle dose now</strong><small>Optional. Your explicit choices apply to completed and planned sets. No selection is inferred from the body-part field.</small></span><input aria-label="Map custom muscle dose" type="checkbox" checked={customMappingEnabled} onChange={(event) => { setCustomMappingEnabled(event.target.checked); if (!event.target.checked) { setCustomDirectMuscle(''); setCustomSecondaryMuscles([]) } }} /></label>
         {customMappingEnabled && <div className="muscle-map-editor"><label><span className="field-label">Direct muscle · 1.0 credit</span><select aria-label="Custom direct muscle" value={customDirectMuscle} onChange={(event) => { const direct = event.target.value as MuscleId; setCustomDirectMuscle(direct); setCustomSecondaryMuscles((current) => current.filter((muscle) => muscle !== direct)) }}><option value="">Choose one direct muscle</option>{muscleDefinitions.map((muscle) => <option key={muscle.id} value={muscle.id}>{muscle.label}</option>)}</select></label><fieldset><legend>Secondary muscles · 0.5 credit each · {customSecondaryMuscles.length}/8</legend><div className="muscle-map-options">{muscleDefinitions.filter((muscle) => muscle.id !== customDirectMuscle).map((muscle) => <label key={muscle.id}><input aria-label={`Custom secondary ${muscle.label}`} type="checkbox" checked={customSecondaryMuscles.includes(muscle.id)} disabled={!customSecondaryMuscles.includes(muscle.id) && customSecondaryMuscles.length >= 8} onChange={(event) => setCustomSecondaryMuscles((current) => event.target.checked ? [...current, muscle.id] : current.filter((item) => item !== muscle.id))} /><span>{muscle.label}</span></label>)}</div></fieldset></div>}
         {formError && <p className="form-error" role="alert">{formError}</p>}
-        <div className="modal__actions"><button className="button button--ghost" onClick={() => setAddOpen(false)}>Cancel</button><button className="button button--primary" disabled={!customName.trim() || (exactCreationDuplicate && customDistinction.trim().length < 10) || (customMappingEnabled && !customDirectMuscle)} onClick={createCustom}><ShieldCheck size={17} /> {exactCreationDuplicate ? 'Create documented variation' : 'Create separate history'}</button></div>
+        <div className="modal__actions"><button className="button button--ghost" onClick={() => setAddOpen(false)}>Cancel</button><button className="button button--primary" disabled={!customName.trim() || !customEquipment.split(',').some((item) => item.trim()) || (exactCreationDuplicate && customDistinction.trim().length < 10) || (customMappingEnabled && !customDirectMuscle)} onClick={createCustom}><ShieldCheck size={17} /> {exactCreationDuplicate ? 'Create documented variation' : 'Create separate history'}</button></div>
       </Modal>
 
       <Modal open={qualityOpen} onClose={() => setQualityOpen(false)} title="Exercise data quality" description="Connected duplicate suggestions are grouped so several accidental copies can be reviewed in one decision. Nothing changes until you confirm." wide>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, Check, CheckCircle2, ChevronDown, Clock3, Info, Pause, Play, RefreshCcw, SkipForward, Sparkles, TimerReset, Trophy } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ChevronDown, Clock3, Info, Pause, Play, RefreshCcw, SkipForward, Sparkles, TimerReset, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
@@ -8,6 +8,7 @@ import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
 import { PostSurveyModal } from '../components/PostSurveyModal'
 import { SurveyModeChooser } from '../components/SurveyModeChooser'
+import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '../domain/equipment-engine'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary anchor',
@@ -18,7 +19,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, history, settings, updateSet, toggleSetComplete, swapExercise, skipExercise, finishSession, setNotice } = useAppStore()
+  const { sessions, exercises, equipmentProfiles, history, settings, updateSet, toggleSetComplete, swapExercise, skipExercise, finishSession, setNotice } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
@@ -55,6 +56,9 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
 
   if (!session) return null
 
+  const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
+  const equipmentGaps = sessionEquipmentGaps(session, exercises, activeEquipmentProfile)
+
   const completedSets = session.exercises.flatMap((exercise) => exercise.sets).filter((workSet) => workSet.completed).length
   const totalSets = session.exercises.flatMap((exercise) => exercise.sets).length
   const currentVolume = session.exercises.reduce((sum, planned) => sum + planned.sets.filter((workSet) => workSet.completed).reduce((setSum, workSet) => setSum + (workSet.completedLoad ?? workSet.targetLoad) * (workSet.completedReps ?? workSet.targetReps), 0), 0)
@@ -70,12 +74,14 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     history,
     athlete: useAppStore.getState().athlete,
     readiness: session.readiness ?? 'confirm',
-    reason: swapReason
+    reason: swapReason,
+    equipmentProfile: activeEquipmentProfile
   }).slice(0, 6) : []
 
   const openSwap = (planned: PlannedExercise) => {
     setSwapTarget(planned)
-    setSwapReason('none')
+    const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)
+    setSwapReason(exercise && !exerciseEquipmentFit(exercise, activeEquipmentProfile).available ? 'equipment' : 'none')
     setPrimaryOverrideConfirmed(false)
     setSwapError(null)
   }
@@ -139,12 +145,13 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
           </section>
         )}
 
-        <div className="workout-objective"><span className="status-chip status-chip--lime">{session.readiness ?? 'baseline plan'}</span><span className="status-chip">{session.readinessConfidence ?? 'low'} survey confidence</span><p>{session.objective}</p><span><Clock3 size={15} /> {session.durationMinutes} minute version</span></div>
+        <div className="workout-objective"><span className="status-chip status-chip--lime">{session.readiness ?? 'baseline plan'}</span><span className="status-chip">{session.readinessConfidence ?? 'low'} survey confidence</span><span className={`status-chip ${equipmentGaps.length ? 'status-chip--warning' : ''}`}>{activeEquipmentProfile.name} · {equipmentGaps.length ? `${equipmentGaps.length} to resolve` : 'equipment ready'}</span><p>{session.objective}</p><span><Clock3 size={15} /> {session.durationMinutes} minute version</span></div>
 
         <div className="exercise-stack">
           {session.exercises.map((planned, exerciseIndex) => {
             const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)
             if (!exercise) return null
+            const equipmentFit = exerciseEquipmentFit(exercise, activeEquipmentProfile)
             const exactHistory = history.filter((set) => set.exerciseId === exercise.id)
             const recent = exactHistory.slice(-planned.sets.length)
             const lastVolume = volumeLoad(recent)
@@ -154,14 +161,14 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
               targetReps: planned.sets[0]?.targetReps ?? 0,
               targetSets: planned.sets.length,
               repRange: planned.role === 'primary' ? [4, 6] : [8, 12],
-              increment: planned.sets[0]?.targetLoad && planned.sets[0].targetLoad < 100 ? 2.5 : 5,
+              increment: loadIncrementFor(exercise, activeEquipmentProfile).value,
               continuity: useAppStore.getState().athlete.continuity,
               readiness: session.readiness ?? 'confirm'
             })
             const opportunities = deriveRecordOpportunities({ history, planned, exercise, readiness: session.readiness ?? 'confirm' })
             const exerciseAchievements = activeAchievementPreview.filter((event) => event.exerciseId === exercise.id)
             return (
-              <article className={`exercise-card exercise-card--${planned.role}`} key={planned.id}>
+              <article className={`exercise-card exercise-card--${planned.role} ${equipmentFit.available ? '' : 'exercise-card--equipment-blocked'}`} key={planned.id}>
                 <div className="exercise-card__header">
                   <div className="exercise-index">{String(exerciseIndex + 1).padStart(2, '0')}</div>
                   <div className="exercise-title"><span>{roleLabel[planned.role]}</span><h2>{exercise.name}</h2><p>{planned.purpose}</p></div>
@@ -170,6 +177,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                     {planned.role !== 'primary' && <button onClick={() => skipExercise(session.id, planned.id)}><SkipForward size={16} /> Skip</button>}
                   </div>
                 </div>
+                {!equipmentFit.available && <div className="equipment-block"><AlertTriangle size={18} /><span><strong>Unavailable at {activeEquipmentProfile.name}</strong><small>Missing {equipmentFit.missing.join(', ')}. Change this movement before logging a set. ForgePath will show only alternatives available in the active profile.</small></span><button onClick={() => openSwap(planned)}>Resolve</button></div>}
                 <div className="exercise-context">
                   <div><small>Last exact exposure</small><strong>{recent.length ? `${recent[0].load} × ${recent[0].reps}` : 'No exact history'}</strong><span>{lastVolume.toLocaleString()} volume load</span></div>
                   <div><small>Engine decision</small><strong>{recommendation.title}</strong><span>{recommendation.confidence} confidence · {recommendation.action}</span></div>
@@ -182,10 +190,10 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   {planned.sets.map((workSet, index) => (
                     <div className={`set-row ${workSet.completed ? 'completed' : ''}`} role="row" key={workSet.id}>
                       <span className="set-number">{index + 1}</span>
-                      <label><span className="sr-only">Set {index + 1} load</span><input type="number" inputMode="decimal" value={workSet.completedLoad ?? workSet.targetLoad} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { load: Number(event.target.value) })} /><small>{settings.units}</small></label>
-                      <label><span className="sr-only">Set {index + 1} repetitions</span><input type="number" inputMode="numeric" value={workSet.completedReps ?? workSet.targetReps} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { reps: Number(event.target.value) })} /></label>
-                      <label><span className="sr-only">Set {index + 1} repetitions in reserve</span><select value={workSet.actualRir ?? workSet.targetRir} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { rir: Number(event.target.value) })}><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></label>
-                      <button className="complete-set" onClick={() => logSet(planned.id, workSet.id, workSet.completed)} aria-pressed={workSet.completed}>{workSet.completed ? <><Check size={18} /> Done</> : 'Log set'}</button>
+                      <label><span className="sr-only">Set {index + 1} load</span><input disabled={!equipmentFit.available} type="number" inputMode="decimal" step={loadIncrementFor(exercise, activeEquipmentProfile).value} value={workSet.completedLoad ?? workSet.targetLoad} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { load: Number(event.target.value) })} /><small>{settings.units}</small></label>
+                      <label><span className="sr-only">Set {index + 1} repetitions</span><input disabled={!equipmentFit.available} type="number" inputMode="numeric" value={workSet.completedReps ?? workSet.targetReps} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { reps: Number(event.target.value) })} /></label>
+                      <label><span className="sr-only">Set {index + 1} repetitions in reserve</span><select disabled={!equipmentFit.available} value={workSet.actualRir ?? workSet.targetRir} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { rir: Number(event.target.value) })}><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></label>
+                      <button className="complete-set" disabled={!equipmentFit.available && !workSet.completed} onClick={() => logSet(planned.id, workSet.id, workSet.completed)} aria-pressed={workSet.completed}>{workSet.completed ? <><Check size={18} /> Done</> : equipmentFit.available ? 'Log set' : 'Blocked'}</button>
                     </div>
                   ))}
                 </div>
@@ -228,8 +236,9 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
               <span className="swap-score">{snapshot.score} pts<ChevronDown size={15} /></span>
             </button>
           ))}
+          {rankedSwaps.length === 0 && <div className="compact-empty"><AlertTriangle size={24} /><strong>No available replacement at {activeEquipmentProfile.name}</strong><p>Edit the location profile if equipment is missing from it, or skip this non-primary movement. ForgePath will not relax equipment constraints silently.</p></div>}
         </div>
-        <p className="modal-note">The selected movement receives a prescription from its own exact history or a conservative calibration. The original exact-movement progression clock remains frozen.</p>
+        <p className="modal-note">Candidates satisfy every equipment item in {activeEquipmentProfile.name}. The selected movement receives a prescription from its own exact history or a conservative calibration, using the profile's executable load increment. The original exact-movement progression clock remains frozen.</p>
       </Modal>
 
       {finishOpen && <PostSurveyModal
