@@ -17,7 +17,7 @@ import { summarizeSurveyEvidence } from './survey-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
 export const BACKUP_SCHEMA_VERSION = 10
-export const BACKUP_APP_VERSION = '0.12.0'
+export const BACKUP_APP_VERSION = '0.13.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode'> = {
   celebrationLevel: 'subtle',

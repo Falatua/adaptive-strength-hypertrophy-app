@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { analyticsReconciliation, areaVolumeFor, buildAnalytics, exerciseMixFor, priorityAttentionFor } from './analytics'
-import type { BodyRegion, CompletedSetRecord } from './types'
+import { analyticsReconciliation, areaVolumeFor, buildAnalytics, exerciseMixFor, plannedVsCompletedDoseFor, priorityAttentionFor } from './analytics'
+import type { BodyRegion, CompletedSetRecord, Exercise, TrainingSession } from './types'
 
 const workSet = (id: string, completedAt: Date, region: BodyRegion, load = 100, reps = 10): CompletedSetRecord => ({
   id,
@@ -82,5 +82,40 @@ describe('multi-horizon source-set analytics', () => {
     ])
     expect(attention[0].contributingExercises).toEqual(['chest movement'])
     expect(attention[1].daysSinceLastExposure).toBe(8)
+  })
+
+  it('compares only completed sets linked to stored plans and preserves unlinked history', () => {
+    const exercise: Exercise = {
+      id: 'planned-chest', name: 'Planned Chest', family: 'Press', aliases: [], pattern: 'horizontal-push', regions: ['chest'], primaryRegion: 'chest',
+      equipment: ['barbell'], description: 'Test movement', roleTags: [], favorite: false, jointFeeling: 'neutral'
+    }
+    const session: TrainingSession = {
+      id: 'planned-session', title: 'Plan', objective: 'Test dose', dayLabel: 'Today', plannedDate: now.toISOString(), status: 'partial-primary', durationMinutes: 30,
+      exercises: [{ id: 'planned-exercise', exerciseId: exercise.id, role: 'primary', purpose: 'Test', restSeconds: 90, estimatedMinutes: 10, optional: false, sets: [
+        { id: 'target-1', targetReps: 10, targetLoad: 100, targetRir: 2, completed: true },
+        { id: 'target-2', targetReps: 10, targetLoad: 100, targetRir: 2, completed: false }
+      ] }]
+    }
+    const linked = { ...workSet('linked', now, 'chest', 90, 10), sessionId: session.id, exerciseId: exercise.id, plannedExerciseId: 'planned-exercise' }
+    const unlinked = workSet('unlinked', now, 'back', 120, 8)
+    const dose = plannedVsCompletedDoseFor({ sessions: [session], history: [linked, unlinked], exercises: [exercise], range: 'today', now, focusRegions: ['triceps'] })
+    expect(dose).toMatchObject({ plannedSets: 2, plannedVolumeKnown: 2000, linkedCompletedSets: 1, linkedCompletedVolume: 900, unlinkedCompletedSets: 1, unlinkedCompletedVolume: 960 })
+    expect(dose.regions.find((point) => point.region === 'chest')).toMatchObject({ completedSets: 1, completionRate: 0.5, status: 'below-plan' })
+    expect(dose.regions.find((point) => point.region === 'triceps')).toMatchObject({ plannedSets: 0, completedSets: 0, status: 'no-dose' })
+  })
+
+  it('keeps unknown planned loads out of known planned volume and excludes future plans', () => {
+    const exercise: Exercise = {
+      id: 'bodyweight-core', name: 'Core', family: 'Trunk', aliases: [], pattern: 'carry', regions: ['trunk'], primaryRegion: 'trunk',
+      equipment: ['bodyweight'], description: 'Test movement', roleTags: [], favorite: false, jointFeeling: 'neutral'
+    }
+    const makeSession = (id: string, plannedDate: Date): TrainingSession => ({
+      id, title: 'Plan', objective: 'Test', dayLabel: 'Plan', plannedDate: plannedDate.toISOString(), status: 'planned', durationMinutes: 10,
+      exercises: [{ id: `${id}-exercise`, exerciseId: exercise.id, role: 'optional', purpose: 'Test', restSeconds: 60, estimatedMinutes: 5, optional: true,
+        sets: [{ id: `${id}-set`, targetReps: 10, targetLoad: 0, targetRir: 3, completed: false }] }]
+    })
+    const dose = plannedVsCompletedDoseFor({ sessions: [makeSession('today-plan', now), makeSession('future-plan', daysAgo(-1))], history: [], exercises: [exercise], range: 'today', now })
+    expect(dose).toMatchObject({ plannedSets: 1, plannedVolumeKnown: 0, unknownLoadSets: 1, linkedCompletedSets: 0 })
+    expect(dose.regions[0]).toMatchObject({ status: 'below-plan', unknownLoadSets: 1 })
   })
 })

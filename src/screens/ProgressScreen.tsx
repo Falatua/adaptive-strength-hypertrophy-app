@@ -7,6 +7,7 @@ import {
   buildAnalytics,
   exerciseMixFor,
   exerciseVolumeFor,
+  plannedVsCompletedDoseFor,
   priorityAttentionFor,
   progressRanges,
   rangeWindow,
@@ -52,6 +53,7 @@ export function ProgressScreen() {
     return exercise ? deriveRecordOpportunities({ history, planned, exercise, readiness: nextSession.readiness ?? 'confirm' }) : []
   }).filter((opportunity) => opportunity.eligible).slice(0, 3) ?? []
   const priorityCoverage = useMemo(() => priorityAttentionFor({ selectedHistory: summary.history, allHistory: history, priorityRegions: athlete.priorityRegions }), [athlete.priorityRegions, history, summary.history])
+  const plannedDose = useMemo(() => plannedVsCompletedDoseFor({ sessions, history, exercises: exerciseCatalog, range, focusRegions: athlete.priorityRegions }), [athlete.priorityRegions, exerciseCatalog, history, range, sessions])
   const trend = summary.comparisonPercent
   const trendLabel = trend === null ? 'No matched prior window' : `${trend >= 0 ? '+' : ''}${trend.toFixed(1)}% vs prior matched window`
   const rangeDates = summary.start
@@ -107,11 +109,27 @@ export function ProgressScreen() {
         </section>
       </div>
 
+      <section className="panel dose-panel">
+        <div className="panel__header"><div><p className="eyebrow">Plan versus completed · dose-v1</p><h3>What was intended, what was linked, what remains unknown</h3></div><CheckCircle2 size={20} /></div>
+        <div className="dose-summary">
+          <div><small>Stored plans in window</small><strong>{plannedDose.plannedSessionIds.length}</strong><span>{plannedDose.plannedSets} intended sets</span></div>
+          <div><small>Linked completion</small><strong>{plannedDose.linkedCompletedSets} / {plannedDose.plannedSets}</strong><span>{plannedDose.plannedSets ? `${Math.round(plannedDose.linkedCompletedSets / plannedDose.plannedSets * 100)}% of stored set dose` : 'No stored set dose'}</span></div>
+          <div><small>Known planned volume</small><strong>{plannedDose.plannedVolumeKnown.toLocaleString()}</strong><span>{settings.units} · {plannedDose.unknownLoadSets} planned {plannedDose.unknownLoadSets === 1 ? 'set has' : 'sets have'} unknown load</span></div>
+          <div><small>Completed without stored plan</small><strong>{plannedDose.unlinkedCompletedSets}</strong><span>{plannedDose.unlinkedCompletedVolume.toLocaleString()} {settings.units} volume kept separate</span></div>
+        </div>
+        {plannedDose.regions.length ? <div className="dose-regions">{plannedDose.regions.map((point) => <div key={point.region}>
+          <span><strong>{point.region}</strong><small>{point.plannedSets} planned · {point.completedSets} linked completed{point.unknownLoadSets ? ` · ${point.unknownLoadSets} unknown-load` : ''}</small></span>
+          <i aria-hidden="true"><b style={{ width: `${point.plannedSets ? Math.min(100, point.completedSets / point.plannedSets * 100) : point.completedSets ? 100 : 0}%` }} /></i>
+          <span className={`dose-status dose-status--${point.status}`}><b>{point.completionRate === null ? point.status.replace('-', ' ') : `${Math.round(point.completionRate * 100)}%`}</b><small>{point.status.replace('-', ' ')}</small></span>
+        </div>)}</div> : <div className="compact-empty"><Target size={24} /><strong>No stored dose in this window</strong><p>Completed history remains visible above, but no dated plan is available for an honest plan comparison.</p></div>}
+        <p className="chart-note">Only completed source sets linked to a stored session count toward plan completion. The {plannedDose.unlinkedCompletedSets} other completed {plannedDose.unlinkedCompletedSets === 1 ? 'set stays' : 'sets stay'} in progress totals but cannot be assigned to a missing plan. Below plan is execution evidence, not a neglect label or a recommendation to add catch-up volume.</p>
+      </section>
+
       <div className="insight-grid">
         <section className="panel">
           <div className="panel__header"><div><p className="eyebrow">Priority attention</p><h3>Goal-relative completed evidence</h3></div><BrainCircuit size={19} /></div>
           <div className="priority-coverage">{priorityCoverage.map((item) => <div key={item.region}><span><strong>{item.region}</strong><small>{item.status === 'represented' ? item.contributingExercises.join(', ') : item.status === 'outside-window' ? `Last completed ${item.daysSinceLastExposure} days ago` : 'No completed history yet'}</small></span><span><b>{item.selectedSets} sets</b><small>{item.selectedVolume.toLocaleString()} volume load · {item.status.replace('-', ' ')}</small></span></div>)}</div>
-          <p className="chart-note">This compares completed primary-region work with current priorities. It reports represented, outside-window, or no-history evidence and does not declare a body part neglected without a planned-dose model.</p>
+          <p className="chart-note">This completed-only card reports represented, outside-window, or no-history evidence. Dose-v1 separately compares stored intentions below; neither treats one below-plan window as neglect or catch-up debt.</p>
         </section>
         <section className="panel">
           <div className="panel__header"><div><p className="eyebrow">Exact movement mix</p><h3>What filled this window</h3></div><Dumbbell size={19} /></div>

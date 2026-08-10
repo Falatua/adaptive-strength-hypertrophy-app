@@ -1,4 +1,4 @@
-import type { BodyRegion, CompletedSetRecord } from './types'
+import type { BodyRegion, CompletedSetRecord, Exercise, TrainingSession } from './types'
 
 export type ProgressRange = 'today' | '7d' | '28d' | 'month' | 'quarter' | 'year' | 'all'
 export type BodyLens = 'region' | 'area'
@@ -267,6 +267,103 @@ export function priorityAttentionFor(input: {
       status: selected.length ? 'represented' as const : latest ? 'outside-window' as const : 'no-history' as const
     }
   })
+}
+
+export type DoseStatus = 'below-plan' | 'within-plan' | 'above-plan' | 'unplanned-completed' | 'no-dose'
+
+export interface PlannedDoseRegionPoint {
+  region: BodyRegion
+  plannedSets: number
+  plannedVolumeKnown: number
+  unknownLoadSets: number
+  completedSets: number
+  completedVolume: number
+  completionRate: number | null
+  status: DoseStatus
+}
+
+export interface PlannedDoseSummary {
+  ruleVersion: 'dose-v1'
+  plannedSessionIds: string[]
+  plannedSets: number
+  plannedVolumeKnown: number
+  unknownLoadSets: number
+  linkedCompletedSets: number
+  linkedCompletedVolume: number
+  unlinkedCompletedSets: number
+  unlinkedCompletedVolume: number
+  regions: PlannedDoseRegionPoint[]
+}
+
+const doseStatusFor = (plannedSets: number, completedSets: number): DoseStatus => {
+  if (plannedSets === 0) return completedSets > 0 ? 'unplanned-completed' : 'no-dose'
+  const rate = completedSets / plannedSets
+  if (rate < 0.85) return 'below-plan'
+  if (rate > 1.15) return 'above-plan'
+  return 'within-plan'
+}
+
+export function plannedVsCompletedDoseFor(input: {
+  sessions: TrainingSession[]
+  history: CompletedSetRecord[]
+  exercises: Exercise[]
+  range: ProgressRange
+  now?: Date
+  focusRegions?: BodyRegion[]
+}): PlannedDoseSummary {
+  const now = input.now ?? new Date()
+  const window = rangeWindow(input.range, now)
+  const plannedSessions = input.sessions.filter((session) => {
+    const timestamp = new Date(session.plannedDate).getTime()
+    return !Number.isNaN(timestamp) && timestamp <= window.end.getTime() && (window.start === null || timestamp >= window.start.getTime())
+  })
+  const plannedSessionIds = new Set(plannedSessions.map((session) => session.id))
+  const selectedHistory = historyInRange(input.history, input.range, now)
+  const linkedHistory = selectedHistory.filter((workSet) => plannedSessionIds.has(workSet.sessionId))
+  const unlinkedHistory = selectedHistory.filter((workSet) => !plannedSessionIds.has(workSet.sessionId))
+  const exerciseById = new Map(input.exercises.map((exercise) => [exercise.id, exercise]))
+  const regions = new Map<BodyRegion, Omit<PlannedDoseRegionPoint, 'completionRate' | 'status'>>()
+  const ensureRegion = (region: BodyRegion) => {
+    const current = regions.get(region) ?? { region, plannedSets: 0, plannedVolumeKnown: 0, unknownLoadSets: 0, completedSets: 0, completedVolume: 0 }
+    regions.set(region, current)
+    return current
+  }
+
+  plannedSessions.forEach((session) => session.exercises.forEach((planned) => {
+    const region = exerciseById.get(planned.exerciseId)?.primaryRegion
+    if (!region) return
+    const point = ensureRegion(region)
+    planned.sets.forEach((workSet) => {
+      point.plannedSets += 1
+      if (workSet.targetLoad > 0) point.plannedVolumeKnown += workSet.targetLoad * workSet.targetReps
+      else point.unknownLoadSets += 1
+    })
+  }))
+  linkedHistory.forEach((workSet) => {
+    const point = ensureRegion(workSet.primaryRegion)
+    point.completedSets += 1
+    point.completedVolume += workSet.load * workSet.reps
+  })
+  ;(input.focusRegions ?? []).forEach(ensureRegion)
+
+  const regionPoints = [...regions.values()].map((point) => ({
+    ...point,
+    completionRate: point.plannedSets ? point.completedSets / point.plannedSets : null,
+    status: doseStatusFor(point.plannedSets, point.completedSets)
+  })).sort((a, b) => b.plannedSets - a.plannedSets || b.completedSets - a.completedSets || a.region.localeCompare(b.region))
+
+  return {
+    ruleVersion: 'dose-v1',
+    plannedSessionIds: [...plannedSessionIds],
+    plannedSets: regionPoints.reduce((sum, point) => sum + point.plannedSets, 0),
+    plannedVolumeKnown: regionPoints.reduce((sum, point) => sum + point.plannedVolumeKnown, 0),
+    unknownLoadSets: regionPoints.reduce((sum, point) => sum + point.unknownLoadSets, 0),
+    linkedCompletedSets: linkedHistory.length,
+    linkedCompletedVolume: totalVolume(linkedHistory),
+    unlinkedCompletedSets: unlinkedHistory.length,
+    unlinkedCompletedVolume: totalVolume(unlinkedHistory),
+    regions: regionPoints
+  }
 }
 
 export function analyticsReconciliation(summary: AnalyticsSummary) {

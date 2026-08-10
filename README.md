@@ -1,4 +1,4 @@
-# ForgePath Private Alpha 0.12.0
+# ForgePath Private Alpha 0.13.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
@@ -31,8 +31,8 @@ npm run test:e2e
 
 ## Current verification
 
-- 76 deterministic domain tests
-- sixteen desktop and phone browser journeys for source-backed records, in-workout achievement feedback, quiet controls, explainable substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, governed catalog edits, grouped duplicate cleanup, persistence, console integrity, and horizontal containment
+- 78 deterministic domain tests
+- eighteen desktop and phone browser journeys for source-backed records, in-workout achievement feedback, quiet controls, explainable substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, governed catalog edits, grouped duplicate cleanup, persistence, console integrity, and horizontal containment
 - lint clean
 - production PWA build clean
 - desktop and 390 px phone browser journeys checked
@@ -58,6 +58,8 @@ npm run test:e2e
 - untouched, skipped, not-sure, and prefer-not responses remain explicit unknowns; only deliberate answers contribute to readiness confidence or PR quality validation
 - “Remind me later” finishes and credits the workout immediately, keeps one quiet optional follow-up for 24 hours, never blocks the next session, and replays quality-dependent records only from explicit later answers
 - exact-movement mix shows selected-period volume, set, repetition, session, and share evidence without relabeling tonnage as muscle stimulus or enjoyment
-- priority attention distinguishes represented, outside-window, and no-history evidence without declaring a body part neglected before planned-dose targets exist
+- completed-only priority attention distinguishes represented, outside-window, and no-history evidence without declaring a body part neglected from absence alone
+- plan-versus-completed dose-v1 compares dated stored-session set targets with source sets linked to those sessions, preserves unknown planned loads, and keeps completed history with no stored plan separate instead of fabricating compliance
+- region status can report below plan, within plan, above plan, unplanned completed, or no dose, but one below-plan window is never called neglect or converted into catch-up volume
 
 Read [docs/BUILD_REFERENCE.md](docs/BUILD_REFERENCE.md) before changing product behavior.

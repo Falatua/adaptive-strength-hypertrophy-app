@@ -42,6 +42,8 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Exclusive primary-region and upper-body, lower-body, arms, and trunk volume lenses.
 - Exact-movement mix with selected-period volume, sets, repetitions, sessions, volume share, and visible limits on cross-exercise interpretation.
 - Goal-relative priority attention with represented, outside-window, and no-history states. The app does not label neglect without a versioned planned-dose model.
+- Versioned dose-v1 plan comparison using dated stored sessions, intended set count, known planned volume, explicit unknown-load sets, linked completed source sets, and separately preserved completed history with no stored plan.
+- Primary-region plan status for below plan, within plan, above plan, unplanned completed, and no dose. These are execution states, not neglect labels or catch-up-volume instructions.
 - Exact all-time record definitions for absolute load, repetitions at load, load for repetitions, exact set scheme, Epley estimated strength for one through twelve repetitions, exact-movement session volume, and workout session volume.
 - Deterministic achievement replay for personal records, load and repetition micro wins, quality wins, baselines, returns, and consistency, with completed source-set provenance.
 - Opportunity prompts calculated only from prescribed targets. Athlete-entered actuals can never be reclassified as an app-prescribed record attempt.
@@ -71,6 +73,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Export and preview a verified version 10 backup containing expanded records, athlete celebration preferences, plan versions, the history and catalog ledger, cycle-review history, substitution learning, survey evidence, and deferred-feedback provenance.
 - Create a distinct custom movement, edit its canonical metadata, block an exact alias collision, save a non-conflicting identity without changing its stable ID, inspect the zero-volume catalog ledger entry, and undo the edit.
 - Document two intentionally separate exact-name matches, review the resulting three-identity cleanup group, keep Competition Bench Press, retire both copies in one merge, verify the group disappears, and restore both identities through undo.
+- Complete one set from a stored fifteen-set session, show one of fifteen linked sets, distinguish 136 older completed sets with no stored plan, classify chest as one of four linked planned sets, and preserve all unlinked work in Progress without counting it as plan compliance.
 - Confirm a planned hold remains a hold after an athlete edits actual load, then log, provisionally recognize, save, and replay a source-backed exact-movement load record.
 - Turn quiet mode on, reload, and confirm the preference persists without changing training or record calculations.
 - Verify the achievement and settings surfaces on desktop and phone with no browser errors or horizontal overflow.
