@@ -1,4 +1,4 @@
-import type { EquipmentProfile, Exercise, LoadIncrementKind, TrainingSession } from './types'
+import type { EquipmentGenerationEvidence, EquipmentProfile, Exercise, LoadIncrementKind, TrainingSession } from './types'
 
 export const equipmentProfileRuleVersion = 'equipment-profile-v1' as const
 export const loadIncrementRuleVersion = 'load-increment-v1' as const
@@ -39,6 +39,35 @@ export function normalizedEquipmentProfile(profile: EquipmentProfile): Equipment
     equipment: normalizeEquipmentList(profile.equipment),
     constraints: [...new Set(profile.constraints.map((item) => item.trim()).filter(Boolean))]
   }
+}
+
+export function equipmentGenerationEvidence(profile: EquipmentProfile): EquipmentGenerationEvidence {
+  const normalized = normalizedEquipmentProfile(profile)
+  return {
+    ruleVersion: equipmentProfileRuleVersion,
+    profileId: normalized.id,
+    profileName: normalized.name,
+    profileKind: normalized.kind,
+    profileUpdatedAt: normalized.updatedAt,
+    equipment: [...normalized.equipment],
+    increments: { ...normalized.increments },
+    incrementUnit: normalized.incrementUnit
+  }
+}
+
+export function equipmentGenerationEvidenceError(value: unknown): string | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return 'Equipment-generation evidence must be a structured record.'
+  const candidate = value as Partial<EquipmentGenerationEvidence>
+  if (candidate.ruleVersion !== equipmentProfileRuleVersion) return 'Equipment-generation evidence has an unsupported rule version.'
+  if (typeof candidate.profileId !== 'string' || !candidate.profileId.trim() || typeof candidate.profileName !== 'string' || !candidate.profileName.trim()) return 'Equipment-generation evidence needs a stable profile identity.'
+  if (!['commercial-gym', 'home-gym', 'travel', 'hotel', 'bodyweight', 'custom'].includes(String(candidate.profileKind))) return 'Equipment-generation evidence has an unsupported profile type.'
+  if (typeof candidate.profileUpdatedAt !== 'string' || Number.isNaN(new Date(candidate.profileUpdatedAt).getTime())) return 'Equipment-generation evidence needs a valid profile date.'
+  if (!Array.isArray(candidate.equipment) || candidate.equipment.length === 0 || candidate.equipment.some((item) => typeof item !== 'string' || !normalizeEquipmentTag(item))) return 'Equipment-generation evidence needs available equipment.'
+  if (new Set(candidate.equipment.map((item) => normalizeEquipmentTag(item))).size !== candidate.equipment.length) return 'Equipment-generation evidence cannot contain duplicate equipment.'
+  if (typeof candidate.increments !== 'object' || candidate.increments === null) return 'Equipment-generation evidence needs load increments.'
+  if ((['barbell', 'dumbbell', 'cable', 'machine', 'other'] as const).some((key) => typeof candidate.increments?.[key] !== 'number' || !Number.isFinite(candidate.increments[key]) || candidate.increments[key] <= 0 || candidate.increments[key] > 100)) return 'Equipment-generation evidence has an invalid load increment.'
+  if (!['lb', 'kg'].includes(String(candidate.incrementUnit))) return 'Equipment-generation evidence needs a valid increment unit.'
+  return null
 }
 
 export interface EquipmentFit {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildCycleReview, buildNextMicrocycle } from './cycle-review-engine'
-import { exercises, history, mesocycles, sessions } from './seed'
+import { equipmentProfiles, exercises, history, mesocycles, sessions } from './seed'
 
 const plan = structuredClone(mesocycles[0])
 const datedSessions = (status: 'planned' | 'completed', start = '2026-08-01T12:00:00.000Z') => sessions.map((session, index) => ({
@@ -47,7 +47,7 @@ describe('criterion-based cycle review', () => {
   it('queues a distinctly identified conservative recovery round', () => {
     const next = buildNextMicrocycle({
       plan, sessions: datedSessions('planned'), history, exercises, decision: 'recover', nextMicrocycleNumber: 2,
-      startsAt: new Date('2026-08-20T12:00:00.000Z'), key: 'test'
+      startsAt: new Date('2026-08-20T12:00:00.000Z'), key: 'test', equipmentProfile: equipmentProfiles[0]
     })
     expect(next).toHaveLength(3)
     expect(next.every((session) => session.microcycleNumber === 2 && session.mesocycleId === plan.id)).toBe(true)

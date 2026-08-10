@@ -4,6 +4,7 @@ import { BACKUP_FORMAT, BACKUP_SCHEMA_VERSION, backupStateFrom, createBackup, fn
 import { derivePersonalRecords, historyVolume } from './history-engine'
 import { beginPlacementVerification, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery } from './placement-verification-engine'
 import { buildMesocyclePreview, draftFromPlan } from './mesocycle-engine'
+import { equipmentGenerationEvidence } from './equipment-engine'
 
 const stable = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`
@@ -286,24 +287,49 @@ describe('versioned backup and restore', () => {
     expect(parsed.warnings[0]).toMatch(/version 13/i)
   })
 
+  it('migrates a verified version 14 backup without inventing equipment-generation evidence', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 14, appVersion: '0.20.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.sessions.every((session) => session.generation?.equipment === undefined)).toBe(true)
+    expect(parsed.warnings[0]).toMatch(/version 14/i)
+  })
+
   it('round-trips route-generated sessions and rejects forged route provenance', () => {
     const current = state()
     const plan = current.mesocycles[0]
     plan.entryRoute = 'strength'
-    plan.generationRuleVersion = 'route-session-v1'
+    plan.generationRuleVersion = 'route-session-v2'
     plan.placementCreatedAt = current.athlete.placement.createdAt
+    plan.generationEquipment = equipmentGenerationEvidence(current.equipmentProfiles[0])
     const preview = buildMesocyclePreview(draftFromPlan(plan), {
       exercises: current.exercises, currentSessions: current.sessions, history: current.history,
-      planId: plan.id, planVersion: plan.version, startsAt: new Date('2026-08-10T12:00:00.000Z')
+      planId: plan.id, planVersion: plan.version, startsAt: new Date('2026-08-10T12:00:00.000Z'), equipmentProfile: current.equipmentProfiles[0]
     })
     current.sessions = preview.sessions
     plan.sessionIds = preview.sessions.map((session) => session.id)
     const parsed = parseBackup(JSON.stringify(createBackup(current)))
     expect(parsed.backup.data.sessions.every((session) => session.generation?.route === 'strength')).toBe(true)
     expect(parsed.summary.routeGeneratedSessions).toBe(3)
+    expect(parsed.summary.equipmentGeneratedSessions).toBe(3)
 
     current.sessions[0].generation!.strategy = 'Forged route strategy.'
     expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/strategy/i)
+
+    const mismatched = state()
+    const mismatchedPlan = mismatched.mesocycles[0]
+    mismatchedPlan.entryRoute = 'strength'
+    mismatchedPlan.generationRuleVersion = 'route-session-v2'
+    mismatchedPlan.placementCreatedAt = mismatched.athlete.placement.createdAt
+    mismatchedPlan.generationEquipment = equipmentGenerationEvidence(mismatched.equipmentProfiles[0])
+    const mismatchedPreview = buildMesocyclePreview(draftFromPlan(mismatchedPlan), { exercises: mismatched.exercises, currentSessions: mismatched.sessions, history: mismatched.history, planId: mismatchedPlan.id, planVersion: mismatchedPlan.version, equipmentProfile: mismatched.equipmentProfiles[0] })
+    mismatched.sessions = mismatchedPreview.sessions
+    mismatchedPlan.sessionIds = mismatched.sessions.map((session) => session.id)
+    mismatched.sessions[0].generation!.equipment!.profileName = 'Forged Location'
+    expect(() => parseBackup(JSON.stringify(createBackup(mismatched)))).toThrow(/equipment snapshot/i)
   })
 
   it('rejects placement tampering and a route label that disagrees with its evidence', () => {

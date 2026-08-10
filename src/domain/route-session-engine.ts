@@ -1,6 +1,8 @@
 import type { ExerciseRole, PlacementRoute, RouteSessionGenerationEvidence } from './types'
+import { equipmentGenerationEvidenceError } from './equipment-engine'
 
-export const ROUTE_SESSION_RULE_VERSION = 'route-session-v1' as const
+export const ROUTE_SESSION_RULE_VERSION = 'route-session-v2' as const
+export const LEGACY_ROUTE_SESSION_RULE_VERSION = 'route-session-v1' as const
 
 export interface RouteRolePrescription {
   sets: number
@@ -142,11 +144,15 @@ export function prescriptionForRole(profile: RouteSessionProfile, role: Exercise
 export function routeSessionGenerationError(value: unknown) {
   if (!value || typeof value !== 'object') return 'Route session generation evidence is missing.'
   const evidence = value as Partial<RouteSessionGenerationEvidence>
-  if (evidence.ruleVersion !== ROUTE_SESSION_RULE_VERSION || !evidence.route || !(evidence.route in profiles)) return 'Route session generation has an unsupported identity.'
+  if ((evidence.ruleVersion !== LEGACY_ROUTE_SESSION_RULE_VERSION && evidence.ruleVersion !== ROUTE_SESSION_RULE_VERSION) || !evidence.route || !(evidence.route in profiles)) return 'Route session generation has an unsupported identity.'
   if (typeof evidence.placementCreatedAt !== 'string' || Number.isNaN(new Date(evidence.placementCreatedAt).getTime())) return 'Route session generation has an invalid placement date.'
   const canonical = profiles[evidence.route]
   if (evidence.strategy !== canonical.strategy) return 'Route session generation strategy does not match its route.'
   if (!Array.isArray(evidence.reasons) || evidence.reasons.length !== canonical.reasons.length || evidence.reasons.some((reason, index) => reason !== canonical.reasons[index])) return 'Route session generation reasons do not match its route.'
+  if (evidence.ruleVersion === ROUTE_SESSION_RULE_VERSION) {
+    const equipmentError = equipmentGenerationEvidenceError(evidence.equipment)
+    if (equipmentError) return `Route session generation equipment is invalid: ${equipmentError}`
+  }
   return null
 }
 

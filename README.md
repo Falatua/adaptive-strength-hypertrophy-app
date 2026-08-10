@@ -1,4 +1,4 @@
-# ForgePath Private Alpha 0.20.0
+# ForgePath Private Alpha 0.21.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
@@ -31,8 +31,8 @@ npm run test:e2e
 
 ## Current verification
 
-- 128 deterministic domain tests
-- thirty-two desktop and phone browser journeys for source-backed records, explainable athlete placement, route-specific session generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
+- 133 deterministic domain tests
+- thirty-four desktop and phone browser journeys for source-backed records, explainable athlete placement, equipment-aware route generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
 - lint clean
 - production PWA build clean
 - desktop and 390 px phone browser journeys checked
@@ -41,7 +41,7 @@ npm run test:e2e
 - daily, weekly, rolling 28-day, calendar-month, calendar-quarter, yearly, and all-time analytics reconcile to completed source sets
 - editable mesocycles generate a preview before applying and version every objective, constraint, and reason for change
 - plan revisions preserve completed and partial session truth while replacing future planned work only
-- version 14 backup and restore includes route-generated session provenance, placement inputs, productive verification events, source-linked first-set evidence, recovery responses, equipment profiles, expanded record definitions, plan history, ledgers, survey evidence, and safely migrates versions 1 through 13
+- version 15 backup and restore includes equipment-aware route-generation snapshots, placement inputs, productive verification events, source-linked first-set evidence, recovery responses, equipment profiles, expanded record definitions, plan history, ledgers, survey evidence, and safely migrates versions 1 through 14
 - placement-v1 separates experience, continuity, movement skill, intensity tolerance, volume tolerance, schedule stability, and evidence confidence before selecting an introductory, reacclimation, bridge, base, hypertrophy, powerbuilding, strength, power, event-specific, or pain-aware starting route
 - every onboarding section is skippable; unknown inputs reduce confidence, Quick Start remains explicitly unconfirmed, and the recommendation explains why lower and higher routes were not selected
 - athletes can confirm the route, choose a more conservative route, request faster submaximal verification, correct or import history, or change the goal without losing existing training data
@@ -49,7 +49,9 @@ npm run test:e2e
 - the first one to three productive sessions can capture an optional warm-up response, the first completed primary work set, completion, effort, technique, pain, time fit, and recovery without requiring a maximum attempt
 - placement checks resolve as route-supporting, evidence-incomplete, review-suggested, or reassessment-required; the app never silently changes the athlete's route
 - painful verification pauses the next automatic workout start, while skipped warm-up, survey, or recovery answers remain unknown and never erase completed training
-- route-session-v1 gives introductory, reacclimation, bridge, base-building, hypertrophy, powerbuilding, strength, power, and event-specific placement their own primary, secondary, accessory, repetition, RIR, intensity, rest, warm-up, and dose rules
+- route-session-v2 gives introductory, reacclimation, bridge, base-building, hypertrophy, powerbuilding, strength, power, and event-specific placement their own primary, secondary, accessory, repetition, RIR, intensity, rest, warm-up, and dose rules
+- the selected training location filters secondary and accessory work before generation, while protected anchors remain visible with exact missing-equipment warnings instead of being silently replaced
+- generated loads use the selected profile's barbell, dumbbell, cable, machine, or other increment and preserve the complete profile snapshot that shaped the queue
 - onboarding rebuilds only future planned or deferred work from the selected route; completed, partial, stopped, and expired sessions retain their original plan and prescription truth
 - generated sessions store the exact placement identity, route, rule version, strategy, and reasons; pain-aware placement creates no automatic queue until the athlete reassesses movement restrictions
 - exact completed movement history is the first load source, an existing exact prescription is second, and an unfamiliar exact movement remains a zero-load calibration instead of borrowing a related variation's weight

@@ -67,6 +67,7 @@ export function TodayScreen() {
   const whyReasons = nextSession?.generation
     ? [
         { title: `${routeLabel} route`, detail: nextSession.generation.strategy },
+        ...(nextSession.generation.equipment ? [{ title: `Generated for ${nextSession.generation.equipment.profileName}`, detail: `Secondary and accessory choices matched the stored equipment snapshot. Loads used its ${nextSession.generation.equipment.incrementUnit} increments.` }] : []),
         ...nextSession.generation.reasons.map((reason) => ({ title: 'Route evidence', detail: reason })),
         { title: progression.title, detail: progression.explanation }
       ]

@@ -34,10 +34,10 @@ export function YouScreen() {
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `forgepath-backup-v14-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `forgepath-backup-v15-${new Date().toISOString().slice(0, 10)}.json`
     anchor.click()
     URL.revokeObjectURL(url)
-    setNotice('Verified version 14 backup created as open JSON, including route-generated session provenance, productive placement checks, recovery evidence, equipment profiles, records, plans, history changes, substitutions, and surveys.')
+    setNotice('Verified version 15 backup created as open JSON, including equipment-aware route generation, productive placement checks, recovery evidence, equipment profiles, records, plans, history changes, substitutions, and surveys.')
   }
 
   const openEquipmentEditor = (profile?: EquipmentProfile) => {
@@ -155,7 +155,7 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.20.0 private alpha</strong></li><li><span>Rules</span><strong>0.20 route-specific session generation</strong></li><li><span>Calculations</span><strong>Placement v1 · Placement verification v1 · Route session v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Equipment v1 · Load increment v1</strong></li><li><span>Backup schema</span><strong>Version 14</strong></li><li><span>Persistence</span><strong>Local v12</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.21.0 private alpha</strong></li><li><span>Rules</span><strong>0.21 equipment-aware route generation</strong></li><li><span>Calculations</span><strong>Placement v1 · Placement verification v1 · Route session v2 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Equipment v1 · Load increment v1</strong></li><li><span>Backup schema</span><strong>Version 15</strong></li><li><span>Persistence</span><strong>Local v13</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Reset private alpha</button>
         </aside>
@@ -190,6 +190,7 @@ export function YouScreen() {
             <div><small>Placement confidence</small><strong>{importPreview.summary.placementConfidence}</strong></div>
             <div><small>Placement checks</small><strong>{importPreview.summary.placementChecks}</strong></div>
             <div><small>Route-generated sessions</small><strong>{importPreview.summary.routeGeneratedSessions}</strong></div>
+            <div><small>Equipment-aware sessions</small><strong>{importPreview.summary.equipmentGeneratedSessions}</strong></div>
             <div><small>Sessions</small><strong>{importPreview.summary.sessions}</strong></div>
             <div><small>Surveys</small><strong>{importPreview.summary.surveys}</strong></div>
             <div><small>Feedback follow-ups</small><strong>{importPreview.summary.deferredFeedback}</strong></div>

@@ -10,7 +10,7 @@ import { buildCycleReview, buildNextMicrocycle } from '../domain/cycle-review-en
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
 import { buildDeferredFeedbackRequest, expireDeferredFeedbackRequests, summarizeSurveyEvidence } from '../domain/survey-engine'
 import { projectExerciseCatalogEdit, type ExerciseCatalogInput } from '../domain/catalog-engine'
-import { equipmentProfileError, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad, normalizedEquipmentProfile } from '../domain/equipment-engine'
+import { equipmentGenerationEvidence, equipmentProfileError, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad, normalizedEquipmentProfile } from '../domain/equipment-engine'
 import { legacyPlacementForAthlete, placementRouteLabels } from '../domain/placement-engine'
 import { beginPlacementVerification, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery, revisePlacementSessionEvidence } from '../domain/placement-verification-engine'
 import { ROUTE_SESSION_RULE_VERSION, routeSessionProfile } from '../domain/route-session-engine'
@@ -150,6 +150,9 @@ export const useAppStore = create<AppState>()(
         const athlete = { ...state.athlete, ...profile }
         const route = athlete.placement.selectedRoute
         const routeProfile = routeSessionProfile(route)
+        const generationProfile = state.equipmentProfiles.find((candidate) => candidate.id === athlete.placement.inputs.equipmentProfileId)
+          ?? state.equipmentProfiles.find((candidate) => candidate.id === state.settings.activeEquipmentProfileId)
+          ?? state.equipmentProfiles[0]
         const dominantAdaptation = route === 'hypertrophy' ? 'hypertrophy' as const
           : ['strength', 'power', 'event-specific'].includes(route) ? 'strength' as const
             : route === 'powerbuilding' ? 'powerbuilding' as const
@@ -178,7 +181,8 @@ export const useAppStore = create<AppState>()(
           strengthAnchors: orderedAnchors,
           entryRoute: route,
           generationRuleVersion: ROUTE_SESSION_RULE_VERSION,
-          placementCreatedAt: athlete.placement.createdAt
+          placementCreatedAt: athlete.placement.createdAt,
+          generationEquipment: equipmentGenerationEvidence(generationProfile)
         }
         const routePlan = {
           ...basePlan,
@@ -199,7 +203,8 @@ export const useAppStore = create<AppState>()(
           planVersion,
           startsAt: new Date(now),
           sessionKeyPrefix: `${replacementPlanId}-${route}`,
-          placementCreatedAt: athlete.placement.createdAt
+          placementCreatedAt: athlete.placement.createdAt,
+          equipmentProfile: generationProfile
         }).sessions
         routePlan.sessionIds = generatedSessions.map((session) => session.id)
         const mesocycles = activePlan
@@ -210,7 +215,7 @@ export const useAppStore = create<AppState>()(
         const preservedSessions = state.sessions.filter((session) => !['planned', 'deferred'].includes(session.status))
         return {
           athlete,
-          settings: { ...state.settings, availableMinutes: athlete.defaultMinutes },
+          settings: { ...state.settings, availableMinutes: athlete.defaultMinutes, activeEquipmentProfileId: generationProfile.id, equipmentLocation: generationProfile.name },
           mesocycles,
           sessions: [...preservedSessions, ...generatedSessions],
           activeMesocycleId: replacementPlanId,
@@ -774,15 +779,20 @@ export const useAppStore = create<AppState>()(
         const nextVersion = Math.max(0, ...state.mesocycles.map((plan) => plan.version)) + 1
         const planId = `mesocycle-${nanoid()}`
         const effectiveAt = new Date().toISOString()
-        const preview = buildMesocyclePreview(draft, {
+        const generationProfile = state.equipmentProfiles.find((candidate) => candidate.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]
+        const nextDraft = draft.entryRoute
+          ? { ...draft, generationRuleVersion: ROUTE_SESSION_RULE_VERSION, generationEquipment: equipmentGenerationEvidence(generationProfile) }
+          : draft
+        const preview = buildMesocyclePreview(nextDraft, {
           exercises: state.exercises,
           currentSessions: state.sessions,
           history: state.history,
           planId,
           planVersion: nextVersion,
-          startsAt: new Date(effectiveAt)
+          startsAt: new Date(effectiveAt),
+          equipmentProfile: generationProfile
         })
-        const nextPlan = createMesocyclePlan(draft, planId, nextVersion, effectiveAt, activePlan?.id ?? null, preview.sessions.map((session) => session.id))
+        const nextPlan = createMesocyclePlan(nextDraft, planId, nextVersion, effectiveAt, activePlan?.id ?? null, preview.sessions.map((session) => session.id))
         const revised = replaceFuturePlan(state.sessions, state.mesocycles, nextPlan, preview.sessions)
         set({
           sessions: revised.sessions,
@@ -830,7 +840,8 @@ export const useAppStore = create<AppState>()(
             decision: decision as 'continue-progress' | 'continue-hold' | 'recover',
             nextMicrocycleNumber: summary.microcycleNumber + 1,
             startsAt: new Date(reviewedAt.getTime() + 86_400_000),
-            key: nanoid(6)
+            key: nanoid(6),
+            equipmentProfile: state.equipmentProfiles.find((candidate) => candidate.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]
           })
           sessions = [...sessions, ...generated]
           mesocycles = mesocycles.map((candidate) => candidate.id === plan.id ? { ...candidate, sessionIds: [...candidate.sessionIds, ...generated.map((session) => session.id)] } : candidate)
@@ -875,7 +886,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 12,
+      version: 13,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,

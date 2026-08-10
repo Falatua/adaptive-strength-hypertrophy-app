@@ -1,9 +1,11 @@
 import { addDays } from 'date-fns'
 import { makeSets } from './training-engine'
-import { prescriptionForRole, routeSessionProfile, type RouteSessionProfile } from './route-session-engine'
+import { equipmentGenerationEvidence, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad } from './equipment-engine'
+import { ROUTE_SESSION_RULE_VERSION, prescriptionForRole, routeSessionProfile, type RouteSessionProfile } from './route-session-engine'
 import type {
   BodyRegion,
   CompletedSetRecord,
+  EquipmentProfile,
   Exercise,
   ExerciseRole,
   MesocycleDraft,
@@ -32,6 +34,7 @@ export interface GenerationContext {
   sessionKeyPrefix?: string
   microcycleNumber?: number
   placementCreatedAt?: string
+  equipmentProfile?: EquipmentProfile
 }
 
 const adaptationCopy = {
@@ -97,10 +100,10 @@ function priorPrescription(currentSessions: TrainingSession[], history: Complete
   return { sets: 3, reps: 10, load: 0, rir: 3, source: 'calibration' as const }
 }
 
-function routeLoad(prior: ReturnType<typeof priorPrescription>, intensity: number) {
+function routeLoad(prior: ReturnType<typeof priorPrescription>, intensity: number, increment: number) {
   if (prior.load <= 0 || intensity <= 0) return 0
   const estimatedMaximum = prior.load * (1 + (prior.reps + prior.rir) / 30)
-  return Math.max(0, Math.round((estimatedMaximum * intensity) / 5) * 5)
+  return nearestExecutableLoad(estimatedMaximum * intensity, increment)
 }
 
 function plannedExercise(
@@ -119,7 +122,8 @@ function plannedExercise(
   const setCount = routePrescription?.sets ?? Math.max(2, prior.sets - (reacclimating ? 1 : 0))
   const targetReps = routePrescription?.reps ?? prior.reps
   const targetRir = routePrescription?.rir ?? (reacclimating ? Math.max(3, prior.rir) : prior.rir)
-  const targetLoad = routePrescription ? routeLoad(prior, routePrescription.intensity) : reacclimating ? Math.round((prior.load * 0.9) / 5) * 5 : prior.load
+  const increment = context.equipmentProfile ? loadIncrementFor(exercise, context.equipmentProfile).value : 5
+  const targetLoad = routePrescription ? routeLoad(prior, routePrescription.intensity, increment) : reacclimating ? nearestExecutableLoad(prior.load * 0.9, increment) : nearestExecutableLoad(prior.load, increment)
   const restSeconds = routePrescription?.restSeconds ?? (isPrimary ? 180 : role === 'secondary' ? 135 : 75)
   const setupMinutes = isPrimary ? 7 : role === 'secondary' ? 4 : 3
   const estimatedMinutes = Math.max(4, Math.round(setupMinutes + (setCount * 0.75) + Math.max(0, setCount - 1) * restSeconds / 60))
@@ -137,14 +141,15 @@ function plannedExercise(
   }
 }
 
-function chooseSecondary(anchor: Exercise, exercises: Exercise[], excluded: Set<string>, priorityRegions: BodyRegion[]) {
+function chooseSecondary(anchor: Exercise, exercises: Exercise[], excluded: Set<string>, priorityRegions: BodyRegion[], equipmentProfile?: EquipmentProfile) {
   return exercises
     .filter((exercise) => !excluded.has(exercise.id) && exercise.jointFeeling !== 'avoid')
+    .filter((exercise) => !equipmentProfile || exerciseEquipmentFit(exercise, equipmentProfile).available)
     .filter((exercise) => exercise.pattern === anchor.pattern || exercise.family === anchor.family)
     .sort((a, b) => exerciseScore(b, 'secondary', priorityRegions) - exerciseScore(a, 'secondary', priorityRegions) || a.name.localeCompare(b.name))[0]
 }
 
-function chooseAccessories(exercises: Exercise[], excluded: Set<string>, regions: BodyRegion[], count: number, offset: number) {
+function chooseAccessories(exercises: Exercise[], excluded: Set<string>, regions: BodyRegion[], count: number, offset: number, equipmentProfile?: EquipmentProfile) {
   if (regions.length === 0 || count === 0) return []
   const rotated = [...regions.slice(offset % regions.length), ...regions.slice(0, offset % regions.length)]
   const selected: Exercise[] = []
@@ -152,6 +157,7 @@ function chooseAccessories(exercises: Exercise[], excluded: Set<string>, regions
     if (selected.length >= count) return
     const match = exercises
       .filter((exercise) => !excluded.has(exercise.id) && !selected.some((item) => item.id === exercise.id) && exercise.jointFeeling !== 'avoid' && exercise.primaryRegion === region)
+      .filter((exercise) => !equipmentProfile || exerciseEquipmentFit(exercise, equipmentProfile).available)
       .sort((a, b) => exerciseScore(b, 'accessory', regions) - exerciseScore(a, 'accessory', regions) || a.name.localeCompare(b.name))[0]
     if (match) selected.push(match)
   })
@@ -194,14 +200,16 @@ export function draftFromPlan(plan: MesocyclePlan): MesocycleDraft {
     maintenanceRegions: [...plan.maintenanceRegions],
     entryRoute: plan.entryRoute,
     generationRuleVersion: plan.generationRuleVersion,
-    placementCreatedAt: plan.placementCreatedAt
+    placementCreatedAt: plan.placementCreatedAt,
+    generationEquipment: plan.generationEquipment ? structuredClone(plan.generationEquipment) : undefined
   }
 }
 
 export function buildMesocyclePreview(draft: MesocycleDraft, context: GenerationContext): MesocyclePreview {
-  const routeProfile = draft.entryRoute && draft.generationRuleVersion === 'route-session-v1'
+  const routeProfile = draft.entryRoute && draft.generationRuleVersion
     ? routeSessionProfile(draft.entryRoute)
     : undefined
+  if (draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION && !context.equipmentProfile) throw new Error(`${ROUTE_SESSION_RULE_VERSION} requires an equipment profile.`)
   const anchors = draft.strengthAnchors
     .map((id) => context.exercises.find((exercise) => exercise.id === id))
     .filter((exercise): exercise is Exercise => Boolean(exercise))
@@ -211,14 +219,14 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     const anchor = anchors[index % Math.max(1, anchors.length)] ?? context.exercises.find((exercise) => exercise.jointFeeling !== 'avoid')!
     const sessionKey = `${context.sessionKeyPrefix ?? context.planId}-session-${index + 1}`
     const excluded = new Set<string>([anchor.id])
-    const secondary = chooseSecondary(anchor, context.exercises, excluded, draft.priorityRegions)
+    const secondary = chooseSecondary(anchor, context.exercises, excluded, draft.priorityRegions, context.equipmentProfile)
     if (secondary) excluded.add(secondary.id)
     const timeAccessoryCount = draft.defaultMinutes <= 30 ? 1 : draft.defaultMinutes <= 45 ? 2 : 3
     const accessoryCount = routeProfile ? Math.min(timeAccessoryCount, routeProfile.maximumAccessories) : timeAccessoryCount
     const priorityCount = Math.min(accessoryCount, Math.max(1, accessoryCount - 1))
-    const priorityAccessories = chooseAccessories(context.exercises, excluded, draft.priorityRegions, priorityCount, index)
+    const priorityAccessories = chooseAccessories(context.exercises, excluded, draft.priorityRegions, priorityCount, index, context.equipmentProfile)
     priorityAccessories.forEach((exercise) => excluded.add(exercise.id))
-    const maintenanceAccessories = chooseAccessories(context.exercises, excluded, draft.maintenanceRegions, accessoryCount - priorityAccessories.length, index)
+    const maintenanceAccessories = chooseAccessories(context.exercises, excluded, draft.maintenanceRegions, accessoryCount - priorityAccessories.length, index, context.equipmentProfile)
     const accessories = [...priorityAccessories, ...maintenanceAccessories]
     const exercisePlan = [
       plannedExercise(anchor, 'primary', routeProfile?.strategy ?? adaptationCopy[draft.dominantAdaptation].primary, sessionKey, context, draft.dominantAdaptation, routeProfile),
@@ -247,11 +255,14 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
       planVersion: context.planVersion,
       microcycleNumber: context.microcycleNumber ?? 1,
       generation: routeProfile && draft.placementCreatedAt ? {
-        ruleVersion: routeProfile.ruleVersion,
+        ruleVersion: draft.generationRuleVersion ?? routeProfile.ruleVersion,
         placementCreatedAt: draft.placementCreatedAt,
         route: routeProfile.route,
         strategy: routeProfile.strategy,
-        reasons: [...routeProfile.reasons]
+        reasons: [...routeProfile.reasons],
+        ...(draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION && context.equipmentProfile
+          ? { equipment: equipmentGenerationEvidence(context.equipmentProfile) }
+          : {})
       } : undefined
     } satisfies TrainingSession
   })
@@ -274,6 +285,10 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
       `${anchors.length} strength anchors remain protected as required exposures.`,
       `${draft.weeklyOpportunities} weekly opportunities estimate the calendar pace; exposure completion controls progression.`,
       `${draft.defaultMinutes} minutes caps each generated session before optional work is added.`,
+      ...(context.equipmentProfile ? [
+        `${context.equipmentProfile.name} filters secondary and accessory choices before generation and supplies executable ${context.equipmentProfile.incrementUnit} load increments.`,
+        ...anchors.filter((anchor) => !exerciseEquipmentFit(anchor, context.equipmentProfile!).available).map((anchor) => `${anchor.name} remains protected but needs equipment review: ${exerciseEquipmentFit(anchor, context.equipmentProfile!).missing.join(', ')}.`)
+      ] : []),
       routeProfile
         ? 'Target loads derive from the latest exact completed set first, then an existing exact prescription, and otherwise remain a zero-load calibration. Different variations never lend each other a load.'
         : 'Load, repetitions, and sets are copied from existing prescriptions or the latest exact exposure; reacclimation alone begins conservatively.'

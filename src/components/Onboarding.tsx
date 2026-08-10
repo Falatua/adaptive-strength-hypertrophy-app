@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, ArrowRight, BrainCircuit, CalendarClock, Check, Gauge, ShieldCheck, Sparkles } from 'lucide-react'
+import { AlertTriangle, ArrowRight, BrainCircuit, CalendarClock, Check, Dumbbell, Gauge, ShieldCheck, Sparkles } from 'lucide-react'
 import { applyPlacementDecision, buildPlacementAssessment, placementRouteLabels } from '../domain/placement-engine'
 import { routeSessionProfile } from '../domain/route-session-engine'
+import { exerciseEquipmentFit } from '../domain/equipment-engine'
 import type { PlacementDecision, PlacementGoal, PlacementInputs, PlacementPainState } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { PixelAvatar } from './PixelAvatar'
@@ -18,7 +19,7 @@ function DimensionPicker({ label, value, onChange, low, high }: { label: string;
 }
 
 export function Onboarding() {
-  const { completeOnboarding, equipmentProfiles, setActiveEquipmentProfile, setNav, setNotice } = useAppStore()
+  const { completeOnboarding, equipmentProfiles, exercises, athlete, settings, setActiveEquipmentProfile, setNav, setNotice } = useAppStore()
   const [createdAt] = useState(() => new Date().toISOString())
   const [step, setStep] = useState(0)
   const [goal, setGoal] = useState<PlacementGoal | null>('powerbuilding')
@@ -33,7 +34,7 @@ export function Onboarding() {
   const [scheduleStability, setScheduleStability] = useState<number | null>(3)
   const [dataConfidence, setDataConfidence] = useState<number | null>(3)
   const [painState, setPainState] = useState<PlacementPainState>('none')
-  const [equipmentProfileId, setEquipmentProfileId] = useState('equipment-commercial-gym')
+  const [equipmentProfileId, setEquipmentProfileId] = useState(settings.activeEquipmentProfileId)
   const [skippedFields, setSkippedFields] = useState<string[]>([])
   const [decision, setDecision] = useState<PlacementDecision>('confirmed')
 
@@ -45,6 +46,13 @@ export function Onboarding() {
   const assessment = useMemo(() => buildPlacementAssessment(inputs, createdAt), [createdAt, inputs])
   const selectedAssessment = useMemo(() => applyPlacementDecision(assessment, decision), [assessment, decision])
   const selectedRouteProfile = useMemo(() => routeSessionProfile(selectedAssessment.selectedRoute), [selectedAssessment.selectedRoute])
+  const selectedEquipmentProfile = equipmentProfiles.find((profile) => profile.id === equipmentProfileId) ?? equipmentProfiles[0]
+  const protectedAnchorConflicts = athlete.strengthAnchors.flatMap((exerciseId) => {
+    const exercise = exercises.find((candidate) => candidate.id === exerciseId)
+    if (!exercise) return []
+    const fit = exerciseEquipmentFit(exercise, selectedEquipmentProfile)
+    return fit.available ? [] : [{ exercise, missing: fit.missing }]
+  })
 
   const persistPlacement = (placementDecision: PlacementDecision = decision, destination: 'today' | 'library' = 'today', quick = false) => {
     const profile = equipmentProfiles.find((candidate) => candidate.id === equipmentProfileId) ?? equipmentProfiles[0]
@@ -142,6 +150,7 @@ export function Onboarding() {
           <div className="route-session-preview">
             <div><Sparkles size={18} /><span><strong>Your starting sessions will actually change</strong><small>{selectedRouteProfile.ruleVersion} · {selectedRouteProfile.label}</small></span></div>
             {selectedAssessment.selectedRoute === 'pain-aware-modified' ? <p>Automatic session generation stays paused until you reassess movement restrictions. Existing completed work remains untouched.</p> : <><p>{selectedRouteProfile.strategy}</p><div className="route-session-preview__grid"><span><small>Primary</small><strong>{selectedRouteProfile.primary.sets} × {selectedRouteProfile.primary.reps}</strong><em>{selectedRouteProfile.primary.rir} RIR · {selectedRouteProfile.primary.restSeconds}s rest</em></span><span><small>Secondary</small><strong>{selectedRouteProfile.secondary.sets} × {selectedRouteProfile.secondary.reps}</strong><em>{selectedRouteProfile.secondary.rir} RIR · {selectedRouteProfile.secondary.restSeconds}s rest</em></span><span><small>Accessories</small><strong>{selectedRouteProfile.accessory.sets} × {selectedRouteProfile.accessory.reps}</strong><em>up to {selectedRouteProfile.maximumAccessories} · {selectedRouteProfile.accessory.rir} RIR</em></span></div><small>{selectedRouteProfile.warmupGuidance}</small></>}
+            {selectedAssessment.selectedRoute !== 'pain-aware-modified' && <div className={`route-equipment-preview ${protectedAnchorConflicts.length ? 'route-equipment-preview--warning' : ''}`}><Dumbbell size={17} /><span><strong>Generated for {selectedEquipmentProfile.name}</strong><small>Support work must match {selectedEquipmentProfile.equipment.length} available items. Loads use its {selectedEquipmentProfile.incrementUnit} increments.</small>{protectedAnchorConflicts.length > 0 && <em>{protectedAnchorConflicts.map(({ exercise, missing }) => `${exercise.name}: ${missing.join(', ')}`).join(' · ')}. Protected anchors stay visible and require your review.</em>}</span></div>}
           </div>
           <div className="placement-controls"><button className={decision === 'conservative' ? 'selected' : ''} onClick={() => setDecision(decision === 'conservative' ? 'confirmed' : 'conservative')}><ShieldCheck size={17} /><span><strong>Start more conservatively</strong><small>Use {placementRouteLabels[applyPlacementDecision(assessment, 'conservative').selectedRoute]}.</small></span></button><button className={decision === 'aggressive-test' ? 'selected' : ''} onClick={() => setDecision(decision === 'aggressive-test' ? 'confirmed' : 'aggressive-test')}><Sparkles size={17} /><span><strong>I am ready for more</strong><small>Keep this route, but request faster productive verification.</small></span></button><button className="placement-controls__wide" onClick={() => persistPlacement(decision, 'library')}><BrainCircuit size={17} /><span><strong>Correct or import my training history</strong><small>Save this hypothesis, then improve its evidence in Library.</small></span></button></div>
           <ul className="check-list"><li><Check size={16} /> Surveys remain optional</li><li><Check size={16} /> Missed sessions create no volume debt</li><li><CalendarClock size={16} /> Exit depends on criteria, not an arbitrary date</li><li><ShieldCheck size={16} /> Data stays on this device for now</li></ul>

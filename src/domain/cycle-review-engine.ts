@@ -1,10 +1,12 @@
 import { addDays, differenceInCalendarDays } from 'date-fns'
 import { buildMesocyclePreview, draftFromPlan } from './mesocycle-engine'
+import { loadIncrementFor } from './equipment-engine'
 import { makeSets, recommendProgression } from './training-engine'
 import type {
   CompletedSetRecord,
   CycleReviewDecision,
   CycleReviewEvidence,
+  EquipmentProfile,
   Exercise,
   ContinuityState,
   MesocyclePlan,
@@ -107,6 +109,7 @@ interface NextRoundInput {
   nextMicrocycleNumber: number
   startsAt: Date
   key: string
+  equipmentProfile: EquipmentProfile
 }
 
 export function buildNextMicrocycle(input: NextRoundInput) {
@@ -116,6 +119,7 @@ export function buildNextMicrocycle(input: NextRoundInput) {
     draft.entryRoute = undefined
     draft.generationRuleVersion = undefined
     draft.placementCreatedAt = undefined
+    draft.generationEquipment = undefined
   }
   const preview = buildMesocyclePreview(draft, {
     exercises: input.exercises,
@@ -125,7 +129,8 @@ export function buildNextMicrocycle(input: NextRoundInput) {
     planVersion: input.plan.version,
     startsAt: input.startsAt,
     sessionKeyPrefix: `${input.plan.id}-round-${input.nextMicrocycleNumber}-${input.key}`,
-    microcycleNumber: input.nextMicrocycleNumber
+    microcycleNumber: input.nextMicrocycleNumber,
+    equipmentProfile: input.equipmentProfile
   })
   if (input.decision !== 'continue-progress') return preview.sessions
   return preview.sessions.map((session) => ({
@@ -133,13 +138,14 @@ export function buildNextMicrocycle(input: NextRoundInput) {
     exercises: session.exercises.map((planned) => {
       const first = planned.sets[0]
       const comparable = input.history.filter((workSet) => workSet.exerciseId === planned.exerciseId)
+      const exercise = input.exercises.find((candidate) => candidate.id === planned.exerciseId)
       const decision = recommendProgression({
         history: comparable,
         targetLoad: first.targetLoad,
         targetReps: first.targetReps,
         targetSets: planned.sets.length,
         repRange: [Math.max(1, first.targetReps - 2), first.targetReps + 2],
-        increment: 5,
+        increment: exercise ? loadIncrementFor(exercise, input.equipmentProfile).value : 5,
         continuity: 'stable' satisfies ContinuityState,
         readiness: 'normal'
       })

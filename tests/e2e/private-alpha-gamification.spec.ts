@@ -157,7 +157,7 @@ test('defers optional feedback without blocking training and replays quality evi
   await expect(page.getByText('185 heaviest completed load', { exact: false }).first()).toBeVisible()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted?.version).toBe(12)
+  expect(persisted?.version).toBe(13)
   expect(persisted?.state?.deferredFeedback?.at(-1)).toMatchObject({ mode: 'minimal', status: 'completed' })
   expect(persisted?.state?.deferredFeedback?.at(-1)?.surveyId).toBeTruthy()
   expect(persisted?.state?.history?.filter((workSet: { sessionId: string }) => workSet.sessionId === persisted.state.deferredFeedback.at(-1).sessionId).every((workSet: { qualityConfirmed?: boolean }) => workSet.qualityConfirmed === true)).toBe(true)
@@ -439,6 +439,59 @@ test('uses a saved location profile to gate unavailable work and executable load
   expect(browserErrors).toEqual([])
 })
 
+test('filters the initial route queue through the selected training location', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await page.goto('/')
+  await page.evaluate(() => localStorage.clear())
+  await page.reload()
+
+  await page.getByRole('button', { name: /Continue/ }).click()
+  await page.getByRole('button', { name: /Continue/ }).click()
+  await page.getByRole('button', { name: /Travel Setup/ }).click()
+  await page.getByRole('button', { name: /Continue/ }).click()
+  await expect(page.getByText('Generated for Travel Setup')).toBeVisible()
+  await expect(page.locator('.route-equipment-preview')).toContainText('Competition Bench Press: barbell, bench, rack')
+  await expect(page.locator('.route-equipment-preview')).toContainText('Protected anchors stay visible and require your review.')
+  if (testInfo.project.name === 'mobile-chromium') await page.locator('.route-equipment-preview').screenshot({ path: 'output/playwright/equipment-anchor-conflicts-mobile.png' })
+  await page.getByRole('button', { name: 'Back' }).click()
+  await page.getByRole('button', { name: /Home Gym/ }).click()
+  await page.getByRole('button', { name: /Continue/ }).click()
+  await expect(page.getByText('Generated for Home Gym')).toBeVisible()
+  await expect(page.getByText('Loads use its lb increments.')).toBeVisible()
+  await expect(page.getByText('route-session-v2', { exact: false })).toBeVisible()
+  if (testInfo.project.name === 'mobile-chromium') await page.locator('.route-equipment-preview').screenshot({ path: 'output/playwright/equipment-aware-generation-preview-mobile.png' })
+  await page.getByRole('button', { name: /This looks right.*Enter ForgePath/ }).click()
+  await expect(page.getByRole('heading', { name: 'Your next useful win.' })).toBeVisible()
+  await expect(page.getByText(/movements? need equipment review/)).toHaveCount(0)
+
+  const generated = await page.evaluate(() => {
+    const persisted = JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}')
+    const state = persisted.state
+    const profile = state.equipmentProfiles.find((candidate: { id: string }) => candidate.id === 'equipment-home-gym')
+    const available = new Set(profile.equipment)
+    const exerciseById = new Map(state.exercises.map((exercise: { id: string }) => [exercise.id, exercise]))
+    const supportFits = state.sessions.every((session: { exercises: Array<{ exerciseId: string; role: string }> }) => session.exercises.filter((planned) => planned.role !== 'primary').every((planned) => {
+      const exercise = exerciseById.get(planned.exerciseId) as { equipment: string[] }
+      return exercise.equipment.every((item) => available.has(item))
+    }))
+    return {
+      persistenceVersion: persisted.version,
+      supportFits,
+      ruleVersions: state.sessions.map((session: { generation?: { ruleVersion: string } }) => session.generation?.ruleVersion),
+      profileIds: state.sessions.map((session: { generation?: { equipment?: { profileId: string } } }) => session.generation?.equipment?.profileId),
+      planProfileId: state.mesocycles.find((plan: { id: string }) => plan.id === state.activeMesocycleId)?.generationEquipment?.profileId
+    }
+  })
+  expect(generated).toMatchObject({ persistenceVersion: 13, supportFits: true, planProfileId: 'equipment-home-gym' })
+  expect(generated.ruleVersions.every((value: string) => value === 'route-session-v2')).toBe(true)
+  expect(generated.profileIds.every((value: string) => value === 'equipment-home-gym')).toBe(true)
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  expect(browserErrors).toEqual([])
+})
+
 test('builds an explainable multi-dimensional placement and preserves athlete control', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
@@ -483,11 +536,11 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
   await expect(page.getByText(/first work sets/i)).toBeVisible()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(12)
+  expect(persisted.version).toBe(13)
   expect(persisted.state.athlete.placement).toMatchObject({ ruleVersion: 'placement-v1', recommendedRoute: 'strength', selectedRoute: 'base-building', confidence: 'high', decision: 'conservative' })
   expect(persisted.state.athlete.level.movementSkill).toBe(5)
-  expect(persisted.state.mesocycles.find((plan: { id: string }) => plan.id === persisted.state.activeMesocycleId)).toMatchObject({ dominantAdaptation: 'reacclimation', title: 'Base-Building Cycle · Starting Cycle', entryRoute: 'base-building', generationRuleVersion: 'route-session-v1' })
-  expect(persisted.state.sessions.every((session: { generation?: { route: string; ruleVersion: string } }) => session.generation?.route === 'base-building' && session.generation.ruleVersion === 'route-session-v1')).toBe(true)
+  expect(persisted.state.mesocycles.find((plan: { id: string }) => plan.id === persisted.state.activeMesocycleId)).toMatchObject({ dominantAdaptation: 'reacclimation', title: 'Base-Building Cycle · Starting Cycle', entryRoute: 'base-building', generationRuleVersion: 'route-session-v2', generationEquipment: { profileId: 'equipment-commercial-gym' } })
+  expect(persisted.state.sessions.every((session: { generation?: { route: string; ruleVersion: string; equipment?: { profileId: string } } }) => session.generation?.route === 'base-building' && session.generation.ruleVersion === 'route-session-v2' && session.generation.equipment?.profileId === 'equipment-commercial-gym')).toBe(true)
   expect(persisted.state.sessions[0].exercises[0].sets[0]).toMatchObject({ targetReps: 8, targetRir: 3 })
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
@@ -557,7 +610,7 @@ test('turns warm-up, first-set, session, and recovery evidence into an auditable
   if (testInfo.project.name === 'mobile-chromium') await page.locator('.placement-profile-evidence').screenshot({ path: 'output/playwright/placement-verification-profile-mobile.png' })
 
   let persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(12)
+  expect(persisted.version).toBe(13)
   expect(persisted.state.placementVerifications).toHaveLength(1)
   expect(persisted.state.placementVerifications[0]).toMatchObject({ ruleVersion: 'placement-verification-v1', status: 'resolved', verdict: 'supports-route', warmupResponse: 'as-expected', recoveryResponse: 'recovered' })
   expect(persisted.state.history.some((workSet: { id: string }) => workSet.id === persisted.state.placementVerifications[0].firstSet.sourceSetId)).toBe(true)

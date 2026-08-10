@@ -17,15 +17,15 @@ import type {
 import { derivePersonalRecords } from './history-engine'
 import { summarizeSurveyEvidence } from './survey-engine'
 import { exerciseMuscleMappingError } from './muscle-dose'
-import { equipmentProfileError } from './equipment-engine'
+import { equipmentGenerationEvidenceError, equipmentProfileError } from './equipment-engine'
 import { equipmentProfiles as seedEquipmentProfiles } from './seed'
 import { legacyPlacementForAthlete, placementAssessmentError, placementRouteLabels } from './placement-engine'
 import { placementVerificationError } from './placement-verification-engine'
 import { routeSessionGenerationError } from './route-session-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 14
-export const BACKUP_APP_VERSION = '0.20.0'
+export const BACKUP_SCHEMA_VERSION = 15
+export const BACKUP_APP_VERSION = '0.21.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -84,6 +84,7 @@ export interface BackupPreview {
     substitutions: number
     placementChecks: number
     routeGeneratedSessions: number
+    equipmentGeneratedSessions: number
     equipmentProfiles: number
     athleteName: string
     placementRoute: string
@@ -302,6 +303,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
       if (isRecord(session.generation)) {
         const plan = mesocycles.find((candidate) => isRecord(candidate) && candidate.id === session.mesocycleId)
         if (!isRecord(plan) || plan.entryRoute !== session.generation.route || plan.generationRuleVersion !== session.generation.ruleVersion || plan.placementCreatedAt !== session.generation.placementCreatedAt) errors.push('A route-generated session does not match its mesocycle placement provenance.')
+        if (session.generation.ruleVersion === 'route-session-v2' && (session.microcycleNumber ?? 1) === 1 && (!isRecord(plan) || stableStringify(plan.generationEquipment) !== stableStringify(session.generation.equipment))) errors.push('An equipment-aware starting session does not match its mesocycle equipment snapshot.')
       }
     }
     session.exercises.forEach((planned) => {
@@ -403,8 +405,12 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
       return
     }
     if (!isValidDate(plan.createdAt) || !isValidDate(plan.effectiveAt)) errors.push('A mesocycle plan has an invalid date.')
-    const hasRouteGeneration = plan.entryRoute !== undefined || plan.generationRuleVersion !== undefined || plan.placementCreatedAt !== undefined
-    if (hasRouteGeneration && (!['introductory-skill', 'reacclimation', 'bridge-calibration', 'base-building', 'hypertrophy', 'powerbuilding', 'strength', 'power', 'event-specific', 'pain-aware-modified'].includes(String(plan.entryRoute)) || plan.generationRuleVersion !== 'route-session-v1' || !isValidDate(plan.placementCreatedAt))) errors.push('A mesocycle has incomplete route-generation provenance.')
+    const hasRouteGeneration = plan.entryRoute !== undefined || plan.generationRuleVersion !== undefined || plan.placementCreatedAt !== undefined || plan.generationEquipment !== undefined
+    if (hasRouteGeneration && (!['introductory-skill', 'reacclimation', 'bridge-calibration', 'base-building', 'hypertrophy', 'powerbuilding', 'strength', 'power', 'event-specific', 'pain-aware-modified'].includes(String(plan.entryRoute)) || !['route-session-v1', 'route-session-v2'].includes(String(plan.generationRuleVersion)) || !isValidDate(plan.placementCreatedAt))) errors.push('A mesocycle has incomplete route-generation provenance.')
+    if (plan.generationRuleVersion === 'route-session-v2') {
+      const equipmentError = equipmentGenerationEvidenceError(plan.generationEquipment)
+      if (equipmentError) errors.push(`A mesocycle equipment snapshot is invalid: ${equipmentError}`)
+    }
     plan.strengthAnchors.forEach((exerciseId) => {
       if (typeof exerciseId !== 'string' || !exerciseIds.has(exerciseId)) errors.push('A mesocycle references an unknown strength anchor.')
     })
@@ -643,6 +649,19 @@ function migrateV13(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV14(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = { ...candidate.data, settings: normalizeSettings(candidate.data.settings) }
+  validateState(data, true)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 14 backup migrated safely. Existing route-session-v1 history remains valid; equipment-aware route-session-v2 evidence begins with future generation.'
+  }
+}
+
 export function parseBackup(raw: string): BackupPreview {
   let candidate: unknown
   try {
@@ -710,6 +729,10 @@ export function parseBackup(raw: string): BackupPreview {
     const migrated = migrateV13(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 14) {
+    const migrated = migrateV14(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
@@ -733,7 +756,8 @@ export function parseBackup(raw: string): BackupPreview {
       cycleReviews: backup.data.cycleReviews.length,
       substitutions: backup.data.substitutionEvents.length,
       placementChecks: backup.data.placementVerifications.length,
-      routeGeneratedSessions: backup.data.sessions.filter((session) => session.generation?.ruleVersion === 'route-session-v1').length,
+      routeGeneratedSessions: backup.data.sessions.filter((session) => Boolean(session.generation)).length,
+      equipmentGeneratedSessions: backup.data.sessions.filter((session) => session.generation?.ruleVersion === 'route-session-v2').length,
       equipmentProfiles: backup.data.equipmentProfiles.length,
       athleteName: backup.data.athlete.name,
       placementRoute: placementRouteLabels[backup.data.athlete.placement.selectedRoute],

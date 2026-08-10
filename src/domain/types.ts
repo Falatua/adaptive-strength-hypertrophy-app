@@ -12,7 +12,7 @@ export type PlacementRoute = 'introductory-skill' | 'reacclimation' | 'bridge-ca
 export type PlacementConfidence = 'low' | 'medium' | 'high'
 export type PlacementDecision = 'confirmed' | 'conservative' | 'aggressive-test' | 'quick-start'
 export type PlacementPainState = 'none' | 'manageable' | 'modifying' | 'unknown'
-export type RouteSessionRuleVersion = 'route-session-v1'
+export type RouteSessionRuleVersion = 'route-session-v1' | 'route-session-v2'
 
 export interface PlacementInputs {
   goal: PlacementGoal | null
@@ -137,6 +137,17 @@ export interface EquipmentProfile {
   updatedAt: string
 }
 
+export interface EquipmentGenerationEvidence {
+  ruleVersion: 'equipment-profile-v1'
+  profileId: string
+  profileName: string
+  profileKind: EquipmentProfileKind
+  profileUpdatedAt: string
+  equipment: string[]
+  increments: Record<LoadIncrementKind, number>
+  incrementUnit: 'lb' | 'kg'
+}
+
 export interface Exercise {
   id: string
   name: string
@@ -197,6 +208,7 @@ export interface RouteSessionGenerationEvidence {
   route: PlacementRoute
   strategy: string
   reasons: string[]
+  equipment?: EquipmentGenerationEvidence
 }
 
 export interface TrainingSession {
@@ -249,6 +261,7 @@ export interface MesocyclePlan {
   entryRoute?: PlacementRoute
   generationRuleVersion?: RouteSessionRuleVersion
   placementCreatedAt?: string
+  generationEquipment?: EquipmentGenerationEvidence
 }
 
 export interface MesocycleDraft {
@@ -270,6 +283,7 @@ export interface MesocycleDraft {
   entryRoute?: PlacementRoute
   generationRuleVersion?: RouteSessionRuleVersion
   placementCreatedAt?: string
+  generationEquipment?: EquipmentGenerationEvidence
 }
 
 export interface CycleReviewEvidence {

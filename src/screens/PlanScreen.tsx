@@ -38,10 +38,11 @@ const reviewChoices: { id: CycleReviewDecision; title: string; detail: string }[
 
 export function PlanScreen() {
   const {
-    sessions, exercises, athlete, history, mesocycles, cycleReviews, activeMesocycleId, activeSessionId,
+    sessions, exercises, athlete, history, mesocycles, cycleReviews, activeMesocycleId, activeSessionId, equipmentProfiles, settings,
     startSession, applyMesocycleRevision, applyCycleReview, setNotice
   } = useAppStore()
   const activePlan = mesocycles.find((plan) => plan.id === activeMesocycleId)
+  const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const nextVersion = Math.max(0, ...mesocycles.map((plan) => plan.version)) + 1
   const blankDraft = (): MesocycleDraft => ({
     title: 'Adaptive Powerbuilding Block',
@@ -80,8 +81,9 @@ export function PlanScreen() {
     currentSessions: sessions,
     history,
     planId: 'preview',
-    planVersion: nextVersion
-  }), [draft, exercises, sessions, history, nextVersion])
+    planVersion: nextVersion,
+    equipmentProfile: activeEquipmentProfile
+  }), [draft, exercises, sessions, history, nextVersion, activeEquipmentProfile])
 
   const planSessions = activePlan
     ? sessions.filter((session) => session.mesocycleId === activePlan.id || activePlan.sessionIds.includes(session.id))
@@ -187,7 +189,7 @@ export function PlanScreen() {
                     <div className="queue-content__top"><span className="eyebrow">{session.dayLabel}</span><span className={`status-chip status-chip--${session.status === 'completed' ? 'lime' : 'default'}`}>{session.status}</span></div>
                     <h3>{session.title}</h3>
                     <p>{session.objective}</p>
-                    <div className="queue-meta"><span><Shield size={14} /> {exercise?.name}</span><span><Clock3 size={14} /> {session.durationMinutes} min</span><span><Layers3 size={14} /> {session.exercises.length} movements</span>{session.generation && <span><Sparkles size={14} /> {readable(session.generation.route)}</span>}</div>
+                    <div className="queue-meta"><span><Shield size={14} /> {exercise?.name}</span><span><Clock3 size={14} /> {session.durationMinutes} min</span><span><Layers3 size={14} /> {session.exercises.length} movements</span>{session.generation && <span><Sparkles size={14} /> {readable(session.generation.route)}</span>}{session.generation?.equipment && <span><Dumbbell size={14} /> {session.generation.equipment.profileName}</span>}</div>
                   </div>
                   <div className="queue-actions">
                     {(session.status === 'planned' || session.status === 'deferred') && <button className="button button--small button--secondary" onClick={() => startSession(session.id)}>Start</button>}
@@ -219,6 +221,7 @@ export function PlanScreen() {
             <ul className="priority-list">
               <li><span>Anchors</span><strong>{activeAnchors.join(', ') || 'Choose anchors'}</strong></li>
               <li><span>Entry route</span><strong>{activePlan?.entryRoute ? `${readable(activePlan.entryRoute)} · ${activePlan.generationRuleVersion}` : 'Manual adaptation rules'}</strong></li>
+              <li><span>Generated for</span><strong>{activePlan?.generationEquipment ? `${activePlan.generationEquipment.profileName} · ${activePlan.generationEquipment.incrementUnit}` : 'Legacy or manual equipment context'}</strong></li>
               <li><span>Develop</span><strong>{(activePlan?.priorityRegions ?? athlete.priorityRegions).map(readable).join(', ')}</strong></li>
               <li><span>Maintain</span><strong>{(activePlan?.maintenanceRegions ?? []).map(readable).join(', ') || 'Set in next plan version'}</strong></li>
               <li><span>Constraint</span><strong>{activePlan?.defaultMinutes ?? athlete.defaultMinutes} minutes, irregular schedule</strong></li>
@@ -259,7 +262,7 @@ export function PlanScreen() {
             {activeSessionId && <div className="plan-editor__warning"><AlertCircle size={18} /><span><strong>Revision paused</strong>Finish or leave the active workout before applying a new plan.</span></div>}
             <div className="form-grid">
               <label><span className="field-label">Plan title</span><input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
-              <label><span className="field-label">Dominant adaptation</span><select value={draft.dominantAdaptation} onChange={(event) => setDraft({ ...draft, dominantAdaptation: event.target.value as MesocycleDraft['dominantAdaptation'], entryRoute: undefined, generationRuleVersion: undefined, placementCreatedAt: undefined })}><option value="powerbuilding">Powerbuilding</option><option value="strength">Strength</option><option value="hypertrophy">Hypertrophy</option><option value="reacclimation">Reacclimation</option></select></label>
+              <label><span className="field-label">Dominant adaptation</span><select value={draft.dominantAdaptation} onChange={(event) => setDraft({ ...draft, dominantAdaptation: event.target.value as MesocycleDraft['dominantAdaptation'], entryRoute: undefined, generationRuleVersion: undefined, placementCreatedAt: undefined, generationEquipment: undefined })}><option value="powerbuilding">Powerbuilding</option><option value="strength">Strength</option><option value="hypertrophy">Hypertrophy</option><option value="reacclimation">Reacclimation</option></select></label>
             </div>
             <label><span className="field-label">Objective</span><textarea value={draft.objective} onChange={(event) => setDraft({ ...draft, objective: event.target.value })} /></label>
             <div className="plan-editor__numbers">

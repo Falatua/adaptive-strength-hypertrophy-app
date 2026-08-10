@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { buildMesocyclePreview, draftFromPlan } from './mesocycle-engine'
 import { routeSessionGenerationError, routeSessionProfile, routeSessionProfiles } from './route-session-engine'
-import { exercises, history, mesocycles, sessions } from './seed'
+import { exerciseEquipmentFit } from './equipment-engine'
+import { equipmentProfiles, exercises, history, mesocycles, sessions } from './seed'
 import type { PlacementRoute } from './types'
 
 const routes: PlacementRoute[] = ['introductory-skill', 'reacclimation', 'bridge-calibration', 'base-building', 'hypertrophy', 'powerbuilding', 'strength', 'power', 'event-specific']
@@ -10,7 +11,7 @@ function previewFor(route: PlacementRoute, exerciseHistory = history) {
   const draft = {
     ...draftFromPlan(mesocycles[0]),
     entryRoute: route,
-    generationRuleVersion: 'route-session-v1' as const,
+    generationRuleVersion: 'route-session-v2' as const,
     placementCreatedAt: '2026-08-10T14:00:00.000Z'
   }
   return buildMesocyclePreview(draft, {
@@ -19,7 +20,8 @@ function previewFor(route: PlacementRoute, exerciseHistory = history) {
     history: exerciseHistory,
     planId: `plan-${route}`,
     planVersion: 2,
-    startsAt: new Date('2026-08-10T14:00:00.000Z')
+    startsAt: new Date('2026-08-10T14:00:00.000Z'),
+    equipmentProfile: equipmentProfiles[0]
   })
 }
 
@@ -27,7 +29,7 @@ describe('route-specific session generation', () => {
   it('defines a bounded deterministic profile for every placement route', () => {
     expect(routeSessionProfiles).toHaveLength(10)
     routeSessionProfiles.forEach((profile) => {
-      expect(profile.ruleVersion).toBe('route-session-v1')
+      expect(profile.ruleVersion).toBe('route-session-v2')
       expect(profile.strategy.length).toBeGreaterThan(20)
       expect(profile.reasons.length).toBeGreaterThanOrEqual(2)
       expect(profile.route === 'pain-aware-modified' ? profile.primary.sets === 0 : profile.primary.sets > 0).toBe(true)
@@ -45,7 +47,7 @@ describe('route-specific session generation', () => {
         expect(primary.sets[0]).toMatchObject({ targetReps: profile.primary.reps, targetRir: profile.primary.rir })
         expect(primary.restSeconds).toBe(profile.primary.restSeconds)
         expect(primary.warmupGuidance).toBe(profile.warmupGuidance)
-        expect(session.generation).toMatchObject({ ruleVersion: 'route-session-v1', route, placementCreatedAt: '2026-08-10T14:00:00.000Z' })
+        expect(session.generation).toMatchObject({ ruleVersion: 'route-session-v2', route, placementCreatedAt: '2026-08-10T14:00:00.000Z', equipment: { profileId: 'equipment-commercial-gym', incrementUnit: 'lb' } })
         expect(routeSessionGenerationError(session.generation)).toBeNull()
       })
     })
@@ -66,16 +68,16 @@ describe('route-specific session generation', () => {
   it('uses exact completed evidence and never borrows load from a related variation', () => {
     const withoutBenchHistory = history.filter((workSet) => workSet.exerciseId !== 'competition-bench')
     const noPlannedBench = sessions.map((session) => ({ ...session, exercises: session.exercises.filter((planned) => planned.exerciseId !== 'competition-bench') }))
-    const draft = { ...draftFromPlan(mesocycles[0]), entryRoute: 'strength' as const, generationRuleVersion: 'route-session-v1' as const, placementCreatedAt: '2026-08-10T14:00:00.000Z' }
-    const preview = buildMesocyclePreview(draft, { exercises, currentSessions: noPlannedBench, history: withoutBenchHistory, planId: 'no-bench-evidence', planVersion: 2 })
+    const draft = { ...draftFromPlan(mesocycles[0]), entryRoute: 'strength' as const, generationRuleVersion: 'route-session-v2' as const, placementCreatedAt: '2026-08-10T14:00:00.000Z' }
+    const preview = buildMesocyclePreview(draft, { exercises, currentSessions: noPlannedBench, history: withoutBenchHistory, planId: 'no-bench-evidence', planVersion: 2, equipmentProfile: equipmentProfiles[0] })
     const bench = preview.sessions.flatMap((session) => session.exercises).find((planned) => planned.exerciseId === 'competition-bench')!
     expect(bench.sets[0].targetLoad).toBe(0)
     expect(withoutBenchHistory.some((workSet) => workSet.family === 'Bench Press')).toBe(true)
   })
 
   it('limits route accessories and still honors the declared time cap', () => {
-    const draft = { ...draftFromPlan(mesocycles[0]), entryRoute: 'strength' as const, generationRuleVersion: 'route-session-v1' as const, placementCreatedAt: '2026-08-10T14:00:00.000Z', defaultMinutes: 30 }
-    const preview = buildMesocyclePreview(draft, { exercises, currentSessions: sessions, history, planId: 'short-strength', planVersion: 2 })
+    const draft = { ...draftFromPlan(mesocycles[0]), entryRoute: 'strength' as const, generationRuleVersion: 'route-session-v2' as const, placementCreatedAt: '2026-08-10T14:00:00.000Z', defaultMinutes: 30 }
+    const preview = buildMesocyclePreview(draft, { exercises, currentSessions: sessions, history, planId: 'short-strength', planVersion: 2, equipmentProfile: equipmentProfiles[0] })
     expect(preview.sessions.every((session) => session.durationMinutes <= 30)).toBe(true)
     expect(preview.sessions.every((session) => session.exercises.filter((planned) => !['primary', 'secondary'].includes(planned.role)).length <= 2)).toBe(true)
   })
@@ -84,5 +86,41 @@ describe('route-specific session generation', () => {
     const evidence = previewFor('strength').sessions[0].generation!
     expect(routeSessionGenerationError({ ...evidence, strategy: 'Use a secret different strategy.' })).toMatch(/strategy/i)
     expect(routeSessionGenerationError({ ...evidence, reasons: ['Different reason'] })).toMatch(/reasons/i)
+  })
+
+  it('filters generated support work to the active location while preserving protected anchors', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const draft = { ...draftFromPlan(mesocycles[0]), entryRoute: 'powerbuilding' as const, generationRuleVersion: 'route-session-v2' as const, placementCreatedAt: '2026-08-10T14:00:00.000Z' }
+    const preview = buildMesocyclePreview(draft, { exercises, currentSessions: sessions, history, planId: 'home-plan', planVersion: 2, equipmentProfile: home })
+    preview.sessions.forEach((session) => session.exercises.filter((planned) => planned.role !== 'primary').forEach((planned) => {
+      const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)!
+      expect(exerciseEquipmentFit(exercise, home).available).toBe(true)
+    }))
+    expect(new Set(preview.sessions.map((session) => session.exercises.find((planned) => planned.role === 'primary')?.exerciseId))).toEqual(new Set(mesocycles[0].strengthAnchors))
+  })
+
+  it('keeps unavailable protected anchors visible and reports their exact conflicts', () => {
+    const travel = equipmentProfiles.find((profile) => profile.id === 'equipment-travel')!
+    const draft = { ...draftFromPlan(mesocycles[0]), entryRoute: 'powerbuilding' as const, generationRuleVersion: 'route-session-v2' as const, placementCreatedAt: '2026-08-10T14:00:00.000Z' }
+    const preview = buildMesocyclePreview(draft, { exercises, currentSessions: sessions, history, planId: 'travel-plan', planVersion: 2, equipmentProfile: travel })
+    expect(preview.protectedAnchors).toEqual(mesocycles[0].strengthAnchors)
+    expect(preview.explanations.filter((explanation) => explanation.includes('remains protected but needs equipment review'))).toHaveLength(3)
+    expect(preview.sessions.every((session) => session.exercises.filter((planned) => planned.role !== 'primary').every((planned) => exerciseEquipmentFit(exercises.find((exercise) => exercise.id === planned.exerciseId)!, travel).available))).toBe(true)
+  })
+
+  it('uses the generated movement load class and profile increment before workout start', () => {
+    const custom = { ...structuredClone(equipmentProfiles[0]), id: 'equipment-fine-jumps', name: 'Fine Jumps', increments: { ...equipmentProfiles[0].increments, barbell: 2.5 }, updatedAt: '2026-08-10T15:00:00.000Z' }
+    const draft = { ...draftFromPlan(mesocycles[0]), entryRoute: 'powerbuilding' as const, generationRuleVersion: 'route-session-v2' as const, placementCreatedAt: '2026-08-10T14:00:00.000Z' }
+    const preview = buildMesocyclePreview(draft, { exercises, currentSessions: sessions, history, planId: 'fine-jump-plan', planVersion: 2, equipmentProfile: custom })
+    const primaryLoads = preview.sessions.map((session) => session.exercises.find((planned) => planned.role === 'primary')!.sets[0].targetLoad)
+    expect(primaryLoads.every((load) => Number.isInteger(load / 2.5))).toBe(true)
+    expect(preview.sessions.every((session) => session.generation?.equipment?.increments.barbell === 2.5)).toBe(true)
+  })
+
+  it('keeps legacy route-session-v1 evidence valid without inventing equipment provenance', () => {
+    const evidence = previewFor('strength').sessions[0].generation!
+    const legacy = { ...evidence, ruleVersion: 'route-session-v1' as const }
+    delete legacy.equipment
+    expect(routeSessionGenerationError(legacy)).toBeNull()
   })
 })
