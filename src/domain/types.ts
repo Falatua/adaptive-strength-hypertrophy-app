@@ -16,6 +16,8 @@ export type PersonalRecordType = 'absolute-load' | 'reps-at-load' | 'load-for-re
 export type RecordCategory = 'strength' | 'repetition' | 'scheme' | 'workload'
 export type AchievementCategory = RecordCategory | 'quality' | 'consistency' | 'return' | 'baseline'
 export type CelebrationLevel = 'off' | 'subtle' | 'normal' | 'high-energy'
+export type SubstitutionReason = 'none' | 'pain' | 'equipment' | 'time' | 'fatigue' | 'target-feel' | 'variety' | 'preference' | 'harder' | 'easier' | 'other'
+export type SubstitutionTier = 'best-match' | 'good-alternative' | 'changes-focus'
 
 export interface Exercise {
   id: string
@@ -56,6 +58,9 @@ export interface PlannedExercise {
   estimatedMinutes: number
   optional: boolean
   substitutedFrom?: string
+  substitutionEventId?: string
+  prescriptionMethod?: 'exact-history' | 'baseline-calibration'
+  prescriptionNote?: string
 }
 
 export interface TrainingSession {
@@ -162,10 +167,56 @@ export interface CompletedSetRecord {
   pain: number
   qualityConfirmed?: boolean
   setIndex: number
+  plannedExerciseId?: string
   originalExerciseId?: string
   originalExerciseName?: string
   originalFamily?: string
   originalPrimaryRegion?: BodyRegion
+}
+
+export interface SubstitutionCandidateSnapshot {
+  exerciseId: string
+  exerciseName: string
+  rank: number
+  score: number
+  tier: SubstitutionTier
+  reasons: string[]
+  preserves: string
+  changes: string
+  lastExposureAt: string | null
+  priorSetCount: number
+}
+
+export interface ExerciseSubstitutionEvent {
+  id: string
+  sessionId: string
+  plannedExerciseId: string
+  originalExerciseId: string
+  selectedExerciseId: string
+  role: ExerciseRole
+  purpose: string
+  reason: SubstitutionReason
+  createdAt: string
+  readiness: ReadinessOutcome
+  availableMinutes: number
+  equipmentLocation: string
+  primaryOverrideConfirmed: boolean
+  candidates: SubstitutionCandidateSnapshot[]
+  originalPrescription: SetPrescription[]
+  replacementPrescription: SetPrescription[]
+  prescriptionMethod: 'exact-history' | 'baseline-calibration'
+  prescriptionNote: string
+  sourceSetIds: string[]
+  outcome: 'pending' | 'completed' | 'partial' | 'not-completed'
+  completedAt?: string
+  postFeedback?: {
+    difficulty: number | null
+    targetStimulus: number | null
+    technique: number | null
+    pain: number | null
+    enjoyment: number | null
+    skipped: boolean
+  }
 }
 
 export interface SurveyAnswer {
@@ -265,6 +316,7 @@ export interface HistoryMutationSnapshot {
   exercises: Exercise[]
   sessions: TrainingSession[]
   athlete?: AthleteProfile
+  substitutionEvents?: ExerciseSubstitutionEvent[]
 }
 
 export interface HistoryMutationEvent {

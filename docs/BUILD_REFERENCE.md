@@ -29,7 +29,8 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Future-only plan replacement that preserves completed, partial, stopped, deferred, and expired historical truth.
 - Missed-session replanning without catch-up volume.
 - Exact exercise history, canonical IDs, aliases, duplicate warnings, preferences, and joint response.
-- Educated exercise replacement with preserved exact-movement clocks.
+- Reason-aware exercise replacement with ranked evidence tiers, visible purpose and tradeoffs, exact-history or conservative calibration prescriptions, protected-primary confirmation, and preserved exact-movement clocks.
+- A durable substitution-learning ledger linking original and selected movements, candidate snapshots, prescriptions, completed source sets, outcomes, and available feedback.
 - Daily and weekly volume, body-region views, source-backed records, and micro wins.
 - Real daily, weekly, rolling-28-day, calendar-month, yearly, and all-time filters with source-set reconciliation.
 - Exclusive primary-region and upper-body, lower-body, arms, and trunk volume lenses.
@@ -40,7 +41,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - A fully validated PR requires confirmed technique and pain feedback. Survey-free sessions keep their numbers as visibly numeric-only bests.
 - Athlete-controlled celebration level, quiet mode, opportunity prompts, session achievements, reduced motion, pixel confetti, sounds preference, and supported-device haptics.
 - Athlete model, survey controls, focused mode, data export, and local reset.
-- Version 6 open-JSON backup with expanded record definitions, celebration controls, plan and review history, integrity checks, versions 1 through 5 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
+- Version 7 open-JSON backup with expanded record definitions, celebration controls, plan, review, correction, and substitution history, integrity checks, versions 1 through 6 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
 - Original pixel-adventure visual language and installable PWA shell.
 - Accurate completed, partial-primary, and partial-without-primary session states.
 
@@ -50,13 +51,13 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Open readiness, skip an individual question, and submit the remaining evidence.
 - Start immediately without a survey.
 - Log an actual set, reload the app, and recover the active session locally.
-- Replace a primary exercise from ranked candidates while freezing the original exact-movement clock.
+- Explain why a primary exercise is being changed, inspect ranked evidence and tradeoffs, confirm the protected-anchor change, receive a movement-specific prescription, and freeze the original exact-movement clock.
 - Finish a partial session with or without feedback and update progress only from completed sets.
 - Navigate Today, Plan, Progress, Library, and You on desktop and a 390 px phone viewport.
 - Export a complete local backup, validate and preview it, restore it, and recover the pre-restore state.
 - Switch every progress horizon and prove chart, body-lens, and headline totals equal the selected completed source sets.
 - Preview a 30-minute plan revision, apply it, preserve partial history, inspect both plan versions, reload, and recover the active version from local persistence.
-- Export and preview a verified version 6 backup containing expanded records, athlete celebration preferences, plan versions, the correction ledger, and cycle-review history.
+- Export and preview a verified version 7 backup containing expanded records, athlete celebration preferences, plan versions, the correction ledger, cycle-review history, and substitution learning.
 - Confirm a planned hold remains a hold after an athlete edits actual load, then log, provisionally recognize, save, and replay a source-backed exact-movement load record.
 - Turn quiet mode on, reload, and confirm the preference persists without changing training or record calculations.
 - Verify the achievement and settings surfaces on desktop and phone with no browser errors or horizontal overflow.

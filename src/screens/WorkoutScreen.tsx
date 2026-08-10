@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Check, CheckCircle2, ChevronDown, Clock3, Info, Pause, Play, RefreshCcw, SkipForward, Sparkles, TimerReset, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
-import type { CompletedSetRecord } from '../domain/types'
-import type { PlannedExercise } from '../domain/types'
+import { rankExerciseSubstitutions } from '../domain/substitution-engine'
+import type { CompletedSetRecord, PlannedExercise, SubstitutionReason } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
 import { PostSurveyModal } from '../components/PostSurveyModal'
@@ -20,6 +20,9 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const { sessions, exercises, history, settings, updateSet, toggleSetComplete, swapExercise, skipExercise, finishSession, setNotice } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
+  const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
+  const [primaryOverrideConfirmed, setPrimaryOverrideConfirmed] = useState(false)
+  const [swapError, setSwapError] = useState<string | null>(null)
   const [finishOpen, setFinishOpen] = useState(false)
   const [warmupConfirmed, setWarmupConfirmed] = useState(false)
   const [timerRunning, setTimerRunning] = useState(false)
@@ -56,19 +59,30 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0')
   const seconds = String(elapsed % 60).padStart(2, '0')
 
-  const rankedSwaps = swapTarget ? exercises
-    .filter((candidate) => candidate.id !== swapTarget.exerciseId)
-    .map((candidate) => {
-      const current = exercises.find((exercise) => exercise.id === swapTarget.exerciseId)
-      const purposeMatch = current?.pattern === candidate.pattern ? 4 : 0
-      const regionMatch = current?.primaryRegion === candidate.primaryRegion ? 3 : candidate.regions.includes(current?.primaryRegion ?? 'chest') ? 2 : 0
-      const jointScore = candidate.jointFeeling === 'great' ? 2 : candidate.jointFeeling === 'good' ? 1 : candidate.jointFeeling === 'avoid' ? -5 : 0
-      const favorite = candidate.favorite ? 1 : 0
-      return { candidate, score: purposeMatch + regionMatch + jointScore + favorite }
-    })
-    .filter((item) => item.score >= 3)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 6) : []
+  const swapOriginal = swapTarget ? exercises.find((exercise) => exercise.id === swapTarget.exerciseId) : undefined
+  const rankedSwaps = swapTarget && swapOriginal ? rankExerciseSubstitutions({
+    planned: swapTarget,
+    original: swapOriginal,
+    exercises,
+    history,
+    athlete: useAppStore.getState().athlete,
+    readiness: session.readiness ?? 'confirm',
+    reason: swapReason
+  }).slice(0, 6) : []
+
+  const openSwap = (planned: PlannedExercise) => {
+    setSwapTarget(planned)
+    setSwapReason('none')
+    setPrimaryOverrideConfirmed(false)
+    setSwapError(null)
+  }
+
+  const chooseSwap = (exerciseId: string) => {
+    if (!swapTarget) return
+    const result = swapExercise(session.id, swapTarget.id, exerciseId, swapReason, primaryOverrideConfirmed)
+    if (!result.ok) return setSwapError(result.error ?? 'That movement could not be selected.')
+    setSwapTarget(null)
+  }
 
   const finishWithoutSurvey = () => {
     finishSession(session.id, { answers: [], skipped: true })
@@ -135,7 +149,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   <div className="exercise-index">{String(exerciseIndex + 1).padStart(2, '0')}</div>
                   <div className="exercise-title"><span>{roleLabel[planned.role]}</span><h2>{exercise.name}</h2><p>{planned.purpose}</p></div>
                   <div className="exercise-actions">
-                    <button onClick={() => setSwapTarget(planned)}><RefreshCcw size={16} /> Change</button>
+                    <button onClick={() => openSwap(planned)}><RefreshCcw size={16} /> Change</button>
                     {planned.role !== 'primary' && <button onClick={() => skipExercise(session.id, planned.id)}><SkipForward size={16} /> Skip</button>}
                   </div>
                 </div>
@@ -145,6 +159,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   <div><small>Joint response</small><strong className={`joint joint--${exercise.jointFeeling}`}>{exercise.jointFeeling}</strong><span>{exercise.favorite ? 'Preferred movement' : 'Neutral preference'}</span></div>
                   <button className="info-button" aria-label={`More information about ${exercise.name}`} title={recommendation.explanation}><Info size={17} /></button>
                 </div>
+                {planned.prescriptionNote && <div className="substitution-prescription"><RefreshCcw size={16} /><span><strong>{planned.prescriptionMethod === 'exact-history' ? 'Exact-history replacement' : 'Baseline calibration'}</strong>{planned.prescriptionNote}</span></div>}
                 <div className="set-table" role="table" aria-label={`${exercise.name} sets`}>
                   <div className="set-table__head" role="row"><span>Set</span><span>Load</span><span>Reps</span><span>RIR</span><span>Status</span></div>
                   {planned.sets.map((workSet, index) => (
@@ -180,17 +195,24 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         <button className="button button--primary" onClick={() => setFinishOpen(true)}>Finish workout <CheckCircle2 size={18} /></button>
       </footer>
 
-      <Modal open={Boolean(swapTarget)} onClose={() => setSwapTarget(null)} title="Choose an educated replacement" description="Ranked by purpose, movement pattern, joint response, preference, and available equipment." wide>
+      <Modal open={Boolean(swapTarget)} onClose={() => setSwapTarget(null)} title="Choose an educated replacement" description="Tell ForgePath why you are changing it. The ranking and prescription update without borrowing the original movement's load." wide>
+        <div className="swap-controls">
+          <label><span className="field-label">Why are you changing this movement? <small>Optional</small></span><select aria-label="Substitution reason" value={swapReason} onChange={(event) => { setSwapReason(event.target.value as SubstitutionReason); setSwapError(null) }}>
+            <option value="none">No reason</option><option value="pain">Pain or joint irritation</option><option value="equipment">Equipment unavailable</option><option value="time">Short on time</option><option value="fatigue">Fatigue is high</option><option value="target-feel">Not feeling the target</option><option value="variety">Want variety</option><option value="preference">Prefer something else</option><option value="harder">Need a harder option</option><option value="easier">Need an easier option</option><option value="other">Other</option>
+          </select></label>
+          {swapTarget?.role === 'primary' && <label className="primary-override"><input type="checkbox" checked={primaryOverrideConfirmed} onChange={(event) => { setPrimaryOverrideConfirmed(event.target.checked); setSwapError(null) }} /><span><strong>Confirm primary-anchor change</strong><small>The replacement may preserve purpose, but it owns a separate progression clock and changes movement specificity.</small></span></label>}
+        </div>
+        {swapError && <p className="form-error" role="alert">{swapError}</p>}
         <div className="swap-list">
-          {rankedSwaps.map(({ candidate, score }, index) => (
-            <button key={candidate.id} className="swap-option" onClick={() => { if (swapTarget) swapExercise(session.id, swapTarget.id, candidate.id); setSwapTarget(null) }}>
-              <span className="swap-rank">{index + 1}</span>
-              <div><span className="eyebrow">{index < 2 ? 'Best match' : index < 4 ? 'Good alternative' : 'Changes focus'}</span><strong>{candidate.name}</strong><small>Preserves {candidate.pattern} · {candidate.primaryRegion} · joint response {candidate.jointFeeling}</small></div>
-              <span className="swap-score">{score}/10<ChevronDown size={15} /></span>
+          {rankedSwaps.map(({ candidate, snapshot, prescription, prescriptionMethod, prescriptionNote }) => (
+            <button key={candidate.id} className="swap-option" onClick={() => chooseSwap(candidate.id)}>
+              <span className="swap-rank">{snapshot.rank}</span>
+              <div><span className="eyebrow">{snapshot.tier.replace('-', ' ')}</span><strong>{candidate.name}</strong><small><b>Why:</b> {snapshot.reasons.join(' · ') || 'safe active alternative'}</small><small><b>Preserves:</b> {snapshot.preserves}</small><small><b>Changes:</b> {snapshot.changes}</small><small><b>History:</b> {snapshot.lastExposureAt ? `${snapshot.priorSetCount} exact sets · last ${new Date(snapshot.lastExposureAt).toLocaleDateString()}` : 'No exact exposure yet'}</small><small className="swap-prescription"><b>{prescriptionMethod === 'exact-history' ? 'History-based' : 'Calibration'}:</b> {prescription.length} set{prescription.length === 1 ? '' : 's'} · {prescription[0]?.targetLoad || 'choose load'} × {prescription[0]?.targetReps ?? 0} · {prescription[0]?.targetRir ?? 0} RIR</small><small>{prescriptionNote}</small></div>
+              <span className="swap-score">{snapshot.score} pts<ChevronDown size={15} /></span>
             </button>
           ))}
         </div>
-        <p className="modal-note">The selected movement receives its own prescription context. The original exact-movement progression clock remains frozen.</p>
+        <p className="modal-note">The selected movement receives a prescription from its own exact history or a conservative calibration. The original exact-movement progression clock remains frozen.</p>
       </Modal>
 
       <PostSurveyModal

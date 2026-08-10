@@ -4,6 +4,7 @@ import type {
   CompletedSetRecord,
   CycleReviewEvent,
   Exercise,
+  ExerciseSubstitutionEvent,
   HistoryMutationEvent,
   MesocyclePlan,
   PersonalRecord,
@@ -13,8 +14,8 @@ import type {
 import { derivePersonalRecords } from './history-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 6
-export const BACKUP_APP_VERSION = '0.6.0'
+export const BACKUP_SCHEMA_VERSION = 7
+export const BACKUP_APP_VERSION = '0.7.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode'> = {
   celebrationLevel: 'subtle',
@@ -34,6 +35,7 @@ export interface RestorableAppState {
   records: PersonalRecord[]
   historyMutations: HistoryMutationEvent[]
   cycleReviews: CycleReviewEvent[]
+  substitutionEvents: ExerciseSubstitutionEvent[]
   mesocycles: MesocyclePlan[]
   activeMesocycleId: string | null
   activeSessionId: string | null
@@ -64,6 +66,7 @@ export interface BackupPreview {
     planVersions: number
     historyChanges: number
     cycleReviews: number
+    substitutions: number
     athleteName: string
     exportedAt: string
   }
@@ -133,7 +136,7 @@ function requireUniqueIds(values: unknown[], label: string, errors: string[]) {
 function validateState(candidate: unknown): asserts candidate is RestorableAppState {
   if (!isRecord(candidate)) throw new Error('Backup data is missing or invalid.')
   const errors: string[] = []
-  const arrays = ['exercises', 'sessions', 'history', 'surveys', 'records', 'mesocycles', 'historyMutations', 'cycleReviews'] as const
+  const arrays = ['exercises', 'sessions', 'history', 'surveys', 'records', 'mesocycles', 'historyMutations', 'cycleReviews', 'substitutionEvents'] as const
   arrays.forEach((key) => {
     if (!Array.isArray(candidate[key])) errors.push(`${key} must be an array.`)
     else if (candidate[key].length > 500_000) errors.push(`${key} exceeds the private-alpha restore limit.`)
@@ -153,6 +156,7 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   const mesocycles = candidate.mesocycles as unknown[]
   const historyMutations = candidate.historyMutations as unknown[]
   const cycleReviews = candidate.cycleReviews as unknown[]
+  const substitutionEvents = candidate.substitutionEvents as unknown[]
   requireUniqueIds(exercises, 'Exercises', errors)
   requireUniqueIds(sessions, 'Sessions', errors)
   requireUniqueIds(history, 'Completed sets', errors)
@@ -161,11 +165,13 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   requireUniqueIds(mesocycles, 'Mesocycles', errors)
   requireUniqueIds(historyMutations, 'History changes', errors)
   requireUniqueIds(cycleReviews, 'Cycle reviews', errors)
+  requireUniqueIds(substitutionEvents, 'Substitution events', errors)
 
   const exerciseIds = new Set(exercises.flatMap((exercise) => isRecord(exercise) && typeof exercise.id === 'string' ? [exercise.id] : []))
   const sessionIds = new Set(sessions.flatMap((session) => isRecord(session) && typeof session.id === 'string' ? [session.id] : []))
   const mesocycleIds = new Set(mesocycles.flatMap((plan) => isRecord(plan) && typeof plan.id === 'string' ? [plan.id] : []))
   const completedSetIds = new Set(history.flatMap((workSet) => isRecord(workSet) && typeof workSet.id === 'string' ? [workSet.id] : []))
+  const substitutionEventIds = new Set(substitutionEvents.flatMap((event) => isRecord(event) && typeof event.id === 'string' ? [event.id] : []))
 
   exercises.forEach((exercise) => {
     if (!isRecord(exercise) || typeof exercise.name !== 'string' || !Array.isArray(exercise.aliases) || !Array.isArray(exercise.equipment)) {
@@ -195,6 +201,7 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
         errors.push('A planned exercise references an unknown exercise or invalid sets.')
         return
       }
+      if (planned.substitutionEventId !== undefined && (typeof planned.substitutionEventId !== 'string' || !substitutionEventIds.has(planned.substitutionEventId))) errors.push('A planned exercise references an unknown substitution event.')
       planned.sets.forEach((workSet) => {
         if (!isRecord(workSet) || !isFiniteNonNegative(workSet.targetLoad) || !isFiniteNonNegative(workSet.targetReps)) errors.push('A planned set has invalid targets.')
       })
@@ -223,6 +230,23 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
 
   cycleReviews.forEach((review) => {
     if (!isRecord(review) || typeof review.mesocycleId !== 'string' || !mesocycleIds.has(review.mesocycleId) || !isFiniteNonNegative(review.planVersion) || !isFiniteNonNegative(review.microcycleNumber) || !['continue-progress', 'continue-hold', 'extend', 'recover', 'complete'].includes(String(review.decision)) || !['continue-progress', 'continue-hold', 'extend', 'recover', 'complete'].includes(String(review.recommendation)) || !isValidDate(review.createdAt) || typeof review.reason !== 'string' || !Array.isArray(review.recommendationReasons) || !isRecord(review.evidence) || !Array.isArray(review.generatedSessionIds) || !Array.isArray(review.expiredSessionIds) || [...(review.generatedSessionIds as unknown[]), ...(review.expiredSessionIds as unknown[])].some((id) => typeof id !== 'string' || !sessionIds.has(id))) errors.push('A cycle review is invalid.')
+  })
+
+  substitutionEvents.forEach((event) => {
+    if (!isRecord(event) || typeof event.sessionId !== 'string' || !sessionIds.has(event.sessionId) || typeof event.plannedExerciseId !== 'string' || typeof event.originalExerciseId !== 'string' || !exerciseIds.has(event.originalExerciseId) || typeof event.selectedExerciseId !== 'string' || !exerciseIds.has(event.selectedExerciseId) || !['primary', 'secondary', 'priority', 'maintenance', 'optional'].includes(String(event.role)) || !['none', 'pain', 'equipment', 'time', 'fatigue', 'target-feel', 'variety', 'preference', 'harder', 'easier', 'other'].includes(String(event.reason)) || !isValidDate(event.createdAt) || !Array.isArray(event.candidates) || event.candidates.length === 0 || event.candidates.some((candidate) => !isRecord(candidate) || typeof candidate.exerciseId !== 'string' || !exerciseIds.has(candidate.exerciseId) || !isFiniteNonNegative(candidate.rank) || !isFiniteNonNegative(candidate.score)) || !Array.isArray(event.originalPrescription) || !Array.isArray(event.replacementPrescription) || !['exact-history', 'baseline-calibration'].includes(String(event.prescriptionMethod)) || typeof event.prescriptionNote !== 'string' || !Array.isArray(event.sourceSetIds) || event.sourceSetIds.some((id) => typeof id !== 'string' || !completedSetIds.has(id)) || !['pending', 'completed', 'partial', 'not-completed'].includes(String(event.outcome)) || typeof event.primaryOverrideConfirmed !== 'boolean') errors.push('An exercise substitution event is invalid.')
+    if (isRecord(event) && event.completedAt !== undefined && !isValidDate(event.completedAt)) errors.push('An exercise substitution has an invalid completion date.')
+    if (isRecord(event) && (typeof event.purpose !== 'string' || !['normal', 'confirm', 'protect', 'reacclimate', 'pain-aware'].includes(String(event.readiness)) || !isFiniteNonNegative(event.availableMinutes) || typeof event.equipmentLocation !== 'string')) errors.push('An exercise substitution has invalid decision context.')
+    if (isRecord(event) && Array.isArray(event.candidates) && event.candidates.some((candidate) => !isRecord(candidate) || !['best-match', 'good-alternative', 'changes-focus'].includes(String(candidate.tier)) || !Array.isArray(candidate.reasons) || candidate.reasons.some((reason) => typeof reason !== 'string') || typeof candidate.preserves !== 'string' || typeof candidate.changes !== 'string' || !(candidate.lastExposureAt === null || isValidDate(candidate.lastExposureAt)) || !isFiniteNonNegative(candidate.priorSetCount))) errors.push('An exercise substitution candidate snapshot is invalid.')
+    if (isRecord(event) && [...(Array.isArray(event.originalPrescription) ? event.originalPrescription : []), ...(Array.isArray(event.replacementPrescription) ? event.replacementPrescription : [])].some((workSet) => !isRecord(workSet) || typeof workSet.id !== 'string' || !isFiniteNonNegative(workSet.targetLoad) || !isFiniteNonNegative(workSet.targetReps) || !isFiniteNonNegative(workSet.targetRir) || typeof workSet.completed !== 'boolean')) errors.push('An exercise substitution prescription is invalid.')
+    if (isRecord(event) && event.postFeedback !== undefined) {
+      const feedback = event.postFeedback
+      if (!isRecord(feedback) || typeof feedback.skipped !== 'boolean' || ['difficulty', 'targetStimulus', 'technique', 'pain', 'enjoyment'].some((key) => feedback[key] !== null && !isFiniteNonNegative(feedback[key]))) errors.push('An exercise substitution has invalid feedback evidence.')
+    }
+    if (isRecord(event) && event.role === 'primary' && event.primaryOverrideConfirmed !== true) errors.push('A protected primary substitution lacks explicit confirmation.')
+    if (isRecord(event) && typeof event.sessionId === 'string' && typeof event.plannedExerciseId === 'string') {
+      const sourceSession = sessions.find((session) => isRecord(session) && session.id === event.sessionId)
+      if (!isRecord(sourceSession) || !Array.isArray(sourceSession.exercises) || !sourceSession.exercises.some((planned) => isRecord(planned) && planned.id === event.plannedExerciseId)) errors.push('An exercise substitution references an unknown planned exercise slot.')
+    }
   })
 
   mesocycles.forEach((plan) => {
@@ -264,6 +288,7 @@ function migrateLegacyV1(candidate: Record<string, unknown>): { data: Restorable
     mesocycles: [],
     historyMutations: [],
     cycleReviews: [],
+    substitutionEvents: [],
     activeMesocycleId: null,
     activeSessionId: typeof candidate.activeSessionId === 'string' ? candidate.activeSessionId : null,
     onboardingComplete: typeof candidate.onboardingComplete === 'boolean' ? candidate.onboardingComplete : true
@@ -289,6 +314,7 @@ function migrateV2(candidate: Record<string, unknown>): { data: RestorableAppSta
     activeMesocycleId: null,
     historyMutations: [],
     cycleReviews: [],
+    substitutionEvents: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
   validateState(data)
@@ -308,6 +334,7 @@ function migrateV3(candidate: Record<string, unknown>): { data: RestorableAppSta
     settings: normalizeSettings(candidate.data.settings),
     historyMutations: [],
     cycleReviews: [],
+    substitutionEvents: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
   validateState(data)
@@ -327,6 +354,7 @@ function migrateV4(candidate: Record<string, unknown>): { data: RestorableAppSta
     settings: normalizeSettings(candidate.data.settings),
     historyMutations: replayHistoryMutationRecords(candidate.data.historyMutations),
     cycleReviews: [],
+    substitutionEvents: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
   validateState(data)
@@ -334,6 +362,19 @@ function migrateV4(candidate: Record<string, unknown>): { data: RestorableAppSta
     data,
     exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
     warning: 'Version 4 backup migrated safely. Existing plan and correction history are intact; the cycle-review ledger starts empty.'
+  }
+}
+
+function migrateV6(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = { ...candidate.data, substitutionEvents: [] }
+  validateState(data)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 6 backup migrated safely. Existing records, preferences, plans, corrections, and cycle reviews are intact; the substitution-learning ledger starts empty.'
   }
 }
 
@@ -345,6 +386,7 @@ function migrateV5(candidate: Record<string, unknown>): { data: RestorableAppSta
     ...candidate.data,
     settings: normalizeSettings(candidate.data.settings),
     historyMutations: replayHistoryMutationRecords(candidate.data.historyMutations),
+    substitutionEvents: [],
     records: derivePersonalRecords((candidate.data.history as CompletedSetRecord[]) ?? [])
   }
   validateState(data)
@@ -390,6 +432,10 @@ export function parseBackup(raw: string): BackupPreview {
     const migrated = migrateV5(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 6) {
+    const migrated = migrateV6(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
@@ -410,6 +456,7 @@ export function parseBackup(raw: string): BackupPreview {
       planVersions: backup.data.mesocycles.length,
       historyChanges: backup.data.historyMutations.length,
       cycleReviews: backup.data.cycleReviews.length,
+      substitutions: backup.data.substitutionEvents.length,
       athleteName: backup.data.athlete.name,
       exportedAt: backup.exportedAt
     }
@@ -427,6 +474,7 @@ export function backupStateFrom(source: RestorableAppState): RestorableAppState 
     records: structuredClone(source.records),
     historyMutations: structuredClone(source.historyMutations),
     cycleReviews: structuredClone(source.cycleReviews),
+    substitutionEvents: structuredClone(source.substitutionEvents),
     mesocycles: structuredClone(source.mesocycles),
     activeMesocycleId: source.activeMesocycleId,
     activeSessionId: source.activeSessionId,

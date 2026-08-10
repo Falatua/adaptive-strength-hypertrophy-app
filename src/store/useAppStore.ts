@@ -7,6 +7,7 @@ import { backupStateFrom, type RestorableAppState } from '../domain/backup'
 import { buildMesocyclePreview, createMesocyclePlan, replaceFuturePlan } from '../domain/mesocycle-engine'
 import { derivePersonalRecords, historyVolume, projectExerciseMerge } from '../domain/history-engine'
 import { buildCycleReview, buildNextMicrocycle } from '../domain/cycle-review-engine'
+import { rankExerciseSubstitutions } from '../domain/substitution-engine'
 import type {
   AppSettings,
   AthleteProfile,
@@ -14,6 +15,7 @@ import type {
   CycleReviewDecision,
   CycleReviewEvent,
   Exercise,
+  ExerciseSubstitutionEvent,
   HistoryMutationEvent,
   MesocycleDraft,
   MesocyclePlan,
@@ -22,6 +24,7 @@ import type {
   PersonalRecord,
   SurveyAnswer,
   SurveyRecord,
+  SubstitutionReason,
   TrainingSession
 } from '../domain/types'
 
@@ -37,6 +40,7 @@ interface AppState {
   mesocycles: MesocyclePlan[]
   historyMutations: HistoryMutationEvent[]
   cycleReviews: CycleReviewEvent[]
+  substitutionEvents: ExerciseSubstitutionEvent[]
   activeMesocycleId: string | null
   activeSessionId: string | null
   onboardingComplete: boolean
@@ -51,7 +55,7 @@ interface AppState {
   setReadiness: (sessionId: string, answers: SurveyAnswer[], skipped: boolean) => void
   updateSet: (sessionId: string, plannedExerciseId: string, setId: string, data: { reps?: number; load?: number; rir?: number }) => void
   toggleSetComplete: (sessionId: string, plannedExerciseId: string, setId: string) => void
-  swapExercise: (sessionId: string, plannedExerciseId: string, exerciseId: string) => void
+  swapExercise: (sessionId: string, plannedExerciseId: string, exerciseId: string, reason: SubstitutionReason, primaryOverrideConfirmed: boolean) => { ok: boolean; error?: string }
   finishSession: (sessionId: string, feedback: { answers: SurveyAnswer[]; note?: string; skipped: boolean }) => void
   skipExercise: (sessionId: string, plannedExerciseId: string) => void
   markMissed: (sessionId: string, context: MissedSessionReason) => void
@@ -97,6 +101,7 @@ const fresh = () => ({
   mesocycles: structuredClone(seedMesocycles),
   historyMutations: [] as HistoryMutationEvent[],
   cycleReviews: [] as CycleReviewEvent[],
+  substitutionEvents: [] as ExerciseSubstitutionEvent[],
   activeMesocycleId: seedMesocycles[0]?.id ?? null,
   activeSessionId: null,
   onboardingComplete: false,
@@ -160,18 +165,55 @@ export const useAppStore = create<AppState>()(
           })
         })
       })),
-      swapExercise: (sessionId, plannedExerciseId, exerciseId) => set((state) => ({
-        sessions: state.sessions.map((session) => session.id !== sessionId ? session : {
-          ...session,
-          exercises: session.exercises.map((exercise) => exercise.id !== plannedExerciseId ? exercise : {
-            ...exercise,
-            substitutedFrom: exercise.exerciseId,
-            exerciseId,
-            sets: exercise.sets.map((workSet) => ({ ...workSet, completed: false, completedLoad: undefined, completedReps: undefined, actualRir: undefined }))
-          })
-        }),
-        notice: 'Movement changed. The original progression clock remains frozen.'
-      })),
+      swapExercise: (sessionId, plannedExerciseId, exerciseId, reason, primaryOverrideConfirmed) => {
+        const state = get()
+        const session = state.sessions.find((candidate) => candidate.id === sessionId)
+        const planned = session?.exercises.find((candidate) => candidate.id === plannedExerciseId)
+        const original = state.exercises.find((candidate) => candidate.id === planned?.exerciseId)
+        const selected = state.exercises.find((candidate) => candidate.id === exerciseId && !candidate.retired)
+        if (!session || !planned || !original || !selected) return { ok: false, error: 'That substitution is no longer available.' }
+        if (planned.role === 'primary' && !primaryOverrideConfirmed) return { ok: false, error: 'Confirm the protected-primary tradeoff before changing this anchor.' }
+        const ranked = rankExerciseSubstitutions({
+          planned, original, exercises: state.exercises, history: state.history, athlete: state.athlete,
+          readiness: session.readiness ?? 'confirm', reason
+        })
+        const choice = ranked.find((item) => item.candidate.id === exerciseId)
+        if (!choice) return { ok: false, error: 'Choose an eligible active movement.' }
+        const eventId = nanoid()
+        const replacement = {
+          ...planned,
+          substitutedFrom: planned.substitutedFrom ?? original.id,
+          substitutionEventId: eventId,
+          exerciseId: selected.id,
+          sets: structuredClone(choice.prescription),
+          prescriptionMethod: choice.prescriptionMethod,
+          prescriptionNote: choice.prescriptionNote,
+          estimatedMinutes: Math.max(4, Math.ceil(choice.prescription.length * (planned.restSeconds + 45) / 60))
+        }
+        const nextExercises = session.exercises.map((candidate) => candidate.id === plannedExerciseId ? replacement : candidate)
+        const event: ExerciseSubstitutionEvent = {
+          id: eventId, sessionId, plannedExerciseId, originalExerciseId: original.id, selectedExerciseId: selected.id,
+          role: planned.role, purpose: planned.purpose, reason, createdAt: new Date().toISOString(), readiness: session.readiness ?? 'confirm',
+          availableMinutes: session.durationMinutes, equipmentLocation: state.settings.equipmentLocation,
+          primaryOverrideConfirmed: planned.role === 'primary' ? primaryOverrideConfirmed : false,
+          candidates: ranked.slice(0, 6).map((item) => item.snapshot), originalPrescription: structuredClone(planned.sets),
+          replacementPrescription: structuredClone(choice.prescription), prescriptionMethod: choice.prescriptionMethod,
+          prescriptionNote: choice.prescriptionNote, sourceSetIds: [], outcome: 'pending'
+        }
+        set({
+          sessions: state.sessions.map((candidate) => candidate.id === sessionId ? {
+            ...candidate, exercises: nextExercises, durationMinutes: nextExercises.reduce((sum, item) => sum + item.estimatedMinutes, 0)
+          } : candidate),
+          substitutionEvents: [
+            ...state.substitutionEvents.map((prior) => prior.sessionId === sessionId && prior.plannedExerciseId === plannedExerciseId && prior.outcome === 'pending'
+              ? { ...prior, outcome: 'not-completed' as const, completedAt: event.createdAt }
+              : prior),
+            event
+          ],
+          notice: `${selected.name} now owns a ${choice.prescriptionMethod === 'exact-history' ? 'history-based' : 'baseline-calibration'} prescription. ${original.name}'s progression clock remains frozen.`
+        })
+        return { ok: true }
+      },
       finishSession: (sessionId, feedback) => {
         const state = get()
         const session = state.sessions.find((candidate) => candidate.id === sessionId)
@@ -184,17 +226,24 @@ export const useAppStore = create<AppState>()(
         const pain = qualityConfirmed ? Number(painAnswer.value) : 0
         const newHistory: CompletedSetRecord[] = session.exercises.flatMap((plannedExercise) => {
           const exercise = state.exercises.find((candidate) => candidate.id === plannedExercise.exerciseId)
+          const original = plannedExercise.substitutedFrom ? state.exercises.find((candidate) => candidate.id === plannedExercise.substitutedFrom) : undefined
           if (!exercise) return []
           return plannedExercise.sets.flatMap((workSet, setIndex) => workSet.completed ? [{
             id: nanoid(), sessionId, exerciseId: exercise.id, exerciseName: exercise.name, family: exercise.family,
             primaryRegion: exercise.primaryRegion, completedAt, reps: workSet.completedReps ?? workSet.targetReps,
             load: workSet.completedLoad ?? workSet.targetLoad, rir: workSet.actualRir ?? workSet.targetRir,
-            technique, pain, qualityConfirmed, setIndex
+            technique, pain, qualityConfirmed, setIndex, plannedExerciseId: plannedExercise.id,
+            originalExerciseId: original?.id, originalExerciseName: original?.name, originalFamily: original?.family,
+            originalPrimaryRegion: original?.primaryRegion
           }] : [])
         })
         const status = sessionCompletionStatus(session)
         const difficulty = feedback.answers.find((answer) => answer.id === 'difficulty' && answer.status === 'answered')
         const sessionRpe = typeof difficulty?.value === 'number' ? difficulty.value : undefined
+        const feedbackValue = (id: string) => {
+          const answer = feedback.answers.find((candidate) => candidate.id === id && candidate.status === 'answered')
+          return typeof answer?.value === 'number' ? answer.value : null
+        }
         set((current) => {
           const history = [...current.history, ...newHistory]
           return {
@@ -202,6 +251,19 @@ export const useAppStore = create<AppState>()(
           records: derivePersonalRecords(history),
           surveys: [...current.surveys, { id: nanoid(), sessionId, type: 'post', completedAt, answers: feedback.answers, skipped: feedback.skipped }],
           sessions: current.sessions.map((candidate) => candidate.id === sessionId ? { ...candidate, status, completedAt, sessionRpe, note: feedback.note } : candidate),
+          substitutionEvents: current.substitutionEvents.map((event) => {
+            if (event.sessionId !== sessionId || event.outcome !== 'pending') return event
+            const sourceSetIds = newHistory.filter((workSet) => workSet.plannedExerciseId === event.plannedExerciseId && workSet.exerciseId === event.selectedExerciseId).map((workSet) => workSet.id)
+            const expectedSets = event.replacementPrescription.length
+            return {
+              ...event, sourceSetIds, completedAt,
+              outcome: sourceSetIds.length === 0 ? 'not-completed' as const : sourceSetIds.length >= expectedSets ? 'completed' as const : 'partial' as const,
+              postFeedback: {
+                difficulty: feedbackValue('difficulty'), targetStimulus: feedbackValue('targetStimulus'),
+                technique: feedbackValue('technique'), pain: feedbackValue('pain'), enjoyment: feedbackValue('enjoyment'), skipped: feedback.skipped
+              }
+            }
+          }),
           activeSessionId: null,
           nav: 'progress',
           notice: `${newHistory.length} working sets saved. Progress clocks updated from completed work only.`
@@ -233,8 +295,8 @@ export const useAppStore = create<AppState>()(
         const event: HistoryMutationEvent = {
           id: nanoid(), type: 'set-corrected', createdAt: new Date().toISOString(), reason: reason.trim(),
           description: `${workSet.exerciseName}: ${workSet.load} × ${workSet.reps} corrected to ${data.load} × ${data.reps}.`,
-          affectedSetIds: [setId], before: { history: state.history, exercises: state.exercises, sessions: state.sessions },
-          after: { history, exercises: state.exercises, sessions: state.sessions }, recordsBefore: state.records, recordsAfter: records,
+          affectedSetIds: [setId], before: { history: state.history, exercises: state.exercises, sessions: state.sessions, substitutionEvents: state.substitutionEvents },
+          after: { history, exercises: state.exercises, sessions: state.sessions, substitutionEvents: state.substitutionEvents }, recordsBefore: state.records, recordsAfter: records,
           volumeBefore: historyVolume(state.history), volumeAfter: historyVolume(history)
         }
         set({ history, records, historyMutations: [...state.historyMutations, event], notice: `Set corrected. Volume changed by ${(event.volumeAfter - event.volumeBefore).toLocaleString()} and every record was replayed.` })
@@ -247,14 +309,19 @@ export const useAppStore = create<AppState>()(
         if (!reason.trim()) return { ok: false, error: 'Add a short reason so the deletion remains auditable.' }
         const history = state.history.filter((candidate) => candidate.id !== setId)
         const records = derivePersonalRecords(history)
+        const substitutionEvents = state.substitutionEvents.map((event) => {
+          if (!event.sourceSetIds.includes(setId)) return event
+          const sourceSetIds = event.sourceSetIds.filter((sourceId) => sourceId !== setId)
+          return { ...event, sourceSetIds, outcome: sourceSetIds.length === 0 ? 'not-completed' as const : sourceSetIds.length >= event.replacementPrescription.length ? 'completed' as const : 'partial' as const }
+        })
         const event: HistoryMutationEvent = {
           id: nanoid(), type: 'set-deleted', createdAt: new Date().toISOString(), reason: reason.trim(),
           description: `${workSet.exerciseName}: ${workSet.load} × ${workSet.reps} removed from completed history.`,
-          affectedSetIds: [setId], before: { history: state.history, exercises: state.exercises, sessions: state.sessions },
-          after: { history, exercises: state.exercises, sessions: state.sessions }, recordsBefore: state.records, recordsAfter: records,
+          affectedSetIds: [setId], before: { history: state.history, exercises: state.exercises, sessions: state.sessions, substitutionEvents: state.substitutionEvents },
+          after: { history, exercises: state.exercises, sessions: state.sessions, substitutionEvents }, recordsBefore: state.records, recordsAfter: records,
           volumeBefore: historyVolume(state.history), volumeAfter: historyVolume(history)
         }
-        set({ history, records, historyMutations: [...state.historyMutations, event], notice: 'Set removed. Volume, charts, exposure history, and records were replayed.' })
+        set({ history, records, substitutionEvents, historyMutations: [...state.historyMutations, event], notice: 'Set removed. Volume, charts, exposure history, substitution outcomes, and records were replayed.' })
         return { ok: true }
       },
       mergeExercises: (sourceIds, targetId, reason) => {
@@ -268,8 +335,8 @@ export const useAppStore = create<AppState>()(
           const event: HistoryMutationEvent = {
             id: nanoid(), type: 'exercise-merged', createdAt: new Date().toISOString(), reason: reason.trim(),
             description: `${projection.sources.map((exercise) => exercise.name).join(', ')} merged into ${projection.target.name}.`, affectedSetIds,
-            before: { history: state.history, exercises: state.exercises, sessions: state.sessions, athlete: state.athlete },
-            after: { history: projection.history, exercises: projection.exercises, sessions: projection.sessions, athlete: projection.athlete },
+            before: { history: state.history, exercises: state.exercises, sessions: state.sessions, athlete: state.athlete, substitutionEvents: state.substitutionEvents },
+            after: { history: projection.history, exercises: projection.exercises, sessions: projection.sessions, athlete: projection.athlete, substitutionEvents: state.substitutionEvents },
             recordsBefore: state.records, recordsAfter: records, volumeBefore: historyVolume(state.history), volumeAfter: historyVolume(projection.history)
           }
           set({ exercises: projection.exercises, history: projection.history, sessions: projection.sessions, athlete: projection.athlete, records, historyMutations: [...state.historyMutations, event], notice: `${affectedSetIds.length} source sets now share ${projection.target.name}. Original names and an undo snapshot were preserved.` })
@@ -286,6 +353,7 @@ export const useAppStore = create<AppState>()(
         set({
           history: structuredClone(event.before.history), exercises: structuredClone(event.before.exercises), sessions: structuredClone(event.before.sessions),
           athlete: event.before.athlete ? structuredClone(event.before.athlete) : state.athlete,
+          substitutionEvents: event.before.substitutionEvents ? structuredClone(event.before.substitutionEvents) : state.substitutionEvents,
           records: structuredClone(event.recordsBefore), historyMutations,
           notice: `Undid: ${event.description} Charts and records now reflect the restored source data.`
         })
@@ -401,7 +469,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 5,
+      version: 6,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,
@@ -412,6 +480,7 @@ export const useAppStore = create<AppState>()(
         records: state.records,
         historyMutations: state.historyMutations,
         cycleReviews: state.cycleReviews,
+        substitutionEvents: state.substitutionEvents,
         mesocycles: state.mesocycles,
         activeMesocycleId: state.activeMesocycleId,
         activeSessionId: state.activeSessionId,
@@ -431,6 +500,7 @@ export const useAppStore = create<AppState>()(
             recordsAfter: derivePersonalRecords(event.after.history)
           })),
           cycleReviews: persisted.cycleReviews ?? [],
+          substitutionEvents: persisted.substitutionEvents ?? [],
           records: derivePersonalRecords(persisted.history ?? [])
         }
       }

@@ -8,7 +8,7 @@ import { createBackup, parseBackup, type BackupPreview } from '../domain/backup'
 
 export function YouScreen() {
   const {
-    athlete, settings, updateSettings, history, exercises, sessions, surveys, records, mesocycles, historyMutations, cycleReviews,
+    athlete, settings, updateSettings, history, exercises, sessions, surveys, records, mesocycles, historyMutations, cycleReviews, substitutionEvents,
     activeMesocycleId, activeSessionId, onboardingComplete, recoverySnapshot, restoreBackup, undoLastRestore,
     resetDemo, setNotice
   } = useAppStore()
@@ -18,15 +18,15 @@ export function YouScreen() {
   const fileInput = useRef<HTMLInputElement>(null)
 
   const exportData = () => {
-    const payload = createBackup({ athlete, settings, history, exercises, sessions, surveys, records, mesocycles, historyMutations, cycleReviews, activeMesocycleId, activeSessionId, onboardingComplete })
+    const payload = createBackup({ athlete, settings, history, exercises, sessions, surveys, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, activeMesocycleId, activeSessionId, onboardingComplete })
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `forgepath-backup-v6-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `forgepath-backup-v7-${new Date().toISOString().slice(0, 10)}.json`
     anchor.click()
     URL.revokeObjectURL(url)
-    setNotice('Verified version 6 backup created as open JSON, including expanded records, plan, correction, and cycle-review history.')
+    setNotice('Verified version 7 backup created as open JSON, including records, plans, corrections, cycle reviews, and substitution learning.')
   }
 
   const readImport = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -101,7 +101,7 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.6.0 private alpha</strong></li><li><span>Rules</span><strong>0.5 load-first + safe records</strong></li><li><span>Calculations</span><strong>Volume v2 · PR v2</strong></li><li><span>Backup schema</span><strong>Version 6</strong></li><li><span>Persistence</span><strong>Local v5</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.7.0 private alpha</strong></li><li><span>Rules</span><strong>0.7 load-first + substitutions</strong></li><li><span>Calculations</span><strong>Volume v2 · PR v2</strong></li><li><span>Backup schema</span><strong>Version 7</strong></li><li><span>Persistence</span><strong>Local v6</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Reset private alpha</button>
         </aside>
@@ -123,6 +123,7 @@ export function YouScreen() {
             <div><small>Records</small><strong>{importPreview.summary.records}</strong></div>
             <div><small>Plan versions</small><strong>{importPreview.summary.planVersions}</strong></div>
             <div><small>Cycle reviews</small><strong>{importPreview.summary.cycleReviews}</strong></div>
+            <div><small>Substitutions</small><strong>{importPreview.summary.substitutions}</strong></div>
           </div>
           {importPreview.warnings.map((warning) => <div className="warning-box" key={warning}><AlertTriangle size={17} />{warning}</div>)}
           <p className="modal-note">ForgePath will keep one automatic copy of your current local state so this restore can be undone. Exporting the current state first remains the safest long-term backup.</p>

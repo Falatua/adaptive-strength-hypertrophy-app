@@ -26,6 +26,7 @@ const state = (): RestorableAppState => ({
   records: structuredClone(records),
   historyMutations: [],
   cycleReviews: [],
+  substitutionEvents: [],
   mesocycles: structuredClone(mesocycles),
   activeMesocycleId: mesocycles[0].id,
   activeSessionId: null,
@@ -42,6 +43,7 @@ describe('versioned backup and restore', () => {
     expect(parsed.summary.planVersions).toBe(1)
     expect(parsed.summary.historyChanges).toBe(0)
     expect(parsed.summary.cycleReviews).toBe(0)
+    expect(parsed.summary.substitutions).toBe(0)
     expect(parsed.warnings).toEqual([])
   })
 
@@ -170,6 +172,44 @@ describe('versioned backup and restore', () => {
     expect(parsed.backup.data.records.some((record) => record.type === 'set-scheme')).toBe(true)
     expect(parsed.backup.data.settings).toMatchObject({ celebrationLevel: 'subtle', opportunityPrompts: true, quietMode: false })
     expect(parsed.warnings[0]).toMatch(/version 5/i)
+  })
+
+  it('migrates a verified version 6 backup without inventing substitution evidence', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    delete legacyData.substitutionEvents
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 6, appVersion: '0.6.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.substitutionEvents).toEqual([])
+    expect(parsed.warnings[0]).toMatch(/version 6/i)
+  })
+
+  it('round-trips a source-ready substitution event without losing its decision context', () => {
+    const current = state()
+    const session = current.sessions[0]
+    const planned = session.exercises[0]
+    const original = current.exercises.find((exercise) => exercise.id === planned.exerciseId)!
+    const selected = current.exercises.find((exercise) => exercise.id === 'coffin-press')!
+    const eventId = 'substitution-event-1'
+    planned.substitutionEventId = eventId
+    planned.exerciseId = selected.id
+    planned.substitutedFrom = original.id
+    planned.prescriptionMethod = 'baseline-calibration'
+    planned.prescriptionNote = 'Conservative calibration; original load was not copied.'
+    planned.sets = planned.sets.slice(0, 2).map((workSet) => ({ ...workSet, targetLoad: 0, targetRir: 3 }))
+    current.substitutionEvents = [{
+      id: eventId, sessionId: session.id, plannedExerciseId: planned.id, originalExerciseId: original.id, selectedExerciseId: selected.id,
+      role: 'primary', purpose: planned.purpose, reason: 'equipment', createdAt: '2026-08-10T12:00:00.000Z', readiness: 'confirm',
+      availableMinutes: 60, equipmentLocation: 'Commercial Gym', primaryOverrideConfirmed: true,
+      candidates: [{ exerciseId: selected.id, exerciseName: selected.name, rank: 1, score: 14, tier: 'best-match', reasons: ['changes the required equipment'], preserves: 'primary chest work', changes: 'exact progression clock', lastExposureAt: null, priorSetCount: 0 }],
+      originalPrescription: structuredClone(sessions[0].exercises[0].sets), replacementPrescription: structuredClone(planned.sets),
+      prescriptionMethod: 'baseline-calibration', prescriptionNote: planned.prescriptionNote, sourceSetIds: [], outcome: 'pending'
+    }]
+    const parsed = parseBackup(JSON.stringify(createBackup(current)))
+    expect(parsed.summary.substitutions).toBe(1)
+    expect(parsed.backup.data.substitutionEvents[0]).toMatchObject({ reason: 'equipment', primaryOverrideConfirmed: true, prescriptionMethod: 'baseline-calibration' })
   })
 
   it('creates an isolated restore snapshot', () => {

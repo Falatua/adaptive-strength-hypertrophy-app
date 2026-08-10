@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, ChevronRight, Clock3, Dumbbell, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, Search, ShieldCheck, Star, Target, Trash2, Undo2 } from 'lucide-react'
+import { AlertTriangle, ChevronRight, Clock3, Dumbbell, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Star, Target, Trash2, Undo2 } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { duplicateCandidates, volumeLoad } from '../domain/training-engine'
 import { findExerciseDuplicatePairs } from '../domain/history-engine'
@@ -13,7 +13,7 @@ const regionFilters: { id: BodyRegion | 'all'; label: string }[] = [
 ]
 
 export function LibraryScreen() {
-  const { exercises, history, historyMutations, toggleFavorite, setJointFeeling, addCustomExercise, correctHistorySet, deleteHistorySet, mergeExercises, undoLatestHistoryMutation, setNotice } = useAppStore()
+  const { exercises, history, historyMutations, substitutionEvents, toggleFavorite, setJointFeeling, addCustomExercise, correctHistorySet, deleteHistorySet, mergeExercises, undoLatestHistoryMutation, setNotice } = useAppStore()
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState<BodyRegion | 'all'>('all')
   const [selected, setSelected] = useState<Exercise | null>(null)
@@ -177,6 +177,18 @@ export function LibraryScreen() {
       <section className="panel mutation-ledger">
         <div className="panel__header"><div><p className="eyebrow">Auditable history</p><h3>Correction and merge ledger</h3></div>{historyMutations.some((event) => !event.undoneAt) && <button className="button button--secondary" onClick={() => { const result = undoLatestHistoryMutation(); if (!result.ok) setNotice(result.error ?? 'Nothing to undo.') }}><Undo2 size={16} /> Undo latest change</button>}</div>
         {historyMutations.length ? <div className="mutation-list">{[...historyMutations].reverse().slice(0, 6).map((event) => <div key={event.id} className={event.undoneAt ? 'is-undone' : ''}><span className="record-medal">{event.type === 'exercise-merged' ? '↗' : event.type === 'set-deleted' ? '−' : '±'}</span><span><strong>{event.description}</strong><small>{event.reason} · {new Date(event.createdAt).toLocaleString()}{event.undoneAt ? ' · undone' : ''}</small></span><span>{event.volumeAfter - event.volumeBefore >= 0 ? '+' : ''}{(event.volumeAfter - event.volumeBefore).toLocaleString()} volume</span></div>)}</div> : <div className="compact-empty"><ShieldCheck size={24} /><strong>No history changes yet</strong><p>Corrections, deletions, and merges will appear here with their reasons and consequences.</p></div>}
+      </section>
+
+      <section className="panel substitution-ledger">
+        <div className="panel__header"><div><p className="eyebrow">Preference and outcome memory</p><h3>Exercise substitution ledger</h3></div><RefreshCcw size={19} /></div>
+        {substitutionEvents.length ? <div className="substitution-event-list">{[...substitutionEvents].reverse().slice(0, 8).map((event) => {
+          const original = exercises.find((exercise) => exercise.id === event.originalExerciseId)
+          const selectedExercise = exercises.find((exercise) => exercise.id === event.selectedExerciseId)
+          return <article key={event.id}>
+            <span className={`substitution-outcome substitution-outcome--${event.outcome}`}>{event.outcome.replace('-', ' ')}</span>
+            <div><strong>{original?.name ?? 'Unknown movement'} <ChevronRight size={14} /> {selectedExercise?.name ?? 'Unknown movement'}</strong><small>{event.role} · reason: {event.reason === 'none' ? 'not provided' : event.reason.replace('-', ' ')} · {new Date(event.createdAt).toLocaleString()}</small><p>{event.prescriptionNote}</p><small>{event.sourceSetIds.length} completed source set{event.sourceSetIds.length === 1 ? '' : 's'} · {event.prescriptionMethod.replace('-', ' ')}{event.postFeedback && !event.postFeedback.skipped ? ` · stimulus ${event.postFeedback.targetStimulus ?? 'unknown'} · pain ${event.postFeedback.pain ?? 'unknown'} · enjoyment ${event.postFeedback.enjoyment ?? 'unknown'}` : ' · feedback unknown'}</small></div>
+          </article>
+        })}</div> : <div className="compact-empty"><RefreshCcw size={25} /><strong>No substitutions yet</strong><p>Movement changes will appear here with the reason, ranked alternatives, recalculated prescription, completed source sets, and available feedback.</p></div>}
       </section>
 
       <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add a distinct movement" description="ForgePath checks names, aliases, and exercise families before creating another history.">
