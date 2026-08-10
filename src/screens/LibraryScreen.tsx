@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
-import { AlertTriangle, ChevronRight, Clock3, Dumbbell, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Star, Target, Trash2, Undo2 } from 'lucide-react'
+import { useMemo, useState, type ChangeEvent } from 'react'
+import { AlertTriangle, ChevronRight, Clock3, Download, Dumbbell, FileCheck2, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Star, Target, Trash2, Undo2, Upload } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { duplicateCandidates, volumeLoad } from '../domain/training-engine'
 import { findExerciseDuplicateGroups } from '../domain/catalog-engine'
+import { buildTrainingHistoryImport, parseTrainingHistoryCsv, type ImportUnit, type TrainingHistoryImportPreview } from '../domain/import-engine'
 import type { BodyRegion, CompletedSetRecord, Exercise, MovementPattern } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
@@ -13,7 +14,7 @@ const regionFilters: { id: BodyRegion | 'all'; label: string }[] = [
 ]
 
 export function LibraryScreen() {
-  const { exercises, history, historyMutations, substitutionEvents, toggleFavorite, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, undoLatestHistoryMutation, setNotice } = useAppStore()
+  const { exercises, history, historyMutations, substitutionEvents, settings, toggleFavorite, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, undoLatestHistoryMutation, setNotice } = useAppStore()
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState<BodyRegion | 'all'>('all')
   const [selected, setSelected] = useState<Exercise | null>(null)
@@ -33,6 +34,11 @@ export function LibraryScreen() {
   const [catalogEdit, setCatalogEdit] = useState<Exercise | null>(null)
   const [catalogValues, setCatalogValues] = useState({ name: '', family: '', aliases: '', pattern: 'horizontal-push' as MovementPattern, primaryRegion: 'chest' as BodyRegion, equipment: '', description: '', reason: '' })
   const [formError, setFormError] = useState<string | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importUnits, setImportUnits] = useState<ImportUnit>(settings.units)
+  const [importPreview, setImportPreview] = useState<TrainingHistoryImportPreview | null>(null)
+  const [importMappings, setImportMappings] = useState<Record<string, string>>({})
+  const [importError, setImportError] = useState<string | null>(null)
 
   const filtered = useMemo(() => exercises.filter((exercise) => {
     if (exercise.retired) return false
@@ -152,11 +158,59 @@ export function LibraryScreen() {
     setNotice('Custom movement added with its own canonical history.')
   }
 
+  const openImport = () => {
+    setImportOpen(true)
+    setImportUnits(settings.units)
+    setImportPreview(null)
+    setImportMappings({})
+    setImportError(null)
+  }
+
+  const readImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    try {
+      const preview = parseTrainingHistoryCsv({ raw: await file.text(), sourceName: file.name, sourceUnits: importUnits, appUnits: settings.units, exercises, existingHistory: history })
+      setImportPreview(preview)
+      setImportMappings(Object.fromEntries(preview.mappings.flatMap((mapping) => mapping.exactExerciseId ? [[mapping.sourceExerciseName, mapping.exactExerciseId]] : [])))
+      setImportError(preview.errors.length ? 'Fix the source file and choose it again. No rows have been imported.' : null)
+    } catch (error) {
+      setImportPreview(null)
+      setImportMappings({})
+      setImportError(error instanceof Error ? error.message : 'The training-history file could not be read.')
+    }
+  }
+
+  const commitImport = () => {
+    if (!importPreview) return
+    try {
+      const projection = buildTrainingHistoryImport({ preview: importPreview, exerciseMappings: importMappings, exercises, existingHistory: history, batchId: nanoid(8) })
+      const result = importCompletedHistory(projection.records, importPreview.sourceName, projection.skippedDuplicates)
+      if (!result.ok) return setImportError(result.error ?? 'The validated history could not be imported.')
+      setImportOpen(false)
+      setImportPreview(null)
+      setImportMappings({})
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'The validated history could not be imported.')
+    }
+  }
+
+  const downloadImportTemplate = () => {
+    const blob = new Blob(['date,exercise,load,reps,rir,session\n2026-08-01,Competition Bench Press,185,6,2,Upper A\n'], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = 'forgepath-history-template.csv'
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="screen">
       <header className="screen-header">
         <div><p className="eyebrow">Canonical exercise knowledge</p><h1>One movement. One history.</h1><p>Browse by body part, movement type, role, goal, equipment, and personal response without fragmenting progression.</p></div>
-        <div className="screen-header__actions"><button className="button button--secondary" onClick={() => setQualityOpen(true)}><ListChecks size={17} /> Data quality {duplicateGroups.length ? `(${duplicateGroups.length})` : ''}</button><button className="button button--primary" onClick={() => setAddOpen(true)}><Plus size={17} /> Add movement</button></div>
+        <div className="screen-header__actions"><button className="button button--secondary" onClick={openImport}><Upload size={17} /> Import history</button><button className="button button--secondary" onClick={() => setQualityOpen(true)}><ListChecks size={17} /> Data quality {duplicateGroups.length ? `(${duplicateGroups.length})` : ''}</button><button className="button button--primary" onClick={() => setAddOpen(true)}><Plus size={17} /> Add movement</button></div>
       </header>
 
       <section className="library-categories">
@@ -210,7 +264,7 @@ export function LibraryScreen() {
             <div className="catalog-control"><span><Pencil size={17} /><span><strong>{selected.custom ? 'Edit movement identity' : 'Manage search aliases'}</strong><small>{selected.custom ? 'Name, family, equipment, and body-part metadata can change without changing this movement’s history ID.' : 'The built-in taxonomy stays protected, but you can add the names you personally use.'}</small></span></span><button className="button button--secondary" onClick={() => openCatalogEdit(selected)}>Edit catalog</button></div>
             <div className="joint-picker"><span><Heart size={17} /><strong>How this feels on your joints</strong></span><div>{(['great', 'good', 'neutral', 'irritating', 'avoid'] as const).map((feeling) => <button key={feeling} className={selected.jointFeeling === feeling ? 'selected' : ''} onClick={() => { setJointFeeling(selected.id, feeling); setSelected({ ...selected, jointFeeling: feeling }) }}>{feeling}</button>)}</div></div>
             <section><div className="panel__header"><div><p className="eyebrow">Exact movement only</p><h3>Exposure history</h3></div><History size={18} /></div>
-              <div className="history-table history-table--editable">{Object.entries(groupedDates).slice(0, 8).map(([date, sets]) => <div className="history-day" key={date}><span><Clock3 size={14} />{new Date(`${date}T12:00:00`).toLocaleDateString()} · {volumeLoad(sets).toLocaleString()} volume</span>{sets.map((workSet) => <div className="history-set-row" key={workSet.id}><span><strong>{workSet.load} × {workSet.reps}</strong><small>Set {workSet.setIndex + 1} · {workSet.rir} RIR · {workSet.qualityConfirmed ? `technique ${workSet.technique} · pain ${workSet.pain}` : 'quality not confirmed'}</small>{workSet.originalExerciseName && <small>Originally logged as {workSet.originalExerciseName}</small>}</span><span><button aria-label={`Correct ${workSet.load} by ${workSet.reps} set`} onClick={() => openCorrection(workSet)}><Pencil size={15} /> Correct</button><button className="danger-link" aria-label={`Delete ${workSet.load} by ${workSet.reps} set`} onClick={() => { setSelected(null); setDeleteOpen(workSet); setDeleteReason(''); setFormError(null) }}><Trash2 size={15} /> Delete</button></span></div>)}</div>)}</div>
+              <div className="history-table history-table--editable">{Object.entries(groupedDates).slice(0, 8).map(([date, sets]) => <div className="history-day" key={date}><span><Clock3 size={14} />{new Date(`${date}T12:00:00`).toLocaleDateString()} · {volumeLoad(sets).toLocaleString()} volume</span>{sets.map((workSet) => <div className="history-set-row" key={workSet.id}><span><strong>{workSet.load} × {workSet.reps}</strong><small>Set {workSet.setIndex + 1} · {workSet.rirKnown === false ? 'RIR unknown' : `${workSet.rir} RIR`} · {workSet.qualityConfirmed ? `technique ${workSet.technique} · pain ${workSet.pain}` : 'quality not confirmed'}</small>{workSet.originalExerciseName && <small>Originally logged as {workSet.originalExerciseName}{workSet.importSourceName ? ` · ${workSet.importSourceName} row ${workSet.importRow}` : ''}</small>}</span><span><button aria-label={`Correct ${workSet.load} by ${workSet.reps} set`} onClick={() => openCorrection(workSet)}><Pencil size={15} /> Correct</button><button className="danger-link" aria-label={`Delete ${workSet.load} by ${workSet.reps} set`} onClick={() => { setSelected(null); setDeleteOpen(workSet); setDeleteReason(''); setFormError(null) }}><Trash2 size={15} /> Delete</button></span></div>)}</div>)}</div>
             </section>
             <div className="builder-callout"><Target size={21} /><div><strong>Builder relationship</strong><p>{selected.roleTags.includes('secondary builder') ? 'This movement is currently linked to a protected strength anchor. Transfer remains a personal hypothesis until repeated outcomes support it.' : 'No protected builder relationship has been assigned yet.'}</p></div></div>
           </div>
@@ -219,7 +273,7 @@ export function LibraryScreen() {
 
       <section className="panel mutation-ledger">
         <div className="panel__header"><div><p className="eyebrow">Auditable data</p><h3>History and catalog ledger</h3></div>{historyMutations.some((event) => !event.undoneAt) && <button className="button button--secondary" onClick={() => { const result = undoLatestHistoryMutation(); if (!result.ok) setNotice(result.error ?? 'Nothing to undo.') }}><Undo2 size={16} /> Undo latest change</button>}</div>
-        {historyMutations.length ? <div className="mutation-list">{[...historyMutations].reverse().slice(0, 6).map((event) => <div key={event.id} className={event.undoneAt ? 'is-undone' : ''}><span className="record-medal">{event.type === 'exercise-merged' ? '↗' : event.type === 'exercise-edited' ? 'A' : event.type === 'set-deleted' ? '−' : '±'}</span><span><strong>{event.description}</strong><small>{event.reason} · {new Date(event.createdAt).toLocaleString()}{event.undoneAt ? ' · undone' : ''}</small></span><span>{event.volumeAfter - event.volumeBefore >= 0 ? '+' : ''}{(event.volumeAfter - event.volumeBefore).toLocaleString()} volume</span></div>)}</div> : <div className="compact-empty"><ShieldCheck size={24} /><strong>No data changes yet</strong><p>Catalog edits, corrections, deletions, and merges will appear here with their reasons and consequences.</p></div>}
+        {historyMutations.length ? <div className="mutation-list">{[...historyMutations].reverse().slice(0, 6).map((event) => <div key={event.id} className={event.undoneAt ? 'is-undone' : ''}><span className="record-medal">{event.type === 'history-imported' ? 'I' : event.type === 'exercise-merged' ? '↗' : event.type === 'exercise-edited' ? 'A' : event.type === 'set-deleted' ? '−' : '±'}</span><span><strong>{event.description}</strong><small>{event.reason} · {new Date(event.createdAt).toLocaleString()}{event.undoneAt ? ' · undone' : ''}</small></span><span>{event.volumeAfter - event.volumeBefore >= 0 ? '+' : ''}{(event.volumeAfter - event.volumeBefore).toLocaleString()} volume</span></div>)}</div> : <div className="compact-empty"><ShieldCheck size={24} /><strong>No data changes yet</strong><p>Imports, catalog edits, corrections, deletions, and merges will appear here with their reasons and consequences.</p></div>}
       </section>
 
       <section className="panel substitution-ledger">
@@ -233,6 +287,34 @@ export function LibraryScreen() {
           </article>
         })}</div> : <div className="compact-empty"><RefreshCcw size={25} /><strong>No substitutions yet</strong><p>Movement changes will appear here with the reason, ranked alternatives, recalculated prescription, completed source sets, and available feedback.</p></div>}
       </section>
+
+      <Modal open={importOpen} onClose={() => setImportOpen(false)} title="Import completed history" description="Preview every row and map source names to one canonical movement before anything changes." wide>
+        <div className="import-intro"><FileCheck2 size={23} /><span><strong>Source-safe CSV import</strong><p>Required columns: date, exercise, load, reps. Optional: RIR and session. Dates must use YYYY-MM-DD or an ISO date and time. Imported numbers remain unverified until quality is explicitly confirmed later.</p></span></div>
+        <div className="import-controls">
+          <label><span className="field-label">Source load unit</span><select aria-label="Source load unit" value={importUnits} onChange={(event) => { setImportUnits(event.target.value as ImportUnit); setImportPreview(null); setImportMappings({}); setImportError(null) }}><option value="lb">Pounds</option><option value="kg">Kilograms</option></select></label>
+          <label className="button button--primary import-file-button"><Upload size={17} /> {importPreview ? 'Choose another CSV' : 'Choose CSV'}<input aria-label="Training history CSV" type="file" accept=".csv,text/csv" onChange={readImportFile} /></label>
+          <button className="button button--ghost" onClick={downloadImportTemplate}><Download size={17} /> Template</button>
+        </div>
+        {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Import not ready</strong>{importError}</span></div>}
+        {importPreview && <>
+          <div className="import-summary">
+            <div><small>Source rows</small><strong>{importPreview.rows.length}</strong></div>
+            <div><small>Movement names</small><strong>{importPreview.mappings.length}</strong></div>
+            <div><small>Date range</small><strong>{importPreview.earliestDate ? `${new Date(importPreview.earliestDate).toLocaleDateString()} to ${new Date(importPreview.latestDate!).toLocaleDateString()}` : 'None'}</strong></div>
+            <div><small>Already imported</small><strong>{importPreview.duplicateFingerprints.length}</strong></div>
+          </div>
+          {importPreview.convertedLoads > 0 && <p className="catalog-trust-note"><ShieldCheck size={16} /> {importPreview.convertedLoads} load value{importPreview.convertedLoads === 1 ? '' : 's'} will convert from {importPreview.sourceUnits} to your {importPreview.appUnits} setting and round to one decimal place.</p>}
+          {importPreview.errors.length > 0 && <div className="import-row-errors"><strong>{importPreview.errors.length} row issue{importPreview.errors.length === 1 ? '' : 's'}</strong>{importPreview.errors.slice(0, 8).map((error) => <p key={error}>{error}</p>)}{importPreview.errors.length > 8 && <p>And {importPreview.errors.length - 8} more.</p>}</div>}
+          <section className="import-mapping-section"><div className="panel__header"><div><p className="eyebrow">Canonical identity review</p><h3>Map each source movement</h3></div><ShieldCheck size={19} /></div>
+            <div className="import-mapping-list">{importPreview.mappings.map((mapping) => {
+              const suggestion = activeExercises.find((exercise) => exercise.id === mapping.suggestedExerciseId)
+              return <label key={mapping.sourceExerciseName} className={`import-mapping import-mapping--${mapping.status}`}><span><strong>{mapping.sourceExerciseName}</strong><small>{mapping.rowCount} set{mapping.rowCount === 1 ? '' : 's'} · {mapping.status === 'exact' ? 'exact canonical or alias match' : mapping.status === 'review' ? `${Math.round((mapping.suggestedScore ?? 0) * 100)}% possible match${suggestion ? ` to ${suggestion.name}` : ''}` : 'no deterministic match'}</small></span><select aria-label={`Map ${mapping.sourceExerciseName}`} value={importMappings[mapping.sourceExerciseName] ?? ''} onChange={(event) => setImportMappings({ ...importMappings, [mapping.sourceExerciseName]: event.target.value })}><option value="">Choose canonical movement</option>{[...activeExercises].sort((a, b) => a.name.localeCompare(b.name)).map((exercise) => <option key={exercise.id} value={exercise.id}>{exercise.name}</option>)}</select></label>
+            })}</div>
+          </section>
+          <div className="import-boundary"><AlertTriangle size={18} /><span><strong>Nothing is inferred silently.</strong><p>Uncertain names require your choice. Re-imported row fingerprints are skipped. Imported sets keep their original name, source file, row number, date, and unit, but they do not count as stored-plan completion.</p></span></div>
+        </>}
+        <div className="modal__actions"><button className="button button--ghost" onClick={() => setImportOpen(false)}>Cancel</button><button className="button button--primary" disabled={!importPreview || importPreview.errors.length > 0 || importPreview.mappings.some((mapping) => !importMappings[mapping.sourceExerciseName])} onClick={commitImport}><FileCheck2 size={17} /> Import validated sets</button></div>
+      </Modal>
 
       <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add a distinct movement" description="ForgePath checks names, aliases, and exercise families before creating another history.">
         <label className="field-label" htmlFor="custom-name">Movement name</label><input id="custom-name" value={customName} onChange={(event) => setCustomName(event.target.value)} placeholder="Example: Incline Bench Press" />

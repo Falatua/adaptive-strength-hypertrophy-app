@@ -17,7 +17,7 @@ import { summarizeSurveyEvidence } from './survey-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
 export const BACKUP_SCHEMA_VERSION = 10
-export const BACKUP_APP_VERSION = '0.13.0'
+export const BACKUP_APP_VERSION = '0.14.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode'> = {
   celebrationLevel: 'subtle',
@@ -196,6 +196,9 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
     if (!isValidDate(workSet.completedAt)) errors.push('A completed set has an invalid date.')
     if (!isFiniteNonNegative(workSet.reps) || !isFiniteNonNegative(workSet.load) || !isFiniteNonNegative(workSet.rir)) errors.push('A completed set has invalid numeric training data.')
     if (workSet.qualityConfirmed !== undefined && typeof workSet.qualityConfirmed !== 'boolean') errors.push('A completed set has an invalid quality-confirmation state.')
+    if (workSet.rirKnown !== undefined && typeof workSet.rirKnown !== 'boolean') errors.push('A completed set has an invalid RIR missingness state.')
+    const hasImportMetadata = ['importBatchId', 'importRow', 'importSourceName', 'importFingerprint', 'importUnits'].some((key) => workSet[key] !== undefined)
+    if (hasImportMetadata && (typeof workSet.importBatchId !== 'string' || !Number.isInteger(workSet.importRow) || Number(workSet.importRow) < 2 || typeof workSet.importSourceName !== 'string' || typeof workSet.importFingerprint !== 'string' || !['lb', 'kg'].includes(String(workSet.importUnits)))) errors.push('An imported completed set has incomplete source provenance.')
   })
 
   sessions.forEach((session) => {
@@ -257,7 +260,7 @@ function validateState(candidate: unknown): asserts candidate is RestorableAppSt
   if (stableStringify(records) !== stableStringify(derivePersonalRecords(history as CompletedSetRecord[]))) errors.push('Personal records do not match the completed source sets.')
 
   historyMutations.forEach((event) => {
-    if (!isRecord(event) || !['set-corrected', 'set-deleted', 'exercise-merged', 'exercise-edited'].includes(String(event.type)) || !isValidDate(event.createdAt) || typeof event.reason !== 'string' || !Array.isArray(event.affectedSetIds) || !isRecord(event.before) || !isRecord(event.after) || !Array.isArray(event.recordsBefore) || !Array.isArray(event.recordsAfter) || !isFiniteNonNegative(event.volumeBefore) || !isFiniteNonNegative(event.volumeAfter)) errors.push('A history change is invalid.')
+    if (!isRecord(event) || !['set-corrected', 'set-deleted', 'exercise-merged', 'exercise-edited', 'history-imported'].includes(String(event.type)) || !isValidDate(event.createdAt) || typeof event.reason !== 'string' || !Array.isArray(event.affectedSetIds) || !isRecord(event.before) || !isRecord(event.after) || !Array.isArray(event.recordsBefore) || !Array.isArray(event.recordsAfter) || !isFiniteNonNegative(event.volumeBefore) || !isFiniteNonNegative(event.volumeAfter)) errors.push('A history change is invalid.')
     if (isRecord(event) && event.undoneAt !== undefined && !isValidDate(event.undoneAt)) errors.push('A history change has an invalid undo date.')
     if (isRecord(event) && isRecord(event.before) && isRecord(event.after) && Array.isArray(event.before.history) && Array.isArray(event.after.history) && (stableStringify(event.recordsBefore) !== stableStringify(derivePersonalRecords(event.before.history as CompletedSetRecord[])) || stableStringify(event.recordsAfter) !== stableStringify(derivePersonalRecords(event.after.history as CompletedSetRecord[])))) errors.push('A history change record projection does not match its source snapshots.')
   })

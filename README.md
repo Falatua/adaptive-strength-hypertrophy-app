@@ -1,4 +1,4 @@
-# ForgePath Private Alpha 0.13.0
+# ForgePath Private Alpha 0.14.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
@@ -31,8 +31,8 @@ npm run test:e2e
 
 ## Current verification
 
-- 78 deterministic domain tests
-- eighteen desktop and phone browser journeys for source-backed records, in-workout achievement feedback, quiet controls, explainable substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, governed catalog edits, grouped duplicate cleanup, persistence, console integrity, and horizontal containment
+- 84 deterministic domain tests
+- twenty desktop and phone browser journeys for source-backed records, validated CSV history import, in-workout achievement feedback, quiet controls, explainable substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, governed catalog edits, grouped duplicate cleanup, persistence, console integrity, and horizontal containment
 - lint clean
 - production PWA build clean
 - desktop and 390 px phone browser journeys checked
@@ -47,6 +47,7 @@ npm run test:e2e
 - exact name and alias collisions are blocked before save, likely related variations remain reviewable, and historical completed-set names are never silently rewritten
 - exact duplicate creation requires a meaningful distinction before a separate identity can be saved
 - connected duplicate pairs become one review group, allowing several accidental copies to retire into one athlete-selected canonical identity in a single reversible event
+- completed-history CSV import previews every row, auto-maps only exact names or aliases, requires athlete review of uncertain identities, converts units visibly, preserves source provenance, skips occurrence-aware re-import duplicates, keeps imported quality unverified, and supports one-step undo
 - criterion-based exposure-round review supports hold, progress, extension, recovery, completion, and pivot into a new plan version without rewriting completed work
 - PR v2 separates absolute load, repetitions at load, load for repetitions, exact set schemes, estimated strength, exact-movement session volume, and workout volume
 - deterministic achievement replay reveals personal records, micro wins, baselines, quality wins, return wins, and consistency without adding work to the prescription

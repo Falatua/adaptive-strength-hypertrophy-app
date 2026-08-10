@@ -241,6 +241,37 @@ describe('versioned backup and restore', () => {
     expect(parsed.backup.data.exercises.find((exercise) => exercise.id === 'competition-bench')?.aliases).toContain('Meet Bench')
   })
 
+  it('round-trips an imported source set and rejects incomplete import provenance', () => {
+    const current = state()
+    const beforeHistory = structuredClone(current.history)
+    const imported = {
+      ...structuredClone(current.history[0]),
+      id: 'import-set-backup-2', sessionId: 'import-session-backup-2026-01-05-uppera', completedAt: '2026-01-05T20:00:00.000Z',
+      exerciseName: 'Competition Bench Press', originalExerciseId: 'competition-bench', originalExerciseName: 'Bench',
+      load: 185, reps: 5, rir: 0, rirKnown: false, technique: 0, pain: 0, qualityConfirmed: false, setIndex: 0,
+      importBatchId: 'backup', importRow: 2, importSourceName: 'notebook.csv', importFingerprint: 'fingerprint|occurrence:1', importUnits: 'lb' as const
+    }
+    current.history = [...current.history, imported]
+    current.records = derivePersonalRecords(current.history)
+    current.historyMutations = [{
+      id: 'history-import-1', type: 'history-imported', createdAt: '2026-08-10T12:00:00.000Z', reason: 'Validated CSV import from notebook.csv',
+      description: '1 completed set imported from notebook.csv.', affectedSetIds: [imported.id],
+      before: { history: beforeHistory, exercises: structuredClone(current.exercises), sessions: structuredClone(current.sessions) },
+      after: { history: structuredClone(current.history), exercises: structuredClone(current.exercises), sessions: structuredClone(current.sessions) },
+      recordsBefore: derivePersonalRecords(beforeHistory), recordsAfter: derivePersonalRecords(current.history),
+      volumeBefore: historyVolume(beforeHistory), volumeAfter: historyVolume(current.history)
+    }]
+    const parsed = parseBackup(JSON.stringify(createBackup(current)))
+    expect(parsed.backup.data.history.at(-1)).toMatchObject({ importSourceName: 'notebook.csv', originalExerciseName: 'Bench', rirKnown: false })
+    expect(parsed.backup.data.historyMutations[0]).toMatchObject({ type: 'history-imported', affectedSetIds: ['import-set-backup-2'] })
+
+    delete (current.history.at(-1) as Partial<typeof imported>).importFingerprint
+    current.records = derivePersonalRecords(current.history)
+    current.historyMutations[0].after.history = structuredClone(current.history)
+    current.historyMutations[0].recordsAfter = derivePersonalRecords(current.history)
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/incomplete source provenance/i)
+  })
+
   it('preserves explicit unknown survey answers and rejects fabricated unknown values', () => {
     const current = state()
     current.surveys = [{

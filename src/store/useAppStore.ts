@@ -74,6 +74,7 @@ interface AppState {
   correctHistorySet: (setId: string, data: Pick<CompletedSetRecord, 'reps' | 'load' | 'rir' | 'technique' | 'pain' | 'qualityConfirmed' | 'completedAt'>, reason: string) => { ok: boolean; error?: string }
   deleteHistorySet: (setId: string, reason: string) => { ok: boolean; error?: string }
   mergeExercises: (sourceIds: string[], targetId: string, reason: string) => { ok: boolean; error?: string }
+  importCompletedHistory: (records: CompletedSetRecord[], sourceName: string, skippedDuplicates: number) => { ok: boolean; error?: string }
   undoLatestHistoryMutation: () => { ok: boolean; error?: string }
   applyMesocycleRevision: (draft: MesocycleDraft) => { ok: boolean; error?: string }
   applyCycleReview: (decision: CycleReviewDecision, reason: string) => { ok: boolean; error?: string }
@@ -409,7 +410,7 @@ export const useAppStore = create<AppState>()(
         if (!reason.trim()) return { ok: false, error: 'Add a short reason so the correction remains auditable.' }
         if ([data.reps, data.load, data.rir, data.technique, data.pain].some((value) => !Number.isFinite(value) || value < 0)) return { ok: false, error: 'Use valid zero-or-greater numbers.' }
         if (Number.isNaN(new Date(data.completedAt).getTime())) return { ok: false, error: 'Use a valid completion date.' }
-        const history = state.history.map((candidate) => candidate.id === setId ? { ...candidate, ...data } : candidate)
+        const history = state.history.map((candidate) => candidate.id === setId ? { ...candidate, ...data, rirKnown: true } : candidate)
         const records = derivePersonalRecords(history)
         const event: HistoryMutationEvent = {
           id: nanoid(), type: 'set-corrected', createdAt: new Date().toISOString(), reason: reason.trim(),
@@ -463,6 +464,38 @@ export const useAppStore = create<AppState>()(
         } catch (error) {
           return { ok: false, error: error instanceof Error ? error.message : 'The movements could not be merged.' }
         }
+      },
+      importCompletedHistory: (importedRecords, sourceName, skippedDuplicates) => {
+        const state = get()
+        if (state.activeSessionId) return { ok: false, error: 'Finish or leave the active workout before importing history.' }
+        if (!sourceName.trim()) return { ok: false, error: 'The import source name is missing.' }
+        if (importedRecords.length === 0) {
+          set({ notice: skippedDuplicates ? `No sets added. All ${skippedDuplicates} rows already exist from an earlier import.` : 'No completed sets were available to import.' })
+          return { ok: true }
+        }
+        const existingSetIds = new Set(state.history.map((workSet) => workSet.id))
+        const activeExerciseIds = new Set(state.exercises.filter((exercise) => !exercise.retired).map((exercise) => exercise.id))
+        if (importedRecords.some((workSet) => existingSetIds.has(workSet.id))) return { ok: false, error: 'This import would reuse an existing source-set ID.' }
+        if (importedRecords.some((workSet) => !activeExerciseIds.has(workSet.exerciseId))) return { ok: false, error: 'Every imported row must map to an active canonical movement.' }
+        if (importedRecords.some((workSet) => !workSet.importBatchId || !workSet.importFingerprint || !workSet.importSourceName || !Number.isInteger(workSet.importRow))) return { ok: false, error: 'Imported source provenance is incomplete.' }
+        const history = [...state.history, ...importedRecords]
+        const records = derivePersonalRecords(history)
+        const event: HistoryMutationEvent = {
+          id: nanoid(), type: 'history-imported', createdAt: new Date().toISOString(), reason: `Validated CSV import from ${sourceName.trim()}`,
+          description: `${importedRecords.length} completed set${importedRecords.length === 1 ? '' : 's'} imported from ${sourceName.trim()}.`,
+          affectedSetIds: importedRecords.map((workSet) => workSet.id),
+          before: { history: state.history, exercises: state.exercises, sessions: state.sessions, athlete: state.athlete, substitutionEvents: state.substitutionEvents },
+          after: { history, exercises: state.exercises, sessions: state.sessions, athlete: state.athlete, substitutionEvents: state.substitutionEvents },
+          recordsBefore: state.records, recordsAfter: records,
+          volumeBefore: historyVolume(state.history), volumeAfter: historyVolume(history)
+        }
+        set({
+          history,
+          records,
+          historyMutations: [...state.historyMutations, event],
+          notice: `${importedRecords.length} source set${importedRecords.length === 1 ? '' : 's'} imported and replayed.${skippedDuplicates ? ` ${skippedDuplicates} existing duplicate row${skippedDuplicates === 1 ? ' was' : 's were'} skipped.` : ''}`
+        })
+        return { ok: true }
       },
       undoLatestHistoryMutation: () => {
         const state = get()

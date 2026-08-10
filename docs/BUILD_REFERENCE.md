@@ -35,6 +35,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Auditable custom-movement editing for name, family, movement type, body part, equipment, description, and aliases. Built-in taxonomy remains protected except for athlete-managed aliases.
 - Exact name and alias collisions are blocked before save. Probable related variations stay visible for athlete review, prior completed-set names remain historical truth, and every catalog edit has a required reason and one-step undo.
 - Initial creation of an exact duplicate requires a meaningful distinction. Probable pairs are collapsed into connected cleanup groups so multiple accidental copies can merge into one selected identity in one reason-required, reversible event.
+- Completed-history CSV import requires date, exercise, load, and repetitions; previews row errors and unit conversion; auto-maps only exact canonical names or aliases; requires athlete selection for every uncertain source name; preserves file, row, original name, date, unit, and occurrence-aware fingerprint provenance; keeps quality numeric-only; and commits as one reversible ledger event.
 - Reason-aware exercise replacement with ranked evidence tiers, visible purpose and tradeoffs, exact-history or conservative calibration prescriptions, protected-primary confirmation, and preserved exact-movement clocks.
 - A durable substitution-learning ledger linking original and selected movements, candidate snapshots, prescriptions, completed source sets, outcomes, and available feedback.
 - Daily and weekly volume, body-region views, source-backed records, and micro wins.
@@ -74,6 +75,7 @@ The first implementation is governed by the complete R-001 through R-295 registe
 - Create a distinct custom movement, edit its canonical metadata, block an exact alias collision, save a non-conflicting identity without changing its stable ID, inspect the zero-volume catalog ledger entry, and undo the edit.
 - Document two intentionally separate exact-name matches, review the resulting three-identity cleanup group, keep Competition Bench Press, retire both copies in one merge, verify the group disappears, and restore both identities through undo.
 - Complete one set from a stored fifteen-set session, show one of fifteen linked sets, distinguish 136 older completed sets with no stored plan, classify chest as one of four linked planned sets, and preserve all unlinked work in Progress without counting it as plan compliance.
+- Import a source-dated CSV with an exact alias and an unmatched legacy name, require canonical mapping before commit, preserve unverified row provenance, block a second import from duplicating volume, and undo the complete import in one action.
 - Confirm a planned hold remains a hold after an athlete edits actual load, then log, provisionally recognize, save, and replay a source-backed exact-movement load record.
 - Turn quiet mode on, reload, and confirm the preference persists without changing training or record calculations.
 - Verify the achievement and settings surfaces on desktop and phone with no browser errors or horizontal overflow.

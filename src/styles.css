@@ -658,6 +658,31 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .import-error svg { flex: none; }
 .import-error strong, .import-error span { display: block; }
 .import-error strong { margin-bottom: 3px; }
+.import-intro, .import-boundary { display: flex; gap: 12px; padding: 14px; border: 1px solid rgb(99 195 255 / 24%); border-radius: 12px; background: rgb(99 195 255 / 6%); }
+.import-intro > svg, .import-boundary > svg { flex: none; color: var(--blue); }
+.import-intro strong, .import-boundary strong { display: block; margin-bottom: 4px; }
+.import-intro p, .import-boundary p { margin: 0; color: var(--muted); font-size: .76rem; line-height: 1.55; }
+.import-controls { display: flex; align-items: end; gap: 10px; margin-top: 16px; }
+.import-controls > label:first-child { min-width: 150px; }
+.import-file-button { position: relative; cursor: pointer; }
+.import-file-button input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.import-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.import-summary > div { min-width: 0; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: rgb(255 255 255 / 2%); }
+.import-summary small, .import-summary strong { display: block; }
+.import-summary small { margin-bottom: 7px; color: var(--muted); font-size: .67rem; text-transform: uppercase; letter-spacing: .07em; }
+.import-summary strong { overflow-wrap: anywhere; font-size: .95rem; }
+.import-row-errors { margin-top: 12px; padding: 12px; border: 1px solid rgb(255 98 107 / 35%); border-radius: 10px; background: rgb(255 98 107 / 7%); color: var(--red); }
+.import-row-errors p { margin: 5px 0 0; font-size: .72rem; }
+.import-mapping-section { margin-top: 18px; }
+.import-mapping-list { display: grid; gap: 8px; }
+.import-mapping { display: grid; grid-template-columns: minmax(0, 1fr) minmax(210px, .8fr); align-items: center; gap: 14px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: rgb(255 255 255 / 2%); }
+.import-mapping--exact { border-color: rgb(213 255 57 / 20%); }
+.import-mapping--review { border-color: rgb(255 190 72 / 28%); }
+.import-mapping--unmatched { border-color: rgb(255 122 69 / 30%); }
+.import-mapping strong, .import-mapping small { display: block; }
+.import-mapping small { margin-top: 4px; color: var(--muted); font-size: .7rem; }
+.import-boundary { margin-top: 14px; border-color: rgb(255 190 72 / 24%); background: rgb(255 190 72 / 5%); }
+.import-boundary > svg { color: var(--orange); }
 .recovery-callout { display: grid; grid-template-columns: auto 1fr; gap: 9px; margin-top: 12px; padding: 12px; border: 1px solid rgb(97 200 255 / 28%); border-radius: 10px; background: rgb(97 200 255 / 6%); }
 .recovery-callout > svg { color: var(--blue); }
 .recovery-callout strong, .recovery-callout small { display: block; }
@@ -877,6 +902,10 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .catalog-edit-grid__wide { grid-column: auto; }
   .catalog-control { align-items: stretch; flex-direction: column; }
   .catalog-control .button { width: 100%; }
+  .import-controls { align-items: stretch; flex-direction: column; }
+  .import-controls > * { width: 100%; }
+  .import-summary { grid-template-columns: 1fr 1fr; }
+  .import-mapping { grid-template-columns: 1fr; }
   .profile-hero { padding: 18px; }
   .profile-hero .pixel-avatar { width: 100px; height: 100px; margin: 0; }
   .level-list > div { grid-template-columns: 110px 1fr 32px; }

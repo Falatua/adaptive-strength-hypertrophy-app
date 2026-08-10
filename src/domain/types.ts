@@ -178,6 +178,12 @@ export interface CompletedSetRecord {
   originalExerciseName?: string
   originalFamily?: string
   originalPrimaryRegion?: BodyRegion
+  rirKnown?: boolean
+  importBatchId?: string
+  importRow?: number
+  importSourceName?: string
+  importFingerprint?: string
+  importUnits?: 'lb' | 'kg'
 }
 
 export interface SubstitutionCandidateSnapshot {
@@ -332,7 +338,7 @@ export interface RecordOpportunity {
   ruleVersion: 'opportunity-v1'
 }
 
-export type HistoryMutationType = 'set-corrected' | 'set-deleted' | 'exercise-merged' | 'exercise-edited'
+export type HistoryMutationType = 'set-corrected' | 'set-deleted' | 'exercise-merged' | 'exercise-edited' | 'history-imported'
 
 export interface HistoryMutationSnapshot {
   history: CompletedSetRecord[]
