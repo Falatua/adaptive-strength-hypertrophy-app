@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { exercises } from './seed'
-import { normalizeCatalogList, projectExerciseCatalogEdit } from './catalog-engine'
+import { findExerciseDuplicateGroups, normalizeCatalogList, projectExerciseCatalogEdit } from './catalog-engine'
 
 describe('exercise catalog governance', () => {
   it('normalizes aliases without duplicating the canonical name', () => {
@@ -38,5 +38,20 @@ describe('exercise catalog governance', () => {
       name: 'My Press', family: 'Press', aliases: ['2 Board Press'], pattern: 'horizontal-push',
       primaryRegion: 'chest', equipment: ['barbell'], description: 'Custom movement.'
     })).toThrow(/already belongs to Two-Board Press/i)
+  })
+
+  it('collects connected duplicate pairs into one cleanup group', () => {
+    const first = { ...structuredClone(exercises[0]), id: 'duplicate-one', name: 'Meet Bench', aliases: ['Flat Press'], custom: true }
+    const second = { ...structuredClone(exercises[0]), id: 'duplicate-two', name: 'Flat Press', aliases: ['Bench'], custom: true }
+    const groups = findExerciseDuplicateGroups([...exercises, first, second])
+    const benchGroup = groups.find((group) => group.exercises.some((exercise) => exercise.id === first.id))!
+    expect(benchGroup.exercises.map((exercise) => exercise.id)).toEqual(expect.arrayContaining(['competition-bench', first.id, second.id]))
+    expect(benchGroup.maxScore).toBe(1)
+  })
+
+  it('keeps unrelated and retired identities out of cleanup groups', () => {
+    const retired = { ...structuredClone(exercises[0]), id: 'retired-bench', name: 'Bench', aliases: [], retired: true, custom: true }
+    const groups = findExerciseDuplicateGroups([...exercises, retired])
+    expect(groups.flatMap((group) => group.exercises).some((exercise) => exercise.id === retired.id)).toBe(false)
   })
 })

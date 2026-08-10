@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { AlertTriangle, ChevronRight, Clock3, Dumbbell, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Star, Target, Trash2, Undo2 } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { duplicateCandidates, volumeLoad } from '../domain/training-engine'
-import { findExerciseDuplicatePairs } from '../domain/history-engine'
+import { findExerciseDuplicateGroups } from '../domain/catalog-engine'
 import type { BodyRegion, CompletedSetRecord, Exercise, MovementPattern } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
@@ -21,12 +21,13 @@ export function LibraryScreen() {
   const [customName, setCustomName] = useState('')
   const [customPattern, setCustomPattern] = useState<MovementPattern>('horizontal-push')
   const [customRegion, setCustomRegion] = useState<BodyRegion>('chest')
+  const [customDistinction, setCustomDistinction] = useState('')
   const [qualityOpen, setQualityOpen] = useState(false)
   const [editingSet, setEditingSet] = useState<CompletedSetRecord | null>(null)
   const [editValues, setEditValues] = useState({ load: '', reps: '', rir: '', technique: '', pain: '', qualityConfirmed: false, completedAt: '', reason: '' })
   const [deleteOpen, setDeleteOpen] = useState<CompletedSetRecord | null>(null)
   const [deleteReason, setDeleteReason] = useState('')
-  const [mergePair, setMergePair] = useState<{ first: Exercise; second: Exercise } | null>(null)
+  const [mergeGroup, setMergeGroup] = useState<Exercise[] | null>(null)
   const [mergeTargetId, setMergeTargetId] = useState('')
   const [mergeReason, setMergeReason] = useState('Duplicate movement identity')
   const [catalogEdit, setCatalogEdit] = useState<Exercise | null>(null)
@@ -43,7 +44,8 @@ export function LibraryScreen() {
 
   const activeExercises = useMemo(() => exercises.filter((exercise) => !exercise.retired), [exercises])
   const duplicates = useMemo(() => customName.trim().length >= 3 ? duplicateCandidates(customName, activeExercises) : [], [customName, activeExercises])
-  const duplicatePairs = useMemo(() => findExerciseDuplicatePairs(exercises), [exercises])
+  const duplicateGroups = useMemo(() => findExerciseDuplicateGroups(exercises), [exercises])
+  const exactCreationDuplicate = duplicates.some((candidate) => candidate.score === 1)
   const catalogCandidates = useMemo(() => {
     if (!catalogEdit) return []
     const alternatives = activeExercises.filter((exercise) => exercise.id !== catalogEdit.id)
@@ -93,20 +95,20 @@ export function LibraryScreen() {
     setDeleteReason('')
   }
 
-  const openMerge = (first: Exercise, second: Exercise) => {
+  const openMerge = (group: Exercise[]) => {
     setQualityOpen(false)
-    setMergePair({ first, second })
-    setMergeTargetId(first.id)
+    setMergeGroup(group)
+    setMergeTargetId(group[0]?.id ?? '')
     setMergeReason('Duplicate movement identity')
     setFormError(null)
   }
 
   const submitMerge = () => {
-    if (!mergePair) return
-    const sourceId = mergeTargetId === mergePair.first.id ? mergePair.second.id : mergePair.first.id
-    const result = mergeExercises([sourceId], mergeTargetId, mergeReason)
+    if (!mergeGroup) return
+    const sourceIds = mergeGroup.filter((exercise) => exercise.id !== mergeTargetId).map((exercise) => exercise.id)
+    const result = mergeExercises(sourceIds, mergeTargetId, mergeReason)
     if (!result.ok) return setFormError(result.error ?? 'The movements could not be merged.')
-    setMergePair(null)
+    setMergeGroup(null)
     setQualityOpen(false)
     setSelected(null)
   }
@@ -141,10 +143,11 @@ export function LibraryScreen() {
     if (!customName.trim()) return
     addCustomExercise({
       id: nanoid(), name: customName.trim(), family: customName.trim(), aliases: [], pattern: customPattern,
-      regions: [customRegion], primaryRegion: customRegion, equipment: ['custom'], description: 'Athlete-created movement. Add setup and history as you train it.',
+      regions: [customRegion], primaryRegion: customRegion, equipment: ['custom'], description: customDistinction.trim() ? `Athlete-created movement. Distinct because: ${customDistinction.trim()}` : 'Athlete-created movement. Add setup and history as you train it.',
       roleTags: ['custom'], favorite: false, jointFeeling: 'neutral', custom: true
     })
     setCustomName('')
+    setCustomDistinction('')
     setAddOpen(false)
     setNotice('Custom movement added with its own canonical history.')
   }
@@ -153,7 +156,7 @@ export function LibraryScreen() {
     <div className="screen">
       <header className="screen-header">
         <div><p className="eyebrow">Canonical exercise knowledge</p><h1>One movement. One history.</h1><p>Browse by body part, movement type, role, goal, equipment, and personal response without fragmenting progression.</p></div>
-        <div className="screen-header__actions"><button className="button button--secondary" onClick={() => setQualityOpen(true)}><ListChecks size={17} /> Data quality {duplicatePairs.length ? `(${duplicatePairs.length})` : ''}</button><button className="button button--primary" onClick={() => setAddOpen(true)}><Plus size={17} /> Add movement</button></div>
+        <div className="screen-header__actions"><button className="button button--secondary" onClick={() => setQualityOpen(true)}><ListChecks size={17} /> Data quality {duplicateGroups.length ? `(${duplicateGroups.length})` : ''}</button><button className="button button--primary" onClick={() => setAddOpen(true)}><Plus size={17} /> Add movement</button></div>
       </header>
 
       <section className="library-categories">
@@ -234,12 +237,13 @@ export function LibraryScreen() {
       <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add a distinct movement" description="ForgePath checks names, aliases, and exercise families before creating another history.">
         <label className="field-label" htmlFor="custom-name">Movement name</label><input id="custom-name" value={customName} onChange={(event) => setCustomName(event.target.value)} placeholder="Example: Incline Bench Press" />
         {duplicates.length > 0 && <div className="duplicate-warning"><AlertTriangle size={18} /><div><strong>Possible existing movement{duplicates.length > 1 ? 's' : ''}</strong>{duplicates.slice(0, 3).map(({ exercise, score }) => <button key={exercise.id} onClick={() => { setAddOpen(false); setSelected(exercise) }}><span>{exercise.name}</span><small>{Math.round(score * 100)}% match · use existing history</small></button>)}</div></div>}
+        {exactCreationDuplicate && <label><span className="field-label">Why is this a distinct movement?</span><textarea aria-label="Distinct movement reason" rows={3} value={customDistinction} onChange={(event) => setCustomDistinction(event.target.value)} placeholder="Example: Fixed 30-degree bench with a different grip and setup" /><small className="field-help">An exact name match can create a separate history only when you record the meaningful setup difference.</small></label>}
         <div className="form-grid"><label><span className="field-label">Movement type</span><select value={customPattern} onChange={(event) => setCustomPattern(event.target.value as MovementPattern)}>{['squat', 'hinge', 'horizontal-push', 'vertical-push', 'horizontal-pull', 'vertical-pull', 'isolation', 'carry'].map((item) => <option key={item} value={item}>{item}</option>)}</select></label><label><span className="field-label">Primary body part</span><select value={customRegion} onChange={(event) => setCustomRegion(event.target.value as BodyRegion)}>{regionFilters.filter((item) => item.id !== 'all').map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label></div>
-        <div className="modal__actions"><button className="button button--ghost" onClick={() => setAddOpen(false)}>Cancel</button><button className="button button--primary" disabled={!customName.trim()} onClick={createCustom}><ShieldCheck size={17} /> Create separate history</button></div>
+        <div className="modal__actions"><button className="button button--ghost" onClick={() => setAddOpen(false)}>Cancel</button><button className="button button--primary" disabled={!customName.trim() || (exactCreationDuplicate && customDistinction.trim().length < 10)} onClick={createCustom}><ShieldCheck size={17} /> {exactCreationDuplicate ? 'Create documented variation' : 'Create separate history'}</button></div>
       </Modal>
 
-      <Modal open={qualityOpen} onClose={() => setQualityOpen(false)} title="Exercise data quality" description="Probable duplicates are suggestions, never silent changes. Review the identities and decide which movement history should remain canonical." wide>
-        {duplicatePairs.length ? <div className="quality-list">{duplicatePairs.map((pair) => <div key={`${pair.first.id}:${pair.second.id}`}><span><GitMerge size={18} /><span><strong>{pair.first.name}</strong><small>and {pair.second.name}</small></span></span><span><b>{Math.round(pair.score * 100)}% likely</b><small>{pair.reason}</small></span><button className="button button--secondary" onClick={() => openMerge(pair.first, pair.second)}>Review merge</button></div>)}</div> : <div className="compact-empty"><ShieldCheck size={28} /><strong>No probable duplicates found</strong><p>All active movements currently have distinct canonical identities.</p></div>}
+      <Modal open={qualityOpen} onClose={() => setQualityOpen(false)} title="Exercise data quality" description="Connected duplicate suggestions are grouped so several accidental copies can be reviewed in one decision. Nothing changes until you confirm." wide>
+        {duplicateGroups.length ? <div className="quality-list">{duplicateGroups.map((group) => <div key={group.exercises.map((exercise) => exercise.id).join(':')}><span><GitMerge size={18} /><span><strong>{group.exercises.length} connected identities</strong><small>{group.exercises.map((exercise) => exercise.name).join(' · ')}</small></span></span><span><b>{Math.round(group.maxScore * 100)}% highest match</b><small>{group.pairs.length} evidence link{group.pairs.length === 1 ? '' : 's'}</small></span><button className="button button--secondary" onClick={() => openMerge(group.exercises)}>Review group</button></div>)}</div> : <div className="compact-empty"><ShieldCheck size={28} /><strong>No probable duplicates found</strong><p>All active movements currently have distinct canonical identities.</p></div>}
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setQualityOpen(false)}>Close</button></div>
       </Modal>
 
@@ -270,8 +274,8 @@ export function LibraryScreen() {
         {deleteOpen && <><div className="destructive-summary"><AlertTriangle size={21} /><span><strong>{deleteOpen.exerciseName}</strong><p>{deleteOpen.load} × {deleteOpen.reps} on {new Date(deleteOpen.completedAt).toLocaleString()}</p><small>This removes {(deleteOpen.load * deleteOpen.reps).toLocaleString()} volume before replaying records.</small></span></div><label><span className="field-label">Reason for removal</span><input value={deleteReason} onChange={(event) => setDeleteReason(event.target.value)} placeholder="Example: Accidental duplicate set" /></label>{formError && <p className="form-error" role="alert">{formError}</p>}<div className="modal__actions"><button className="button button--ghost" onClick={() => setDeleteOpen(null)}>Keep set</button><button className="button button--danger" onClick={submitDelete}><Trash2 size={17} /> Remove and replay</button></div></>}
       </Modal>
 
-      <Modal open={Boolean(mergePair)} onClose={() => setMergePair(null)} title="Merge duplicate movements" description="Choose the identity to keep. Original names, set timestamps, notes, and source IDs remain in the audit trail and can be restored with Undo.">
-        {mergePair && <><div className="merge-choice" role="radiogroup" aria-label="Movement identity to keep">{[mergePair.first, mergePair.second].map((exercise) => <button key={exercise.id} role="radio" aria-checked={mergeTargetId === exercise.id} className={mergeTargetId === exercise.id ? 'selected' : ''} onClick={() => setMergeTargetId(exercise.id)}><span className={`movement-emblem movement-emblem--${exercise.pattern}`}>{exercise.name.slice(0, 1)}</span><span><strong>Keep {exercise.name}</strong><small>{history.filter((workSet) => workSet.exerciseId === exercise.id).length} completed sets · {exercise.aliases.length} aliases</small></span></button>)}</div><div className="merge-consequence"><GitMerge size={19} /><span><strong>{history.filter((workSet) => [mergePair.first.id, mergePair.second.id].includes(workSet.exerciseId)).length} completed sets will share one progression history.</strong><p>Future planned references move to the kept identity. Completed sessions and prior mesocycle versions remain historical truth.</p></span></div><label><span className="field-label">Reason for merge</span><input value={mergeReason} onChange={(event) => setMergeReason(event.target.value)} /></label>{formError && <p className="form-error" role="alert">{formError}</p>}<div className="modal__actions"><button className="button button--ghost" onClick={() => setMergePair(null)}>Cancel</button><button className="button button--primary" onClick={submitMerge}><GitMerge size={17} /> Merge and replay</button></div></>}
+      <Modal open={Boolean(mergeGroup)} onClose={() => setMergeGroup(null)} title="Merge duplicate movements" description="Choose one identity to keep. Every other identity in this connected group will retire into it in one audited, undoable event.">
+        {mergeGroup && <><div className="merge-choice" role="radiogroup" aria-label="Movement identity to keep">{mergeGroup.map((exercise) => <button key={exercise.id} role="radio" aria-checked={mergeTargetId === exercise.id} className={mergeTargetId === exercise.id ? 'selected' : ''} onClick={() => setMergeTargetId(exercise.id)}><span className={`movement-emblem movement-emblem--${exercise.pattern}`}>{exercise.name.slice(0, 1)}</span><span><strong>Keep {exercise.name}</strong><small>{history.filter((workSet) => workSet.exerciseId === exercise.id).length} completed sets · {exercise.aliases.length} aliases</small></span></button>)}</div><div className="merge-consequence"><GitMerge size={19} /><span><strong>{history.filter((workSet) => mergeGroup.some((exercise) => exercise.id === workSet.exerciseId)).length} completed sets will share one progression history.</strong><p>{mergeGroup.length - 1} duplicate identit{mergeGroup.length - 1 === 1 ? 'y retires' : 'ies retire'} into the selected identity. Future planned references move to it. Completed sessions and prior mesocycle versions remain historical truth.</p></span></div><label><span className="field-label">Reason for merge</span><input value={mergeReason} onChange={(event) => setMergeReason(event.target.value)} /></label>{formError && <p className="form-error" role="alert">{formError}</p>}<div className="modal__actions"><button className="button button--ghost" onClick={() => setMergeGroup(null)}>Cancel</button><button className="button button--primary" onClick={submitMerge}><GitMerge size={17} /> Merge {mergeGroup.length} identities</button></div></>}
       </Modal>
     </div>
   )

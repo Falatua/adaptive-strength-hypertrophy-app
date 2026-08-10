@@ -16,6 +16,12 @@ export interface ExerciseCatalogProjection {
   probableDuplicates: ExerciseDuplicatePair[]
 }
 
+export interface ExerciseDuplicateGroup {
+  exercises: Exercise[]
+  pairs: ExerciseDuplicatePair[]
+  maxScore: number
+}
+
 const cleanText = (value: string) => value.trim().replace(/\s+/g, ' ')
 const identityKey = (value: string) => cleanText(value).toLocaleLowerCase()
 
@@ -71,4 +77,35 @@ export function projectExerciseCatalogEdit(exercises: Exercise[], exerciseId: st
   }
 
   return { exercise, probableDuplicates }
+}
+
+export function findExerciseDuplicateGroups(exercises: Exercise[]): ExerciseDuplicateGroup[] {
+  const pairs = findExerciseDuplicatePairs(exercises)
+  const neighbors = new Map<string, Set<string>>()
+  pairs.forEach((pair) => {
+    neighbors.set(pair.first.id, new Set([...(neighbors.get(pair.first.id) ?? []), pair.second.id]))
+    neighbors.set(pair.second.id, new Set([...(neighbors.get(pair.second.id) ?? []), pair.first.id]))
+  })
+  const byId = new Map(exercises.filter((exercise) => !exercise.retired).map((exercise) => [exercise.id, exercise]))
+  const visited = new Set<string>()
+  const groups: ExerciseDuplicateGroup[] = []
+
+  ;[...neighbors.keys()].sort().forEach((startId) => {
+    if (visited.has(startId)) return
+    const pending = [startId]
+    const ids = new Set<string>()
+    while (pending.length) {
+      const id = pending.pop()!
+      if (visited.has(id)) continue
+      visited.add(id)
+      ids.add(id)
+      ;[...(neighbors.get(id) ?? [])].forEach((neighbor) => { if (!visited.has(neighbor)) pending.push(neighbor) })
+    }
+    const groupExercises = [...ids].flatMap((id) => byId.get(id) ?? []).sort((a, b) => a.name.localeCompare(b.name))
+    if (groupExercises.length < 2) return
+    const groupPairs = pairs.filter((pair) => ids.has(pair.first.id) && ids.has(pair.second.id))
+    groups.push({ exercises: groupExercises, pairs: groupPairs, maxScore: Math.max(...groupPairs.map((pair) => pair.score)) })
+  })
+
+  return groups.sort((a, b) => b.maxScore - a.maxScore || b.exercises.length - a.exercises.length || a.exercises[0].name.localeCompare(b.exercises[0].name))
 }

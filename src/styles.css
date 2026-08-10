@@ -183,6 +183,7 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .reason-stack strong { color: var(--text); }
 .field-label { display: flex; justify-content: space-between; margin: 15px 0 7px; color: var(--muted); font-size: .77rem; font-weight: 720; }
 .field-label span { font-weight: 500; }
+.field-help { display: block; margin-top: 6px; color: var(--muted); font-size: .7rem; line-height: 1.4; }
 .header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
 .toggle-row, .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 0; border-top: 1px solid var(--line); }
 .toggle-row strong, .toggle-row small, .setting-row strong, .setting-row small { display: block; }

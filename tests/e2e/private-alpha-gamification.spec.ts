@@ -220,3 +220,50 @@ test('edits a custom movement without splitting history and blocks alias collisi
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
   expect(browserErrors).toEqual([])
 })
+
+test('documents intentional duplicates and merges a connected group in one decision', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Library' }).click()
+
+  await page.getByRole('button', { name: 'Add movement' }).click()
+  await page.getByLabel('Movement name').fill('Flat Barbell Bench')
+  await expect(page.getByRole('button', { name: 'Create documented variation' })).toBeDisabled()
+  await page.getByLabel('Distinct movement reason').fill('Fixed touch point and setup from an older notebook')
+  await page.getByRole('button', { name: 'Create documented variation' }).click()
+
+  await page.getByRole('button', { name: 'Add movement' }).click()
+  await page.getByLabel('Movement name').fill('Bench')
+  await expect(page.getByRole('button', { name: 'Create documented variation' })).toBeDisabled()
+  await page.getByLabel('Distinct movement reason').fill('Temporary imported name that still needs cleanup')
+  await page.getByRole('button', { name: 'Create documented variation' }).click()
+
+  await page.getByRole('button', { name: 'Data quality (1)' }).click()
+  await expect(page.getByText('3 connected identities')).toBeVisible()
+  await page.getByRole('button', { name: 'Review group' }).click()
+  await expect(page.getByRole('heading', { name: 'Merge duplicate movements' })).toBeVisible()
+  await page.getByRole('radio', { name: /Keep Competition Bench Press/ }).click()
+  await expect(page.getByRole('radio', { name: /Keep Competition Bench Press/ })).toHaveAttribute('aria-checked', 'true')
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.getByRole('dialog').evaluate((element) => { element.scrollTop = 0 })
+    await page.getByRole('dialog').screenshot({ path: 'output/playwright/batch-duplicate-merge-mobile.png' })
+  }
+  await page.getByRole('button', { name: 'Merge 3 identities' }).click()
+  await page.getByRole('button', { name: 'Data quality' }).click()
+  await expect(page.getByText('No probable duplicates found')).toBeVisible()
+  await page.getByRole('button', { name: 'Close Exercise data quality' }).click()
+
+  const merged = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
+  const mergedCustom = merged?.state?.exercises?.filter((exercise: { custom?: boolean; name: string }) => exercise.custom && ['Bench', 'Flat Barbell Bench'].includes(exercise.name)) ?? []
+  expect(mergedCustom).toHaveLength(2)
+  expect(mergedCustom.every((exercise: { retired?: boolean; mergedIntoId?: string }) => exercise.retired && exercise.mergedIntoId === 'competition-bench')).toBe(true)
+  expect(merged?.state?.historyMutations?.at(-1)).toMatchObject({ type: 'exercise-merged' })
+
+  await page.getByRole('button', { name: 'Undo latest change' }).click()
+  await expect(page.getByRole('button', { name: 'Data quality (1)' })).toBeVisible()
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  expect(browserErrors).toEqual([])
+})
