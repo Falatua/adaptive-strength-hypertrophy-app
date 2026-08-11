@@ -53,6 +53,17 @@ Any failure prevents the deployment job from starting. A manually copied branch 
 - The Pages artifact check rejects root-only asset references.
 - The CI phone project uses an exact 390 by 844 viewport, and the Today composition preserves buffer above the fold for the primary start action across runner font and timing variation.
 
+## Verified 0.39.1 Release Evidence
+
+- Private source release: `42f0eec63ae21f595d0be889004f559a0e07b632`.
+- Successful private-source workflow: `31507800273`.
+- Public compiled-artifact commit: `32d20faf486c6ecbf41523d8de703bbfc15bcf2a`.
+- Successful public Pages workflow: `31508592285`.
+- Live `source-version.txt` exactly matched the private source release and the app root returned HTTP 200.
+- The compiled artifact contains `Release gate closed` and `0.39.1 private alpha` but does not contain the ForgePath Supabase project reference.
+- Fresh 1440 by 900 desktop and 390 by 844 phone contexts completed Quick Start, opened You, displayed the closed release gate and working local backup, had zero horizontal overflow, and produced zero console or page errors.
+- An existing Chrome tab initially showed the prior 0.39.0 service-worker shell, then received 0.39.1 on the next navigation without clearing workout storage. This matches the auto-update PWA contract and is recorded so stale installed shells are not mistaken for failed cloud synchronization.
+
 ## Verified 0.39.0 Release Evidence
 
 - Private source feature commit: `22f1d0b30450a8fd1ec964bf9d536a9e07f95a24`.

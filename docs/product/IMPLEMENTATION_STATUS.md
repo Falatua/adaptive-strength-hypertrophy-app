@@ -30,6 +30,9 @@ Private alpha 0.39.1 hardens the durable exact-movement note and complete-state 
 - Added a typed browser database contract, strict outbox-envelope validation, strict RPC status/version/event validation, durable network retry behavior, conflict retention, idempotent replay, and session-start failure handling.
 - Kept cloud behavior explicitly manual: save a complete validated checkpoint, check it on another signed-in device, and choose restore. Automatic entity merge and active-workout handoff remain off.
 - Kept backup schema 25 and local persistence 23 because the restorable state shape did not change.
+- Verified 210 deterministic tests across twenty-two files, all fifty-eight desktop and phone browser journeys, focused live cloud-boundary checks, lint, production and Pages builds, zero high production dependency vulnerabilities, and no secret findings.
+- Published private source `42f0eec63ae21f595d0be889004f559a0e07b632` through successful source workflow `31507800273`, public artifact `32d20faf486c6ecbf41523d8de703bbfc15bcf2a`, and successful Pages workflow `31508592285`.
+- Verified the live source identity, HTTP 200 root, closed cloud gate, omitted Supabase endpoint, working local backup, 0.39.1 diagnostics, zero browser errors, and zero horizontal overflow on fresh desktop and 390 by 844 phone contexts.
 
 This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into a usable end-to-end browser and installable PWA experience. It is governed by the full requirement register but implements a bounded first slice. Automatic entity-level cloud convergence, AI, social, and advanced longitudinal work must not be represented as complete.
 
