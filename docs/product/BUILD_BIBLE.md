@@ -5,7 +5,7 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-10
 status: canonical-build-reference-and-active-implementation
-version: 1.34.0
+version: 1.35.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -125,6 +125,14 @@ Must include:
 - advanced foundation-model coaching;
 - autonomous model-driven programming;
 - a separate analytics warehouse or custom model-training pipeline.
+
+### Explicitly Excluded
+
+- athlete-facing exercise-technique videos or demonstration feeds;
+- licensed or embedded form-instruction libraries;
+- athlete technique-video uploads;
+- automated form-video analysis or scoring;
+- video watch-time, completion, playlist, or recommendation systems.
 
 ### Product Success Measures
 
@@ -600,7 +608,7 @@ Store these independently. A rep overperformance may propose a working-max chang
 
 ### Technical Floor
 
-Progression cannot be earned by materially degrading the agreed movement standard. Technique scoring may be athlete-entered initially and video-assisted only in a later evaluated feature.
+Progression cannot be earned by materially degrading the agreed movement standard. Technique evidence remains athlete-entered through concise structured feedback and optional personal notes. Athlete-facing video upload or automated video analysis is excluded.
 
 ## 11. Volume, Dose, and Progress Analytics
 
@@ -3063,7 +3071,7 @@ The 390 by 844 phone layout stacks controls, summary cards, mapping rows, safety
 - Vendor-specific adapters for Hevy, Strong, JuggernautAI, RP, spreadsheets, and other sources.
 - Column-mapping UI for arbitrary headers.
 - Imported planned-session and historical-plan mapping.
-- Imported coach notes, video, readiness, equipment, location, and block context.
+- Imported structured coach notes, readiness, equipment, location, and block context.
 - Placement-confidence changes from imported history.
 - In-flow creation of a genuinely distinct custom movement.
 - Athlete-approved quality import and quality-source provenance.
@@ -3812,7 +3820,7 @@ A valid-looking forged verdict is rejected. Version 12 backups migrate with an e
 
 - Calibrate every warning threshold with real athlete sessions before using verification to propose more aggressive placement.
 - Add movement-family and exact-movement verification instead of only the primary slot and global starting route.
-- Capture movement-specific pain location, symptom change, technique video, velocity, and coach evidence only when explicitly useful and privacy-safe.
+- Capture movement-specific pain location, symptom change, velocity, and structured coach evidence only when explicitly useful and privacy-safe.
 - Add athlete-reviewed automatic reclassification after repeated evidence. Do not allow it to rewrite history or bypass safety.
 - Generate complete route-specific sessions so a confirmed route changes exercise roles, loading, volume, RIR, and warm-ups rather than only plan metadata.
 - Use imported recent history as pre-placement evidence with source quality and staleness rules.
@@ -4223,7 +4231,7 @@ The release must prove all of the following:
 
 Private alpha 0.23.0 implements the first placement-learning slice of R-102 while advancing R-089, R-092, R-095, R-098, R-099, R-100, and R-103. Completed exact-movement history can now support a placement decision, but the app does not silently convert old logs into athlete facts. The deterministic engine creates a bounded evidence proposal. The athlete reviews and accepts evidence confidence and heavy-work tolerance separately. Only accepted fields enter a new placement version and future plan.
 
-This release does not add family-to-variation transfer, coach-history interpretation, video analysis, medical inference, or automatic reclassification. It closes the narrower gap between the existing source-preserving completed-set importer and the existing per-movement placement system.
+This release does not add family-to-variation transfer, coach-history interpretation, medical inference, or automatic reclassification. Athlete-facing video analysis is explicitly excluded by Chapter 69. This release closes the narrower gap between the existing source-preserving completed-set importer and the existing per-movement placement system.
 
 ### 57.2 Authority and Safety Contract
 
@@ -4372,7 +4380,7 @@ The release must prove all of the following:
 
 - Thresholds and the 42-day window require calibration from real workouts.
 - Imported numeric history cannot validate technique, pain, range, recovery, or coaching quality.
-- Coach statements, video evidence, reliable estimates, wearable data, and measured velocity are not placement sources yet.
+- Structured coach statements, reliable estimates, wearable data, and measured velocity are not placement sources yet. Athlete technique video is out of product scope.
 - Family and neighboring-variation context remains visible but contributes no score or load.
 - Automatic criterion exits and automatic reclassification remain deferred.
 - Movement-specific volume tolerance and muscle-specific tolerance remain deferred.
@@ -4487,7 +4495,7 @@ The review dialog defaults to the safest coherent choice, explains that no route
 - Goal-specific strength, power, hypertrophy, and event-performance criteria need deeper measurable contracts.
 - A keep-current review does not authorize overload. Normal load-first progression remains separately governed.
 - Automatic reclassification remains prohibited. The implemented R-103 slice detects a trigger, then routes the athlete through explicit versioned reassessment.
-- Coach, video, reliable-estimate, wearable, velocity, and medical evidence are not checkpoint sources.
+- Structured coach, reliable-estimate, wearable, velocity, and medical evidence are not checkpoint sources. Athlete technique video is out of product scope.
 - No backend, account, Supabase project, cloud sync, AI provider, or social system is required.
 
 ### Version 1.24.0 Change Entry
@@ -4619,7 +4627,7 @@ Restore validates every movement review, source placement, source movement place
 - Goal-specific strength, power, hypertrophy, and event-performance success measures need deeper measurable contracts.
 - Movement-family and neighboring-variation evidence transfer remains prohibited until separately researched, bounded, and athlete-reviewed.
 - A checkpoint does not automatically apply a route change, add load, add repetitions, or add sets.
-- Coach, video, reliable-estimate, wearable, velocity, and medical evidence are not checkpoint sources.
+- Structured coach, reliable-estimate, wearable, velocity, and medical evidence are not checkpoint sources. Athlete technique video is out of product scope.
 - Movement-specific volume tolerance and muscle-specific tolerance remain deferred.
 - No backend, account, Supabase project, cloud sync, AI provider, or social system is required.
 
@@ -5730,6 +5738,66 @@ Before claiming multi-device readiness, prove:
 - which low-risk preferences may resolve automatically;
 - cloud retention, backup point, recovery time, and geographic requirements;
 - native mobile trigger and distribution path.
+
+## 69. Technique-Video Exclusion and Product Focus
+
+### 69.1 Status and Authority
+
+This chapter specifies R-320 and supersedes any older implication that athlete-facing technique videos, exercise demonstrations, video uploads, or automated form-video analysis might become a later product feature. Private alpha 0.31.0 contains no such feature, so no code or stored athlete media requires removal.
+
+### 69.2 Product Boundary
+
+Do not build, license, host, embed, recommend, prioritize, or market:
+
+- an exercise-technique video library;
+- form-demonstration clips inside Exercise Detail or Workout;
+- creator or vendor video feeds;
+- athlete technique-video uploads;
+- automated form-video review, scoring, or coaching;
+- video playlists, watch progress, completion, or engagement systems.
+
+This is an intentional differentiator. Product effort belongs in individualized programming, fast logging, exact exercise history, progression, readiness, schedule adaptation, substitutions, preference learning, volume and muscle analytics, records, and explainable decisions.
+
+### 69.3 Allowed Concise Guidance
+
+The exclusion does not remove the minimum language required to operate the training system. Exercise Detail may contain:
+
+- short setup notes and variation-defining modifiers;
+- equipment and range-of-motion definitions needed to preserve canonical identity;
+- athlete-authored cues and notes;
+- concise RIR, RPE, pain, soreness, readiness, and survey anchors;
+- brief safety or active-restriction messages;
+- programming purpose and substitution tradeoffs.
+
+Guidance is optional, compact, text-first, and never creates a content-consumption task. It cannot delay workout start, set logging, substitution, or completion.
+
+### 69.4 Research Boundary
+
+Internal research videos remain valid methodology sources. Codex may continue analyzing official RP, Dave Tate, John Meadows, Chad Wesley Smith, scientific, product, and other relevant video material to improve the documented knowledge base. Transcripts, source metadata, and research conclusions remain in the research system, not an athlete-facing video feed.
+
+### 69.5 Data and Architecture Consequences
+
+The athlete data model requires no technique-media storage, video transcoding, content delivery network, upload permission, moderation pipeline, form-video embeddings, computer-vision service, watch-history table, or video recommendation engine. Do not create dormant schemas or placeholder navigation for these excluded features.
+
+Structured technique quality remains an athlete-entered field attached to completed sets or sessions. It can affect comparability and progression only through the existing deterministic evidence rules and never claims computer-vision validation.
+
+### 69.6 Acceptance Tests and Roadmap Guard
+
+- Exercise Detail and Workout contain no technique-video player, thumbnail, watch prompt, or upload action.
+- Core navigation contains no Videos, Learn, Watch, or technique-content tab.
+- Empty states and onboarding do not solicit form-video uploads.
+- Placement, progression, or records do not require video evidence.
+- Technique quality can still be entered, skipped, corrected, and audited as structured athlete feedback.
+- Internal research-video notes are not exposed as athlete instructional content.
+- Product, analytics, and privacy schemas contain no unused technique-video infrastructure.
+- Any future proposal to reverse this exclusion requires a new explicit decision from JB and a Build Bible version change.
+
+### Version 1.35.0 Change Entry
+
+- Added R-320 and made athlete-facing technique videos, demo feeds, uploads, and automated form-video analysis explicitly out of scope.
+- Revised placement and fast-workout language so video evidence is not merely deferred.
+- Preserved compact text-first cues, structured athlete feedback, and internal methodology video research.
+- Removed the exercise-demonstration licensing decision and the need for athlete-media infrastructure.
 
 ### Version 1.34.0 Change Entry
 

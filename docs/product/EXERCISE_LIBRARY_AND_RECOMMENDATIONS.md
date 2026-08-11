@@ -1093,6 +1093,21 @@ A useful initial product can include:
 
 More advanced personal-transfer inference, behavior correlations, and deep insight cards should unlock only after enough data exists.
 
+## Explicit Technique-Video Exclusion
+
+The app is not an exercise-instruction video product. Do not build or prioritize:
+
+- exercise demonstration videos;
+- a technique-video library or feed;
+- licensed or embedded creator demonstrations;
+- athlete form-video uploads;
+- automated video-based technique scoring;
+- video completion, watch time, playlists, or instructional-content recommendations.
+
+Exercise Detail should use concise setup notes, personal cues, equipment and variation definitions, training purpose, exact history, joint response, preferences, substitutions, and progression evidence. Active Workout may show brief text reminders that the athlete wrote or explicitly chose, but no video should interrupt or lengthen the training flow.
+
+This exclusion does not stop Codex from studying research or creator videos internally to improve the documented programming knowledge base. Research-source video analysis remains an authoring process, not an athlete-facing app feature.
+
 ## Open Decisions
 - Whether primary navigation uses five bottom tabs or a desktop sidebar plus mobile bottom bar.
 - Which dashboard cards are visible by default.
@@ -1100,7 +1115,6 @@ More advanced personal-transfer inference, behavior correlations, and deep insig
 - How the app estimates actual setup and equipment-wait time.
 - Minimum comparable evidence required before a secondary movement receives a positive transfer score.
 - Whether onboarding imports previous training logs.
-- Whether exercise demonstrations are original, licensed, linked, or user-recorded.
 - Which time budgets ship in the first version.
 - Initial body-part depth and which individual muscles deserve separate browse pages.
 - Exact movement-type vocabulary and how rehabilitation or sport-specific patterns enter the catalog.

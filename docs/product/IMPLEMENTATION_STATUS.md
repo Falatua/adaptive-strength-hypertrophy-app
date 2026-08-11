@@ -134,7 +134,7 @@ This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into 
 - Verification passed: lint, 160 deterministic tests across seventeen files, production TypeScript and PWA build, and forty desktop and 390 by 844 phone Playwright journeys.
 - Full-resolution phone review passed for the exact movement checkpoint and complete reason-required criterion-review dialog.
 - Security passed: dependency audit reported zero vulnerabilities; explicit secret-pattern scanning, staged-content Gitleaks, repository-history Gitleaks, and full-directory Gitleaks found no leaks.
-- Current boundary: the two-check thresholds require real-workout calibration. Automatic route application, complete goal-specific performance measures, family transfer, coach and video evidence, reliable estimates, velocity evidence, and silent automatic reclassification remain deferred or prohibited.
+- Current boundary: the two-check thresholds require real-workout calibration. Automatic route application, complete goal-specific performance measures, family transfer, structured coach evidence, reliable estimates, velocity evidence, and silent automatic reclassification remain deferred or prohibited. Athlete technique video is explicitly out of product scope.
 
 ## Private Alpha 0.24.0 Release Delta
 
@@ -149,7 +149,7 @@ This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into 
 - Verification passed: lint, 154 deterministic tests across seventeen files, production TypeScript and PWA build, and thirty-eight desktop and 390 by 844 phone Playwright journeys.
 - Visual QA passed for the phone checkpoint callout and complete criterion panel. Same-route confirmation now displays one supported current route instead of a route-to-itself arrow.
 - Security passed: dependency audit reported zero vulnerabilities; explicit key-pattern scanning, repository-history Gitleaks, full-directory Gitleaks, and the staged-content commit scan found no leaks.
-- Current boundary: thresholds require real-workout calibration. Movement-specific exits, complete goal-specific measurable exit contracts, coach and video evidence, reliable estimates, wearable or velocity data, and silent automatic reclassification remain deferred or prohibited.
+- Current boundary: thresholds require real-workout calibration. Movement-specific exits, complete goal-specific measurable exit contracts, structured coach evidence, reliable estimates, wearable or velocity data, and silent automatic reclassification remain deferred or prohibited. Athlete technique video is explicitly out of product scope.
 
 ## Private Alpha 0.23.0 Release Delta
 
@@ -162,7 +162,7 @@ This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into 
 - Added backup schema version 17 and local persistence version 15. Version 16 migration preserves valid `placement-v2` and `movement-placement-v1` evidence and invents no history review.
 - Verification passed: lint, 146 deterministic tests across sixteen files, production TypeScript and PWA build, thirty-six desktop and 390 by 844 phone Playwright journeys, and full-resolution phone review of the Library evidence panel, placement review controls, and stored profile evidence.
 - Security passed: dependency audit reported zero vulnerabilities; explicit key-pattern scanning, repository-history Gitleaks, and full-directory Gitleaks found no leaks.
-- Current boundary: coach history, video evidence, reliable estimates, family-to-variation transfer, threshold calibration, automatic criterion exits, movement-specific volume tolerance, and automatic reclassification remain deferred.
+- Current boundary: structured coach history, reliable estimates, family-to-variation transfer, threshold calibration, automatic criterion exits, movement-specific volume tolerance, and automatic reclassification remain deferred. Athlete technique video is explicitly out of product scope.
 
 ## Private Alpha 0.22.0 Release Delta
 
@@ -372,6 +372,7 @@ The current browser store is a private-alpha operational store, not the eventual
 - Search across names and aliases.
 - Seed catalog with common and specialized strength variations including competition lifts, board presses, coffin press, safety squat bar work, deficits, and cambered-bar work.
 - Exact exercise history, preference, joint response, duplicate warnings, and custom-movement creation.
+- No athlete-facing technique-video library, demonstration feed, video upload, or automated form-video analysis exists. Build Bible Chapter 69 now makes that absence an explicit permanent product boundary unless JB later reverses it directly.
 - Current preference behavior is limited to a boolean favorite. Favorites receive deterministic weight in substitution ranking, while the separate joint-response scale can suppress `avoid` and adjust ranking. Prefer, dislike, do-not-recommend, context-specific rules, preference events, and protected-primary preference review are not implemented.
 - Custom movements can edit name, family, aliases, movement type, primary region, equipment, and description while retaining one stable canonical history ID.
 - Built-in taxonomy is protected while athlete-managed aliases remain editable. Proposed names and aliases show related movements, and exact collisions are blocked before save.
@@ -527,7 +528,7 @@ Screenshots are stored inside the code project at `output/playwright/` and are d
 - No OpenAI, Anthropic, retrieval, statistical calibration service, or unstructured-feedback interpretation exists yet.
 - The original evolving training companion, source-backed XP ledger, levels, three-stage evolution, and post-workout ceremony are specified in Chapter 66 but are not implemented. Actual Pokémon characters, names, likenesses, mechanics, and presentation are prohibited.
 - The current athlete-learning display is seeded and deterministic. It is not a trained personal model.
-- Starting placement is deterministic, explainable, productively verified across up to three eligible sessions per exact protected movement, and connected to route-specific, equipment-aware, exact-movement future-session generation. Imported exact history can propose bounded confidence and heavy-work-tolerance values only after athlete review. Matching plan-route and exact-movement evidence now produce separate athlete-reviewed criterion checkpoints, but calibrated thresholds, coach history, video evidence, reliable estimates, family transfer, measured-velocity power work, complete event peaks, automatic route application, and silent automatic reclassification remain incomplete or prohibited.
+- Starting placement is deterministic, explainable, productively verified across up to three eligible sessions per exact protected movement, and connected to route-specific, equipment-aware, exact-movement future-session generation. Imported exact history can propose bounded confidence and heavy-work-tolerance values only after athlete review. Matching plan-route and exact-movement evidence now produce separate athlete-reviewed criterion checkpoints, but calibrated thresholds, structured coach history, reliable estimates, family transfer, measured-velocity power work, complete event peaks, automatic route application, and silent automatic reclassification remain incomplete or prohibited. Athlete technique video is explicitly out of product scope.
 - Editable mesocycles, exposure-round date bounds, criterion reviews, extension, recovery, completion, and pivot entry are executable. Waived or substituted round roles, automatic review reminders, macrocycles, annual plans, fixed-event replanning, and quadrennial transitions remain incomplete.
 - Planned-versus-completed region and individual-muscle dose now have versioned first slices, custom movements have athlete-reviewed mappings, and relative completed priority-region representation can resolve an otherwise equal missed-opportunity queue choice. This is not a target-dose or neglect model. Plan-revision provenance, imported-plan mapping, historical catalog-version mapping, density, duration, quality-adjusted, and causal progression-driver analytics need deeper implementation.
 - Record eligibility now has exact set provenance, PR v2 type separation, all-time scope, quality-confirmed versus numeric-only validation, achievement replay, correction replay, and numeric-only imported history. Mixed-load set schemes, variation-family and time scopes, bodyweight and assistance conventions, quality-validated imports, superseded-event views, and richer physical-unit conventions still need expansion.
@@ -545,7 +546,7 @@ Screenshots are stored inside the code project at `output/playwright/` and are d
 4. Calibrate Full, Quick, Minimal, Off, Ask each time, and deferred survey friction during real workouts before adding later cadences or automatic burden reduction.
 5. Use the editable mesocycle in real workouts and calibrate generated exercise selection, time estimates, maintenance exposure, and success criteria from actual outcomes.
 6. Use real location changes and substitutions to calibrate equipment tags, missing-item explanations, executable jumps, ranking, prescription fit, reason usefulness, time estimates, and the minimum repeated-evidence threshold before any outcome can alter future weights.
-7. Expand completed-set import into coach, video, reliable-estimate, and vendor evidence adapters with explicit source quality, while adding in-flow distinct movement creation, orphan-alias review, unrelated-group bulk operations, and remaining catalog-governance tools.
+7. Expand completed-set import into structured coach, reliable-estimate, and vendor evidence adapters with explicit source quality, while adding in-flow distinct movement creation, orphan-alias review, unrelated-group bulk operations, and remaining catalog-governance tools. Do not add athlete technique-video import or analysis.
 8. Calibrate custom mappings, planned muscle dose, relative priority-region schedule evidence, progression, interruption, reacclimation, PR gates, and micro-win thresholds from actual comparable exposures.
 9. Add fixed-event schedule pressure with explicit athlete-authored dates, bounded phase logic, and no-debt safeguards, then add block, recent, return, and yearly record scopes and longer-horizon planning without weakening exact-movement authority.
 10. Revisit React Native, SQLite, Supabase, authentication, and sync only when native or multi-device needs justify the migration.

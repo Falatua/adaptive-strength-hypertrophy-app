@@ -672,9 +672,9 @@ This is the canonical traceability index for every durable requirement JB states
 ### R-102 Imported History for Placement
 - Status: implemented-exact-history-placement-first-slice
 - Provenance: product-decision
-- Requirement: Allow imported training logs, recent working sets, coach history, videos, and reliable estimates to improve placement confidence and bypass unnecessary calibration while preserving source date and data quality.
+- Requirement: Allow imported training logs, recent working sets, structured coach history, and reliable estimates to improve placement confidence and bypass unnecessary calibration while preserving source date and data quality. Athlete-facing video import or technique analysis is excluded by R-320.
 - Detail: [[Onboarding Training Status and Entry Cycle Placement]]
-- Implementation: [[Private Alpha Implementation 2026-08-10]] imports completed-set CSV history after validation and canonical movement review while preserving date, original name, source file, row, source unit, RIR missingness, and occurrence-aware fingerprint provenance. `placement-history-v1` now summarizes only exact exercise history inside a transparent 42-day window and proposes bounded evidence-confidence or heavy-work-tolerance scores. The athlete must accept each field separately before `placement-v3` uses it. Numeric-only imports cannot confirm skill, technique, pain, recovery, or medical readiness, and they cannot earn the highest suggestions without repeated quality-confirmed work. Coach history, video, reliable-estimate import, family transfer, and automatic calibration bypass remain deferred.
+- Implementation: [[Private Alpha Implementation 2026-08-10]] imports completed-set CSV history after validation and canonical movement review while preserving date, original name, source file, row, source unit, RIR missingness, and occurrence-aware fingerprint provenance. `placement-history-v1` now summarizes only exact exercise history inside a transparent 42-day window and proposes bounded evidence-confidence or heavy-work-tolerance scores. The athlete must accept each field separately before `placement-v3` uses it. Numeric-only imports cannot confirm skill, technique, pain, recovery, or medical readiness, and they cannot earn the highest suggestions without repeated quality-confirmed work. Structured coach history, reliable-estimate import, family transfer, and automatic calibration bypass remain deferred. Athlete technique video is out of product scope.
 
 ### R-103 Ongoing Placement Reclassification
 - Status: implemented-plan-and-movement-trigger-manual-versioned-slice
@@ -790,7 +790,7 @@ This is the canonical traceability index for every durable requirement JB states
 ### R-121 Fast Core Workout Path
 - Status: captured
 - Provenance: competitor-learning and product-decision
-- Requirement: Keep start, log, adjust, substitute, and finish actions fast and reliable. Education, videos, articles, and explanations must remain available without obstructing the active workout flow.
+- Requirement: Keep start, log, adjust, substitute, and finish actions fast and reliable. Use only concise, optional text or visual definitions when they materially help logging or feedback literacy. Do not add an exercise-technique video library, instructional content feed, or video-first workout flow.
 - Detail: [[Competitive Product Evolution RP Hypertrophy and JuggernautAI 2026-08-09]]
 
 ### R-122 Portable Athlete History
@@ -2043,7 +2043,18 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Do not claim multi-device readiness until phone and laptop journeys prove account isolation, offline workout completion, reconnect without duplicates, same-session handoff, simultaneous-edit conflict preservation, correction replay, cloud restore, responsive accessibility, and matching derived analytics.
 - Detail: [[Data Backend Storage and Learning Architecture]]
 
+### R-320 No Technique-Video Product Surface
+- Status: excluded-by-user
+- Provenance: from-user
+- Requirement: Do not build, license, host, embed, prioritize, or market an athlete-facing exercise-technique video library, form-demo feed, video upload workflow, or automated technique-video analysis. Keep Exercise Detail and active workouts focused on programming purpose, concise setup notes, personal history, prescriptions, substitutions, feedback, and progression.
+- Detail: [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]]
+
 ## Thread Coverage Audit
+
+### 2026-08-10 Technique Video Exclusion
+- Scope: User explicitly rejected the technique-video emphasis used by other training apps and requested that it be removed or kept out of this product.
+- Result: Added R-320 as an explicit scope exclusion, revised the fast-workout and imported-history requirements, removed the exercise-demonstration open decision, and separated internal methodology video research from athlete-facing product features.
+- Status: No technique-video surface exists in private alpha 0.31.0. This exclusion is active immediately and should prevent future roadmap drift.
 
 ### 2026-08-10 Phone, Laptop, and Cloud Sync Expansion
 - Scope: User required the app to work well on both mobile and laptop and to keep changes updated appropriately across devices through the cloud.
@@ -2264,6 +2275,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-10: Added R-320 to exclude athlete-facing technique videos, exercise-demo feeds, video uploads, and automated form-video analysis. Revised R-102 and R-121 so structured history and concise optional guidance remain possible without turning the app into an instructional-content product.
 - 2026-08-10: Added R-312 through R-319 for optimized phone and laptop use, one private account, local-first cloud synchronization, active-workout handoff, honest sync status, conflict preservation, cloud recovery, and the multi-device release gate. Responsive layouts are an implemented first slice; actual cross-device synchronization remains unimplemented.
 - 2026-08-10: Added R-304 through R-311 for exact-movement favorites, dislikes, do-not-recommend state, context-specific exercise use, preference-aware ranking, protected-primary conflicts, auditable history, and stated-versus-inferred separation. The existing favorite and joint-response controls are an implemented first slice; contextual preference behavior remains unimplemented.
 - 2026-08-10: Added R-296 through R-303 for an optional original three-stage training companion, completed-workout XP, anti-grind progression, level and evolution gates, post-workout level-up sequence, non-punitive continuity, accessibility controls, and a strict no-Pokémon-copying boundary. The feature is specified and remains unimplemented.
