@@ -101,9 +101,9 @@ Supporting characters should have clear product jobs. Avoid adding characters th
 
 ### Evolving Training Companion
 
-The preferred game loop includes one optional original training creature that grows alongside the athlete. The emotional reference is the readable three-stage arc of classic monster-training games: a small determined starting form, a visibly developed middle form, and a powerful champion form.
+The preferred game loop includes one optional original training creature that grows alongside the athlete. The emotional reference is a readable four-form arc: a small determined Starting Form, a visibly capable Developed Form, a powerful Champion Form, and a spectacular permanent Apex Form that rewards years of accumulated training history.
 
-The shipped character must be independently ownable. Machop, Machoke, Machamp, and Pokémon are references for progression feeling only. Do not reproduce their names, blue or gray humanoid body language, facial structures, head crests, wrestling briefs, championship belt, four-arm transformation, poses, sounds, evolution effects, typography, numeric thresholds, trade mechanic, or recognizable silhouettes.
+The shipped character must be independently ownable. Machop, Machoke, Machamp, Gigantamax, G-Max, Dynamax, and Pokémon are references for progression feeling or late-stage spectacle only. Do not reproduce their names, blue or gray humanoid body language, facial structures, head crests, wrestling briefs, championship belt, four-arm transformation, giant-form silhouettes, signature clouds or energy, poses, sounds, evolution or battle-transformation effects, typography, numeric thresholds, trade mechanics, or recognizable interface language.
 
 The same boundary governs audio. `field-guide-synth-v1` translates the compact, responsive pleasure of a handheld game into original runtime synthesis for workout start, set completion, earned achievements, workout completion, and pain-aware warning. It uses no downloaded recordings, creature cries, recognizable melodies, or remote assets. Sounds remain off by default, previewable, low-volume, nonessential to comprehension, and subordinate to quiet mode.
 
@@ -112,8 +112,9 @@ Working form language until original naming is approved:
 1. `Starting Form`: compact, eager, and clearly trainable rather than weak or childish.
 2. `Developed Form`: visibly more capable, composed, and technically skilled.
 3. `Champion Form`: powerful and confident with an original silhouette that communicates long-term mastery.
+4. `Apex Form`: monumental and unmistakably advanced, with an independently designed silhouette and environment-scale reveal that communicates long-horizon commitment without copying a protected giant form.
 
-Final names, anatomy, species story, color palette, equipment motifs, and evolution animation require an originality review before asset production. The user may eventually choose among several original companion archetypes, but one excellent three-stage family is the first prototype boundary.
+Final names, anatomy, species story, color palette, equipment motifs, and evolution animation require an originality review before asset production. The user may eventually choose among several original companion archetypes, but one excellent four-form family is the first prototype boundary.
 
 ### Experience and Level Contract
 
@@ -130,11 +131,13 @@ Every award stores its rule version, source event, reason, amount, and timestamp
 
 ### Level and Evolution Contract
 
-The companion can gain many levels within each form so progress remains visible between major transformations. A major evolution requires both a versioned XP threshold and meaningful completed-training milestones. It cannot depend on bodyweight, physique, maximum strength, streak length alone, payment, social popularity, or an unsafe performance test.
+The companion can gain many levels within each form so progress remains visible between major transformations. A major evolution requires both a versioned XP threshold and meaningful completed-training milestones. The fourth Apex threshold adds long-horizon breadth across completed cycles, interruptions or returns, training qualities, and source-backed learning rather than one lift, physique outcome, streak, or volume total. It cannot depend on bodyweight, physique, maximum strength, streak length alone, payment, social popularity, or an unsafe performance test.
 
 Evolution is an earned option, not a forced mutation. The athlete explicitly confirms the new form or saves the ceremony for later. Missed sessions, deloads, illness, injury, childcare, travel, schedule interruption, or conservative programming never lower a level or reverse an evolution.
 
 Companion level is cosmetic progression and must never be confused with onboarding athlete level, movement skill, strength tolerance, volume tolerance, readiness, cycle phase, or programming eligibility.
+
+Progress does not stop at Apex. Continued source-backed XP can advance mastery levels, alternate original palettes, room and world development, journal emblems, idle animations, and bounded celebration milestones. Post-apex rewards never add companion battle statistics, training bonuses, harder prescriptions, social rank pressure, or incentives to exceed planned work.
 
 ### Level-Up and Evolution Sequence
 
@@ -407,7 +410,7 @@ Before full UI production, create:
 ### Phase 2: Athlete Identity
 
 - customizable avatar;
-- one original three-stage training companion with source-backed levels;
+- one original four-form training companion with source-backed levels and continued post-apex progression;
 - post-workout XP result, brief level-up, and athlete-confirmed evolution ceremony;
 - workout idle and celebration poses;
 - personal training room or journal;

@@ -1902,7 +1902,7 @@ This is the canonical traceability index for every durable requirement JB states
 ### R-296 Original Evolving Training Companion
 - Status: captured
 - Provenance: from-user and product-decision
-- Requirement: Offer an optional original pixel training companion with a clear three-stage growth arc that evokes the satisfying progression of classic monster-training games without copying any existing creature, name, silhouette, anatomy, costume, icon, interface, or evolution sequence.
+- Requirement: Offer an optional original pixel training companion with a clear four-form growth arc that evokes the satisfying progression and late-stage spectacle of classic monster-training games without copying any existing creature, name, silhouette, anatomy, costume, icon, interface, evolution, or giant-form sequence.
 - Detail: [[Pixel Training Adventure Visual and Interaction System]]
 
 ### R-297 Completed-Workout Experience Points
@@ -1920,7 +1920,7 @@ This is the canonical traceability index for every durable requirement JB states
 ### R-299 Level and Evolution Gates
 - Status: captured
 - Provenance: from-user and product-decision
-- Requirement: Let the companion progress through many visible levels and eventually unlock three original forms. Evolution eligibility must use versioned XP plus meaningful completed-exposure milestones, remain separate from athlete placement level, and require an explicit athlete confirmation rather than changing silently.
+- Requirement: Let the companion progress through many visible levels and eventually unlock four original forms: Starting, Developed, Champion, and Apex. Evolution eligibility must use versioned XP plus meaningful completed-exposure milestones, remain separate from athlete placement level, and require an explicit athlete confirmation rather than changing silently.
 - Detail: [[Pixel Training Adventure Visual and Interaction System]]
 
 ### R-300 Post-Workout Level-Up Sequence
@@ -1944,7 +1944,7 @@ This is the canonical traceability index for every durable requirement JB states
 ### R-303 Originality and Intellectual-Property Boundary
 - Status: captured
 - Provenance: product-decision
-- Requirement: Treat references such as Machop, Machoke, Machamp, and Pokémon only as shorthand for a readable three-stage strength fantasy. Do not ship those names, likenesses, four-arm progression, facial structures, costumes, badges, sounds, fonts, terminology, level thresholds, trade mechanics, or other recognizable protected expression. Create and document an independently ownable creature world and evolution language before public use.
+- Requirement: Treat references such as Machop, Machoke, Machamp, Gigantamax, G-Max, Dynamax, and Pokémon only as shorthand for a readable four-form strength fantasy and late-stage spectacle. Do not ship those names, likenesses, four-arm progression, giant-form silhouettes, facial structures, costumes, clouds, energy, badges, sounds, fonts, terminology, thresholds, trade or battle mechanics, or other recognizable protected expression. Create and document an independently ownable creature world, Apex identity, and evolution language before public use.
 - Detail: [[Pixel Training Adventure Visual and Interaction System]]
 
 ### R-304 Exact-Movement Preference Scale
@@ -2373,7 +2373,24 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Athlete-authored free text is recall context only in the first slice. It cannot automatically add load, repetitions, sets, exercises, volume, clearance, or a PR. Any later extraction or learning system must preserve the source note, disclose confidence and limitations, and require athlete review before changing programming.
 - Detail: [[Adaptive Strength and Hypertrophy App Build Bible#79. Exact-Movement Workout Notes and Longitudinal Recall]]
 
+### R-375 Permanent Fourth Apex Companion Form
+- Status: captured-unimplemented
+- Provenance: from-user and product-decision
+- Requirement: Extend the original companion from three forms to four permanent forms. The fourth Apex Form should deliver the visual excitement of an enormous final transformation while remaining an independently designed ForgePath identity rather than a copied Gigantamax form or temporary battle mechanic. Eligibility requires versioned long-horizon XP, breadth milestones, and explicit athlete confirmation.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#66. Original Training Companion, XP, and Evolution System]]
+
+### R-376 Continued Progression After Apex
+- Status: captured-unimplemented
+- Provenance: from-user and product-decision
+- Requirement: Reaching the fourth Apex Form must not end progression. Source-backed XP continues to advance mastery levels, cosmetics, environment development, journal emblems, and bounded celebrations without resetting lifetime progress, affecting athletic programming, or rewarding unsafe extra work.
+- Detail: [[Pixel Training Adventure Visual and Interaction System]]
+
 ## Thread Coverage Audit
+
+### 2026-08-10 Fourth Apex Companion Expansion
+- Scope: User requested a fourth companion tier inspired by the continued spectacle of a Gigantamax Machamp after Machop, Machoke, and Machamp so the evolution path does not feel finished at three forms.
+- Result: Expanded Build Bible Chapter 66 and R-296, R-299, and R-303; added R-375 and R-376. The original companion now has Starting, Developed, Champion, and permanent Apex forms plus continued post-apex mastery, cosmetics, and world progression.
+- Status: Product specification only. Companion code, economy, original character design, animation, and asset originality review remain unimplemented.
 
 ### 2026-08-10 Exact-Movement Workout Notes Expansion
 - Scope: User requested durable notes on every workout movement, including setup, angle, tempo, cues, technical discoveries, and week-to-week recall through Exercise Library.
@@ -2643,6 +2660,8 @@ This is the canonical traceability index for every durable requirement JB states
 - Exact boundary and default setting for focused-training or low-decoration mode.
 
 ## Change Log
+
+- 2026-08-10: Added R-375 and R-376 and expanded Build Bible Chapter 66 from a three-form companion to a four-form Starting, Developed, Champion, and Apex journey. The Apex Form is permanent, earned from long-horizon breadth rather than brute performance, independently designed from protected giant-form expression, and followed by continued mastery levels and cosmetic or world development. The companion remains specified and unimplemented.
 
 - 2026-08-10: Added R-368 through R-374 and Build Bible Chapter 79 for exact-movement workout notes. Private alpha 0.39.0 now autosaves one optional note per exact workout movement, recalls the prior note during training, preserves a newest-first Exercise Library notebook, protects substitution and merge identity, advances backup schema to 25 and local persistence to 23, and keeps free text outside automatic programming authority.
 

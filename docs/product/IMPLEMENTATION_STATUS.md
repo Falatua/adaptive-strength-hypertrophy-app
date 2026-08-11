@@ -22,6 +22,13 @@ Private alpha 0.39.0 adds durable exact-movement workout notes and longitudinal 
 
 This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into a usable end-to-end browser and installable PWA experience. It is governed by the full requirement register but implements a bounded first slice. Automatic entity-level cloud convergence, AI, social, and advanced longitudinal work must not be represented as complete.
 
+## Build Bible 1.46.0 Specification Delta
+
+- Expanded the unimplemented companion concept from three forms to four permanent Starting, Developed, Champion, and Apex forms.
+- Added continued post-apex mastery levels, cosmetics, environment development, journal emblems, and bounded celebration milestones so long-term progression does not stop at the fourth form.
+- Added strict originality boundaries around Gigantamax, G-Max, Dynamax, Machamp, giant-form silhouettes, signature clouds or energy, battle mechanics, sounds, camera language, and interface terminology.
+- Kept app version 0.39.0, backup schema 25, and local persistence 23 unchanged because companion code, XP economy, original assets, and animations remain unimplemented.
+
 ## Private Alpha 0.39.0 Release Delta
 
 - Added `movement-note-v1`, one optional autosaving note per exact session, planned movement slot, and canonical exercise.

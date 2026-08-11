@@ -5,7 +5,7 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-10
 status: canonical-build-reference-and-active-implementation
-version: 1.45.0
+version: 1.46.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -945,7 +945,7 @@ Use crisp modern interface components for numbers, forms, accessibility, charts,
 
 - customizable athlete avatar;
 - original training companions or coaches with narrow functional roles;
-- one optional original three-stage training companion with source-backed levels, post-workout XP, and athlete-confirmed evolution;
+- one optional original four-form training companion with source-backed levels, post-workout XP, athlete-confirmed evolution, and continued post-apex progression;
 - gym room, journal, journey map, or town-like progress environment;
 - emblems for movement families, muscles, cycles, and achievements;
 - emoji-like pixel reactions for effort, recovery, pain-aware caution, PRs, and micro wins;
@@ -955,7 +955,7 @@ Use crisp modern interface components for numbers, forms, accessibility, charts,
 
 ### Original Companion Boundary
 
-The emotional reference may be a familiar three-stage monster-training progression, but the product must own its character world. References such as Machop, Machoke, Machamp, and Pokémon are shorthand for a satisfying small-to-developed-to-champion arc only. Do not reproduce names, recognizable anatomy, four-arm progression, silhouettes, costumes, interface language, sounds, fonts, numeric thresholds, trade mechanics, or evolution effects.
+The emotional reference may be a familiar monster-training progression, but the product must own its character world. References such as Machop, Machoke, Machamp, Gigantamax, G-Max, Dynamax, and Pokémon are shorthand for a satisfying small-to-developed-to-champion-to-apex arc only. Do not reproduce names, recognizable anatomy, four-arm progression, giant-form silhouettes, signature clouds or energy, costumes, interface language, sounds, fonts, numeric thresholds, trade mechanics, battle transformation rules, or evolution effects.
 
 Companion progression is cosmetic and motivational. It never changes athlete placement, exercise selection, progression eligibility, readiness, fatigue, pain decisions, or cycle status. Detailed behavior is specified in Chapter 66 and [[Pixel Training Adventure Visual and Interaction System]].
 
@@ -5295,20 +5295,20 @@ The next coherent schedule factor is fixed-event pressure with explicit athlete-
 
 ### 66.1 Status and Requirement Authority
 
-This chapter specifies R-296 through R-303. It is a post-0.31.0 product decision and is not yet implemented in the working private alpha.
+This chapter specifies R-296 through R-303 and R-375 through R-376. It is a post-0.31.0 product decision and is not yet implemented in the working private alpha.
 
-The objective is to turn long-term training consistency into a visible original character journey. The companion earns bounded experience from completed training truth, gains many levels, and can unlock a three-stage form progression. The game layer supports training adherence and delight without becoming programming authority.
+The objective is to turn long-term training consistency into a visible original character journey. The companion earns bounded experience from completed training truth, gains many levels, and can unlock a permanent four-form progression: Starting, Developed, Champion, and Apex. Levels, cosmetics, environment development, and achievement tracks continue after Apex so the game layer never presents long-term adherence as finished. The game layer supports training adherence and delight without becoming programming authority.
 
 ### 66.2 Originality Contract
 
-The desired emotional cadence is familiar: begin with a compact determined creature, develop into a visibly more capable middle form, and eventually reveal a powerful champion form. This can evoke the satisfaction of classic monster evolution without copying a particular property.
+The desired emotional cadence is familiar: begin with a compact determined creature, develop into a visibly more capable middle form, reveal a powerful champion form, and eventually earn a spectacular original Apex Form that communicates years of accumulated training history. This can evoke the satisfaction of classic monster growth and giant-form spectacle without copying a particular property.
 
-Machop, Machoke, Machamp, and Pokémon must not appear in shipped names, descriptions, art, metadata, code identifiers, audio, marketing, or interface labels. The original companion must not reuse recognizable:
+Machop, Machoke, Machamp, Gigantamax, G-Max, Dynamax, and Pokémon must not appear in shipped names, descriptions, art, metadata, code identifiers, audio, marketing, or interface labels. The original companion must not reuse recognizable:
 
 - head, face, body, limb, hand, or foot construction;
 - blue or gray humanoid palette as a combined identity cue;
 - head crests, wrestling briefs, championship belts, four-arm transformation, or signature poses;
-- Poké Ball, evolution screen, badges, fonts, sound design, flashes, terminology, numeric level thresholds, or trade mechanic;
+- Poké Ball, evolution screen, badges, fonts, sound design, flashes, terminology, numeric level thresholds, trade mechanic, battle-only giant transformation, signature storm cloud, red energy, or G-Max visual language;
 - sprite dimensions, animation frames, silhouettes, or scene composition traced from protected assets.
 
 Before public use, retain an originality sheet showing independent silhouette exploration, construction, palette, naming, lore, animation, and side-by-side rejection of overly similar directions. Private placeholders should also use original names and shapes so temporary art does not become production debt.
@@ -5332,7 +5332,7 @@ Before public use, retain an originality sheet showing independent silhouette ex
 `CompanionFormDefinition` should contain:
 
 - stable form ID and family ID;
-- sequence index of one, two, or three;
+- sequence index of one, two, three, or four;
 - original name, description, silhouette class, and asset bundle version;
 - level and completed-milestone eligibility criteria;
 - idle, acknowledgement, level-up, and evolution animation references;
@@ -5394,6 +5394,7 @@ Level derives from the sum of active XP events under one versioned curve. The sy
 Requirements:
 
 - many visible levels exist between major forms;
+- visible levels and unlocks continue after the fourth form;
 - early levels arrive quickly enough to teach the loop;
 - later levels slow gradually without requiring unsafe training frequency;
 - no level requires a PR, streak, maximum attempt, public share, payment, or survey answer;
@@ -5415,6 +5416,10 @@ Eligibility creates an invitation. The athlete can evolve now, save it for later
 
 No missed workout, deload, illness, pain restriction, injury, childcare disruption, travel period, schedule change, or conservative programming decision may reverse a form or remove eligibility.
 
+The fourth Apex Form is a permanent earned identity, not a temporary battle power-up. Its breadth milestone should require meaningful long-horizon participation across multiple completed cycles, interruptions or returns, training qualities, and source-backed learning milestones rather than a single huge lift, physique outcome, streak, or volume total. Exact criteria remain open for calibration and athlete review.
+
+Reaching Apex never ends the level system. Subsequent XP may advance open-ended mastery levels, cosmetic variants, room or world development, journal emblems, and bounded celebration milestones. Post-apex rewards cannot add training authority, create stat boosts, encourage more work than prescribed, or make missed training feel like lost status.
+
 ### 66.8 Level-Up and Evolution Experience
 
 XP is calculated only after the workout and all source records are committed. The workout result screen shows:
@@ -5424,7 +5429,7 @@ XP is calculated only after the workout and all source records are committed. Th
 - any new cosmetic or form eligibility;
 - a continue action that is always immediately available.
 
-A normal level-up uses a brief original animation. A major evolution may use a longer original ceremony with silhouette transition, light, particles, sound, and haptics, followed by the new form and its original name. The ceremony must not imitate a protected evolution screen or sound.
+A normal level-up uses a brief original animation. A major evolution may use a longer original ceremony with silhouette transition, light, particles, sound, and haptics, followed by the new form and its original name. The Apex ceremony may briefly expand the environment, camera scale, or companion presence for spectacle, but the resulting form is permanent and independently designed. The ceremony must not imitate a protected evolution or giant-form screen, sound, clouds, energy, camera language, or terminology.
 
 The athlete can skip, replay later, reduce motion, show celebration-only motion, mute sound, disable haptics, hide the companion, or use focused-training mode. Skipping presentation never skips saved XP or form eligibility.
 
@@ -5468,6 +5473,8 @@ Before implementation is considered complete, prove:
 - no missed week, deload, or interruption removes levels or reverses a form;
 - level and athlete training placement remain independent;
 - evolution requires both versioned threshold and milestone evidence plus athlete confirmation;
+- the fourth Apex Form requires long-horizon breadth evidence and remains permanent without changing training authority;
+- XP and meaningful cosmetic or world progression continue after Apex without a second award for the same source;
 - skip, reduced motion, silent, hidden-companion, and replay-later paths preserve all training functionality;
 - phone and large-text layouts keep training results readable beneath the celebration;
 - originality review rejects any companion or sequence that is confusingly close to the named inspiration.
@@ -5475,10 +5482,11 @@ Before implementation is considered complete, prove:
 ### 66.12 Deferred Decisions
 
 - final companion family and world name;
-- final three form names;
+- final four form names;
 - silhouette, anatomy, palette, lore, personality, and equipment motif;
 - one companion family versus several selectable archetypes;
 - exact XP awards, level curve, level cap, and form thresholds;
+- whether post-apex mastery levels are numerically uncapped or use renewable seasons that never reset lifetime progress;
 - qualifying breadth milestones;
 - cosmetic inventory and environment interaction;
 - whether a companion can remain permanently in an earlier form;
@@ -6249,6 +6257,14 @@ The existing cloud bootstrap snapshot automatically includes notes because it pr
 ### 79.7 Acceptance Gate
 
 Release requires deterministic coverage for create, update, clear, exact-slot separation after substitution, newest-first recall, merge identity preservation, schema migration, backup round trip, and forged-reference rejection. Desktop and phone browser journeys must type a note in an active workout, leave without finishing, open the exact movement in Library, verify the note and stored identity, check horizontal containment, and report zero browser errors.
+
+### Version 1.46.0 Change Entry
+
+- Added R-375 and R-376 and expanded the original companion from three forms to four permanent forms: Starting, Developed, Champion, and Apex.
+- Translated the desired giant-form spectacle into an independently designed Apex ceremony and permanent companion identity without using protected names, anatomy, clouds, energy, battle mechanics, or transformation language.
+- Required long-horizon breadth evidence plus athlete confirmation for Apex eligibility rather than one large lift, physique outcome, streak, or volume total.
+- Required levels, cosmetics, environment development, journal emblems, and bounded milestones to continue after Apex without granting training authority or encouraging excess work.
+- Kept the working application at private alpha 0.39.0 because the companion economy and character assets remain specified but unimplemented.
 
 ### Version 1.45.0 Change Entry
 

@@ -2,7 +2,7 @@
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
-The private repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 374 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, and pixel training-adventure specification. Obsidian remains the editable source of truth.
+The private repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 376 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
 ## Run locally
 
