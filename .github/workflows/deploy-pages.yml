@@ -16,8 +16,8 @@ jobs:
   verify-and-build:
     runs-on: ubuntu-latest
     env:
-      VITE_SUPABASE_URL: ${{ secrets.FORGEPATH_SUPABASE_URL }}
-      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.FORGEPATH_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_URL: ${{ vars.FORGEPATH_CLOUD_RELEASE_ENABLED == 'true' && secrets.FORGEPATH_SUPABASE_URL || '' }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.FORGEPATH_CLOUD_RELEASE_ENABLED == 'true' && secrets.FORGEPATH_SUPABASE_PUBLISHABLE_KEY || '' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v7

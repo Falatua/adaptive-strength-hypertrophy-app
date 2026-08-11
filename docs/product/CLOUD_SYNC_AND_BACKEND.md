@@ -3,8 +3,8 @@ type: product-process
 aliases: [Adaptive Training Data Backend, Supabase Training App Architecture]
 tags: [fitness, app, backend, database, supabase, postgres, privacy, learning]
 created: 2026-08-09
-updated: 2026-08-10
-status: product-definition
+updated: 2026-08-11
+status: active-backend-foundation
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -38,7 +38,7 @@ The current responsive PWA remains the fastest first client because it already r
 
 Native mobile distribution can still follow when device features, reliability testing, or public distribution justify it. Cloud identity and sync contracts must remain client-independent so the responsive web client and any future native client use the same authoritative records.
 
-Private alpha 0.39.0 preserves the first cloud foundation and includes exact-movement notes inside the validated version 25 bootstrap snapshot, but it does not yet meet the full multi-device requirement. It includes invite-only authentication, device identity, a local retry outbox, idempotent snapshot events, a protected bootstrap snapshot, preserved version conflicts, and reviewed restore. Until a dedicated ForgePath project is provisioned and the remote acceptance gates pass, phone and laptop still create independent local states. Automatic entity-level synchronization, note-level convergence, and workout handoff remain later phases.
+Private alpha 0.39.0 preserves the first cloud foundation and includes exact-movement notes inside the validated version 25 bootstrap snapshot, but it does not yet meet the full multi-device requirement. The dedicated ForgePath project now exists, both committed migrations are active, and the private GitHub repository holds browser-safe project configuration. Pages compilation remains release-gated until remote public signup is disabled. The existing client includes device identity, a local retry outbox, idempotent snapshot events, a protected bootstrap snapshot, preserved version conflicts, and reviewed restore. Until invite-only Auth and the complete remote acceptance gates pass, phone and laptop still create independent local states. Automatic entity-level synchronization, note-level convergence, and workout handoff remain later phases.
 
 ## Cross-Device Sync Contract
 
@@ -421,7 +421,7 @@ Add a separate analytics warehouse, streaming pipeline, read replica, or dedicat
 
 Use the responsive PWA as the first phone-and-laptop client, backed by a local operational store and Supabase as the leading private cloud system of record. Start schema and sync design now. Do not claim cross-device operation until authenticated synchronization and the multi-device acceptance gate pass. Keep the domain, storage, and sync contracts portable so a later native mobile client can use the same account and history.
 
-## Implemented Foundation, Private Alpha 0.38.0
+## Implemented Foundation and Normalized Core, Private Alpha 0.39.0
 
 The repository now contains a versioned Supabase migration and browser connection layer. The migration creates `forgepath_profiles`, `forgepath_devices`, `forgepath_sync_events`, `forgepath_state_snapshots`, and `forgepath_sync_conflicts`. Every table enables and forces Row Level Security, revokes anonymous access, and limits authenticated reads to `auth.uid() = user_id`. Append-only events, snapshots, and conflicts cannot be directly changed by the browser.
 
@@ -429,9 +429,15 @@ The authenticated `push_forgepath_snapshot` function serializes writes per athle
 
 The PWA stores a stable device ID, device sequence, acknowledged server version, last confirmed sync time, and one retryable snapshot in local storage. The You screen supports invite-only email link sign-in, explicit save to cloud, integrity-validated cloud review, and athlete-confirmed restore through the existing automatic local undo path. Reading a cloud copy alone does not authorize a local overwrite or advance the local base version.
 
-This is deliberately a bootstrap bridge, not the final relational training model. A whole-state snapshot supports safe private-alpha recovery while source-domain tables and transactional entity events are built. Automatic merging, background sync, active-workout leases, new-device staged hydration, revocation UI, and derived-view parity remain unimplemented and cannot be labeled ready.
+The second migration adds `forgepath_entity_events`, `forgepath_sync_cursors`, `forgepath_exercises`, `forgepath_workout_sessions`, `forgepath_workout_movements`, `forgepath_workout_sets`, `forgepath_movement_notes`, `forgepath_survey_instances`, and `forgepath_survey_answers`. These are athlete-owned, server-written projections backed by an append-only entity ledger. Direct browser mutation is denied. Explicit survey missingness is preserved rather than mapped to neutral data.
 
-Remote activation is currently blocked because Falatua's Org has reached Supabase's two-active-free-project limit with JB-OS and Roman TD Global Leaderboard. Neither existing project will be reused, paused, or deleted without an explicit owner decision. See `SUPABASE_BACKEND_RUNBOOK.md`.
+`forgepath_volume_facts` retains source-set identity and calculates volume load as normalized kilograms multiplied by repetitions. `forgepath_volume_rollups` derives daily, weekly, monthly, and yearly totals for the whole athlete and exclusive primary-region scopes. Both are security-invoker views so the underlying athlete Row Level Security remains authoritative.
+
+The dedicated project is live at project reference `kdavpkphvapnckenbuyg` in AWS `us-east-2`. A live catalog audit verified fourteen forced-RLS tables, two volume views, zero anonymous grants, zero normalized browser mutation grants, eighteen authenticated policies, and one snapshot RPC. The private source repository holds only browser-safe project URL and publishable-key values as GitHub Actions secrets. The public build receives them only when `FORGEPATH_CLOUD_RELEASE_ENABLED` is exactly `true`; that repository variable remains unset until invite-only Auth is confirmed. Database passwords and privileged keys were neither read nor stored.
+
+The whole-state snapshot remains the only client-wired bridge. The normalized projections are ready for the subsequent transactional entity-event RPC and IndexedDB outbox, but automatic merging, background sync, active-workout leases, new-device staged hydration, revocation UI, and derived-view parity remain unimplemented and cannot be labeled ready.
+
+Remote activation moved to a separate approved Supabase organization, leaving JB-OS and Roman TD unchanged. Final invite-only activation still requires public signup to remain disabled, one approved athlete invite, and the complete live acceptance matrix. See `SUPABASE_BACKEND_RUNBOOK.md`.
 
 ## Official Sources Checked, 2026-08-10
 

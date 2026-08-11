@@ -3,7 +3,7 @@ type: implementation-status
 aliases: [ForgePath Private Alpha, Adaptive Training App Private Alpha]
 tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-11
 status: working-private-alpha
 app_version: 0.39.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
@@ -18,7 +18,7 @@ A working private, local-first application now exists at `/Users/redsky/Projects
 
 The code is preserved in the private GitHub repository `Falatua/adaptive-strength-hypertrophy-app`. Releases 0.1.0 through 0.34.0 remain in Git history. Private alpha 0.30.0 is commit `b204c54342a08366f8026e305171993ffb27aee7` and adds fresh readiness evidence without penalizing missing or stale answers. Private alpha 0.31.0 feature commit `06336129e7c2952e4645e088fbc0b4c8479208cf` adds source-backed relative priority-region dose as a bounded schedule tie-break. Private alpha 0.32.0 feature commit `035e175` adds context-grounded product and design registers, the evidence-backed Today Training Field Guide, post-onboarding focus handoff, and automated UI boundaries. Private alpha 0.33.0 adds the original `field-guide-synth-v1` runtime sound pack. Private alpha 0.34.0 feature commit `2f469b4ef237092ab5a8687d2fdd03626ab55194` adds the cross-device UX task-focus corrections recorded in [[UX Audit 2026-08-10]]. Private alpha 0.35.0 feature commit `900010570c60981b2b2beeb58cf31f66b754ee37` adds the functional UX corrections recorded in [[Functional UX Audit 2026-08-10]]. Private alpha 0.36.0 feature commits `8257a8b6b0e94eaf6a0eefb4cf78302fee8335dc` and `888b5d8669d8106455a76d4e96df5f4d34da9a30` add the automatic private-source-to-public-artifact Pages release, exact subpath PWA behavior, neutral visitor seed, and stable 390 by 844 mobile gate recorded in [[GitHub Pages Deployment 2026-08-10]]. Private alpha 0.37.0 standardizes readable vertical rhythm across headers, subheaders, supporting text, cards, and dialogs on phone and laptop. The first complete GitHub specification mirror is commit `20cf4298870a11608ddc69642c52c4a1c1b2867f`; later specification commits keep `docs/product/` aligned with implementation. The latest remote identity is recorded in [[Adaptive Strength and Hypertrophy App]] and [[Codex Session Log]].
 
-Private alpha 0.39.0 adds durable exact-movement workout notes and longitudinal Exercise Library recall while preserving the 0.38.0 cloud foundation. The remote project and full cross-device synchronization remain incomplete because the current Supabase organization is at its free-project limit.
+Private alpha 0.39.0 adds durable exact-movement workout notes and longitudinal Exercise Library recall while preserving the 0.38.0 cloud foundation. The dedicated remote ForgePath project and normalized training schema now exist in a separate approved organization. Full cross-device synchronization remains incomplete.
 
 This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into a usable end-to-end browser and installable PWA experience. It is governed by the full requirement register but implements a bounded first slice. Automatic entity-level cloud convergence, AI, social, and advanced longitudinal work must not be represented as complete.
 
@@ -28,6 +28,16 @@ This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into 
 - Added continued post-apex mastery levels, cosmetics, environment development, journal emblems, and bounded celebration milestones so long-term progression does not stop at the fourth form.
 - Added strict originality boundaries around Gigantamax, G-Max, Dynamax, Machamp, giant-form silhouettes, signature clouds or energy, battle mechanics, sounds, camera language, and interface terminology.
 - Kept app version 0.39.0, backup schema 25, and local persistence 23 unchanged because companion code, XP economy, original assets, and animations remain unimplemented.
+
+## Build Bible 1.47.0 Backend Activation Delta
+
+- Activated dedicated project `ForgePath` at project reference `kdavpkphvapnckenbuyg` in AWS `us-east-2`, connected to private source repository `Falatua/adaptive-strength-hypertrophy-app`.
+- Applied both committed migrations transactionally without reading or storing a database password or privileged key.
+- Added nine normalized training tables for entity events, cursors, exercises, sessions, movements, sets, notes, survey instances, and survey answers alongside the five-table snapshot foundation.
+- Added security-invoker source-set facts and daily, weekly, monthly, and yearly volume rollups using normalized load times repetitions, with total and exclusive primary-region scopes.
+- Verified fourteen of fourteen tables with forced Row Level Security, zero anonymous grants, zero normalized browser mutation grants, eighteen authenticated ownership policies, two views, and one snapshot RPC.
+- Configured the Pages Site URL, three allowed redirects, the private repository's browser-safe Supabase Actions secrets, and an unset release switch that prevents Pages from compiling them before invite-only Auth is verified.
+- Kept app version 0.39.0, backup schema 25, and local persistence 23 unchanged. The normalized tables are not yet client-written, and automatic entity sync, invite acceptance, two-account isolation, and phone-laptop handoff remain incomplete.
 
 ## Private Alpha 0.39.0 Release Delta
 
@@ -629,7 +639,7 @@ Screenshots are stored inside the code project at `output/playwright/` and are d
 ## Known Boundaries and Deferred Work
 
 - Browser storage is not yet SQLite or Postgres. Versioned local backup now reduces private-alpha loss risk but does not replace cloud or native durability.
-- The version-controlled Supabase schema, forced Row Level Security, invite-only client boundary, event outbox, explicit snapshot save, cloud review, athlete-confirmed restore, and conflict-preserving server function now exist. No dedicated remote project is active or configured, so hosted phone and laptop instances still hold independent local state. Automatic entity-level merge, device revocation UI, background hydration, and active-workout handoff remain deferred.
+- The version-controlled Supabase schema, forced Row Level Security, invite-only client boundary, event outbox, explicit snapshot save, cloud review, athlete-confirmed restore, and conflict-preserving server function now exist. The dedicated remote ForgePath project and both migrations are active, but hosted phone and laptop instances still hold independent local state until invite-only Auth and live acceptance are complete. Automatic entity-level merge, device revocation UI, background hydration, and active-workout handoff remain deferred.
 - No OpenAI, Anthropic, retrieval, statistical calibration service, or unstructured-feedback interpretation exists yet.
 - The original evolving training companion, source-backed XP ledger, levels, three-stage evolution, and post-workout ceremony are specified in Chapter 66 but are not implemented. Actual Pokémon characters, names, likenesses, mechanics, and presentation are prohibited.
 - The current athlete-learning display is seeded and deterministic. It is not a trained personal model.

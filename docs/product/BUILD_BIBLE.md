@@ -3,9 +3,9 @@ type: product-build-bible
 aliases: [Adaptive Training App Build Bible, App Build Bible]
 tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-11
 status: canonical-build-reference-and-active-implementation
-version: 1.46.0
+version: 1.47.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -6218,6 +6218,16 @@ Remote activation follows the version-controlled migration, not manual Table Edi
 
 This gate supplements rather than replaces Chapter 68. Passing the first snapshot and Auth tests does not satisfy the full multi-device acceptance matrix.
 
+### 78.8 Normalized Training Core
+
+The second migration begins the relational system of record without turning automatic synchronization on. It adds an append-only entity-event ledger and current athlete-owned projections for exercises, workout sessions, workout movements, completed sets, exact-movement notes, survey instances, survey answers, and device pull cursors.
+
+Every normalized table enables and forces Row Level Security. Authenticated clients may select only rows owned by `auth.uid()`. Anonymous access and direct authenticated inserts, updates, and deletes are revoked. A later transactional entity-event RPC must validate the event, expected entity version, device, payload, and checksum before atomically updating a projection and cursor. Until that RPC and the local IndexedDB outbox exist, the normalized tables are migration-ready storage, not an active synchronization path.
+
+Completed sets retain entered load and unit, normalized kilograms, repetitions, exact exercise identity, movement family, exclusive primary region, non-additive involved regions, source device, source event, version, and completion time. `volume_load_kg` is a stored generated value equal to normalized load multiplied by repetitions. Security-invoker views produce source-set facts and daily, weekly, monthly, and yearly rollups for total training and exclusive primary-region scopes. Survey answers store `answered`, `skipped`, `not-sure`, `prefer-not`, and `not-answered` explicitly, and only an answered row may contain a value.
+
+The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the private source repository. Both committed migrations were applied transactionally on 2026-08-11. A live catalog audit confirmed fourteen of fourteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, eighteen authenticated ownership policies, and one snapshot RPC. Browser-safe project configuration is stored only as private GitHub Actions secrets, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The variable remains unset until remote public signup is disabled. App version 0.39.0, backup schema 25, and local persistence 23 remain unchanged because the deployed client still uses explicit snapshot save and reviewed restore rather than normalized entity sync.
+
 ## 79. Exact-Movement Workout Notes and Longitudinal Recall
 
 ### 79.1 Product Purpose
@@ -6257,6 +6267,15 @@ The existing cloud bootstrap snapshot automatically includes notes because it pr
 ### 79.7 Acceptance Gate
 
 Release requires deterministic coverage for create, update, clear, exact-slot separation after substitution, newest-first recall, merge identity preservation, schema migration, backup round trip, and forged-reference rejection. Desktop and phone browser journeys must type a note in an active workout, leave without finishing, open the exact movement in Library, verify the note and stored identity, check horizontal containment, and report zero browser errors.
+
+### Version 1.47.0 Change Entry
+
+- Activated the dedicated ForgePath Supabase project in a separate approved organization without modifying JB-OS or Roman TD.
+- Applied the five-table private cloud foundation and the nine-table normalized training-core migration transactionally.
+- Added exercises, sessions, movements, completed sets, movement notes, survey missingness, entity events, device cursors, and security-invoker daily through yearly volume views.
+- Verified fourteen of fourteen tables with forced Row Level Security, zero anonymous grants, zero normalized browser mutation grants, eighteen athlete ownership policies, two volume views, and one snapshot RPC.
+- Connected browser-safe project values through private GitHub Actions secrets, placed their Pages compilation behind an explicit release switch, and configured the hosted Pages URL plus local development redirects.
+- Kept the working app at 0.39.0 because automatic entity synchronization, IndexedDB, account invitation, live two-account isolation, and phone-laptop handoff remain incomplete.
 
 ### Version 1.46.0 Change Entry
 
