@@ -61,6 +61,56 @@ test('keeps destination context and primary mobile actions in view', async ({ pa
   expect(browserErrors).toEqual([])
 })
 
+test('pipes every exercise-library browse control into a real canonical filter', async ({ page }) => {
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Library', exact: true }).click()
+
+  await page.getByRole('button', { name: /My movements/ }).click()
+  await expect(page.getByText('16 movements', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Preferred only' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByText('No movements match this exact filter.')).toHaveCount(0)
+
+  await page.getByRole('button', { name: /Movement type/ }).click()
+  await page.getByRole('button', { name: 'Hinge', exact: true }).click()
+  await expect(page.getByText('4 movements', { exact: true })).toBeVisible()
+  await expect(page.locator('.library-card')).toHaveCount(4)
+
+  await page.getByRole('button', { name: 'Hide filters' }).click()
+  await expect(page.locator('#library-filter-panel')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Show filters' }).click()
+  await page.getByRole('button', { name: 'Clear all' }).click()
+  await expect(page.getByText('22 movements', { exact: true })).toBeVisible()
+
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+})
+
+test('opens touch-safe workout reasoning and preserves an active workout across leave, pin, and resume', async ({ page }) => {
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Start without check-in' }).click()
+  await page.getByRole('button', { name: 'More information about Competition Bench Press' }).click()
+  await expect(page.getByRole('dialog')).toContainText('The next load jump is not yet earned')
+  await page.keyboard.press('Escape')
+
+  await page.getByRole('button', { name: 'Log set' }).first().click()
+  await page.getByRole('button', { name: 'Leave workout open' }).click()
+  await expect(page.getByRole('button', { name: 'Resume active workout' })).toBeVisible()
+  await page.getByRole('button', { name: 'Plan', exact: true }).click()
+  await page.getByRole('button', { name: /Pin Hinge Powerbuilding Session as next priority/ }).click()
+  const pinned = await page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state
+    return state.sessions.filter((session: { status: string }) => ['planned', 'deferred'].includes(session.status)).map((session: { title: string }) => session.title)
+  })
+  expect(pinned[0]).toBe('Hinge Powerbuilding Session')
+
+  await page.getByRole('button', { name: 'Today', exact: true }).click()
+  await page.getByRole('button', { name: 'Resume active workout' }).click()
+  await expect(page.getByRole('button', { name: 'Done' })).toHaveCount(1)
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state)
+  expect(persisted.activeSessionId).toBeTruthy()
+  expect(persisted.workoutVisible).toBe(true)
+})
+
 test('validates an athlete-controlled PR without changing the prescription', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })

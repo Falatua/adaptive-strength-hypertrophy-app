@@ -25,7 +25,7 @@ const dateInputFor = (offsetDays: number) => {
 }
 
 export function TodayScreen() {
-  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, startSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
+  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, activeSessionId, startSession, resumeActiveSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
   const [surveyOpen, setSurveyOpen] = useState(false)
   const [surveyChooserOpen, setSurveyChooserOpen] = useState(false)
   const [activeSurveyMode, setActiveSurveyMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
@@ -37,7 +37,8 @@ export function TodayScreen() {
   const [placementExitAssessedAt] = useState(() => new Date().toISOString())
   const [missReason, setMissReason] = useState<MissedOpportunityInput>({ reason: 'family', trainingOutcome: 'no-training', nextOpportunityAt: dateInputFor(1), nextMinutes: 45, constraintState: 'continuing', note: '', preferredNextSessionId: null })
   const [missError, setMissError] = useState<string | null>(null)
-  const nextSession = sessions.find((session) => ['planned', 'deferred'].includes(session.status)) ?? sessions[0]
+  const activeSession = activeSessionId ? sessions.find((session) => session.id === activeSessionId) : undefined
+  const nextSession = activeSession ?? sessions.find((session) => ['planned', 'deferred'].includes(session.status)) ?? sessions[0]
   const primaryPlan = nextSession?.exercises.find((exercise) => exercise.role === 'primary')
   const primaryExercise = exercises.find((exercise) => exercise.id === primaryPlan?.exerciseId)
   const primaryHistory = history.filter((set) => set.exerciseId === primaryExercise?.id)
@@ -228,8 +229,10 @@ export function TodayScreen() {
             <div className="anchor-prescription__decision"><span>{progression.action}</span><strong>{progression.title}</strong></div>
           </div>
           <div className="hero-workout__actions">
-            <button className="button button--primary button--large" disabled={placementBlocked} onClick={openPreferredCheckIn}>{placementBlocked ? 'Reassess before training' : checkInLabel} <ArrowRight size={18} /></button>
-            {settings.preSurveyMode !== 'off' && <button className="button button--secondary" disabled={placementBlocked} onClick={() => begin([], true, 'off')}>Start without check-in</button>}
+            {activeSession ? <button className="button button--primary button--large" onClick={resumeActiveSession}>Resume active workout <ArrowRight size={18} /></button> : <>
+              <button className="button button--primary button--large" disabled={placementBlocked} onClick={openPreferredCheckIn}>{placementBlocked ? 'Reassess before training' : checkInLabel} <ArrowRight size={18} /></button>
+              {settings.preSurveyMode !== 'off' && <button className="button button--secondary" disabled={placementBlocked} onClick={() => begin([], true, 'off')}>Start without check-in</button>}
+            </>}
             <button className="button button--ghost" onClick={() => setWhyOpen(true)}><HelpCircle size={17} /> Why this session?</button>
           </div>
           <div className="time-budget" aria-label="Available workout time">

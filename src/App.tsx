@@ -13,10 +13,10 @@ const WorkoutScreen = lazy(() => import('./screens/WorkoutScreen').then((module)
 const loading = <div className="screen-loading" role="status">Loading your training data…</div>
 
 function App() {
-  const { nav, activeSessionId, onboardingComplete } = useAppStore()
+  const { nav, activeSessionId, workoutVisible, onboardingComplete } = useAppStore()
 
   if (!onboardingComplete) return <Onboarding />
-  if (activeSessionId) return <Suspense fallback={loading}><WorkoutScreen sessionId={activeSessionId} /></Suspense>
+  if (activeSessionId && workoutVisible !== false) return <Suspense fallback={loading}><WorkoutScreen sessionId={activeSessionId} /></Suspense>
 
   const screen = {
     today: <TodayScreen />,

@@ -41,7 +41,7 @@ const reviewChoices: { id: CycleReviewDecision; title: string; detail: string }[
 export function PlanScreen() {
   const {
     sessions, exercises, athlete, history, mesocycles, cycleReviews, missedOpportunityEvents, placementVerifications, activeMesocycleId, activeSessionId, equipmentProfiles, settings,
-    startSession, applyMesocycleRevision, applyCycleReview, setNotice
+    startSession, pinSession, applyMesocycleRevision, applyCycleReview, setNotice
   } = useAppStore()
   const activePlan = mesocycles.find((plan) => plan.id === activeMesocycleId)
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
@@ -206,7 +206,7 @@ export function PlanScreen() {
                   </div>
                   <div className="queue-actions">
                     {(session.status === 'planned' || session.status === 'deferred') && <button className="button button--small button--secondary" onClick={() => startSession(session.id)}>Start</button>}
-                    <button className="icon-button" onClick={() => setNotice(`${exercise?.name} pinned as a protected next priority.`)} aria-label={`Pin ${session.title}`}><Pin size={17} /></button>
+                    <button className="icon-button" disabled={!['planned', 'deferred'].includes(session.status)} onClick={() => { const result = pinSession(session.id); if (!result.ok) setNotice(result.error ?? 'That session could not be pinned.') }} aria-label={`Pin ${session.title} as next priority`}><Pin size={17} /></button>
                   </div>
                 </article>
               )

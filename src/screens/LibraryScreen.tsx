@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent } from 'react'
+import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { AlertTriangle, BrainCircuit, ChevronRight, Clock3, Download, Dumbbell, FileCheck2, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Star, Target, Trash2, Undo2, Upload } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { duplicateCandidates, volumeLoad } from '../domain/training-engine'
@@ -16,6 +16,12 @@ const regionFilters: { id: BodyRegion | 'all'; label: string }[] = [
   { id: 'quadriceps', label: 'Quads' }, { id: 'hamstrings', label: 'Hamstrings' }, { id: 'glutes', label: 'Glutes' }, { id: 'biceps', label: 'Biceps' }, { id: 'triceps', label: 'Triceps' }
 ]
 const muscleLabel = new Map(muscleDefinitions.map((muscle) => [muscle.id, muscle.label]))
+const patternFilters: { id: MovementPattern | 'all'; label: string }[] = [
+  { id: 'all', label: 'All patterns' }, { id: 'squat', label: 'Squat' }, { id: 'hinge', label: 'Hinge' }, { id: 'horizontal-push', label: 'Horizontal push' },
+  { id: 'vertical-push', label: 'Vertical push' }, { id: 'horizontal-pull', label: 'Horizontal pull' }, { id: 'vertical-pull', label: 'Vertical pull' }, { id: 'isolation', label: 'Isolation' }, { id: 'carry', label: 'Carry' }
+]
+const roleFilters = ['all', 'strength anchor', 'secondary builder', 'hypertrophy', 'accessory', 'custom'] as const
+type BrowseDimension = 'body' | 'pattern' | 'role' | 'goal' | 'equipment' | 'favorites'
 
 export function LibraryScreen() {
   const { athlete, activeSessionId, exercises, equipmentProfiles, history, historyMutations, substitutionEvents, settings, toggleFavorite, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, undoLatestHistoryMutation, restartOnboarding, setNotice } = useAppStore()
@@ -23,6 +29,12 @@ export function LibraryScreen() {
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState<BodyRegion | 'all'>('all')
   const [availability, setAvailability] = useState<'all' | 'available' | 'unavailable'>('all')
+  const [pattern, setPattern] = useState<MovementPattern | 'all'>('all')
+  const [role, setRole] = useState<(typeof roleFilters)[number]>('all')
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(true)
+  const [browseDimension, setBrowseDimension] = useState<BrowseDimension | null>(null)
+  const filterPanelRef = useRef<HTMLDivElement>(null)
   const [selected, setSelected] = useState<Exercise | null>(null)
   const [addOpen, setAddOpen] = useState(false)
   const [customName, setCustomName] = useState('')
@@ -56,10 +68,13 @@ export function LibraryScreen() {
     const needle = search.toLowerCase()
     const matchesSearch = !needle || [exercise.name, exercise.family, ...exercise.aliases, ...exercise.roleTags].join(' ').toLowerCase().includes(needle)
     const matchesRegion = region === 'all' || exercise.regions.includes(region)
+    const matchesPattern = pattern === 'all' || exercise.pattern === pattern
+    const matchesRole = role === 'all' || exercise.roleTags.includes(role)
+    const matchesFavorite = !favoritesOnly || exercise.favorite
     const fit = exerciseEquipmentFit(exercise, activeEquipmentProfile)
     const matchesAvailability = availability === 'all' || (availability === 'available' ? fit.available : !fit.available)
-    return matchesSearch && matchesRegion && matchesAvailability
-  }), [activeEquipmentProfile, availability, exercises, search, region])
+    return matchesSearch && matchesRegion && matchesPattern && matchesRole && matchesFavorite && matchesAvailability
+  }), [activeEquipmentProfile, availability, exercises, favoritesOnly, pattern, role, search, region])
 
   const activeExercises = useMemo(() => exercises.filter((exercise) => !exercise.retired), [exercises])
   const placementEvidence = useMemo(() => athlete.strengthAnchors.flatMap((exerciseId) => {
@@ -242,6 +257,30 @@ export function LibraryScreen() {
     URL.revokeObjectURL(url)
   }
 
+  const openBrowseDimension = (dimension: BrowseDimension) => {
+    setBrowseDimension(dimension)
+    setFiltersOpen(true)
+    setSearch('')
+    setRegion('all')
+    setPattern('all')
+    setRole('all')
+    setAvailability('all')
+    setFavoritesOnly(false)
+    if (dimension === 'equipment') setAvailability('available')
+    if (dimension === 'favorites') setFavoritesOnly(true)
+    window.requestAnimationFrame(() => filterPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+
+  const clearFilters = () => {
+    setSearch('')
+    setRegion('all')
+    setPattern('all')
+    setRole('all')
+    setAvailability('all')
+    setFavoritesOnly(false)
+    setBrowseDimension(null)
+  }
+
   return (
     <div className="screen">
       <header className="screen-header">
@@ -250,19 +289,24 @@ export function LibraryScreen() {
       </header>
 
       <section className="library-categories">
-        {[
-          ['Body part', '11 regions', 'chest'], ['Movement type', '8 patterns', 'squat'], ['Training role', 'Anchor to accessory', 'primary'],
-          ['Goal / weak point', 'Builder relationships', 'target'], ['Equipment', activeEquipmentProfile.name, 'equipment'], ['My movements', `${activeExercises.filter((exercise) => exercise.favorite).length} preferred`, 'heart']
-        ].map(([title, detail, icon]) => <button key={title} onClick={() => title === 'My movements' ? setSearch('preferred:') : setNotice(`${title} view is using the shared canonical taxonomy.`)}><span className={`category-pixel category-pixel--${icon}`}><Dumbbell size={19} /></span><strong>{title}</strong><small>{detail}</small><ChevronRight size={16} /></button>)}
+        {([
+          ['body', 'Body part', '11 regions', 'chest'], ['pattern', 'Movement type', '8 patterns', 'squat'], ['role', 'Training role', 'Anchor to accessory', 'primary'],
+          ['goal', 'Goal / weak point', 'Target body regions', 'target'], ['equipment', 'Equipment', activeEquipmentProfile.name, 'equipment'], ['favorites', 'My movements', `${activeExercises.filter((exercise) => exercise.favorite).length} preferred`, 'heart']
+        ] as [BrowseDimension, string, string, string][]).map(([id, title, detail, icon]) => <button key={id} aria-pressed={browseDimension === id} onClick={() => openBrowseDimension(id)}><span className={`category-pixel category-pixel--${icon}`}><Dumbbell size={19} /></span><strong>{title}</strong><small>{detail}</small><ChevronRight size={16} /></button>)}
       </section>
 
-      <section className="library-browser">
+      <section className="library-browser" ref={filterPanelRef}>
         <div className="library-toolbar">
           <label className="search-box"><Search size={18} /><span className="sr-only">Search exercises</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search names, aliases, roles, equipment..." /></label>
-          <button className="filter-button"><Filter size={17} /> Filters</button>
+          <button className="filter-button" aria-expanded={filtersOpen} aria-controls="library-filter-panel" onClick={() => setFiltersOpen((current) => !current)}><Filter size={17} /> {filtersOpen ? 'Hide filters' : 'Show filters'}</button>
           <span>{filtered.length} movements</span>
         </div>
-        <div className="filter-stack"><div className="filter-chips" aria-label="Body part filter">{regionFilters.map((item) => <button key={item.id} className={region === item.id ? 'selected' : ''} onClick={() => setRegion(item.id)}>{item.label}</button>)}</div><div className="filter-chips filter-chips--availability" aria-label="Equipment availability filter"><span>{activeEquipmentProfile.name}</span>{(['all', 'available', 'unavailable'] as const).map((item) => <button key={item} className={availability === item ? 'selected' : ''} onClick={() => setAvailability(item)}>{item === 'all' ? 'All equipment' : item === 'available' ? 'Available here' : 'Missing equipment'}</button>)}</div></div>
+        {filtersOpen && <div className="filter-stack" id="library-filter-panel">
+          <div className="filter-chips" aria-label="Body part and weak point filter"><span>Body part</span>{regionFilters.map((item) => <button key={item.id} className={region === item.id ? 'selected' : ''} aria-pressed={region === item.id} onClick={() => setRegion(item.id)}>{item.label}</button>)}</div>
+          <div className="filter-chips" aria-label="Movement pattern filter"><span>Pattern</span>{patternFilters.map((item) => <button key={item.id} className={pattern === item.id ? 'selected' : ''} aria-pressed={pattern === item.id} onClick={() => setPattern(item.id)}>{item.label}</button>)}</div>
+          <div className="filter-chips" aria-label="Training role filter"><span>Role</span>{roleFilters.map((item) => <button key={item} className={role === item ? 'selected' : ''} aria-pressed={role === item} onClick={() => setRole(item)}>{item === 'all' ? 'All roles' : item}</button>)}</div>
+          <div className="filter-chips filter-chips--availability" aria-label="Equipment availability and preference filter"><span>{activeEquipmentProfile.name}</span>{(['all', 'available', 'unavailable'] as const).map((item) => <button key={item} className={availability === item ? 'selected' : ''} aria-pressed={availability === item} onClick={() => setAvailability(item)}>{item === 'all' ? 'All equipment' : item === 'available' ? 'Available here' : 'Missing equipment'}</button>)}<button className={favoritesOnly ? 'selected' : ''} aria-pressed={favoritesOnly} onClick={() => setFavoritesOnly((current) => !current)}><Star size={14} /> Preferred only</button><button onClick={clearFilters}>Clear all</button></div>
+        </div>}
         {filtered.length ? (
           <div className="exercise-grid">
             {filtered.map((exercise) => {

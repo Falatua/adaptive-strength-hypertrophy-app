@@ -21,7 +21,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, equipmentProfiles, history, settings, placementVerifications, updateSet, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, finishSession, setNotice } = useAppStore()
+  const { sessions, exercises, equipmentProfiles, history, settings, placementVerifications, updateSet, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, finishSession, leaveActiveSession, setNotice } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
@@ -34,6 +34,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const [warmupConfirmed, setWarmupConfirmed] = useState(false)
   const [timerRunning, setTimerRunning] = useState(false)
   const [elapsed, setElapsed] = useState(0)
+  const [decisionInfo, setDecisionInfo] = useState<{ name: string; title: string; action: string; confidence: string; explanation: string } | null>(null)
   const activeSetRecords = useMemo<CompletedSetRecord[]>(() => session?.exercises.flatMap((plannedExercise) => {
     const exercise = exercises.find((candidate) => candidate.id === plannedExercise.exerciseId)
     if (!exercise) return []
@@ -144,7 +145,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     <div className={`workout-screen ${settings.focusedMode ? 'workout-screen--focused' : ''}`}>
       <header className="workout-header">
         <div className="workout-header__left">
-          <button className="icon-button" onClick={() => setNotice('Workout remains active and saved locally.')} aria-label="Leave workout open"><ArrowLeft size={20} /></button>
+          <button className="icon-button" onClick={leaveActiveSession} aria-label="Leave workout open"><ArrowLeft size={20} /></button>
           <div><p className="eyebrow">Active workout · Local save</p><h1>{session.title}</h1></div>
         </div>
         <div className="workout-header__stats">
@@ -219,7 +220,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   <div><small>Last exact exposure</small><strong>{recent.length ? `${recent[0].load} × ${recent[0].reps}` : 'No exact history'}</strong><span>{lastVolume.toLocaleString()} volume load</span></div>
                   <div><small>Engine decision</small><strong>{recommendation.title}</strong><span>{recommendation.confidence} confidence · {recommendation.action}</span></div>
                   <div><small>Joint response</small><strong className={`joint joint--${exercise.jointFeeling}`}>{exercise.jointFeeling}</strong><span>{exercise.favorite ? 'Preferred movement' : 'Neutral preference'}</span></div>
-                  <button className="info-button" aria-label={`More information about ${exercise.name}`} title={recommendation.explanation}><Info size={17} /></button>
+                  <button className="info-button" onClick={() => setDecisionInfo({ name: exercise.name, title: recommendation.title, action: recommendation.action, confidence: recommendation.confidence, explanation: recommendation.explanation })} aria-label={`More information about ${exercise.name}`} aria-haspopup="dialog"><Info size={17} /></button>
                 </div>
                 {planned.prescriptionNote && <div className="substitution-prescription"><RefreshCcw size={16} /><span><strong>{planned.prescriptionMethod === 'exact-history' ? 'Exact-history replacement' : 'Baseline calibration'}</strong>{planned.prescriptionNote}</span></div>}
                 {planned.warmupGuidance && exerciseIndex === 0 && <div className="route-warmup-guidance"><Sparkles size={16} /><span><strong>Route-specific warm-up</strong>{planned.warmupGuidance}</span></div>}
@@ -277,6 +278,16 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
           {rankedSwaps.length === 0 && <div className="compact-empty"><AlertTriangle size={24} /><strong>No available replacement at {activeEquipmentProfile.name}</strong><p>Edit the location profile if equipment is missing from it, or skip this non-primary movement. ForgePath will not relax equipment constraints silently.</p></div>}
         </div>
         <p className="modal-note">Candidates satisfy every equipment item in {activeEquipmentProfile.name}. The selected movement receives a prescription from its own exact history or a conservative calibration, using the profile's executable load increment. The original exact-movement progression clock remains frozen.</p>
+      </Modal>
+
+      <Modal open={Boolean(decisionInfo)} onClose={() => setDecisionInfo(null)} title={decisionInfo ? `${decisionInfo.name} progression decision` : 'Progression decision'} description="The recommendation is deterministic and uses this exact movement's completed history.">
+        {decisionInfo && <div className="decision-info">
+          <div><small>Decision</small><strong>{decisionInfo.title}</strong></div>
+          <div><small>Progression action</small><strong>{decisionInfo.action}</strong></div>
+          <div><small>Evidence confidence</small><strong>{decisionInfo.confidence}</strong></div>
+          <p>{decisionInfo.explanation}</p>
+          <p className="modal-note">This explains the current prescription. It does not add work, borrow another movement's history, or override pain and readiness gates.</p>
+        </div>}
       </Modal>
 
       {finishOpen && <PostSurveyModal

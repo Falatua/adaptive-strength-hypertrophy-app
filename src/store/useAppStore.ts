@@ -67,6 +67,7 @@ interface AppState {
   missedOpportunityEvents: MissedOpportunityEvent[]
   activeMesocycleId: string | null
   activeSessionId: string | null
+  workoutVisible: boolean
   onboardingComplete: boolean
   onboardingStartStep: 0 | 1
   recoverySnapshot: RestorableAppState | null
@@ -81,6 +82,9 @@ interface AppState {
   saveEquipmentProfile: (profile: EquipmentProfile) => { ok: boolean; error?: string }
   deleteEquipmentProfile: (profileId: string) => { ok: boolean; error?: string }
   startSession: (sessionId: string, availableMinutes?: number) => void
+  resumeActiveSession: () => void
+  leaveActiveSession: () => void
+  pinSession: (sessionId: string) => { ok: boolean; error?: string }
   setReadiness: (sessionId: string, answers: SurveyAnswer[], skipped: boolean, mode: EffectiveSurveyMode) => void
   updateSet: (sessionId: string, plannedExerciseId: string, setId: string, data: { reps?: number; load?: number; rir?: number }) => void
   toggleSetComplete: (sessionId: string, plannedExerciseId: string, setId: string) => void
@@ -149,6 +153,7 @@ const fresh = () => ({
   missedOpportunityEvents: [] as MissedOpportunityEvent[],
   activeMesocycleId: seedMesocycles[0]?.id ?? null,
   activeSessionId: null,
+  workoutVisible: true,
   onboardingComplete: false,
   onboardingStartStep: 0 as 0 | 1,
   recoverySnapshot: null as RestorableAppState | null
@@ -299,6 +304,7 @@ export const useAppStore = create<AppState>()(
         }) : null
         return {
           activeSessionId: sessionId,
+          workoutVisible: true,
           placementVerifications: verification ? [...state.placementVerifications, verification] : state.placementVerifications,
           sessions: state.sessions.map((session) => {
             if (session.id !== sessionId) return session
@@ -326,6 +332,25 @@ export const useAppStore = create<AppState>()(
             : 'Workout saved locally. You can train offline.'
         }
       }),
+      resumeActiveSession: () => set((state) => state.activeSessionId
+        ? { workoutVisible: true, notice: 'Active workout reopened with every logged set intact.' }
+        : { notice: 'There is no active workout to resume.' }),
+      leaveActiveSession: () => set((state) => state.activeSessionId
+        ? { workoutVisible: false, nav: 'today', notice: 'Workout left open. Logged sets and training data remain saved locally.' }
+        : { workoutVisible: false, notice: 'There is no active workout to leave open.' }),
+      pinSession: (sessionId) => {
+        const state = get()
+        const target = state.sessions.find((session) => session.id === sessionId)
+        if (!target || !['planned', 'deferred'].includes(target.status)) return { ok: false, error: 'Only an open planned session can be pinned.' }
+        const unresolved = state.sessions.filter((session) => ['planned', 'deferred'].includes(session.status))
+        const reordered = [target, ...unresolved.filter((session) => session.id !== sessionId)]
+        let openIndex = 0
+        set({
+          sessions: state.sessions.map((session) => ['planned', 'deferred'].includes(session.status) ? reordered[openIndex++] : session),
+          notice: `${target.title} is now the next protected training priority.`
+        })
+        return { ok: true }
+      },
       setReadiness: (sessionId, answers, skipped, mode) => set((state) => {
         const evidence = summarizeSurveyEvidence(answers, skipped)
         const readiness = skipped || evidence.answeredCount === 0 ? undefined : readinessFromSurvey(answers, state.athlete.continuity)
@@ -607,6 +632,7 @@ export const useAppStore = create<AppState>()(
             ? current.placementVerifications.map((event) => event.id === completedPlacementEvent.id ? completedPlacementEvent : event)
             : current.placementVerifications,
           activeSessionId: null,
+          workoutVisible: false,
           nav: 'progress',
           notice: deferredRequest
             ? `${newHistory.length} working sets saved. Optional feedback is available for 24 hours and will not block your next workout.`
@@ -1019,6 +1045,7 @@ export const useAppStore = create<AppState>()(
         mesocycles: state.mesocycles,
         activeMesocycleId: state.activeMesocycleId,
         activeSessionId: state.activeSessionId,
+        workoutVisible: state.workoutVisible,
         onboardingComplete: state.onboardingComplete,
         recoverySnapshot: state.recoverySnapshot
       }),
