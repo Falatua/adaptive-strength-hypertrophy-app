@@ -17,8 +17,8 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Coverage Summary
 
-- Total requirement headings: 359.
-- Sequential range: R-001 through R-359.
+- Total requirement headings: 360.
+- Sequential range: R-001 through R-360.
 - Missing IDs: none after the 2026-08-10 verification.
 - Duplicate IDs: none after the 2026-08-10 verification.
 - Primary implementation authority: [[Adaptive Strength and Hypertrophy App Build Bible]].
@@ -26,7 +26,7 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Current Implementation Evidence
 
-Private alpha 0.36.0 is the current verified implementation boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[UX Audit 2026-08-10]], [[Functional UX Audit 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], and [[Adaptive Strength and Hypertrophy App Build Bible#75. Automatic GitHub Pages Hosting and Public Preview Contract]]. Version 0.36.0 preserves the complete 0.35.0 training and UX behavior while adding an automatic quality-gated main-to-Pages deployment, project-subpath-safe PWA output, a neutral public seed, and mandatory live desktop and mobile verification. Verification retains 191 deterministic tests across twenty files and fifty-two Playwright journeys across desktop and phone, plus a generated Pages artifact check. Backup schema 24 and local persistence 22 remain unchanged. R-331 through R-340 and Chapter 72 capture the new hypertrophy policy and template source, but selectable failure-target double progression, per-exercise increments, and upper-lower templates remain unimplemented. R-341 through R-346 and Chapter 73 govern cross-device task focus. R-347 through R-354 and Chapter 74 govern functional control integrity. R-355 through R-359 and Chapter 75 govern hosted preview delivery. Personal readiness baselines, fixed-event pressure, downstream-fatigue interaction, complete later-session substitution, contextual preferences, companion progression, authenticated cloud sync, and the new hypertrophy-policy controls remain incomplete.
+Private alpha 0.37.0 is the current verified implementation boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[UX Audit 2026-08-10]], [[Functional UX Audit 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], and [[Adaptive Strength and Hypertrophy App Build Bible#76. Cross-Device Typography and Vertical Rhythm Contract]]. Version 0.37.0 preserves the complete 0.36.0 training, UX, and hosting behavior while standardizing readable vertical rhythm across phone and laptop. Verification retains 191 deterministic tests across twenty files and expands to fifty-four Playwright journeys across desktop and phone, plus the generated Pages artifact check. Backup schema 24 and local persistence 22 remain unchanged. R-331 through R-340 and Chapter 72 capture the new hypertrophy policy and template source, but selectable failure-target double progression, per-exercise increments, and upper-lower templates remain unimplemented. R-341 through R-346 and Chapter 73 govern cross-device task focus. R-347 through R-354 and Chapter 74 govern functional control integrity. R-355 through R-359 and Chapter 75 govern hosted preview delivery. R-360 and Chapter 76 govern cross-device typography and vertical rhythm. Personal readiness baselines, fixed-event pressure, downstream-fatigue interaction, complete later-session substitution, contextual preferences, companion progression, authenticated cloud sync, and the new hypertrophy-policy controls remain incomplete.
 
 ## Product and Training Traceability
 
@@ -91,6 +91,7 @@ Private alpha 0.36.0 is the current verified implementation boundary. Evidence i
 | R-341 to R-346 | Destination context, transient notices, Today task focus, Library discovery, workout hierarchy, and onboarding semantics | 18, 27, 70, 73 | [[UX Audit 2026-08-10]], `PRODUCT.md`, `DESIGN.md` | 1A | Accessibility scan, static UI scan, desktop and phone journeys, visual review, console audit, and horizontal containment |
 | R-347 to R-354 | Control integrity, Library browse piping, expandable filters, touch targets, workout reasoning, leave and resume, real priority pinning, and release metadata | 15, 18, 20, 27, 74 | [[Functional UX Audit 2026-08-10]], `PRODUCT.md`, `DESIGN.md` | 1A | Handler inventory, stored-state assertions, desktop and phone journeys, 320-pixel and tablet sweeps, production Lighthouse, console, dependency, secret, and PWA build gates |
 | R-355 to R-359 | Automatic Pages deployment, release gates, subpath-safe PWA behavior, public-artifact privacy, and live release verification | 19, 24, 27, 28, 75 | [[GitHub Pages Deployment 2026-08-10]], `.github/workflows/deploy-pages.yml` | Ongoing | Private-source Actions gate, least-privilege artifact push, generated artifact scan, unauthenticated HTTP checks, live mobile and desktop journeys, console review, and paired commit evidence |
+| R-360 | Cross-device heading, subheading, label, supporting-copy, component, and dialog vertical rhythm | 18, 27, 70, 73, 74, 76 | [[Private Alpha Implementation 2026-08-10]], `DESIGN.md` | 1A, ongoing | Computed line-height and text-gap assertions across every primary destination and pre-session dialog on desktop and phone, plus visual review and first-viewport confirmation |
 
 ## Delivery Phase Key
 

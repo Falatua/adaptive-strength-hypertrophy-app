@@ -61,6 +61,72 @@ test('keeps destination context and primary mobile actions in view', async ({ pa
   expect(browserErrors).toEqual([])
 })
 
+test('keeps heading, subheading, and supporting copy rhythm readable across destinations', async ({ page }) => {
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Dismiss message' }).click()
+
+  const destinations = [
+    ['Today', 'Your next useful win.'],
+    ['Plan', 'The plan bends. The goal stays visible.'],
+    ['Progress', 'Your training, made legible.'],
+    ['Library', 'One movement. One history.'],
+    ['You', 'The app learns. You stay in charge.']
+  ] as const
+
+  for (const [destination, pageHeading] of destinations) {
+    await page.getByRole('button', { name: destination, exact: true }).click()
+    await expect(page.getByRole('heading', { name: pageHeading })).toBeVisible()
+    const metrics = await page.evaluate(() => {
+      const visible = (element: Element | null) => {
+        if (!(element instanceof HTMLElement)) return false
+        const style = getComputedStyle(element)
+        const rect = element.getBoundingClientRect()
+        return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
+      }
+
+      return [...document.querySelectorAll<HTMLElement>('h1, h2, h3')]
+        .filter(visible)
+        .map((heading) => {
+          const style = getComputedStyle(heading)
+          const rect = heading.getBoundingClientRect()
+          const previous = heading.previousElementSibling
+          const next = heading.nextElementSibling
+          return {
+            label: heading.textContent?.trim() ?? heading.tagName,
+            lineHeightRatio: parseFloat(style.lineHeight) / parseFloat(style.fontSize),
+            eyebrowGap: previous?.classList.contains('eyebrow') && visible(previous)
+              ? rect.top - previous.getBoundingClientRect().bottom
+              : null,
+            supportingCopyGap: next?.tagName === 'P' && visible(next)
+              ? next.getBoundingClientRect().top - rect.bottom
+              : null
+          }
+        })
+    })
+
+    expect(metrics.length).toBeGreaterThan(0)
+    for (const metric of metrics) {
+      expect(metric.lineHeightRatio, `${destination}: ${metric.label} line height`).toBeGreaterThanOrEqual(1.03)
+      if (metric.eyebrowGap !== null) expect(metric.eyebrowGap, `${destination}: ${metric.label} eyebrow gap`).toBeGreaterThanOrEqual(8)
+      if (metric.supportingCopyGap !== null) expect(metric.supportingCopyGap, `${destination}: ${metric.label} supporting-copy gap`).toBeGreaterThanOrEqual(8)
+    }
+  }
+
+  await page.getByRole('button', { name: 'Today', exact: true }).click()
+  await page.getByRole('button', { name: 'Choose check-in & start' }).click()
+  const modalRhythm = await page.locator('dialog[open] .modal__header').evaluate((header) => {
+    const title = header.querySelector('h2')!
+    const description = title.nextElementSibling!
+    const titleStyle = getComputedStyle(title)
+    return {
+      lineHeightRatio: parseFloat(titleStyle.lineHeight) / parseFloat(titleStyle.fontSize),
+      supportingCopyGap: description.getBoundingClientRect().top - title.getBoundingClientRect().bottom
+    }
+  })
+  expect(modalRhythm.lineHeightRatio).toBeGreaterThanOrEqual(1.1)
+  expect(modalRhythm.supportingCopyGap).toBeGreaterThanOrEqual(8)
+})
+
 test('pipes every exercise-library browse control into a real canonical filter', async ({ page }) => {
   await enterRecommendedProfile(page)
   await page.getByRole('button', { name: 'Library', exact: true }).click()

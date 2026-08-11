@@ -2283,7 +2283,18 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Do not call a Pages release complete from a green workflow alone. Verify the unauthenticated live URL on mobile and desktop, check compiled resources and browser errors, and record the final commit, workflow run, URL, and current hosting boundary.
 - Detail: [[GitHub Pages Deployment 2026-08-10]]
 
+### R-360 Cross-Device Vertical Rhythm
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Headers, subheaders, labels, and supporting text must maintain a consistent vertical rhythm on phone and laptop. Use a shared four-pixel-derived spacing scale, readable multiline heading line heights, at least eight pixels between a heading and its supporting copy, and clear separation between eyebrows, titles, body text, and following controls. Apply the contract to screens, hero blocks, panels, nested cards, onboarding, and dialogs without pushing the primary Today action below the first supported phone viewport.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#76. Cross-Device Typography and Vertical Rhythm Contract]]
+
 ## Thread Coverage Audit
+
+### 2026-08-10 Cross-Device Vertical Rhythm Expansion
+- Scope: User requested a complete phone and desktop review of header, subheader, and text spacing because several elements appeared too close together.
+- Result: Added R-360 and Build Bible Chapter 76. Private alpha 0.37.0 introduces a shared spacing scale, more readable multiline heading line heights, consistent screen and component text gaps, and automated phone and desktop typography measurements.
+- Status: The implemented interface has been reviewed across onboarding, Today, Plan, Progress, Library, You, nested cards, and the pre-session dialog. The final hosted verification remains part of the automatic Pages release path.
 
 ### 2026-08-10 Automatic GitHub Pages Hosting Expansion
 - Scope: User requested that every app update reach GitHub and GitHub Pages so the hosted site can be used for testing and shared access.
@@ -2534,6 +2545,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-10: Added R-360 and Build Bible Chapter 76 for cross-device vertical rhythm. Private alpha 0.37.0 standardizes headline, label, supporting-copy, screen, card, and dialog spacing while preserving the phone start-action fold and existing desktop density. Verification expands to 54 desktop and phone browser journeys.
 - 2026-08-10: Added R-355 through R-359 for automatic tested GitHub Pages deployment on every `main` update, project-subpath PWA integrity, public-preview privacy, a neutral new-visitor seed, and live mobile and desktop verification. Private alpha 0.36.0 preserves backup schema 24 and local persistence 22.
 - 2026-08-10: Added R-347 through R-354 from the deep functional mobile and desktop audit. Private alpha 0.35.0 corrects handlerless and notice-only controls, real Library browse piping, touch-safe progression reasoning, active-workout leave and resume, unresolved-session pin mutation, cross-device touch targets and containment, and release metadata integrity. Verification includes 191 deterministic tests, 52 desktop and phone journeys, production Lighthouse 100/100/100 desktop and 98/100/100 mobile, zero high dependency vulnerabilities, and zero secret findings.
 - 2026-08-10: Added R-331 through R-346 from JB's hypertrophy requirements source and the complete mobile-desktop UX audit. Private alpha 0.34.0 implements destination context reset, onboarding semantics, non-obstructive compact notices, an above-fold Today start path, Library discovery before placement calibration, and active-workout completion hierarchy. Selectable double progression, per-exercise increments, week-specific builder controls, and upper-lower templates remain specified but unimplemented.

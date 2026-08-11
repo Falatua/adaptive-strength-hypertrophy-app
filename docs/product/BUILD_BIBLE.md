@@ -5,7 +5,7 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-10
 status: canonical-build-reference-and-active-implementation
-version: 1.41.0
+version: 1.42.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -6111,6 +6111,36 @@ Pages hosting does not provide authentication, a shared database, cloud backup, 
 ### 75.5 Live Release Verification
 
 A successful workflow is necessary but not sufficient. Each substantive release must verify the final public URL without relying on an authenticated GitHub session. Verification covers HTTP availability, compiled asset loading, service-worker and manifest paths, browser console integrity, onboarding visibility, and representative mobile and desktop interaction. The release record stores the final commit, workflow run, URL, and verified boundary.
+
+## 76. Cross-Device Typography and Vertical Rhythm Contract
+
+### 76.1 Shared Rhythm Scale
+
+The interface uses a four-pixel-derived spacing scale of 4, 8, 12, 16, 24, 32, and 48 pixels. Typography spacing should use these values or deliberate intermediate display-title values instead of accumulating unrelated one-off gaps. Every heading and paragraph begins without a browser-default top margin so component layouts own the vertical rhythm predictably.
+
+### 76.2 Text Hierarchy Contracts
+
+Display headings use readable multiline line heights, with level-one headings at least 1.04 times the font size and level-two headings at least 1.10 times the font size. Level-three headings must remain at least 1.20 times the font size. Eyebrows retain at least ten pixels before the title they introduce. A heading followed by explanatory copy retains at least eight pixels of visible separation, and standard body copy uses a relaxed reading line height near 1.6.
+
+### 76.3 Screen and Component Application
+
+The shared rhythm applies to onboarding, all primary destination headers, hero modules, panel headers, queue and workout cards, Library cards, Progress analytics, You diagnostics, and native dialogs. Compact components may remain dense, but they cannot collapse title-to-copy separation below eight pixels or allow heading line boxes to touch. Broad paragraph rules must exclude eyebrow labels so label-to-title spacing is not accidentally removed.
+
+### 76.4 Responsive Acceptance
+
+The phone layout may reduce screen-level and section-level whitespace while preserving the text hierarchy contracts. Multiline titles must remain visually distinct from supporting copy at 320-pixel and 390-pixel phone widths. Desktop retains its information density with clearer section grouping. Spacing changes cannot push the primary Today action below the first 390 by 844 viewport, create horizontal overflow, or obscure fixed navigation.
+
+### 76.5 Automated and Visual Gate
+
+Desktop and phone browser tests measure visible level-one through level-three heading line heights, eyebrow-to-heading gaps, and heading-to-supporting-copy gaps across Today, Plan, Progress, Library, and You, plus the pre-session dialog. The release also requires visual review of onboarding and representative screens on phone and desktop because automated measurements do not fully evaluate perceived grouping, scanability, or balance.
+
+### Version 1.42.0 Change Entry
+
+- Added R-360 and the cross-device typography and vertical rhythm contract.
+- Added a shared four-pixel-derived spacing scale and standardized screen, hero, panel, card, and dialog text hierarchy.
+- Increased multiline heading line heights and corrected component-level gaps that had collapsed below eight pixels.
+- Added two browser journeys covering all primary destinations and the pre-session dialog on phone and desktop.
+- Advanced visible and backup application metadata to private alpha 0.37.0 without changing backup schema 24 or local persistence 22.
 
 ### Version 1.41.0 Change Entry
 
