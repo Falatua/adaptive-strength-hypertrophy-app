@@ -370,6 +370,7 @@ The current browser store is a private-alpha operational store, not the eventual
 - Search across names and aliases.
 - Seed catalog with common and specialized strength variations including competition lifts, board presses, coffin press, safety squat bar work, deficits, and cambered-bar work.
 - Exact exercise history, preference, joint response, duplicate warnings, and custom-movement creation.
+- Current preference behavior is limited to a boolean favorite. Favorites receive deterministic weight in substitution ranking, while the separate joint-response scale can suppress `avoid` and adjust ranking. Prefer, dislike, do-not-recommend, context-specific rules, preference events, and protected-primary preference review are not implemented.
 - Custom movements can edit name, family, aliases, movement type, primary region, equipment, and description while retaining one stable canonical history ID.
 - Built-in taxonomy is protected while athlete-managed aliases remain editable. Proposed names and aliases show related movements, and exact collisions are blocked before save.
 - Every catalog save requires a reason, preserves completed-set names as historical truth, appends a zero-volume before-and-after event, and supports latest-change undo.

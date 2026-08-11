@@ -1947,7 +1947,60 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Treat references such as Machop, Machoke, Machamp, and Pokémon only as shorthand for a readable three-stage strength fantasy. Do not ship those names, likenesses, four-arm progression, facial structures, costumes, badges, sounds, fonts, terminology, level thresholds, trade mechanics, or other recognizable protected expression. Create and document an independently ownable creature world and evolution language before public use.
 - Detail: [[Pixel Training Adventure Visual and Interaction System]]
 
+### R-304 Exact-Movement Preference Scale
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Let the athlete assign each exact canonical exercise a stated preference of favorite, prefer, neutral, dislike, or do not recommend so recommendations can promote wanted movements and shy away from unwanted ones without deleting their history.
+- Detail: [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]]
+
+### R-305 Preference, Joint Response, and Restriction Separation
+- Status: captured
+- Provenance: from-user and product-decision
+- Requirement: Store exercise preference separately from joint response, pain, active medical or training restrictions, equipment availability, and exercise retirement. Disliking a movement must not be interpreted as injury, and a joint-friendly movement need not be preferred.
+- Detail: [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]]
+
+### R-306 Context-Specific Movement Rules
+- Status: captured
+- Provenance: from-user
+- Requirement: Allow an exact movement preference to change by declared training context, including goal, sport, competition-preparation state, block or phase, exercise role, equipment location, and optional effective dates, rather than forcing one global preference for every situation.
+- Detail: [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]]
+
+### R-307 Competition-Specific Exercise Example
+- Status: captured
+- Provenance: from-user
+- Requirement: Support a rule such as `Sumo deadlift: use during powerlifting competition preparation; outside that context prefer conventional deadlift or stiff-leg deadlift`, with the active context and alternatives visible and editable by the athlete.
+- Detail: [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]]
+
+### R-308 Preference-Aware Recommendation Authority
+- Status: captured
+- Provenance: from-user and product-decision
+- Requirement: Apply explicit movement preference only after safety, active restrictions, equipment eligibility, protected session purpose, and required specificity. Promote favorites among otherwise suitable candidates, deprioritize dislikes, and remove do-not-recommend movements from automatic suggestions unless the athlete explicitly searches for or selects one.
+- Detail: [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]]
+
+### R-309 Preference Explanation and Protected-Primary Conflict
+- Status: captured
+- Provenance: product-decision
+- Requirement: Explain when preference changed a recommendation and when a higher-authority constraint overruled it. If a disliked or blocked movement is also a protected competition primary, do not silently replace it. Ask the athlete to review the plan, context, or primary-movement decision.
+- Detail: [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]]
+
+### R-310 Versioned Preference History and Correction
+- Status: captured
+- Provenance: product-decision
+- Requirement: Store global and contextual exercise-preference changes as versioned, auditable events with scope, reason, effective dates, and rule version. Correction, undo, backup, restore, merge, and future sync must replay the active preference without rewriting older recommendation context.
+- Detail: [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]]
+
+### R-311 Stated Versus Inferred Exercise Preference
+- Status: captured
+- Provenance: product-decision
+- Requirement: Keep athlete-stated preference authoritative and separate from behavior-inferred signals such as swaps, skips, completion, and enjoyment. One skipped exercise or one substitution must not create a dislike. Missing preference remains neutral or unknown, and any future inference must show evidence, confidence, and correction controls.
+- Detail: [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]]
+
 ## Thread Coverage Audit
+
+### 2026-08-10 Contextual Exercise Preference Expansion
+- Scope: User requested per-movement favorites and dislikes that influence recommendations, with sumo deadlift preferred only during powerlifting competition preparation and conventional or stiff-leg deadlifts preferred outside that context.
+- Result: Captured an exact-movement preference scale, separation from joint and restriction state, goal and phase-specific rules, explicit competition-use behavior, deterministic recommendation authority, protected-primary conflict handling, versioned preference history, and stated-versus-inferred boundaries as R-304 through R-311.
+- Status: The current alpha implements a boolean favorite, a separate joint-response scale, and favorite-aware substitution ranking. The richer dislike states, contextual rules, audit ledger, and recommendation explanations remain unimplemented.
 
 ### 2026-08-10 Original Training Companion Evolution Expansion
 - Scope: User requested custom strength-creature sprites with workout XP, visible levels, a celebratory level-up sequence, and a three-stage growth arc inspired by the feeling of Machop to Machoke to Machamp.
@@ -2158,6 +2211,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-10: Added R-304 through R-311 for exact-movement favorites, dislikes, do-not-recommend state, context-specific exercise use, preference-aware ranking, protected-primary conflicts, auditable history, and stated-versus-inferred separation. The existing favorite and joint-response controls are an implemented first slice; contextual preference behavior remains unimplemented.
 - 2026-08-10: Added R-296 through R-303 for an optional original three-stage training companion, completed-workout XP, anti-grind progression, level and evolution gates, post-workout level-up sequence, non-punitive continuity, accessibility controls, and a strict no-Pokémon-copying boundary. The feature is specified and remains unimplemented.
 - 2026-08-10: Advanced R-039, R-040, R-054, R-060, R-145, and R-146 after private alpha 0.31.0 added `missed-opportunity-v5` and `schedule-priority-dose-v1`; completed-source-set comparison across athlete-declared priority regions in an inclusive rolling 28-day window; executable candidate coverage after support removal; strict priority below pin, eligibility, full executability, and exact-primary recency; applied-versus-reviewed UI evidence; no target-dose, neglect, progression, or catch-up claim; backup schema version 24; local persistence version 22; 189 deterministic tests; and forty-four desktop and phone Playwright journeys. Fixed-event pressure and downstream fatigue remain deferred.
 - 2026-08-10: Advanced R-014, R-032, R-054, R-060, and R-180 after private alpha 0.30.0 added `missed-opportunity-v4` and `schedule-readiness-v1`; a 24-hour evidence window; bounded proceed, confirm, trim, reacclimation, block, and unknown actions; missing-is-unknown schedule behavior; source-survey validation; backup schema version 23; local persistence version 21; 186 deterministic tests; and forty-four desktop and phone Playwright journeys. Personal baselines, repeated-signal reliability, muscle-dose priority, fixed-event pressure, and downstream fatigue remain deferred.

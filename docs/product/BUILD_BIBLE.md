@@ -5,7 +5,7 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-10
 status: canonical-build-reference-and-active-implementation
-version: 1.32.0
+version: 1.33.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -5476,6 +5476,173 @@ Before implementation is considered complete, prove:
 - whether a companion can remain permanently in an earlier form;
 - final animation grid, frame count, sound, and haptic language;
 - public social visibility and moderation boundaries.
+
+## 67. Contextual Exercise Preferences and Recommendation Control
+
+### 67.1 Status and Requirement Authority
+
+This chapter specifies R-304 through R-311. Private alpha 0.31.0 already implements `favorite: boolean`, separate joint response, and deterministic favorite weighting in substitutions. The five-state preference model, contextual rules, audit events, and full ranking explanations are post-0.31.0 requirements and are not yet implemented.
+
+### 67.2 Product Contract
+
+The athlete can say both `I generally like or dislike this exact movement` and `I want this movement only under these training conditions`. The engine uses those statements in future plans and swap recommendations while keeping safety, active restrictions, equipment, protected session purpose, and competition specificity above preference.
+
+The system must never use one overloaded `favorite` or `avoid` field to represent preference, pain, equipment, or program eligibility. Those meanings have different authority, history, and correction behavior.
+
+### 67.3 Domain Model
+
+Replace the eventual boolean-only preference surface with an athlete-owned projection derived from events:
+
+```text
+ExercisePreferenceState = favorite | prefer | neutral | dislike | do-not-recommend
+
+AthleteExercisePreference {
+  athleteId
+  exerciseId
+  globalState
+  contextRules[]
+  source = athlete-stated
+  activeEventId
+  updatedAt
+}
+
+ExercisePreferenceContextRule {
+  id
+  exerciseId
+  stateInContext
+  goalTypes[]
+  sportTypes[]
+  planRoutes[]
+  blockPhases[]
+  exerciseRoles[]
+  equipmentProfileIds[]
+  fixedEventId?
+  effectiveFrom?
+  effectiveUntil?
+  reason?
+  ruleVersion
+  createdAt
+  retiredAt?
+}
+```
+
+Empty arrays mean no restriction for that dimension. Dates use the athlete's local calendar semantics. A rule matches only when every populated dimension matches the active plan and session context. If two rules conflict, the most specific active rule wins; ties resolve to the more restrictive recommendation state and must be shown for athlete review. The global state is the fallback.
+
+Joint response, active restrictions, equipment fit, retirement state, exercise identity, enjoyment evidence, and inferred behavior signals remain separate objects.
+
+### 67.4 JB Initial Deadlift Rule
+
+Seed the personal private alpha migration or onboarding review with an athlete-confirmed proposal, never a silent assumption:
+
+- sumo deadlift global state: `do-not-recommend` or `dislike`, according to JB's final tap;
+- sumo context rule: `prefer` when sport is powerlifting and phase is competition preparation or peak, with primary role allowed;
+- conventional deadlift: `prefer` outside the active sumo competition context for compatible general deadlift or strength-hinge roles;
+- stiff-leg deadlift: `prefer` outside the active sumo competition context for compatible posterior-chain builder or hypertrophy-hinge roles.
+
+The app must not treat conventional and stiff-leg deadlifts as identical substitutes. Each keeps its canonical identity, exact history, intended role, prescription, fatigue profile, and progression clock.
+
+### 67.5 Deterministic Recommendation Pipeline
+
+For plan generation and substitutions:
+
+1. Reject retired identities and active safety or restriction conflicts.
+2. Require selected-location equipment eligibility and executable load behavior.
+3. Preserve protected primary identity, competition specificity, planned role, target region or muscle, and session purpose.
+4. Resolve the effective explicit preference from active context plus global fallback.
+5. Suppress `do-not-recommend` from automatic output unless the matching active rule explicitly permits or promotes it.
+6. Apply goal, phase, role, time, joint, fatigue, familiarity, exact-history, transfer, and response ranking.
+7. Add a bounded bonus for `favorite` and `prefer`, no effect for `neutral`, and a bounded penalty for `dislike`.
+8. Produce visible reason codes and tradeoffs before stable tie-breaking.
+
+Preference cannot rescue a candidate that fails a higher gate. A favorite unavailable movement is unavailable. A favorite painful movement remains blocked. A preferred accessory cannot displace a required competition primary. A dislike can lower a viable candidate but cannot silently rewrite the plan's protected primary.
+
+### 67.6 Protected-Primary Conflict
+
+When the active protected primary's effective state is dislike or do not recommend, generation stops at a review state rather than replacing it. The review shows:
+
+- protected movement and why it is protected;
+- active global and contextual preference;
+- current sport, goal, phase, event, and role context;
+- safe available options;
+- consequences for specificity and exact progression history.
+
+Actions are `Keep This Primary`, `Change Training Context`, `Choose a New Protected Primary`, `Override for This Session`, and `Cancel`. A single-session override is stored on the plan or substitution decision and does not mutate the lasting preference.
+
+### 67.7 Library Interaction Contract
+
+Exercise Detail presents the global five-state control separately from joint response. `Use only in certain contexts` opens a concise rule builder with goal, sport, phase, role, location, event, date, state, and optional reason. The screen shows which rule is active now and previews `Promoted`, `Neutral`, `Lowered`, or `Hidden from automatic recommendations`.
+
+Library filters include Favorites, Preferred, Neutral, Disliked, Do not recommend, and Context-specific. Do-not-recommend movements remain searchable and retain full exact history. Manual selection requires a lightweight explanation when it conflicts with an active rule, but never locks the athlete out of their own data.
+
+Recommendation cards expose one of these evidence labels when relevant:
+
+- `Promoted by your stated preference`;
+- `Promoted for this training phase`;
+- `Lower because you dislike this movement`;
+- `Hidden outside powerlifting competition preparation`;
+- `Included because the protected competition movement requires specificity`.
+
+### 67.8 Event, Replay, and Merge Contract
+
+Every preference mutation appends an `ExercisePreferenceEvent` containing event ID, athlete ID, canonical exercise ID, before and after global state, before and after context-rule snapshots, reason, source, rule version, creation time, and optional undo or supersession reference.
+
+Backup and restore validate referenced exercises, enum values, rule dimensions, date order, source, and event chronology. Derived current preference must replay from the event ledger. Future cloud sync uses stable event IDs and idempotent writes.
+
+When exercise identities merge, the merge flow previews both preference histories. The athlete chooses the surviving global state and contextual rules. The merge event records that decision, and Undo restores both original identities and histories. Historical recommendation records retain the effective preference snapshot used at decision time.
+
+### 67.9 Stated and Inferred Evidence Boundary
+
+Athlete-stated preference is authoritative. Behavioral evidence is stored separately and may include substitutions, optional skips, completion, enjoyment, target feel, pain, and repeated outcomes. Generated exposure frequency is not evidence of enjoyment because the app may have selected the exercise.
+
+One skip, one swap, one irregular week, or one difficult session cannot create a dislike. Any future inferred suggestion requires comparable repeated observations, confidence, date range, evidence links, and athlete controls to confirm, reject, correct, or stop using the inference. Unknown preference remains neutral or explicitly unknown and creates no negative score.
+
+### 67.10 Acceptance Tests
+
+Before this chapter is implemented, prove:
+
+- each exact movement can store and restore all five global states;
+- preference and joint response can change independently;
+- do-not-recommend movements disappear from automatic suggestions but remain searchable and manually selectable;
+- favorite and prefer change rank only among candidates that pass higher gates;
+- a sumo rule activates during declared powerlifting competition preparation and deactivates outside it;
+- conventional and stiff-leg alternatives keep separate purpose, history, prescription, and progression clocks;
+- a disliked protected primary opens review and is never silently replaced;
+- single-session override does not change the lasting preference;
+- conflicting context rules resolve deterministically and visibly;
+- event replay, undo, backup, restore, duplicate merge, and sync retry preserve the correct current state;
+- a skipped exercise does not create an inferred dislike;
+- recommendation records retain the effective preference and reason codes used at decision time;
+- desktop, phone, keyboard, large-text, and screen-reader journeys can edit, inspect, and clear contextual rules.
+
+### 67.11 Migration and Delivery Sequence
+
+1. Introduce the five-state domain enum and treat the existing `favorite: true` as `favorite`, `false` as `neutral` without inventing dislikes.
+2. Add preference events and local persistence migration, validation, export, restore, and undo.
+3. Replace the Library star-only detail with the full preference control while retaining a fast favorite action.
+4. Add do-not-recommend hard suppression and bounded prefer or dislike scoring with reason codes.
+5. Add contextual rule editing and active-context resolution.
+6. Add protected-primary conflict review and one-session overrides.
+7. Add preference filters, audit history, recommendation labels, and end-to-end accessibility coverage.
+8. Only after repeated real use, evaluate inferred preference proposals without changing stated rules automatically.
+
+### 67.12 Deferred Decisions
+
+- exact numeric preference bonuses and penalties after private testing;
+- whether global sumo state begins as dislike or do not recommend after JB's explicit choice;
+- complete goal, sport, phase, and role vocabularies;
+- whether an event date automatically proposes competition-preparation dates or requires manual phase confirmation;
+- minimum behavioral evidence for inferred preference proposals;
+- whether preference rule templates ship for common competition movements;
+- whether rule editing belongs only in Exercise Detail or also in Plan review.
+
+### Version 1.33.0 Change Entry
+
+- Added R-304 through R-311 and the build-ready contextual exercise-preference specification.
+- Defined favorite, prefer, neutral, dislike, and do-not-recommend as distinct exact-movement states.
+- Separated preference from joints, pain, restrictions, equipment, identity, enjoyment, and inferred behavior.
+- Added goal, sport, phase, role, location, event, and date-specific preference rules, including JB's sumo competition-preparation example.
+- Defined deterministic recommendation authority, protected-primary conflict review, event replay, migration, merge behavior, and acceptance tests.
+- Recorded the existing boolean favorite and joint-response behavior as a verified first slice while keeping the richer system honestly unimplemented.
 
 ### Version 1.32.0 Change Entry
 

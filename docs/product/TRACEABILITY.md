@@ -17,8 +17,8 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Coverage Summary
 
-- Total requirement headings: 303.
-- Sequential range: R-001 through R-303.
+- Total requirement headings: 311.
+- Sequential range: R-001 through R-311.
 - Missing IDs: none after the 2026-08-10 verification.
 - Duplicate IDs: none after the 2026-08-10 verification.
 - Primary implementation authority: [[Adaptive Strength and Hypertrophy App Build Bible]].
@@ -26,7 +26,7 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Current Implementation Evidence
 
-Private alpha 0.31.0 is the current verified implementation boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]] and [[Adaptive Strength and Hypertrophy App Build Bible#65. Private Alpha 0.31.0 Relative Priority-Region Dose Tie-Break]]. Version 0.31.0 adds `schedule-priority-dose-v1` to `missed-opportunity-v5`. It compares completed source-set representation across athlete-declared priority regions inside an exact rolling 28-day window and may resolve only a choice tied on athlete pin, protected-primary eligibility, full executability, and exact-primary recency. It creates no target dose, neglect claim, completed credit, or catch-up volume. Backup schema version 24 and local persistence version 22 preserve region, candidate, selection, and source-set provenance while version 23 migration retains version 4 readiness decisions without inventing dose history. Verification includes 189 deterministic tests across nineteen files, forty-four Playwright journeys across desktop and phone, production PWA build, and full-resolution 390 by 844 visual review. All verified 0.30.0 and earlier evidence remains active. R-296 through R-303 and Chapter 66 now specify the original evolving training companion, bounded workout XP, three-stage evolution, athlete controls, and intellectual-property boundary, but this game layer is not implemented. Personal readiness baselines, fixed-event pressure, downstream-fatigue interaction, and complete later-session substitution remain incomplete.
+Private alpha 0.31.0 is the current verified implementation boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]] and [[Adaptive Strength and Hypertrophy App Build Bible#65. Private Alpha 0.31.0 Relative Priority-Region Dose Tie-Break]]. Version 0.31.0 adds `schedule-priority-dose-v1` to `missed-opportunity-v5`. It compares completed source-set representation across athlete-declared priority regions inside an exact rolling 28-day window and may resolve only a choice tied on athlete pin, protected-primary eligibility, full executability, and exact-primary recency. It creates no target dose, neglect claim, completed credit, or catch-up volume. Backup schema version 24 and local persistence version 22 preserve region, candidate, selection, and source-set provenance while version 23 migration retains version 4 readiness decisions without inventing dose history. Verification includes 189 deterministic tests across nineteen files, forty-four Playwright journeys across desktop and phone, production PWA build, and full-resolution 390 by 844 visual review. All verified 0.30.0 and earlier evidence remains active. R-296 through R-303 and Chapter 66 specify the original evolving training companion, but this game layer is not implemented. R-304 through R-311 and Chapter 67 specify five-state and contextual exercise preferences. The existing boolean favorite, separate joint response, and favorite-aware substitution rank are the implemented first slice; dislikes, do-not-recommend suppression, context rules, preference events, and protected-primary conflict review remain unimplemented. Personal readiness baselines, fixed-event pressure, downstream-fatigue interaction, and complete later-session substitution remain incomplete.
 
 ## Product and Training Traceability
 
@@ -82,6 +82,7 @@ Private alpha 0.31.0 is the current verified implementation boundary. Evidence i
 | R-285 to R-289 | Canonical Bible, traceability, build contracts, quality gates, and living governance | 0 through 34 | [[Adaptive Strength and Hypertrophy App Build Bible]], this matrix | Ongoing | Requirement-ID audit, link audit, release checklist, and session-log review |
 | R-290 to R-295 | Working private alpha, local-first delivery, deferred service boundary, visual product, implementation authority, and honest iteration | 3, 18, 19, 26, 31, 32, 35 | [[Private Alpha Implementation 2026-08-10]], [[App Build Reference Index]] | 1A first slice, ongoing | Lint, domain tests, production build, desktop and phone journeys, persistence, and implementation-status audit |
 | R-296 to R-303 | Original evolving companion, workout XP, anti-grind economy, level and form gates, post-workout sequence, continuity, controls, and IP boundary | 18, 66 | [[Pixel Training Adventure Visual and Interaction System]] | 1A to 1C | XP-ledger replay, anti-grind scenarios, evolution-state tests, reduced-motion journeys, accessibility review, and originality review |
+| R-304 to R-311 | Exact-movement preference scale, state separation, contextual rules, competition-specific use, recommendation authority, primary conflict, event history, and inference boundary | 6.7, 7, 15, 16, 22, 67 | [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]] | 1B to 1C | Preference-state migration, context resolution, recommendation-gate, protected-primary review, replay, restore, merge, and accessibility tests |
 
 ## Delivery Phase Key
 
