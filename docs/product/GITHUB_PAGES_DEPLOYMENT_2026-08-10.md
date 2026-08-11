@@ -5,7 +5,7 @@ tags: [fitness, app, github-pages, deployment, qa, pwa]
 created: 2026-08-10
 updated: 2026-08-11
 status: verified-live
-app_version: 0.39.1
+app_version: 0.39.2
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
@@ -14,7 +14,7 @@ confidence: verified
 
 ## Outcome
 
-ForgePath private alpha 0.39.1 uses GitHub Pages as its continuously updated hosted preview. The source repository `Falatua/adaptive-strength-hypertrophy-app` is public as of 2026-08-11. Every push to its `main` branch triggers one workflow that verifies the application, builds for the artifact repository's project subpath, and publishes only after every gate passes. The separate public repository `Falatua/adaptive-strength-hypertrophy-app-pages` remains the compiled hosting target so the existing quality-gated URL and deployment path stay stable.
+ForgePath private alpha 0.39.2 uses GitHub Pages as its continuously updated hosted preview. The source repository `Falatua/adaptive-strength-hypertrophy-app` is public as of 2026-08-11. Every push to its `main` branch triggers one workflow that verifies the application, builds for the artifact repository's project subpath, and publishes only after every gate passes. The separate public repository `Falatua/adaptive-strength-hypertrophy-app-pages` remains the compiled hosting target so the existing quality-gated URL and deployment path stay stable.
 
 Hosted URL: `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`
 
@@ -23,7 +23,7 @@ Hosted URL: `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`
 1. Check out the exact `main` commit.
 2. Install locked dependencies with `npm ci`.
 3. Run UI boundaries, backend schema boundaries, lint, 210 deterministic tests, and the normal production build.
-4. Install Chromium and run all fifty-eight desktop and phone browser journeys.
+4. Install Chromium and run all sixty desktop and phone browser journeys.
 5. Build the PWA for `/adaptive-strength-hypertrophy-app-pages/`.
 6. Inspect the generated HTML, manifest, and service worker for Pages-safe paths.
 7. Use a dedicated write-enabled deploy key scoped only to the public artifact repository.

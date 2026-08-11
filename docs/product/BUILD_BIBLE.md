@@ -5,7 +5,7 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-11
 status: canonical-build-reference-and-active-implementation
-version: 1.48.0
+version: 1.49.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -6303,6 +6303,30 @@ The validated whole-state snapshot includes athlete and placement inputs, settin
 - Disabled public signup and verified persistence after reload.
 - Passed six live read-only acceptance checks and nine fully rolled-back authenticated sync and isolation checks, then proved zero test rows remained.
 - Advanced the working application to private alpha 0.39.1 while preserving backup schema 25, local persistence 23, explicit snapshot save, reviewed restore, and the honest boundary around automatic sync.
+
+## 81. Clean Local Testing Reset Contract
+
+### 81.1 Reset Scope
+
+The athlete may explicitly clear all ForgePath training truth stored by the current browser. The operation removes completed sets, sessions, movement notes, surveys, deferred feedback, records, mesocycles, corrections, cycle reviews, substitutions, placement verification and exit events, missed-opportunity events, active identities, and recovery snapshots. It must not contact or mutate Supabase, another browser, another device, or an exported backup.
+
+### 81.2 Foundation Retained
+
+The reset retains the canonical exercise catalog, default equipment templates, application settings defaults, and the minimum neutral athlete shell needed to render onboarding. No completed set, PR, session, or prior plan may survive. Onboarding must create the first new mesocycle and sessions from the athlete's new answers rather than recover a demonstration plan.
+
+### 81.3 Destructive Confirmation and Recovery Boundary
+
+The interface must name the categories being deleted, state that the action is permanent for the current browser, recommend export before deletion, and require a distinct confirmation action. The prior local restore snapshot is also removed so Undo cannot silently resurrect bug-test data after the athlete chose a clean slate.
+
+### 81.4 Acceptance Gate
+
+An automated browser journey must begin with populated demonstration data, invoke the visible reset flow, return to onboarding, and verify zero sessions, sets, notes, surveys, feedback, records, plans, corrections, review events, substitutions, placement events, missed-opportunity events, active identities, and recovery snapshot. It must also prove that exercises and equipment templates remain available.
+
+### Version 1.49.0 Change Entry
+
+- Added R-384 and Chapter 81 for a true browser-local clean testing reset.
+- Replaced the misleading demonstration-profile reset action with a destructive, fully enumerated clear-and-restart flow.
+- Advanced the working application to private alpha 0.39.2 while preserving backup schema 25, local persistence 23, the closed cloud release gate, and the no-Supabase-mutation boundary.
 
 ### Version 1.47.0 Change Entry
 

@@ -117,6 +117,7 @@ interface AppState {
   restoreBackup: (data: RestorableAppState) => void
   undoLastRestore: () => void
   resetDemo: () => void
+  resetForTesting: () => void
 }
 
 const initialSettings: AppSettings = {
@@ -159,6 +160,30 @@ const fresh = () => ({
   activeMesocycleId: seedMesocycles[0]?.id ?? null,
   activeSessionId: null,
   workoutVisible: true,
+  onboardingComplete: false,
+  onboardingStartStep: 0 as 0 | 1,
+  recoverySnapshot: null as RestorableAppState | null
+})
+
+const cleanTestingStart = () => ({
+  ...fresh(),
+  sessions: [] as TrainingSession[],
+  history: [] as CompletedSetRecord[],
+  movementNotes: [] as MovementNoteRecord[],
+  surveys: [] as SurveyRecord[],
+  deferredFeedback: [] as DeferredFeedbackRequest[],
+  records: [] as PersonalRecord[],
+  mesocycles: [] as MesocyclePlan[],
+  historyMutations: [] as HistoryMutationEvent[],
+  cycleReviews: [] as CycleReviewEvent[],
+  substitutionEvents: [] as ExerciseSubstitutionEvent[],
+  placementVerifications: [] as PlacementVerificationEvent[],
+  placementExitReviews: [] as PlacementExitReviewEvent[],
+  movementPlacementExitReviews: [] as MovementPlacementExitReviewEvent[],
+  missedOpportunityEvents: [] as MissedOpportunityEvent[],
+  activeMesocycleId: null,
+  activeSessionId: null,
+  workoutVisible: false,
   onboardingComplete: false,
   onboardingStartStep: 0 as 0 | 1,
   recoverySnapshot: null as RestorableAppState | null
@@ -1034,7 +1059,8 @@ export const useAppStore = create<AppState>()(
         nav: 'you',
         notice: 'The previous local state has been restored.'
       }) : ({ notice: 'No restore point is available.' })),
-      resetDemo: () => set({ nav: 'today', notice: 'Local demo data restored.', ...fresh() })
+      resetDemo: () => set({ nav: 'today', notice: 'Local demo data restored.', ...fresh() }),
+      resetForTesting: () => set({ nav: 'today', notice: null, ...cleanTestingStart() })
     }),
     {
       name: 'forgepath-private-alpha-v1',

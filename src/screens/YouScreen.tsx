@@ -33,7 +33,7 @@ export function YouScreen() {
   const {
     athlete, settings, updateSettings, equipmentProfiles, setActiveEquipmentProfile, saveEquipmentProfile, history, movementNotes, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, recordPlacementExitReview, recordMovementPlacementExitReview,
     activeMesocycleId, activeSessionId, onboardingComplete, recoverySnapshot, restoreBackup, undoLastRestore,
-    restartOnboarding, resetDemo, setNotice
+    restartOnboarding, resetForTesting, setNotice
   } = useAppStore()
   const [resetOpen, setResetOpen] = useState(false)
   const [importPreview, setImportPreview] = useState<BackupPreview | null>(null)
@@ -239,9 +239,9 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.39.1 private alpha</strong></li><li><span>Rules</span><strong>0.39.1 cloud reliability boundary</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Movement notes v1 · Equipment v1 · Load increment v1 · Sound pack field-guide-synth-v1</strong></li><li><span>Backup schema</span><strong>Version 25</strong></li><li><span>Persistence</span><strong>Local v23 · cloud event v1</strong></li><li><span>Cloud sync</span><strong>{cloudConfiguration.status === 'ready' ? 'Manual private checkpoint ready' : 'Private release gate closed'}</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.39.2 private alpha</strong></li><li><span>Rules</span><strong>0.39.2 clean testing reset</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Movement notes v1 · Equipment v1 · Load increment v1 · Sound pack field-guide-synth-v1</strong></li><li><span>Backup schema</span><strong>Version 25</strong></li><li><span>Persistence</span><strong>Local v23 · cloud event v1</strong></li><li><span>Cloud sync</span><strong>{cloudConfiguration.status === 'ready' ? 'Manual private checkpoint ready' : 'Private release gate closed'}</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
-          <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Reset private alpha</button>
+          <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Clear local training data</button>
         </aside>
       </div>
       <footer className="screen-footer"><Moon size={16} /> ForgePath Private Alpha · Built from the Obsidian Build Bible · Local-first cloud foundation</footer>
@@ -290,8 +290,8 @@ export function YouScreen() {
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setEquipmentOpen(false)}>Cancel</button><button className="button button--primary" onClick={submitEquipmentProfile}><ShieldCheck size={17} /> Save location</button></div>
       </Modal>
 
-      <Modal open={resetOpen} onClose={() => setResetOpen(false)} title="Reset local app data" description="This replaces current local changes with the private-alpha demonstration profile. Export first if you want a recoverable copy.">
-        <div className="modal__actions"><button className="button button--ghost" onClick={() => setResetOpen(false)}>Keep my data</button><button className="button button--danger" onClick={() => { resetDemo(); setResetOpen(false) }}>Reset local data</button></div>
+      <Modal open={resetOpen} onClose={() => setResetOpen(false)} title="Clear all local training data" description="This permanently removes this browser's completed sets, sessions, plans, surveys, notes, records, feedback, and testing history, then restarts onboarding. The exercise catalog and equipment templates remain available so ForgePath can build a new plan. Export first if you want a recoverable copy.">
+        <div className="modal__actions"><button className="button button--ghost" onClick={() => setResetOpen(false)}>Keep my data</button><button className="button button--danger" onClick={() => { resetForTesting(); setResetOpen(false) }}>Clear and restart</button></div>
       </Modal>
 
       <Modal open={Boolean(importPreview)} onClose={() => setImportPreview(null)} title="Preview backup before restore" description="The file has passed format, integrity, identity, reference, date, and numeric-data checks. Nothing changes until you confirm.">

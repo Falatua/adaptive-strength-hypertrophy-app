@@ -5,7 +5,7 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-11
 status: working-private-alpha
-app_version: 0.39.1
+app_version: 0.39.2
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
@@ -18,7 +18,16 @@ A working private, local-first application now exists at `/Users/redsky/Projects
 
 The code is preserved in the public GitHub source repository `Falatua/adaptive-strength-hypertrophy-app`. Releases 0.1.0 through 0.34.0 remain in Git history. Private alpha 0.30.0 is commit `b204c54342a08366f8026e305171993ffb27aee7` and adds fresh readiness evidence without penalizing missing or stale answers. Private alpha 0.31.0 feature commit `06336129e7c2952e4645e088fbc0b4c8479208cf` adds source-backed relative priority-region dose as a bounded schedule tie-break. Private alpha 0.32.0 feature commit `035e175` adds context-grounded product and design registers, the evidence-backed Today Training Field Guide, post-onboarding focus handoff, and automated UI boundaries. Private alpha 0.33.0 adds the original `field-guide-synth-v1` runtime sound pack. Private alpha 0.34.0 feature commit `2f469b4ef237092ab5a8687d2fdd03626ab55194` adds the cross-device UX task-focus corrections recorded in [[UX Audit 2026-08-10]]. Private alpha 0.35.0 feature commit `900010570c60981b2b2beeb58cf31f66b754ee37` adds the functional UX corrections recorded in [[Functional UX Audit 2026-08-10]]. Private alpha 0.36.0 feature commits `8257a8b6b0e94eaf6a0eefb4cf78302fee8335dc` and `888b5d8669d8106455a76d4e96df5f4d34da9a30` add the automatic private-source-to-public-artifact Pages release, exact subpath PWA behavior, neutral visitor seed, and stable 390 by 844 mobile gate recorded in [[GitHub Pages Deployment 2026-08-10]]. Private alpha 0.37.0 standardizes readable vertical rhythm across headers, subheaders, supporting text, cards, and dialogs on phone and laptop. The first complete GitHub specification mirror is commit `20cf4298870a11608ddc69642c52c4a1c1b2867f`; later specification commits keep `docs/product/` aligned with implementation. The latest remote identity is recorded in [[Adaptive Strength and Hypertrophy App]] and [[Codex Session Log]].
 
-Private alpha 0.39.1 hardens the durable exact-movement note and complete-state snapshot path. The dedicated remote ForgePath project, migration ledger, forced Row Level Security, grants, security-invoker views, snapshot RPC, replay, conflict preservation, and simulated two-identity isolation now have live repeatable proof. Public signup is disabled. Full automatic cross-device synchronization remains incomplete.
+Private alpha 0.39.2 adds a true clean testing reset while preserving the durable exact-movement note and complete-state snapshot path. The dedicated remote ForgePath project, migration ledger, forced Row Level Security, grants, security-invoker views, snapshot RPC, replay, conflict preservation, and simulated two-identity isolation now have live repeatable proof. Public signup is disabled. Full automatic cross-device synchronization remains incomplete.
+
+## Private Alpha 0.39.2 Clean Testing Reset Delta
+
+- Replaced the prior reset behavior that restored 238 seeded completed sets with an explicit current-browser clean slate.
+- Removes sessions, completed sets, plans, surveys, notes, feedback, records, corrections, reviews, substitutions, placement evidence, missed-opportunity events, active identities, and the local recovery snapshot.
+- Retains the canonical exercise catalog and default equipment templates so onboarding can generate a new plan.
+- Adds destructive confirmation copy, recommends export first, restarts onboarding, and never contacts Supabase.
+- Adds a dedicated browser journey that proves every training collection is empty after reset while catalog and equipment foundations remain available.
+- Passes 210 deterministic tests and all sixty desktop and phone browser journeys.
 
 ## Private Alpha 0.39.1 Cloud Reliability Delta
 

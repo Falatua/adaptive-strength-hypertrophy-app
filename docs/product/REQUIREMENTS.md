@@ -2427,6 +2427,12 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Keep public signup disabled and the Pages cloud release switch closed until one exact approved athlete invitation, real email-link acceptance, uninvited-address denial, phone-to-laptop save/check/restore with integrity and undo, and offline retry recovery pass. Database simulation is necessary evidence but cannot replace the real-device drill.
 - Detail: [[ForgePath Supabase Backend Runbook]]
 
+### R-384 Clean Browser-Local Testing Reset
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Provide a destructive confirmed reset that removes all completed sets, sessions, plans, surveys, notes, feedback, records, corrections, reviews, substitutions, placement events, missed-opportunity events, active identities, and restore snapshots from the current browser, then restarts onboarding with zero training history. Retain only the canonical exercise catalog and equipment templates needed to create a new plan. Do not mutate Supabase, another browser, another device, or an exported backup.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#81. Clean Local Testing Reset Contract]]
+
 ## Thread Coverage Audit
 
 ### 2026-08-11 Supabase Reliability and Cross-Device Data Audit
@@ -2707,6 +2713,8 @@ This is the canonical traceability index for every durable requirement JB states
 - Exact boundary and default setting for focused-training or low-decoration mode.
 
 ## Change Log
+
+- 2026-08-11: Added R-384 and Build Bible Chapter 81 after JB requested removal of bug-test weight-training data for a clean testing slate. Private alpha 0.39.2 adds a confirmed current-browser reset, enumerates every deleted data class, restarts onboarding, retains only catalog and equipment foundations, and verifies the zero-data boundary in a browser journey without touching Supabase.
 
 - 2026-08-10: Added R-375 and R-376 and expanded Build Bible Chapter 66 from a three-form companion to a four-form Starting, Developed, Champion, and Apex journey. The Apex Form is permanent, earned from long-horizon breadth rather than brute performance, independently designed from protected giant-form expression, and followed by continued mastery levels and cosmetic or world development. The companion remains specified and unimplemented.
 
