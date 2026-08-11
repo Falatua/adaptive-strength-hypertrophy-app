@@ -15,6 +15,7 @@ import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '..
 import { summarizePlacementVerification } from '../domain/placement-verification-engine'
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from '../domain/placement-exit-engine'
 import { scheduleSessionEligibility } from '../domain/schedule-adaptation-engine'
+import { playForgeSound } from '../services/sound-engine'
 
 const timeOptions = [15, 30, 45, 60, 75]
 const dateInputFor = (offsetDays: number) => {
@@ -116,6 +117,7 @@ export function TodayScreen() {
 
   const commitStart = (start: { answers: SurveyAnswer[]; skipped: boolean; mode: EffectiveSurveyMode; minutes: number }) => {
     if (!nextSession) return
+    playForgeSound('workout-start', settings)
     setReadiness(nextSession.id, start.answers, start.skipped, start.mode)
     startSession(nextSession.id, start.minutes)
     setSurveyOpen(false)

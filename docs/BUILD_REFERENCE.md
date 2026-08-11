@@ -12,7 +12,7 @@ The authoritative product specifications live in JB's Obsidian vault:
 
 The private GitHub repository stores release snapshots under [`docs/product/`](product/README.md) so the complete specification is preserved beside the implementation. Obsidian remains authoritative when a snapshot and the live vault differ.
 
-The first implementation is governed by the complete R-001 through R-324 register. It is a deliberately bounded private-alpha slice, not a claim that every requirement or later delivery phase is complete. Its exact status is recorded in Obsidian at `Outputs/Private Alpha Implementation 2026-08-10.md`.
+The first implementation is governed by the complete R-001 through R-330 register. It is a deliberately bounded private-alpha slice, not a claim that every requirement or later delivery phase is complete. Its exact status is recorded in Obsidian at `Outputs/Private Alpha Implementation 2026-08-10.md`.
 
 ## Implemented Private-Alpha Slice
 
@@ -89,7 +89,7 @@ The first implementation is governed by the complete R-001 through R-324 registe
 - Opportunity prompts calculated only from prescribed targets. Athlete-entered actuals can never be reclassified as an app-prescribed record attempt.
 - Provisional in-workout achievement feedback and a corrected-history-aware Progress ledger.
 - A fully validated PR requires confirmed technique and pain feedback. Survey-free sessions keep their numbers as visibly numeric-only bests.
-- Athlete-controlled celebration level, quiet mode, opportunity prompts, session achievements, reduced motion, pixel confetti, sounds preference, and supported-device haptics.
+- Athlete-controlled celebration level, quiet mode, opportunity prompts, session achievements, reduced motion, pixel confetti, supported-device haptics, and `field-guide-synth-v1`, an original Web Audio sound pack for workout start, set completion, earned achievements, workout completion, and pain warnings. Sounds are off by default, previewable, require no downloaded assets, and are always suppressed by quiet mode.
 - Athlete model, survey controls, focused mode, data export, and local reset.
 - Version 24 open-JSON backup with completed-source-set validation for relative priority-region dose, schedule eligibility and fresh-readiness evidence, missed-opportunity decisions and athlete priority pins, replay-validated plan-route and exact-movement checkpoint reviews, athlete-reviewed exact-history placement, per-movement placement, equipment-aware route-session provenance, placement decisions, productive verification and recovery evidence, expanded record definitions, celebration controls, equipment profiles, plan, review, history and catalog changes, substitution, survey-evidence, and deferred-feedback history, integrity checks, versions 1 through 23 migration, preview, restore, malformed-file rejection, and automatic pre-restore undo.
 - Original pixel-adventure visual language and installable PWA shell.
@@ -116,7 +116,7 @@ The first implementation is governed by the complete R-001 through R-324 registe
 - Complete one set from a stored sixteen-set route-generated session, show one of sixteen linked sets, distinguish older completed sets with no stored plan, classify chest from its exact planned mappings, and preserve all unlinked work in Progress without counting it as plan compliance.
 - Import a source-dated CSV with an exact alias and an unmatched legacy name, require canonical mapping before commit, preserve unverified row provenance, block a second import from duplicating volume, and undo the complete import in one action.
 - Confirm a planned hold remains a hold after an athlete edits actual load, then log, provisionally recognize, save, and replay a source-backed exact-movement load record.
-- Turn quiet mode on, reload, and confirm the preference persists without changing training or record calculations.
+- Preview the original sound pack, enable sounds, turn quiet mode on, reload, and confirm both preferences persist while quiet mode suppresses playback without changing training or record calculations.
 - Verify the achievement and settings surfaces on desktop and phone with no browser errors or horizontal overflow.
 - Review a custom movement's direct and secondary muscle mapping, confirm the replay notice and audit description, inspect its explicit mapping in the movement detail, and undo the review without changing completed history or the stable canonical ID.
 - Reconcile a stored route-generated plan to its mapped intended sets, preserve repeated raw planned-set IDs as distinct exercise-slot evidence, and keep all unlinked completed work separate from linked muscle-plan completion.

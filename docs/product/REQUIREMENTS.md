@@ -2073,7 +2073,48 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Treat responsive visual review, keyboard focus, reduced motion, screen-reader labeling, compact mobile containment, console integrity, original-expression boundaries, technique-video exclusion, and regression automation as part of feature completion. UI quality checks must run in the standard verification command and expand as new interaction risks appear.
 - Detail: [[Adaptive Strength and Hypertrophy App Build Bible#70. Context-Grounded Product Craft and Training Field Guide]]
 
+### R-325 Original Pocket-Console Sound Language
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Give the optional game layer a fun compact-handheld sound language for workout start, set completion, earned achievements, workout completion, and pain-aware warnings. Every shipped cue must be independently created and must not copy or redistribute recordings, melodies, cries, jingles, or other recognizable audio from Pokémon or another game.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#71. Original Pocket-Console Sound System]]
+
+### R-326 Opt-In Sound Preference and Preview
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Keep sound off by default, let the athlete preview the pack before opting in, persist the preference locally, and allow disabling it without changing workouts, achievements, records, or progression.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#71. Original Pocket-Console Sound System]]
+
+### R-327 Quiet-Mode Audio Precedence
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Quiet mode must suppress every optional sound even when the sound preference is enabled. The preview control must visibly reflect this precedence, and silence must never block an action or produce an error.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#71. Original Pocket-Console Sound System]]
+
+### R-328 Semantic Audio Event Map
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Attach short distinguishable cues only to meaningful confirmed events. Set completion plays only on incomplete-to-complete transition, achievements require earned provisional evidence and enabled celebration, workout completion follows actual finish, and pain-aware warnings remain distinct from reward cues.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#71. Original Pocket-Console Sound System]]
+
+### R-329 Nonessential and Low-Interruption Audio
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Keep cues brief, low-volume, and paired with visible feedback. No safety instruction, state change, record, or training decision may depend on hearing. Unsupported browsers or blocked audio contexts must fall back silently without affecting the workout.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#71. Original Pocket-Console Sound System]]
+
+### R-330 Audio Provenance and Release Gate
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Record the sound-pack version and creation method, prohibit unreviewed downloaded audio from entering the shipped application, test duration, level, frequency, preference, and quiet-mode boundaries, and complete an originality and listening review before public release.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#71. Original Pocket-Console Sound System]]
+
 ## Thread Coverage Audit
+
+### 2026-08-10 Original Pocket-Console Sound Expansion
+- Scope: User requested fun sounds inspired by the Machop, Machoke, Machamp, and Pokémon feeling of the desired game layer and authorized downloading sounds that match the vibe.
+- Result: Translated the request into R-325 through R-330 and an independently created `field-guide-synth-v1` pack instead of downloading protected recordings. Private alpha 0.33.0 adds six Web Audio cues, persisted opt-in, an audible preview, quiet-mode precedence, silent fallback, semantic event wiring, deterministic audio boundaries, and no network or bundled audio dependency.
+- Status: The first original sound slice is implemented. A human listening pass, device-speaker calibration, final public asset review, and future original companion-specific motifs remain open.
 
 ### 2026-08-10 Context-Grounded Product Craft Expansion
 - Scope: User authorized Codex to implement fitting design, UI, writing, and QC choices from durable Obsidian context and reiterated a strong preference for the Ruby, Sapphire, Emerald, FireRed, and LeafGreen era of handheld adventure craft.
@@ -2304,6 +2345,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-10: Added R-325 through R-330 for an original pocket-console sound language, opt-in preview, quiet-mode precedence, semantic event mapping, nonessential low-interruption audio, and provenance gates. Private alpha 0.33.0 adds `field-guide-synth-v1`, 191 deterministic tests across twenty files, and persisted sound-plus-quiet browser verification inside the existing forty-six desktop and phone journeys.
 - 2026-08-10: Added R-321 through R-324 for context-grounded product judgment, original handheld-adventure craft, durable product and design registers, and automated-plus-visual UI QC. Private alpha 0.32.0 adds the Today Training Field Guide, post-onboarding focus handoff, design anti-pattern cleanup, a standard UI boundary check, 189 deterministic tests, and forty-six desktop and phone Playwright journeys.
 - 2026-08-10: Added R-320 to exclude athlete-facing technique videos, exercise-demo feeds, video uploads, and automated form-video analysis. Revised R-102 and R-121 so structured history and concise optional guidance remain possible without turning the app into an instructional-content product.
 - 2026-08-10: Added R-312 through R-319 for optimized phone and laptop use, one private account, local-first cloud synchronization, active-workout handoff, honest sync status, conflict preservation, cloud recovery, and the multi-device release gate. Responsive layouts are an implemented first slice; actual cross-device synchronization remains unimplemented.

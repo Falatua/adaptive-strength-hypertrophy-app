@@ -5,7 +5,7 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-10
 status: working-private-alpha
-app_version: 0.32.0
+app_version: 0.33.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
@@ -16,9 +16,18 @@ confidence: verified
 
 A working private, local-first application now exists at `/Users/redsky/Projects/adaptive-strength-hypertrophy-app`. Its provisional interface name is **ForgePath Private Alpha**. The name is not final product approval.
 
-The code is preserved in the private GitHub repository `Falatua/adaptive-strength-hypertrophy-app`. Releases 0.1.0 through 0.30.0 remain in Git history. Private alpha 0.30.0 is commit `b204c54342a08366f8026e305171993ffb27aee7` and adds fresh readiness evidence without penalizing missing or stale answers. Private alpha 0.31.0 feature commit `06336129e7c2952e4645e088fbc0b4c8479208cf` adds source-backed relative priority-region dose as a bounded schedule tie-break. Private alpha 0.32.0 feature commit `035e175` adds context-grounded product and design registers, the evidence-backed Today Training Field Guide, post-onboarding focus handoff, and automated UI boundaries. The first complete GitHub specification mirror is commit `20cf4298870a11608ddc69642c52c4a1c1b2867f`; subsequent specification commits refresh `docs/product/` without changing the verified app-version boundary. The latest remote identity is recorded in [[Adaptive Strength and Hypertrophy App]] and [[Codex Session Log]]. Dependency audit reported zero vulnerabilities. Gitleaks scanned the full repository and found no leaks. Diff whitespace validation passed.
+The code is preserved in the private GitHub repository `Falatua/adaptive-strength-hypertrophy-app`. Releases 0.1.0 through 0.32.0 remain in Git history. Private alpha 0.30.0 is commit `b204c54342a08366f8026e305171993ffb27aee7` and adds fresh readiness evidence without penalizing missing or stale answers. Private alpha 0.31.0 feature commit `06336129e7c2952e4645e088fbc0b4c8479208cf` adds source-backed relative priority-region dose as a bounded schedule tie-break. Private alpha 0.32.0 feature commit `035e175` adds context-grounded product and design registers, the evidence-backed Today Training Field Guide, post-onboarding focus handoff, and automated UI boundaries. Private alpha 0.33.0 adds the original `field-guide-synth-v1` runtime sound pack, persisted opt-in, preview, quiet-mode precedence, and semantic training-event feedback. The first complete GitHub specification mirror is commit `20cf4298870a11608ddc69642c52c4a1c1b2867f`; subsequent specification commits refresh `docs/product/` without changing the verified app-version boundary. The latest remote identity is recorded in [[Adaptive Strength and Hypertrophy App]] and [[Codex Session Log]]. Dependency audit reported zero vulnerabilities. Gitleaks scanned the full repository and found no leaks. Diff whitespace validation passed.
 
 This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into a usable end-to-end browser and installable PWA experience. It is governed by the full requirement register but implements a bounded first slice. Deferred cloud, AI, social, and advanced longitudinal work must not be represented as complete.
+
+## Private Alpha 0.33.0 Release Delta
+
+- Added `field-guide-synth-v1`, six original runtime-synthesized cues for sound opt-in, workout start, set completion, earned achievement, workout completion, and pain-aware warning.
+- Added a pre-opt-in sound preview and persisted sound preference under Achievement controls. Quiet mode has absolute precedence, disables preview, and changes no workout, record, achievement, or progression data.
+- Used the local Web Audio API with no downloaded recordings, bundled audio assets, remote requests, or third-party audio package. Unsupported or blocked audio fails silently while the underlying action completes.
+- Added semantic guards so set sound occurs only on incomplete-to-complete transition, earned achievement sound respects the celebration controls, finish cues follow explicit completion paths, and pain audio remains distinct from rewards.
+- Added deterministic checks for the complete cue inventory, duration under 700 milliseconds, frequency range, maximum programmed gain, silent default, and quiet-mode suppression.
+- Verified 191 deterministic tests across twenty files, the sixty-four-file UI boundary gate, a clean production PWA build, and the existing forty-six desktop and phone browser journeys with persisted sound-plus-quiet control coverage.
 
 ## Private Alpha 0.32.0 Release Delta
 

@@ -105,6 +105,8 @@ The preferred game loop includes one optional original training creature that gr
 
 The shipped character must be independently ownable. Machop, Machoke, Machamp, and Pokémon are references for progression feeling only. Do not reproduce their names, blue or gray humanoid body language, facial structures, head crests, wrestling briefs, championship belt, four-arm transformation, poses, sounds, evolution effects, typography, numeric thresholds, trade mechanic, or recognizable silhouettes.
 
+The same boundary governs audio. `field-guide-synth-v1` translates the compact, responsive pleasure of a handheld game into original runtime synthesis for workout start, set completion, earned achievements, workout completion, and pain-aware warning. It uses no downloaded recordings, creature cries, recognizable melodies, or remote assets. Sounds remain off by default, previewable, low-volume, nonessential to comprehension, and subordinate to quiet mode.
+
 Working form language until original naming is approved:
 
 1. `Starting Form`: compact, eager, and clearly trainable rather than weak or childish.

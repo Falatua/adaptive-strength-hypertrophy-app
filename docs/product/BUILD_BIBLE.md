@@ -5865,6 +5865,64 @@ The gate must expand when a defect category repeats. It must not become a broad 
 - The deterministic suite remains 189 tests across nineteen files.
 - The new journey passes on desktop Chromium and the phone project, increasing full Playwright coverage to forty-six journeys.
 
+## 71. Original Pocket-Console Sound System
+
+### 71.1 Status and Intent
+
+This chapter specifies R-325 through R-330. The goal is a small, delightful audio vocabulary that makes confirmed training actions feel tactile while preserving quiet, fast logging and independent product ownership. The emotional reference is a compact handheld adventure. The deliverable is not Pokémon audio and must not copy any existing creature cry, menu sound, melody, evolution sequence, victory jingle, recording, or downloadable fan asset.
+
+Private alpha 0.33.0 uses `field-guide-synth-v1`, generated at runtime with the browser Web Audio API. No audio files, remote requests, third-party libraries, or licensed recordings are required. The pack is original source code and remains auditable alongside the interface.
+
+### 71.2 Cue Contract
+
+The first pack contains six semantic cues:
+
+| Cue | Trigger | Interaction rule |
+|---|---|---|
+| Menu confirm | Sound preference changes from off to on | Preview acknowledgment only; never alters settings beyond the athlete's action |
+| Workout start | The athlete commits to starting the selected session, or explicitly previews the pack | Plays after a user gesture and never delays readiness or navigation |
+| Set complete | A work set changes from incomplete to complete | Does not play while editing, reloading, or changing a completed set back to incomplete |
+| Achievement | A new earned provisional achievement appears | Requires in-workout achievements and a non-off celebration level; follows the set cue instead of colliding with it |
+| Workout complete | The athlete finishes with feedback, without feedback, or with deferred feedback | Plays once for the chosen finish path and does not determine whether the session saves |
+| Warning | The athlete marks a warm-up or first check as painful | Uses a low descending contour distinct from rewards; the visible pain response and safety copy remain authoritative |
+
+All cues stay under 700 milliseconds, use a maximum programmed gain of 0.05, and pair with a visible state. Audio cannot add work, award a record, bypass a pain gate, infer survey evidence, or change progression.
+
+### 71.3 Controls and Accessibility
+
+- Sounds are off by default.
+- You includes a labeled toggle and a preview action that can be used before opting in.
+- Quiet mode has absolute presentation precedence and disables preview while active.
+- Sound and quiet preferences persist through the existing local settings model and backup behavior.
+- Unsupported Web Audio, a suspended context, playback failure, or device silence must fail quietly while the action completes normally.
+- No instruction, warning, record, status, or button state is communicated by sound alone.
+- Reduced motion and sound are independent controls. The athlete may want one, both, or neither.
+
+### 71.4 Ownership and Asset Boundary
+
+Do not search for, download, rip, transcode, trace, sample, recreate note-for-note, or bundle audio from a commercial game, show, soundtrack, soundboard, fan archive, or video. A file described as royalty-free still requires recorded provenance, license terms, author, acquisition date, allowed distribution, and originality review before entering the repository. The preferred first-party path is runtime synthesis or commissioned original audio with a complete source package.
+
+The static protected-reference scan remains active across source code. Before any future audio file ships, add it to a reviewed provenance manifest and run both automated asset checks and a human similarity review. Public release additionally requires real phone-speaker, headphones, silent-mode, accessibility, and repeated-session fatigue testing.
+
+### 71.5 Verification and Current Boundary
+
+- Deterministic tests enumerate all six cues and enforce duration, frequency, and gain limits.
+- Preference tests prove sound requires opt-in and quiet mode suppresses it.
+- Browser coverage previews sound, enables it, enables quiet mode, proves preview is disabled, reloads, and proves both settings persist with zero page or console errors.
+- The standard interface boundary gate passes across sixty-four shipped interface files.
+- The production PWA build contains the synthesized engine as a small local chunk and makes no sound request to a network or asset host.
+- Full verification for 0.33.0 is 191 deterministic tests across twenty files and forty-six desktop and phone Playwright journeys.
+
+The first slice does not include ambient music, character cries, companion-specific motifs, volume sliders, per-cue switches, headphones detection, downloaded assets, cloud preference sync, or native haptic-audio coordination. Those features require evidence that they improve repeated real training rather than adding noise.
+
+### Version 1.37.0 Change Entry
+
+- Added R-325 through R-330 and the original audio ownership boundary.
+- Implemented `field-guide-synth-v1` with six short runtime-synthesized cues and no downloaded recordings.
+- Added opt-in, preview, quiet-mode precedence, persisted controls, silent fallback, and meaningful training-event wiring.
+- Added deterministic duration, frequency, gain, and preference tests and extended the existing desktop and phone controls journey.
+- Advanced the verified application to private alpha 0.33.0 with 191 deterministic tests across twenty files and forty-six browser journeys.
+
 ### Version 1.36.0 Change Entry
 
 - Added R-321 through R-324 and the durable context-to-product authority boundary.

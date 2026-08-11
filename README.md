@@ -1,8 +1,8 @@
-# ForgePath Private Alpha 0.32.0
+# ForgePath Private Alpha 0.33.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
-The private repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 324 requirements, traceability matrix, verified implementation status, exercise-library and recommendation specification, cloud-sync and backend specification, and pixel training-adventure specification. Obsidian remains the editable source of truth.
+The private repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 330 requirements, traceability matrix, verified implementation status, exercise-library and recommendation specification, cloud-sync and backend specification, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
 ## Run locally
 
@@ -35,8 +35,8 @@ npm run test:e2e
 
 ## Current verification
 
-- 189 deterministic domain tests
-- forty-six desktop and phone browser journeys, including an evidence-backed Training Field Guide, accessible route-note opening, clean post-onboarding focus handoff, auditable missed-opportunity rebuilding, source-backed records, linked calendar and exact exposure history, explainable athlete placement, athlete-reviewed exact-history evidence, plan-route and exact-movement criterion exits, equipment-aware route generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
+- 191 deterministic domain tests
+- forty-six desktop and phone browser journeys, including an original synthesized sound pack with persisted opt-in and quiet-mode precedence, an evidence-backed Training Field Guide, accessible route-note opening, clean post-onboarding focus handoff, auditable missed-opportunity rebuilding, source-backed records, linked calendar and exact exposure history, explainable athlete placement, athlete-reviewed exact-history evidence, plan-route and exact-movement criterion exits, equipment-aware route generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
 - automated UI boundary QC for original game-inspired expression, the technique-video exclusion, readable typography, focus and reduced-motion support, compact mobile coverage, and required product-design context
 - lint clean
 - production PWA build clean
@@ -87,7 +87,7 @@ npm run test:e2e
 - PR v2 separates absolute load, repetitions at load, load for repetitions, exact set schemes, estimated strength, exact-movement session volume, and workout volume
 - deterministic achievement replay reveals personal records, micro wins, baselines, quality wins, return wins, and consistency without adding work to the prescription
 - skipped technique or pain feedback preserves the completed number but labels it numeric-only instead of silently declaring a validated PR
-- planned-target opportunities, provisional in-workout feedback, a source-linked Progress ledger, quiet mode, celebration level, haptics, reduced motion, and optional pixel confetti are athlete-controlled
+- planned-target opportunities, provisional in-workout feedback, a source-linked Progress ledger, quiet mode, celebration level, haptics, reduced motion, optional pixel confetti, and original low-volume synthesized cues are athlete-controlled
 - reason-aware exercise substitutions show ranked evidence, preserved purpose, tradeoffs, exact-history familiarity, and a replacement-specific prescription; protected primary anchors require explicit confirmation
 - completed substitutions retain original and selected movement identities, source sets, outcomes, and available post-session feedback in a visible Library ledger
 - full, quick, minimal, ask-each-time, and off preferences now govern the real pre- and post-session flow independently

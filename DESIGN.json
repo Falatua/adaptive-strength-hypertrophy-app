@@ -54,7 +54,8 @@
     { "name": "QuestBubble", "anatomy": ["optional icon", "short coaching sentence"], "states": ["quiet", "celebratory"], "rule": "Every message must be supported by completed or current session evidence." },
     { "name": "DataInput", "anatomy": ["visible label", "native control", "optional help", "error"], "states": ["default", "focus-visible", "invalid", "disabled"], "rule": "Use familiar controls and never rely on placeholder text as the label." },
     { "name": "PrimaryNavigation", "anatomy": ["icon", "label", "current state"], "states": ["default", "hover", "current", "focus-visible"], "rule": "Desktop sidebar and mobile bottom navigation share the same five destinations." },
-    { "name": "Modal", "anatomy": ["header", "close", "body", "actions"], "states": ["closed", "open"], "rule": "Use native dialog behavior and keep the primary completion action explicit." }
+    { "name": "Modal", "anatomy": ["header", "close", "body", "actions"], "states": ["closed", "open"], "rule": "Use native dialog behavior and keep the primary completion action explicit." },
+    { "name": "SoundCue", "anatomy": ["semantic event", "original synthesized notes", "visual counterpart"], "states": ["silent default", "enabled", "quiet-mode suppressed", "unsupported browser fallback"], "rule": "Keep cues under 700 milliseconds, low-volume, optional, nonessential to comprehension, and independently ownable." }
   ],
   "narrative": {
     "foreground": "Fast, truthful training decisions and readable evidence.",

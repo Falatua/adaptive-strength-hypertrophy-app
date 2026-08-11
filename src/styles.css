@@ -244,6 +244,10 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .toggle-row, .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 0; border-top: 1px solid var(--line); }
 .toggle-row strong, .toggle-row small, .setting-row strong, .setting-row small { display: block; }
 .toggle-row small, .setting-row small { margin-top: 4px; }
+.sound-preview-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 0 14px; border-top: 1px solid var(--line); }
+.sound-preview-row strong, .sound-preview-row small { display: block; }
+.sound-preview-row small { margin-top: 4px; }
+@media (max-width: 520px) { .sound-preview-row { align-items: flex-start; flex-direction: column; } .sound-preview-row .button { width: 100%; } }
 .setting-row select { width: auto; min-width: 110px; }
 .survey-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .survey-question { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }

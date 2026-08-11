@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ChevronDown, Clock3, Info, Pause, Play, RefreshCcw, SkipForward, Sparkles, TimerReset, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
@@ -10,6 +10,7 @@ import { PostSurveyModal } from '../components/PostSurveyModal'
 import { SurveyModeChooser } from '../components/SurveyModeChooser'
 import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '../domain/equipment-engine'
 import { placementRouteLabels } from '../domain/placement-engine'
+import { playForgeSound } from '../services/sound-engine'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary anchor',
@@ -48,6 +49,15 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     const activeIds = new Set(activeSetRecords.map((workSet) => workSet.id))
     return deriveAchievementEvents([...history, ...activeSetRecords]).filter((event) => event.sourceSetIds.some((id) => activeIds.has(id)))
   }, [activeSetRecords, history])
+  const priorAchievementCount = useRef(activeAchievementPreview.length)
+
+  useEffect(() => {
+    if (activeAchievementPreview.length > priorAchievementCount.current && settings.sessionAchievements && settings.celebrationLevel !== 'off') {
+      playForgeSound('achievement', settings)
+    }
+    priorAchievementCount.current = activeAchievementPreview.length
+  }, [activeAchievementPreview.length, settings])
+
   useEffect(() => {
     if (!timerRunning) return
     const interval = window.setInterval(() => {
@@ -100,12 +110,14 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   }
 
   const finishWithoutSurvey = (mode: EffectiveSurveyMode = 'off') => {
+    playForgeSound('workout-complete', settings)
     finishSession(session.id, { answers: [], skipped: true, mode })
     setFinishOpen(false)
     setFinishChooserOpen(false)
   }
 
   const finishWithDeferredFeedback = () => {
+    playForgeSound('workout-complete', settings)
     finishSession(session.id, { answers: [], skipped: false, mode: activePostMode, deferred: true })
     setFinishOpen(false)
     setFinishChooserOpen(false)
@@ -120,6 +132,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
 
   const logSet = (plannedExerciseId: string, setId: string, currentlyComplete: boolean) => {
     toggleSetComplete(session.id, plannedExerciseId, setId)
+    if (!currentlyComplete) playForgeSound('set-complete', settings)
     if (!currentlyComplete && settings.haptics && !settings.quietMode && settings.celebrationLevel !== 'off' && 'vibrate' in navigator) navigator.vibrate(18)
   }
 
@@ -156,7 +169,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
               <button onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'better') }}>Better</button>
               <button onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'as-expected') }}>As expected</button>
               <button onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'harder') }}>Harder</button>
-              <button className="pain" onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'painful') }}>Painful</button>
+              <button className="pain" onClick={() => { playForgeSound('warning', settings); setWarmupConfirmed(true); setPlacementWarmup(session.id, 'painful') }}>Painful</button>
               <button className="text-button" onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'skipped') }}>Skip</button>
             </div> : <div className="placement-session-check__saved"><Check size={17} /><span><strong>Warm-up saved</strong><small>{placementVerification.warmupResponse.replace('-', ' ')}</small></span></div>}
           </section>
@@ -165,7 +178,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         {!placementVerification && !warmupConfirmed && session.readiness && session.readiness !== 'normal' && (
           <section className="warmup-check">
             <div><Sparkles size={20} /><span><strong>Warm-up confirmation</strong><small>Readiness is {session.readiness}. Let performance confirm the plan.</small></span></div>
-            <div><button onClick={() => setWarmupConfirmed(true)}>Better</button><button onClick={() => setWarmupConfirmed(true)}>Normal</button><button onClick={() => { setWarmupConfirmed(true); setNotice('Keep the anchor conservative and monitor the first set.') }}>Harder</button><button className="pain" onClick={() => { setWarmupConfirmed(true); setNotice('Pain-aware mode: change or stop the affected movement.') }}>Painful</button><button className="text-button" onClick={() => setWarmupConfirmed(true)}>Skip</button></div>
+            <div><button onClick={() => setWarmupConfirmed(true)}>Better</button><button onClick={() => setWarmupConfirmed(true)}>Normal</button><button onClick={() => { setWarmupConfirmed(true); setNotice('Keep the anchor conservative and monitor the first set.') }}>Harder</button><button className="pain" onClick={() => { playForgeSound('warning', settings); setWarmupConfirmed(true); setNotice('Pain-aware mode: change or stop the affected movement.') }}>Painful</button><button className="text-button" onClick={() => setWarmupConfirmed(true)}>Skip</button></div>
           </section>
         )}
 
@@ -277,6 +290,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         onSkip={() => finishWithoutSurvey(activePostMode)}
         onDefer={finishWithDeferredFeedback}
         onSubmit={(answers, feedbackNote) => {
+          playForgeSound('workout-complete', settings)
           finishSession(session.id, { answers, note: feedbackNote, skipped: false, mode: activePostMode })
           setFinishOpen(false)
         }}

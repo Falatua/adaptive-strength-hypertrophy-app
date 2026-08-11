@@ -78,6 +78,7 @@ Avoid stacking multiple floating glass panels. Use blur only for persistent navi
 - Quest bubble: one-pixel accent frame, dark readable fill, short source-backed coaching sentence, no animated typing.
 - Data input: familiar native control proportions, one-pixel trail-line, clear focus ring, explicit label and help when needed.
 - Modal: native dialog behavior, sticky header, visible close action, contained mobile width, and a single primary completion action.
+- Sound cue: original synthesized pocket-console feedback under 700 milliseconds, low-volume, meaningful rather than ambient, off by default, previewable, and always suppressed by quiet mode.
 
 # Do's and Don'ts
 
@@ -89,6 +90,7 @@ Do:
 - Treat missed training as changed evidence, not failure or debt.
 - Verify 320-pixel mobile containment, keyboard use, visible focus, reduced motion, contrast, and readable large text.
 - Use real completed training data for records, experience, celebrations, and comparisons.
+- Pair optional sound with a visible state change. Warning and achievement meaning must never depend on audio alone.
 
 Don't:
 
