@@ -1995,7 +1995,60 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Keep athlete-stated preference authoritative and separate from behavior-inferred signals such as swaps, skips, completion, and enjoyment. One skipped exercise or one substitution must not create a dislike. Missing preference remains neutral or unknown, and any future inference must show evidence, confidence, and correction controls.
 - Detail: [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]]
 
+### R-312 Phone and Laptop Core-Feature Parity
+- Status: implemented-responsive-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Make the private app optimized for both mobile devices and laptops. Today, Plan, Progress, Library, You, workout logging, surveys, substitutions, history, and settings must remain usable on both, with layout and interaction adapted to each form factor rather than one surface acting as a reduced viewer.
+- Detail: [[Data Backend Storage and Learning Architecture]]
+
+### R-313 One Private Account Across Devices
+- Status: captured
+- Provenance: from-user
+- Requirement: Let the athlete securely sign in to the same private account on phone and laptop and access the same canonical plans, sessions, completed sets, surveys, preferences, exercise history, records, and learning state.
+- Detail: [[Data Backend Storage and Learning Architecture]]
+
+### R-314 Local-First Cloud Synchronization
+- Status: captured
+- Provenance: from-user and product-decision
+- Requirement: Save workout actions locally before confirming them in the interface, queue them through an idempotent outbox, and synchronize with the cloud whenever authenticated connectivity is available so a weak connection never blocks training or loses completed work.
+- Detail: [[Data Backend Storage and Learning Architecture]]
+
+### R-315 Cross-Device Workout Handoff
+- Status: captured
+- Provenance: from-user and product-decision
+- Requirement: Allow an in-progress workout started on one device to be safely resumed on another after synchronization. Prevent silent simultaneous editing through visible active-device state, explicit takeover, and preserved reconciliation when offline branches collide.
+- Detail: [[Data Backend Storage and Learning Architecture]]
+
+### R-316 Honest Sync Status and Freshness
+- Status: captured
+- Provenance: product-decision
+- Requirement: Distinguish `Saved on this device`, `Syncing`, `Synced`, `Offline`, and `Needs review`, show the last successful cloud synchronization, and refresh on launch, resume, important mutations, and before cloud-dependent decisions. Never label local-only data as cloud-synced.
+- Detail: [[Data Backend Storage and Learning Architecture]]
+
+### R-317 Conflict Preservation and Resolution
+- Status: captured
+- Provenance: product-decision
+- Requirement: Merge independent append-only events automatically by stable ID, but preserve both originals and request review when two devices change the same authoritative set, plan, merge, preference, or active-session state. No last-write-wins rule may silently discard completed training.
+- Detail: [[Data Backend Storage and Learning Architecture]]
+
+### R-318 Cloud Recovery and Device Replacement
+- Status: captured
+- Provenance: from-user and product-decision
+- Requirement: A newly authorized or replacement device must rebuild the athlete's current state from the cloud system of record, verify schema and rule versions, restore source-linked history and audit events, and continue offline after the initial successful hydration.
+- Detail: [[Data Backend Storage and Learning Architecture]]
+
+### R-319 Multi-Device Release Gate
+- Status: captured
+- Provenance: product-decision
+- Requirement: Do not claim multi-device readiness until phone and laptop journeys prove account isolation, offline workout completion, reconnect without duplicates, same-session handoff, simultaneous-edit conflict preservation, correction replay, cloud restore, responsive accessibility, and matching derived analytics.
+- Detail: [[Data Backend Storage and Learning Architecture]]
+
 ## Thread Coverage Audit
+
+### 2026-08-10 Phone, Laptop, and Cloud Sync Expansion
+- Scope: User required the app to work well on both mobile and laptop and to keep changes updated appropriately across devices through the cloud.
+- Result: Confirmed responsive phone and laptop as required product surfaces and captured one-account access, local-first cloud sync, safe workout handoff, honest status, conflict preservation, new-device recovery, and an end-to-end multi-device release gate as R-312 through R-319.
+- Status: The current PWA is responsively tested on desktop and phone and preserves data locally on each browser. Authentication, Supabase, cloud sync, device handoff, and cross-device conflict resolution remain unimplemented and must not be claimed.
 
 ### 2026-08-10 Contextual Exercise Preference Expansion
 - Scope: User requested per-movement favorites and dislikes that influence recommendations, with sumo deadlift preferred only during powerlifting competition preparation and conventional or stiff-leg deadlifts preferred outside that context.
@@ -2211,6 +2264,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-10: Added R-312 through R-319 for optimized phone and laptop use, one private account, local-first cloud synchronization, active-workout handoff, honest sync status, conflict preservation, cloud recovery, and the multi-device release gate. Responsive layouts are an implemented first slice; actual cross-device synchronization remains unimplemented.
 - 2026-08-10: Added R-304 through R-311 for exact-movement favorites, dislikes, do-not-recommend state, context-specific exercise use, preference-aware ranking, protected-primary conflicts, auditable history, and stated-versus-inferred separation. The existing favorite and joint-response controls are an implemented first slice; contextual preference behavior remains unimplemented.
 - 2026-08-10: Added R-296 through R-303 for an optional original three-stage training companion, completed-workout XP, anti-grind progression, level and evolution gates, post-workout level-up sequence, non-punitive continuity, accessibility controls, and a strict no-Pokémon-copying boundary. The feature is specified and remains unimplemented.
 - 2026-08-10: Advanced R-039, R-040, R-054, R-060, R-145, and R-146 after private alpha 0.31.0 added `missed-opportunity-v5` and `schedule-priority-dose-v1`; completed-source-set comparison across athlete-declared priority regions in an inclusive rolling 28-day window; executable candidate coverage after support removal; strict priority below pin, eligibility, full executability, and exact-primary recency; applied-versus-reviewed UI evidence; no target-dose, neglect, progression, or catch-up claim; backup schema version 24; local persistence version 22; 189 deterministic tests; and forty-four desktop and phone Playwright journeys. Fixed-event pressure and downstream fatigue remain deferred.

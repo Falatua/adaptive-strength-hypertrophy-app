@@ -5,7 +5,7 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-10
 status: canonical-build-reference-and-active-implementation
-version: 1.33.0
+version: 1.34.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -976,17 +976,17 @@ The product behavior in this Bible is locked unless JB changes it. The technolog
 
 ### Recommended First Client
 
-Build a mobile-first TypeScript application with React Native and Expo, targeting iPhone first while preserving Android capability. Use Expo Router for navigation, a mature SQLite binding for local data, React Native Reanimated for restrained motion, and a chart library proven against the required volume drilldowns. Distribute the private build through a development channel and then TestFlight when stable.
+Continue the responsive installable TypeScript PWA as the first private phone-and-laptop client. Optimize active workout use for mobile and planning, analytics, imports, and data review for laptop while keeping every core workflow available on both. Replace the temporary browser store with a durable local operational database and authenticated cloud sync before claiming multi-device readiness.
 
 Reasons:
 
-- workout logging is naturally phone-first;
-- SQLite supports reliable offline set capture;
-- one TypeScript domain model can support deterministic rules, sync, and eventual web tooling;
-- Expo reduces private-build friction while retaining native capabilities;
-- the original pixel layer can remain asset-driven instead of requiring a game engine.
+- the current PWA already provides one working responsive surface on phone and laptop;
+- workout logging remains phone-first while long-range planning and analysis benefit from laptop space and input;
+- one TypeScript domain model can serve deterministic rules, sync, and both responsive modes;
+- one cloud account and canonical history avoid a premature split between native and desktop products;
+- the original pixel layer remains asset-driven and client-independent.
 
-Before commitment, complete a two-week architecture spike proving in-progress workout recovery, SQLite migrations, background or resumed sync, the most complex Progress chart, pixel asset rendering, accessibility, and private distribution. A responsive web PWA is a fallback, but browser storage and background behavior must pass the same reliability gate.
+Keep a later React Native and Expo client as an evidence-gated option for stronger native distribution, background behavior, notifications, sensors, or device integration. It must use the same domain contracts, IDs, cloud records, and sync rules. Before the multi-device milestone, complete an architecture spike proving durable browser storage, migrations, offline recovery, foreground or resumed sync, active-workout handoff, the most complex Progress chart, pixel rendering, accessibility, and private distribution on at least one phone and one laptop.
 
 ### Recommended Repository Shape
 
@@ -1368,7 +1368,7 @@ No missed-workout callouts, public failure states, coercive streaks, unsolicited
 
 Deliverables:
 
-- confirm iPhone-first React Native and Expo or choose the validated alternative;
+- confirm the responsive PWA durable local database, migration, and phone-laptop sync spike, while retaining React Native as a later evidence-gated client;
 - establish repository, formatting, linting, test, migration, and release conventions;
 - create architecture decision records for platform, local database, sync, units, and IDs;
 - implement domain entities, units, canonical exercise identity, planned-versus-completed separation, and event envelope;
@@ -1605,15 +1605,15 @@ Retain source-integrity notes, missing-page warnings, publication context, and c
 
 ### Decisions Required Before Coding Phase 1
 
-1. Confirm iPhone-first React Native and Expo after the architecture spike.
+1. Select the durable browser database and prove the responsive PWA phone-laptop sync spike defined in Chapter 68.
 2. Confirm the private app name and repository location.
 3. Select initial strength anchors and first private training goal.
 4. Choose the first exercise catalog boundary and seed data format.
 5. Define initial load conventions for bodyweight, unilateral, cable, and machine work.
 6. Choose fixed-day, rolling, or hybrid default scheduling. Recommended default is rolling with optional weekday anchors.
 7. Select initial 15, 30, 45, and 60-minute behavior and minimum primary doses.
-8. Choose local-cloud conflict policy for completed-set corrections.
-9. Decide whether Supabase auth is present in the first private build or added after the local logging milestone.
+8. Design and test the preserved-conflict review interface for same-set corrections and other authoritative collisions.
+9. Add Supabase Auth, RLS, and private synchronization after the verified local logging milestone and before any multi-device-ready claim.
 10. Approve the four-screen visual prototype, palette, pixel density, and focused-mode boundary.
 
 ### Decisions Required During Adaptive Core
@@ -5634,6 +5634,109 @@ Before this chapter is implemented, prove:
 - minimum behavioral evidence for inferred preference proposals;
 - whether preference rule templates ship for common competition movements;
 - whether rule editing belongs only in Exercise Detail or also in Plan review.
+
+## 68. Phone, Laptop, and Cloud Synchronization
+
+### 68.1 Status and Requirement Authority
+
+This chapter specifies R-312 through R-319 and resolves the first real multi-device client direction. Private alpha 0.31.0 is responsively tested on desktop and a 390 by 844 phone viewport, supports installation as a PWA, and persists locally across reload. It has no account, cloud system of record, cross-device synchronization, handoff, or conflict reconciliation. Those capabilities remain unimplemented.
+
+### 68.2 Product Surface Contract
+
+Phone and laptop are both first-class private product surfaces. Phone layout prioritizes fast workout start, set entry, rest flow, substitutions, readiness, and immediate results. Laptop layout uses available space for plan editing, multi-range analytics, history, imports, data quality, and settings. Today, Plan, Progress, Library, You, surveys, workout logging, corrections, export, and recovery remain available on both.
+
+The first real multi-device client remains the responsive installable PWA. A later native mobile client may improve distribution or device integration but must use the same IDs, domain rules, account, cloud records, and sync contract.
+
+### 68.3 Local and Cloud Authority
+
+The local operational store is authoritative for immediate workout execution. A mutation is successful only after its local transaction commits. Supabase Postgres remains the leading private cloud system of record for authenticated account history, cross-device convergence, relational integrity, backups, and new-device recovery.
+
+Every mutation receives a stable ID and enters an outbox with device ID, local sequence, entity version, expected prior version, local time, timezone, schema version, rule version, and integrity data. Cloud delivery is idempotent. Acknowledgement clears pending status but never removes replay evidence.
+
+### 68.4 Sync and Freshness Lifecycle
+
+Clients pull incremental changes after authenticated launch, foreground resume, successful push, explicit Sync now, before taking over an existing workout, and before cloud-dependent plan or history mutations. Background sync can reduce delay but is not required for correctness.
+
+Visible states are:
+
+- `Saved on this device`;
+- `Syncing`;
+- `Synced`;
+- `Offline`;
+- `Needs review`.
+
+Show pending count and last successful cloud synchronization. Only a successful authenticated cloud exchange establishes Synced. Local persistence or a generic network indicator cannot.
+
+### 68.5 Active Workout Handoff
+
+An online editor owns a renewable active-session lease. Another authorized device can open read-only, wait, explicitly take over, or start a different valid workout. Takeover pulls the newest events, records the handoff, and makes the previous device read-only for that session after reconnect.
+
+Offline training remains available. If simultaneous offline branches occur, both upload. Independent append-only events merge by stable ID. Conflicting edits to the same set, slot, completion, substitution, or session state preserve both originals and enter Needs review.
+
+### 68.6 Conflict Rules
+
+- Duplicate delivery of the same event is an idempotent no-op after integrity comparison.
+- Independent new events union without loss.
+- Concurrent corrections or correction-versus-deletion preserve the source plus every attempted mutation and require review.
+- Plan changes never overwrite completed or partial source truth. Reconciliation rebases future work only.
+- Exercise merge conflicts pause canonical reassignment.
+- Concurrent preferences or settings use expected versions and require review when the choice affects behavior.
+- Derived analytics, records, companion XP, and learning features recompute from reconciled source events. They never win a conflict as stored totals.
+
+No last-write-wins shortcut may silently discard completed training or audit evidence.
+
+### 68.7 New Device Recovery
+
+After authentication, a new device validates compatible schema and rule versions, downloads canonical account and training events, builds local projections, records a sync cursor, and becomes offline-capable. Hydration prioritizes identity, active plan, open workout, and recent history before older history. Partial hydration must remain labeled and cannot display incomplete lifetime totals as final.
+
+Device revocation removes future access without removing historical source-device provenance. Export and account deletion remain separate athlete-controlled workflows.
+
+### 68.8 Security and Privacy
+
+Use authenticated sessions and Row Level Security for every athlete-owned cloud table. A device can sync only the authorized account. Service credentials and administrative operations remain server-side. General analytics may store app version, device class, schema version, sync cursor, latency, and error code, but not private workout content, survey text, pain notes, credentials, or free-form feedback.
+
+### 68.9 Acceptance Gate
+
+Before claiming multi-device readiness, prove:
+
+- the same account produces matching source data and derived analytics on phone and laptop;
+- offline phone work survives restart and reconnects without missing or duplicate sets;
+- a phone-started workout can transfer to laptop through explicit takeover and finish once;
+- conflicting edits on two devices preserve both versions and visibly request review;
+- future plan revision on laptop cannot rewrite a phone-completed earlier session;
+- corrections, deletions, merges, preference changes, records, and XP replay consistently after sync;
+- a new device can hydrate from cloud and then operate offline;
+- revoked devices cannot regain access;
+- separate accounts cannot read or mutate one another's data;
+- both form factors pass touch, keyboard, screen-reader, large-text, slow-network, reconnect, and horizontal-containment tests.
+
+### 68.10 Delivery Sequence
+
+1. Define Supabase schema, Auth, Row Level Security, device registry, event IDs, cursors, and migrations.
+2. Replace or wrap current browser persistence with a durable transactional local repository and outbox.
+3. Add authenticated push, pull, idempotency, incremental cursors, status, and diagnostics.
+4. Add initial cloud hydration, device registration, and revocation.
+5. Add active-session leases, explicit handoff, and offline branch reconciliation.
+6. Add conflict review for sets, plans, merges, preferences, and settings.
+7. Recompute analytics and records from reconciled source events and prove phone-laptop parity.
+8. Pass security, recovery, performance, accessibility, and the complete multi-device gate before enabling the capability for routine private use.
+
+### 68.11 Deferred Decisions
+
+- exact durable browser database and migration library;
+- authentication method and recovery UX;
+- sync debounce, batch size, and retry backoff;
+- active-session lease duration and takeover grace period;
+- which low-risk preferences may resolve automatically;
+- cloud retention, backup point, recovery time, and geographic requirements;
+- native mobile trigger and distribution path.
+
+### Version 1.34.0 Change Entry
+
+- Added R-312 through R-319 and the build-ready phone, laptop, and cloud-sync specification.
+- Made both phone and laptop first-class core product surfaces and selected the responsive PWA as the first real multi-device client.
+- Defined local-first commits, authenticated cloud convergence, visible sync states, active-workout handoff, conflict preservation, new-device recovery, and account isolation.
+- Added a strict multi-device acceptance gate and recorded that responsive local operation exists while actual synchronization remains unimplemented.
 
 ### Version 1.33.0 Change Entry
 

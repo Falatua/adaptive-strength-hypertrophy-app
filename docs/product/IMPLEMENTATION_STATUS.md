@@ -289,6 +289,8 @@ The immediate private alpha uses React, TypeScript, Vite, Zustand local persiste
 
 This decision prioritized a working private app on the same day, responsive desktop and phone access, offline-capable startup after installation, fast iteration, and no dependency on accounts, Supabase, or an AI provider. The Build Bible's React Native, SQLite, and Supabase direction remains the leading later architecture when native device distribution, durable relational storage, multi-device sync, or wider private testing becomes necessary.
 
+The later client direction is now refined by Build Bible Chapter 68. The responsive PWA remains the first phone-and-laptop client, with a durable local repository and Supabase-backed authenticated synchronization required before the product can be described as multi-device ready. React Native remains a later evidence-gated client rather than the only route to mobile use.
+
 The current browser store is a private-alpha operational store, not the eventual relational system of record. Before multi-device use or public testing, replace or migrate it through versioned repositories, stable IDs, schema migrations, export, restore, and conflict-aware sync.
 
 ## Working Product Surface
@@ -521,7 +523,7 @@ Screenshots are stored inside the code project at `output/playwright/` and are d
 ## Known Boundaries and Deferred Work
 
 - Browser storage is not yet SQLite or Postgres. Versioned local backup now reduces private-alpha loss risk but does not replace cloud or native durability.
-- No authentication, Supabase, Row Level Security, cross-device sync, cloud backup, or conflict resolution exists yet.
+- No authentication, Supabase, Row Level Security, cross-device sync, cloud backup, device hydration, active-workout handoff, or conflict resolution exists yet. Phone and laptop browser instances currently hold independent local state.
 - No OpenAI, Anthropic, retrieval, statistical calibration service, or unstructured-feedback interpretation exists yet.
 - The original evolving training companion, source-backed XP ledger, levels, three-stage evolution, and post-workout ceremony are specified in Chapter 66 but are not implemented. Actual Pokémon characters, names, likenesses, mechanics, and presentation are prohibited.
 - The current athlete-learning display is seeded and deterministic. It is not a trained personal model.
