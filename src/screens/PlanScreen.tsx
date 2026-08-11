@@ -40,7 +40,7 @@ const reviewChoices: { id: CycleReviewDecision; title: string; detail: string }[
 
 export function PlanScreen() {
   const {
-    sessions, exercises, athlete, history, mesocycles, cycleReviews, placementVerifications, activeMesocycleId, activeSessionId, equipmentProfiles, settings,
+    sessions, exercises, athlete, history, mesocycles, cycleReviews, missedOpportunityEvents, placementVerifications, activeMesocycleId, activeSessionId, equipmentProfiles, settings,
     startSession, applyMesocycleRevision, applyCycleReview, setNotice
   } = useAppStore()
   const activePlan = mesocycles.find((plan) => plan.id === activeMesocycleId)
@@ -100,6 +100,8 @@ export function PlanScreen() {
   const placementExit = useMemo(() => buildPlacementExitAssessment({ placement: athlete.placement, verificationEvents: placementVerifications, assessedAt: placementExitAssessedAt }), [athlete.placement, placementVerifications, placementExitAssessedAt])
   const movementExits = useMemo(() => (athlete.placement.movementPlacements ?? []).map((movementPlacement) => buildMovementPlacementExitAssessment({ placement: athlete.placement, movementPlacement, verificationEvents: placementVerifications, assessedAt: placementExitAssessedAt })), [athlete.placement, placementVerifications, placementExitAssessedAt])
   const activeCycleReviews = activePlan ? cycleReviews.filter((review) => review.mesocycleId === activePlan.id) : []
+  const activeScheduleChanges = activePlan ? missedOpportunityEvents.filter((event) => event.mesocycleId === activePlan.id) : missedOpportunityEvents
+  const latestScheduleChange = activeScheduleChanges.at(-1)
 
   const openReview = () => {
     if (!cycleReview) return
@@ -221,6 +223,13 @@ export function PlanScreen() {
             </div>
             <p className="callout-copy">A passed Wednesday does not become a completed bench exposure. Only completed qualified work advances the second clock.</p>
           </section>
+          {latestScheduleChange && <section className="panel schedule-change-card" aria-label="Latest missed opportunity decision">
+            <div className="panel__header"><div><p className="eyebrow">{latestScheduleChange.ruleVersion} · event {activeScheduleChanges.length}</p><h3>Latest queue rebuild</h3></div><RefreshCcw size={19} /></div>
+            <div className="schedule-change-card__headline"><strong>{latestScheduleChange.mode.replaceAll('-', ' ')}</strong><small>{latestScheduleChange.input.reason.replaceAll('-', ' ')} · {latestScheduleChange.input.constraintState} · next {new Date(latestScheduleChange.input.nextOpportunityAt).toLocaleDateString()}</small></div>
+            <div className="clock-comparison"><div><span>Completed sets</span><strong>{latestScheduleChange.completedSetCountBefore} → {latestScheduleChange.completedSetCountAfter}</strong><small>Unchanged source truth</small></div><div><span>Open planned sets</span><strong>{latestScheduleChange.openSetCountBefore} → {latestScheduleChange.openSetCountAfter}</strong><small>No catch-up debt</small></div></div>
+            <p className="callout-copy">{latestScheduleChange.reasons[0]}</p>
+            <details className="schedule-change-card__details"><summary>{latestScheduleChange.changes.length} moved session{latestScheduleChange.changes.length === 1 ? '' : 's'} · full replay</summary>{latestScheduleChange.changes.map((change) => <p key={change.sessionId}><strong>{sessions.find((session) => session.id === change.sessionId)?.title ?? change.sessionId}</strong><span>{new Date(change.fromPlannedAt).toLocaleDateString()} → {new Date(change.toPlannedAt).toLocaleDateString()} · {change.fromSetCount} → {change.toSetCount} planned sets</span></p>)}</details>
+          </section>}
           {cycleReview && <section className="panel cycle-review-card">
             <div className="panel__header"><div><p className="eyebrow">Exposure round {cycleReview.microcycleNumber}</p><h3>Criterion review</h3></div><span className={`status-chip status-chip--${cycleReview.maximumPassed ? 'orange' : 'default'}`}>{cycleReview.maximumPassed ? 'maximum passed' : cycleReview.targetPassed ? 'target passed' : 'inside target'}</span></div>
             <div className="review-dates"><div><small>Started</small><strong>{cycleReview.startedAt.toLocaleDateString()}</strong></div><div><small>Target review</small><strong>{cycleReview.targetDate.toLocaleDateString()}</strong></div><div><small>Maximum span</small><strong>{cycleReview.maximumDate.toLocaleDateString()}</strong></div></div>

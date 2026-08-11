@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compressSession, duplicateCandidates, readinessFromSurvey, recommendProgression, replanAfterMiss, sessionCompletionStatus, volumeLoad } from './training-engine'
+import { compressSession, duplicateCandidates, readinessFromSurvey, recommendProgression, sessionCompletionStatus, volumeLoad } from './training-engine'
 import { exercises, sessions } from './seed'
 import type { CompletedSetRecord, SurveyAnswer } from './types'
 
@@ -77,16 +77,6 @@ describe('time-aware session compression', () => {
     expect(primary).toBeDefined()
     expect(primary?.sets.length).toBeGreaterThanOrEqual(2)
     expect(compressed.exercises.some((exercise) => exercise.role === 'optional')).toBe(false)
-  })
-})
-
-describe('missed-workout replanning', () => {
-  it('does not mark a missed session complete or add catch-up work', () => {
-    const originalSetCount = sessions.reduce((sum, session) => sum + session.exercises.reduce((exerciseSum, exercise) => exerciseSum + exercise.sets.length, 0), 0)
-    const replanned = replanAfterMiss(structuredClone(sessions), 'session-bench', { reason: 'family', nextMinutes: 45, continuing: true })
-    const replannedSetCount = replanned.reduce((sum, session) => sum + session.exercises.reduce((exerciseSum, exercise) => exerciseSum + exercise.sets.length, 0), 0)
-    expect(replanned.some((session) => session.status === 'completed')).toBe(false)
-    expect(replannedSetCount).toBeLessThanOrEqual(originalSetCount)
   })
 })
 

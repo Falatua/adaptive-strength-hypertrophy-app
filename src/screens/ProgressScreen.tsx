@@ -26,7 +26,7 @@ import { buildCalendarMonth, buildExerciseExposureSequence, buildFixedEventCount
 type TimelineAxis = 'calendar' | 'exposure'
 
 export function ProgressScreen() {
-  const { history, records, athlete, settings, sessions, exercises: exerciseCatalog } = useAppStore()
+  const { history, records, athlete, settings, sessions, missedOpportunityEvents, exercises: exerciseCatalog } = useAppStore()
   const [range, setRange] = useState<ProgressRange>('28d')
   const [bodyLens, setBodyLens] = useState<BodyLens>('region')
   const [muscleLens, setMuscleLens] = useState<MuscleDoseLens>('all')
@@ -70,7 +70,7 @@ export function ProgressScreen() {
   const visiblePlannedMuscles = useMemo(() => filterPlannedMuscleDose(plannedMuscleDose.points, muscleLens).filter((point) => point.plannedTotal > 0 || point.completedTotal > 0), [muscleLens, plannedMuscleDose.points])
   const muscleDetail = selectedMuscle ? visibleMuscles.find((point) => point.muscle === selectedMuscle) ?? null : null
   const maxMuscleDose = Math.max(1, ...visibleMuscles.map((point) => point.totalDose))
-  const calendarView = useMemo(() => buildCalendarMonth({ sessions, history, month: calendarCursor }), [calendarCursor, history, sessions])
+  const calendarView = useMemo(() => buildCalendarMonth({ sessions, history, missedOpportunityEvents, month: calendarCursor }), [calendarCursor, history, missedOpportunityEvents, sessions])
   const selectedCalendarDay = calendarView.days.find((day) => day.key === selectedCalendarDayKey) ?? calendarView.days.find((day) => day.inSelectedMonth)!
   const exposureOptions = useMemo(() => {
     const ids = [...new Set([...athlete.strengthAnchors, ...history.map((workSet) => workSet.exerciseId)])]
@@ -164,7 +164,7 @@ export function ProgressScreen() {
             <aside className="calendar-day-detail" aria-live="polite">
               <p className="eyebrow">Selected date</p><h4>{new Date(selectedCalendarDay.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</h4>
               <div className="calendar-day-metrics"><span><strong>{selectedCalendarDay.completedSets}</strong><small>completed sets</small></span><span><strong>{selectedCalendarDay.volumeLoad.toLocaleString()}</strong><small>{settings.units} volume load</small></span></div>
-              {selectedCalendarDay.plans.map((plan) => <div className={`calendar-entry calendar-entry--plan calendar-entry--${plan.status}`} key={`plan:${plan.sessionId}`}><CalendarDays size={16} /><span><strong>{plan.title}</strong><small>Planned opportunity · {plan.status.replaceAll('-', ' ')}{plan.driftDays === null ? '' : plan.driftDays === 0 ? ' · completed as planned' : ` · actual ${Math.abs(plan.driftDays)} day${Math.abs(plan.driftDays) === 1 ? '' : 's'} ${plan.driftDays > 0 ? 'later' : 'earlier'}`}</small></span></div>)}
+              {selectedCalendarDay.plans.map((plan) => <div className={`calendar-entry calendar-entry--plan calendar-entry--${plan.status}`} key={plan.id}><CalendarDays size={16} /><span><strong>{plan.title}</strong><small>{plan.origin === 'missed-opportunity' ? 'Missed opportunity · moved' : 'Planned opportunity'} · {plan.status.replaceAll('-', ' ')}{plan.driftDays === null ? '' : plan.driftDays === 0 ? plan.origin === 'missed-opportunity' ? ' · rebuilt for the same date' : ' · completed as planned' : ` · ${plan.origin === 'missed-opportunity' ? 'moved' : 'actual'} ${Math.abs(plan.driftDays)} day${Math.abs(plan.driftDays) === 1 ? '' : 's'} ${plan.driftDays > 0 ? 'later' : 'earlier'}`}</small></span></div>)}
               {selectedCalendarDay.completions.map((completion) => <div className="calendar-entry calendar-entry--complete" key={completion.id}><CheckCircle2 size={16} /><span><strong>{completion.title}</strong><small>{completion.completedSets} sets · {completion.repetitions} reps · {completion.volumeLoad.toLocaleString()} {settings.units}</small><em>{completion.exerciseNames.join(', ')} · {completion.linkedToStoredSession ? completion.driftDays === 0 ? 'linked to same-day plan' : `linked to plan${completion.driftDays === null ? '' : ` · ${Math.abs(completion.driftDays)} day${Math.abs(completion.driftDays) === 1 ? '' : 's'} ${completion.driftDays > 0 ? 'later' : 'earlier'}`}` : completion.imported ? 'imported, no stored plan' : 'completed, no stored plan'}</em></span></div>)}
               {selectedCalendarDay.plans.length === 0 && selectedCalendarDay.completions.length === 0 && <div className="calendar-day-empty"><CalendarDays size={22} /><strong>No stored training event</strong><p>An empty date creates no missed-work debt and says nothing about readiness.</p></div>}
             </aside>

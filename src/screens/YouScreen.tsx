@@ -28,7 +28,7 @@ const placementExitChoices: { id: PlacementExitDecision; title: string; detail: 
 
 export function YouScreen() {
   const {
-    athlete, settings, updateSettings, equipmentProfiles, setActiveEquipmentProfile, saveEquipmentProfile, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, movementPlacementExitReviews, recordPlacementExitReview, recordMovementPlacementExitReview,
+    athlete, settings, updateSettings, equipmentProfiles, setActiveEquipmentProfile, saveEquipmentProfile, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, recordPlacementExitReview, recordMovementPlacementExitReview,
     activeMesocycleId, activeSessionId, onboardingComplete, recoverySnapshot, restoreBackup, undoLastRestore,
     restartOnboarding, resetDemo, setNotice
   } = useAppStore()
@@ -93,15 +93,15 @@ export function YouScreen() {
   }
 
   const exportData = () => {
-    const payload = createBackup({ athlete, settings, equipmentProfiles, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, movementPlacementExitReviews, activeMesocycleId, activeSessionId, onboardingComplete })
+    const payload = createBackup({ athlete, settings, equipmentProfiles, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, activeMesocycleId, activeSessionId, onboardingComplete })
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `forgepath-backup-v19-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `forgepath-backup-v20-${new Date().toISOString().slice(0, 10)}.json`
     anchor.click()
     URL.revokeObjectURL(url)
-    setNotice('Verified version 19 backup created as open JSON, including exact movement-lane and plan-route checkpoint reviews, productive checks, placement evidence, records, plans, substitutions, and surveys.')
+    setNotice('Verified version 20 backup created as open JSON, including missed-opportunity decisions, exact movement-lane and plan-route checkpoint reviews, productive checks, placement evidence, records, plans, substitutions, and surveys.')
   }
 
   const openEquipmentEditor = (profile?: EquipmentProfile) => {
@@ -234,7 +234,7 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.26.0 private alpha</strong></li><li><span>Rules</span><strong>0.26.0 linked calendar and exact exposure history</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Equipment v1 · Load increment v1</strong></li><li><span>Backup schema</span><strong>Version 19</strong></li><li><span>Persistence</span><strong>Local v17</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.27.0 private alpha</strong></li><li><span>Rules</span><strong>0.27.0 missed-opportunity queue rebuild</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Missed opportunity v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Equipment v1 · Load increment v1</strong></li><li><span>Backup schema</span><strong>Version 20</strong></li><li><span>Persistence</span><strong>Local v18</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Reset private alpha</button>
         </aside>
@@ -301,6 +301,7 @@ export function YouScreen() {
             <div><small>Placement checks</small><strong>{importPreview.summary.placementChecks}</strong></div>
             <div><small>Placement checkpoint reviews</small><strong>{importPreview.summary.placementExitReviews}</strong></div>
             <div><small>Movement lane reviews</small><strong>{importPreview.summary.movementPlacementExitReviews}</strong></div>
+            <div><small>Schedule adaptations</small><strong>{importPreview.summary.missedOpportunityEvents}</strong></div>
             <div><small>Movement lanes</small><strong>{importPreview.summary.movementPlacedAnchors}</strong></div>
             <div><small>History-reviewed lanes</small><strong>{importPreview.summary.historyReviewedAnchors}</strong></div>
             <div><small>Route-generated sessions</small><strong>{importPreview.summary.routeGeneratedSessions}</strong></div>

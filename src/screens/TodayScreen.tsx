@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlarmClock, AlertTriangle, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, FileCheck2, Footprints, HelpCircle, RotateCcw, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
-import type { EffectiveSurveyMode, MissedSessionReason, SurveyAnswer } from '../domain/types'
+import type { EffectiveSurveyMode, MissedOpportunityInput, SurveyAnswer } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
 import { PixelAvatar } from '../components/PixelAvatar'
@@ -15,9 +15,14 @@ import { summarizePlacementVerification } from '../domain/placement-verification
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from '../domain/placement-exit-engine'
 
 const timeOptions = [15, 30, 45, 60, 75]
+const dateInputFor = (offsetDays: number) => {
+  const date = new Date()
+  date.setDate(date.getDate() + offsetDays)
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
+}
 
 export function TodayScreen() {
-  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, startSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, movementPlacementExitReviews, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
+  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, startSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
   const [surveyOpen, setSurveyOpen] = useState(false)
   const [surveyChooserOpen, setSurveyChooserOpen] = useState(false)
   const [activeSurveyMode, setActiveSurveyMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
@@ -27,13 +32,17 @@ export function TodayScreen() {
   const [equipmentGateOpen, setEquipmentGateOpen] = useState(false)
   const [pendingStart, setPendingStart] = useState<{ answers: SurveyAnswer[]; skipped: boolean; mode: EffectiveSurveyMode; minutes: number } | null>(null)
   const [placementExitAssessedAt] = useState(() => new Date().toISOString())
-  const [missReason, setMissReason] = useState<MissedSessionReason>({ reason: 'family', nextMinutes: 45, continuing: true })
+  const [missReason, setMissReason] = useState<MissedOpportunityInput>({ reason: 'family', trainingOutcome: 'no-training', nextOpportunityAt: dateInputFor(1), nextMinutes: 45, constraintState: 'continuing', note: '' })
+  const [missError, setMissError] = useState<string | null>(null)
   const nextSession = sessions.find((session) => ['planned', 'deferred'].includes(session.status)) ?? sessions[0]
   const primaryPlan = nextSession?.exercises.find((exercise) => exercise.role === 'primary')
   const primaryExercise = exercises.find((exercise) => exercise.id === primaryPlan?.exerciseId)
   const primaryHistory = history.filter((set) => set.exerciseId === primaryExercise?.id)
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const equipmentGaps = nextSession ? sessionEquipmentGaps(nextSession, exercises, activeEquipmentProfile) : []
+  const latestScheduleChange = missedOpportunityEvents.at(-1)
+  const latestRebuiltSession = latestScheduleChange ? sessions.find((session) => session.id === latestScheduleChange.nextSessionId) : null
+  const latestRebuiltPrimary = latestScheduleChange?.nextPrimaryExerciseId ? exercises.find((exercise) => exercise.id === latestScheduleChange.nextPrimaryExerciseId) : null
   const placementVerification = summarizePlacementVerification(placementVerifications, athlete.placement.createdAt)
   const placementExit = useMemo(() => buildPlacementExitAssessment({ placement: athlete.placement, verificationEvents: placementVerifications, assessedAt: placementExitAssessedAt }), [athlete.placement, placementVerifications, placementExitAssessedAt])
   const placementExitEvidenceKey = placementExit.sourceVerificationEvents.filter((event) => event.placementRoute === placementExit.currentRoute).map((event) => event.id).join('|')
@@ -167,6 +176,23 @@ export function TodayScreen() {
         <Dumbbell size={20} /><span><small>{movementExit.ruleVersion} · exact movement review</small><strong>{movementExit.exerciseName} has an independent lane checkpoint.</strong><p>{movementExit.reasons[0]}</p></span><ChevronRight size={18} />
       </button>}
 
+      {latestScheduleChange && latestRebuiltSession && <section className={`schedule-rebuild-proof schedule-rebuild-proof--${latestScheduleChange.mode}`} aria-label="Latest schedule adaptation">
+        <div className="schedule-rebuild-proof__icon"><RotateCcw size={22} /></div>
+        <div className="schedule-rebuild-proof__body">
+          <p className="eyebrow">{latestScheduleChange.ruleVersion} · {latestScheduleChange.mode.replaceAll('-', ' ')}</p>
+          <h2>Queue rebuilt from completed work.</h2>
+          <p><strong>{latestRebuiltSession.title}</strong> is next on {new Date(latestRebuiltSession.plannedDate).toLocaleDateString()} for {latestRebuiltSession.durationMinutes} minutes. {latestRebuiltPrimary?.name ?? 'Its protected primary'} has {latestScheduleChange.nextPrimaryDaysSinceExposure === null ? 'no completed exact baseline yet' : `${latestScheduleChange.nextPrimaryDaysSinceExposure} calendar days since its latest exact exposure`}.</p>
+          <div className="schedule-rebuild-proof__facts">
+            <span><small>Completed source sets</small><strong>{latestScheduleChange.completedSetCountBefore} → {latestScheduleChange.completedSetCountAfter}</strong></span>
+            <span><small>Open planned sets</small><strong>{latestScheduleChange.openSetCountBefore} → {latestScheduleChange.openSetCountAfter}</strong></span>
+            <span><small>Continuity</small><strong>{latestScheduleChange.continuityBefore} → {latestScheduleChange.continuityAfter}</strong></span>
+            <span><small>Miss sequence</small><strong>{latestScheduleChange.consecutiveMisses}</strong></span>
+          </div>
+          <details><summary>Why this order?</summary>{latestScheduleChange.reasons.map((reason) => <p key={reason}><CheckCircle2 size={14} />{reason}</p>)}</details>
+        </div>
+        <button className="button button--small button--secondary" onClick={() => setNav('plan')}>Review plan</button>
+      </section>}
+
       <section className="hero-workout">
         <div className="hero-workout__content">
           <div className="hero-workout__meta">
@@ -226,7 +252,7 @@ export function TodayScreen() {
             <Footprints size={28} />
             <div><strong>No volume debt.</strong><p>If children, sleep, work, or life moved the week, the next plan will protect important work without cramming missed accessories into today.</p></div>
           </div>
-          <button className="full-row-button" onClick={() => setMissedOpen(true)}>I missed this opportunity <ChevronRight size={18} /></button>
+          <button className="full-row-button" onClick={() => { setMissError(null); setMissedOpen(true) }}>I missed this opportunity <ChevronRight size={18} /></button>
           <button className="full-row-button" onClick={() => setNav('plan')}>Review the full plan <ChevronRight size={18} /></button>
         </section>
       </div>
@@ -267,15 +293,37 @@ export function TodayScreen() {
         <div className="modal__actions"><button className="button button--primary" onClick={() => setWhyOpen(false)}>Understood</button></div>
       </Modal>
 
-      <Modal open={missedOpen} onClose={() => setMissedOpen(false)} title="Rebuild from what happened" description="Missing work does not earn progression or create catch-up debt.">
-        <label className="field-label" htmlFor="miss-reason">What got in the way?</label>
-        <select id="miss-reason" value={missReason.reason} onChange={(event) => setMissReason((current) => ({ ...current, reason: event.target.value as MissedSessionReason['reason'] }))}>
+      <Modal open={missedOpen} onClose={() => setMissedOpen(false)} title="Rebuild from what happened" description="Record the real interruption. ForgePath will move only open work and will never award missed exposure credit or create catch-up debt." wide>
+        <div className="missed-checkin">
+        <fieldset className="missed-checkin__choices"><legend>Did any training happen?</legend>
+          <button type="button" aria-pressed={missReason.trainingOutcome === 'no-training'} onClick={() => setMissReason((current) => ({ ...current, trainingOutcome: 'no-training' }))}><span>{missReason.trainingOutcome === 'no-training' ? <CheckCircle2 size={16} /> : <Clock3 size={16} />}</span><strong>No training</strong><small>No exposure credit is created.</small></button>
+          <button type="button" aria-pressed={missReason.trainingOutcome === 'different-training-unlogged'} onClick={() => setMissReason((current) => ({ ...current, trainingOutcome: 'different-training-unlogged' }))}><span>{missReason.trainingOutcome === 'different-training-unlogged' ? <CheckCircle2 size={16} /> : <Dumbbell size={16} />}</span><strong>Different training, not logged</strong><small>Record or import sets later before they count.</small></button>
+        </fieldset>
+        <div className="form-grid">
+        <label><span className="field-label">What got in the way?</span>
+        <select id="miss-reason" value={missReason.reason} onChange={(event) => setMissReason((current) => ({ ...current, reason: event.target.value as MissedOpportunityInput['reason'] }))}>
           <option value="family">Children or family</option><option value="work">Work</option><option value="time">Time</option><option value="sleep">Sleep</option><option value="pain">Pain</option><option value="illness">Illness</option><option value="travel">Travel</option><option value="equipment">Equipment</option><option value="motivation">Motivation</option><option value="other">Other</option>
-        </select>
-        <label className="field-label" htmlFor="next-time">Next realistic session length</label>
-        <select id="next-time" value={missReason.nextMinutes} onChange={(event) => setMissReason((current) => ({ ...current, nextMinutes: Number(event.target.value) }))}><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option></select>
-        <label className="toggle-row"><span><strong>Constraint is still active</strong><small>The next session should remain conservative about time.</small></span><input type="checkbox" checked={missReason.continuing} onChange={(event) => setMissReason((current) => ({ ...current, continuing: event.target.checked }))} /></label>
-        <div className="modal__actions"><button className="button button--ghost" onClick={() => setMissedOpen(false)}>Cancel</button><button className="button button--primary" onClick={() => { if (nextSession) markMissed(nextSession.id, missReason); setMissedOpen(false) }}><CheckCircle2 size={17} /> Rebuild my plan</button></div>
+        </select></label>
+        <label><span className="field-label">Next realistic opportunity</span><input type="date" min={dateInputFor(0)} value={missReason.nextOpportunityAt} onChange={(event) => setMissReason((current) => ({ ...current, nextOpportunityAt: event.target.value }))} /></label>
+        <label><span className="field-label">Minutes likely available</span><select id="next-time" value={missReason.nextMinutes} onChange={(event) => setMissReason((current) => ({ ...current, nextMinutes: Number(event.target.value) }))}>{[15, 30, 45, 60, 75, 90].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}</select></label>
+        </div>
+        <fieldset className="missed-checkin__state"><legend>What is the disruption doing now?</legend>{([
+          ['ended', 'Ended', 'Return to the normal queue with the declared time.'],
+          ['continuing', 'Continuing', 'Keep the next session conservative.'],
+          ['uncertain', 'Uncertain', 'Protect flexibility until the schedule is clearer.']
+        ] as const).map(([value, title, detail]) => <button type="button" key={value} aria-pressed={missReason.constraintState === value} onClick={() => setMissReason((current) => ({ ...current, constraintState: value }))}><strong>{title}</strong><small>{detail}</small></button>)}</fieldset>
+        <label><span className="field-label">Optional context</span><textarea maxLength={500} value={missReason.note} onChange={(event) => setMissReason((current) => ({ ...current, note: event.target.value }))} placeholder="Example: Kids were up most of the night. Friday morning should be realistic, but I only have 30 minutes." /></label>
+        <div className="missed-checkin__guardrail"><ShieldCheck size={18} /><span><strong>What the rebuild can do</strong><small>Move open sessions, rank overdue exact primaries, reduce optional fatigue, and fit the next time window. Completed sessions and source sets remain untouched.</small></span></div>
+        {missError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Plan not rebuilt</strong>{missError}</span></div>}
+        </div>
+        <div className="modal__actions"><button className="button button--ghost" onClick={() => setMissedOpen(false)}>Cancel</button><button className="button button--primary" onClick={() => {
+          if (!nextSession) return setMissError('There is no open session to rebuild.')
+          const nextOpportunity = new Date(`${missReason.nextOpportunityAt}T12:00:00`)
+          if (Number.isNaN(nextOpportunity.getTime())) return setMissError('Choose a valid next opportunity date.')
+          const result = markMissed(nextSession.id, { ...missReason, nextOpportunityAt: nextOpportunity.toISOString() })
+          if (!result.ok) return setMissError(result.error ?? 'The queue could not be rebuilt.')
+          setMissedOpen(false)
+        }}><CheckCircle2 size={17} /> Rebuild my plan</button></div>
       </Modal>
     </div>
   )

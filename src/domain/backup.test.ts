@@ -8,6 +8,7 @@ import { equipmentGenerationEvidence } from './equipment-engine'
 import { buildPlacementAssessment, legacyPlacementForAthlete, placementRouteLabels } from './placement-engine'
 import { buildPlacementHistoryEvidence } from './placement-history-engine'
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from './placement-exit-engine'
+import { buildMissedOpportunityReplan } from './schedule-adaptation-engine'
 
 const stable = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`
@@ -38,6 +39,7 @@ const state = (): RestorableAppState => ({
   placementVerifications: [],
   placementExitReviews: [],
   movementPlacementExitReviews: [],
+  missedOpportunityEvents: [],
   mesocycles: structuredClone(mesocycles),
   activeMesocycleId: mesocycles[0].id,
   activeSessionId: null,
@@ -59,6 +61,7 @@ describe('versioned backup and restore', () => {
     expect(parsed.summary.placementChecks).toBe(0)
     expect(parsed.summary.placementExitReviews).toBe(0)
     expect(parsed.summary.movementPlacementExitReviews).toBe(0)
+    expect(parsed.summary.missedOpportunityEvents).toBe(0)
     expect(parsed.summary.movementPlacedAnchors).toBe(3)
     expect(parsed.summary.historyReviewedAnchors).toBe(0)
     expect(parsed.summary.routeGeneratedSessions).toBe(0)
@@ -372,6 +375,51 @@ describe('versioned backup and restore', () => {
     expect(parsed.backup.data.movementPlacementExitReviews).toEqual([])
     expect(parsed.summary.movementPlacementExitReviews).toBe(0)
     expect(parsed.warnings[0]).toMatch(/version 18/i)
+  })
+
+  it('migrates a verified version 19 backup without inventing missed-opportunity evidence', () => {
+    const legacyData = structuredClone(state()) as unknown as Record<string, unknown>
+    delete legacyData.missedOpportunityEvents
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 19, appVersion: '0.26.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.missedOpportunityEvents).toEqual([])
+    expect(parsed.summary.missedOpportunityEvents).toBe(0)
+    expect(parsed.warnings[0]).toMatch(/version 19/i)
+  })
+
+  it('round-trips missed-opportunity evidence and rejects forged completed-set conservation', () => {
+    const current = state()
+    const recordedAt = current.sessions[0].plannedDate
+    const nextOpportunity = new Date(recordedAt)
+    nextOpportunity.setDate(nextOpportunity.getDate() + 1)
+    const result = buildMissedOpportunityReplan({
+      eventId: 'missed-opportunity-backup-1', sessions: current.sessions, history: current.history,
+      priorEvents: [], missedSessionId: current.sessions[0].id, continuity: current.athlete.continuity,
+      weeklyOpportunities: current.athlete.weeklyOpportunities, recordedAt,
+      input: {
+        trainingOutcome: 'no-training', reason: 'family', nextOpportunityAt: nextOpportunity.toISOString(),
+        nextMinutes: 30, constraintState: 'uncertain', note: 'Testing the validated schedule ledger.'
+      }
+    })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    current.sessions = result.sessions
+    current.missedOpportunityEvents = [result.event]
+
+    const backup = createBackup(current)
+    const parsed = parseBackup(JSON.stringify(backup))
+    expect(parsed.summary.missedOpportunityEvents).toBe(1)
+    expect(parsed.backup.data.missedOpportunityEvents[0]).toMatchObject({
+      id: 'missed-opportunity-backup-1', ruleVersion: 'missed-opportunity-v1',
+      completedSetCountBefore: current.history.length, completedSetCountAfter: current.history.length
+    })
+
+    backup.data.missedOpportunityEvents[0].completedSetCountAfter += 1
+    backup.integrity.value = fnv1a32(stable(backup.data))
+    expect(() => parseBackup(JSON.stringify(backup))).toThrow(/cannot create or remove completed sets/i)
   })
 
   it('round-trips route-generated sessions and rejects forged route provenance', () => {

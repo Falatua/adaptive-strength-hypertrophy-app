@@ -1,4 +1,4 @@
-# ForgePath Private Alpha 0.26.0
+# ForgePath Private Alpha 0.27.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
@@ -31,8 +31,8 @@ npm run test:e2e
 
 ## Current verification
 
-- 168 deterministic domain tests
-- forty-two desktop and phone browser journeys for source-backed records, linked calendar and exact exposure history, explainable athlete placement, athlete-reviewed exact-history evidence, plan-route and exact-movement criterion exits, equipment-aware route generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
+- 177 deterministic domain tests
+- forty-four desktop and phone browser journeys for auditable missed-opportunity rebuilding, source-backed records, linked calendar and exact exposure history, explainable athlete placement, athlete-reviewed exact-history evidence, plan-route and exact-movement criterion exits, equipment-aware route generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
 - lint clean
 - production PWA build clean
 - desktop and 390 px phone browser journeys checked
@@ -41,7 +41,7 @@ npm run test:e2e
 - daily, weekly, rolling 28-day, calendar-month, calendar-quarter, yearly, and all-time analytics reconcile to completed source sets
 - editable mesocycles generate a preview before applying and version every objective, constraint, and reason for change
 - plan revisions preserve completed and partial session truth while replacing future planned work only
-- version 19 backup and restore includes athlete-reviewed plan-route and exact-movement criterion-exit decisions, self-contained replayable assessments, exact-history placement evidence, per-movement placement, equipment-aware route-generation snapshots, productive verification events, source-linked first-set evidence, recovery responses, equipment profiles, plan history, ledgers, survey evidence, and safely migrates versions 1 through 18
+- version 20 backup and restore includes missed-opportunity decisions, athlete-reviewed plan-route and exact-movement criterion-exit decisions, self-contained replayable assessments, exact-history placement evidence, per-movement placement, equipment-aware route-generation snapshots, productive verification events, source-linked first-set evidence, recovery responses, equipment profiles, plan history, ledgers, survey evidence, and safely migrates versions 1 through 19
 - placement-v3 separates experience, continuity, global movement skill, intensity tolerance, volume tolerance, schedule stability, and evidence confidence before selecting an introductory, reacclimation, bridge, base, hypertrophy, powerbuilding, strength, power, event-specific, or pain-aware cycle route
 - movement-placement-v2 separately records skill, heavy-work tolerance, evidence confidence, family context, reasons, unknowns, accepted exact-history review, and an effective starting route for every protected exact movement
 - placement-history-v1 summarizes only the exact movement's recent completed sets, exposure dates, source type, RIR availability, quality confirmation, latest exposure, bounded confidence and tolerance suggestions, limitations, and source-set IDs
@@ -58,6 +58,9 @@ npm run test:e2e
 - changing a protected primary cancels that session's active check for the original exact movement; the replacement keeps its own completed history and substitution evidence, while the original movement loses neither a verification opportunity nor receives borrowed confirmation
 - calendar-exposure-v1 keeps planned dates, actual completed dates, moved or stopped opportunities, exact source-set volume, imported or unlinked activity, per-movement exposure order, calendar gaps, and explicit fixed-event countdowns separate but linked
 - the calendar never converts an empty day into missed-work debt, while exposure order uses only the selected canonical movement and describes load, repetition, set, or volume changes without authorizing progression
+- missed-opportunity-v1 records whether other training happened, the disruption reason and state, next realistic date and minutes, optional athlete context, the complete queue before and after, every moved session, exact-primary exposure evidence, continuity change, and completed-set conservation
+- one miss may defer and time-fit the highest-value exact exposure; repeated misses rebuild the open sequence and remove optional fatigue; ongoing illness, pain, or a longer interruption requests reacclimation without diagnosing the athlete
+- completed, partial, expired, and stopped sessions remain in the ledger; reported but unlogged training earns no credit; current plans move to the new date while the original missed date remains visible in Progress
 - painful verification pauses the next automatic workout start, while skipped warm-up, survey, or recovery answers remain unknown and never erase completed training
 - route-session-v3 lets each protected anchor use its own introductory, reacclimation, bridge, base-building, hypertrophy, powerbuilding, strength, power, or event-specific primary prescription inside the global cycle goal
 - the selected anchor lane controls that session's primary, secondary, accessory, repetition, RIR, intensity, rest, warm-up, and dose rules while retaining the global plan route separately

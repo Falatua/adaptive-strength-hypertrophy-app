@@ -704,10 +704,59 @@ export interface AppSettings {
   activeEquipmentProfileId: string
 }
 
-export interface MissedSessionReason {
-  reason: 'family' | 'work' | 'time' | 'travel' | 'sleep' | 'illness' | 'pain' | 'equipment' | 'motivation' | 'other'
+export type MissedOpportunityReason = 'family' | 'work' | 'time' | 'travel' | 'sleep' | 'illness' | 'pain' | 'equipment' | 'motivation' | 'other'
+export type MissedTrainingOutcome = 'no-training' | 'different-training-unlogged'
+export type ScheduleConstraintState = 'ended' | 'continuing' | 'uncertain'
+export type ScheduleAdaptationMode = 'defer-one' | 'rebuild-sequence' | 'reacclimation-review'
+
+export interface MissedOpportunityInput {
+  reason: MissedOpportunityReason
+  trainingOutcome: MissedTrainingOutcome
+  nextOpportunityAt: string
   nextMinutes: number
-  continuing: boolean
+  constraintState: ScheduleConstraintState
+  note: string
+}
+
+export interface ScheduleAdaptationChange {
+  sessionId: string
+  fromPlannedAt: string
+  toPlannedAt: string
+  fromStatus: SessionStatus
+  toStatus: SessionStatus
+  fromDurationMinutes: number
+  toDurationMinutes: number
+  fromSetCount: number
+  toSetCount: number
+}
+
+export interface MissedOpportunityEvent {
+  id: string
+  ruleVersion: 'missed-opportunity-v1'
+  sessionId: string
+  mesocycleId: string | null
+  planVersion: number | null
+  recordedAt: string
+  plannedAt: string
+  priorStatus: SessionStatus
+  input: MissedOpportunityInput
+  continuityBefore: ContinuityState
+  continuityAfter: ContinuityState
+  consecutiveMisses: number
+  mode: ScheduleAdaptationMode
+  queueBefore: string[]
+  queueAfter: string[]
+  nextSessionId: string
+  nextPrimaryExerciseId: string | null
+  nextPrimaryLastExposureAt: string | null
+  nextPrimaryDaysSinceExposure: number | null
+  reasons: string[]
+  changes: ScheduleAdaptationChange[]
+  preservedTerminalSessionIds: string[]
+  completedSetCountBefore: number
+  completedSetCountAfter: number
+  openSetCountBefore: number
+  openSetCountAfter: number
 }
 
 export interface WeeklyVolumePoint {

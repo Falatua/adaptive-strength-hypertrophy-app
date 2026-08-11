@@ -2,7 +2,7 @@ import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { athlete as seedAthlete, equipmentProfiles as seedEquipmentProfiles, exercises as seedExercises, history as seedHistory, mesocycles as seedMesocycles, sessions as seedSessions } from '../domain/seed'
-import { compressSession, readinessFromSurvey, replanAfterMiss, sessionCompletionStatus } from '../domain/training-engine'
+import { compressSession, readinessFromSurvey, sessionCompletionStatus } from '../domain/training-engine'
 import { backupStateFrom, type RestorableAppState } from '../domain/backup'
 import { buildMesocyclePreview, createMesocyclePlan, draftFromPlan, replaceFuturePlan } from '../domain/mesocycle-engine'
 import { derivePersonalRecords, historyVolume, projectExerciseMerge } from '../domain/history-engine'
@@ -15,6 +15,7 @@ import { legacyPlacementForAthlete, placementRouteLabels } from '../domain/place
 import { beginPlacementVerification, cancelPlacementVerificationForPrimarySubstitution, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery, revisePlacementSessionEvidence } from '../domain/placement-verification-engine'
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment, movementPlacementExitReviewRuleVersion, placementExitReviewRuleVersion } from '../domain/placement-exit-engine'
 import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION, routeSessionProfile } from '../domain/route-session-engine'
+import { buildMissedOpportunityReplan } from '../domain/schedule-adaptation-engine'
 import type {
   AppSettings,
   AthleteProfile,
@@ -29,7 +30,8 @@ import type {
   HistoryMutationEvent,
   MesocycleDraft,
   MesocyclePlan,
-  MissedSessionReason,
+  MissedOpportunityEvent,
+  MissedOpportunityInput,
   NavKey,
   PersonalRecord,
   PlacementRecoveryResponse,
@@ -62,6 +64,7 @@ interface AppState {
   placementVerifications: PlacementVerificationEvent[]
   placementExitReviews: PlacementExitReviewEvent[]
   movementPlacementExitReviews: MovementPlacementExitReviewEvent[]
+  missedOpportunityEvents: MissedOpportunityEvent[]
   activeMesocycleId: string | null
   activeSessionId: string | null
   onboardingComplete: boolean
@@ -91,7 +94,7 @@ interface AppState {
   dismissDeferredFeedback: (requestId: string) => { ok: boolean; error?: string }
   expireDeferredFeedback: () => void
   skipExercise: (sessionId: string, plannedExerciseId: string) => void
-  markMissed: (sessionId: string, context: MissedSessionReason) => void
+  markMissed: (sessionId: string, context: MissedOpportunityInput) => { ok: boolean; error?: string; event?: MissedOpportunityEvent }
   toggleFavorite: (exerciseId: string) => void
   setJointFeeling: (exerciseId: string, jointFeeling: Exercise['jointFeeling']) => void
   addCustomExercise: (exercise: Exercise) => void
@@ -143,6 +146,7 @@ const fresh = () => ({
   placementVerifications: [] as PlacementVerificationEvent[],
   placementExitReviews: [] as PlacementExitReviewEvent[],
   movementPlacementExitReviews: [] as MovementPlacementExitReviewEvent[],
+  missedOpportunityEvents: [] as MissedOpportunityEvent[],
   activeMesocycleId: seedMesocycles[0]?.id ?? null,
   activeSessionId: null,
   onboardingComplete: false,
@@ -699,11 +703,29 @@ export const useAppStore = create<AppState>()(
           exercises: session.exercises.filter((exercise) => exercise.id !== plannedExerciseId)
         })
       })),
-      markMissed: (sessionId, context) => set((state) => ({
-        sessions: replanAfterMiss(state.sessions, sessionId, context),
-        athlete: { ...state.athlete, continuity: context.continuing ? 'interrupted' : state.athlete.continuity },
-        notice: 'Plan rebuilt from completed exposures. No catch-up volume was added.'
-      })),
+      markMissed: (sessionId, context) => {
+        const state = get()
+        const result = buildMissedOpportunityReplan({
+          eventId: nanoid(),
+          sessions: state.sessions,
+          history: state.history,
+          priorEvents: state.missedOpportunityEvents,
+          missedSessionId: sessionId,
+          input: context,
+          continuity: state.athlete.continuity,
+          weeklyOpportunities: state.athlete.weeklyOpportunities
+        })
+        if (!result.ok) return result
+        const removedSets = result.event.openSetCountBefore - result.event.openSetCountAfter
+        set({
+          sessions: result.sessions,
+          missedOpportunityEvents: [...state.missedOpportunityEvents, result.event],
+          athlete: { ...state.athlete, continuity: result.continuity },
+          settings: { ...state.settings, availableMinutes: context.nextMinutes },
+          notice: `Queue rebuilt from completed exposures. ${removedSets} optional or time-limited set${removedSets === 1 ? '' : 's'} removed; no catch-up work added.`
+        })
+        return { ok: true, event: result.event }
+      },
       toggleFavorite: (exerciseId) => set((state) => ({ exercises: state.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, favorite: !exercise.favorite } : exercise) })),
       setJointFeeling: (exerciseId, jointFeeling) => set((state) => ({ exercises: state.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, jointFeeling } : exercise) })),
       addCustomExercise: (exercise) => set((state) => ({ exercises: [...state.exercises, exercise] })),
@@ -967,7 +989,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 17,
+      version: 18,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,
@@ -984,6 +1006,7 @@ export const useAppStore = create<AppState>()(
         placementVerifications: state.placementVerifications,
         placementExitReviews: state.placementExitReviews,
         movementPlacementExitReviews: state.movementPlacementExitReviews,
+        missedOpportunityEvents: state.missedOpportunityEvents,
         mesocycles: state.mesocycles,
         activeMesocycleId: state.activeMesocycleId,
         activeSessionId: state.activeSessionId,
@@ -1023,6 +1046,7 @@ export const useAppStore = create<AppState>()(
           placementVerifications: persisted.placementVerifications ?? [],
           placementExitReviews: persisted.placementExitReviews ?? [],
           movementPlacementExitReviews: persisted.movementPlacementExitReviews ?? [],
+          missedOpportunityEvents: persisted.missedOpportunityEvents ?? [],
           deferredFeedback: persisted.deferredFeedback ?? [],
           records: derivePersonalRecords(persisted.history ?? [])
         }

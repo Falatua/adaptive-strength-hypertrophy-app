@@ -1,4 +1,4 @@
-import type { CompletedSetRecord, SessionStatus, TrainingSession } from './types'
+import type { CompletedSetRecord, MissedOpportunityEvent, SessionStatus, TrainingSession } from './types'
 
 export const CALENDAR_EXPOSURE_RULE_VERSION = 'calendar-exposure-v1' as const
 
@@ -28,7 +28,10 @@ function calendarDistance(from: string | Date, to: string | Date) {
 }
 
 export interface CalendarPlanEntry {
+  id: string
   sessionId: string
+  missedOpportunityEventId: string | null
+  origin: 'current-session' | 'missed-opportunity'
   title: string
   plannedAt: string
   status: SessionStatus
@@ -87,6 +90,7 @@ function completionTimestampFor(session: TrainingSession | undefined, sets: Comp
 export function buildCalendarMonth(input: {
   sessions: TrainingSession[]
   history: CompletedSetRecord[]
+  missedOpportunityEvents?: MissedOpportunityEvent[]
   month: Date
   now?: Date
 }): CalendarMonthView {
@@ -120,7 +124,10 @@ export function buildCalendarMonth(input: {
     const sets = setsBySession.get(session.id) ?? []
     const actualAt = completionTimestampFor(session, sets)
     day.plans.push({
+      id: `session:${session.id}`,
       sessionId: session.id,
+      missedOpportunityEventId: null,
+      origin: 'current-session',
       title: session.title,
       plannedAt: session.plannedDate,
       status: session.status,
@@ -129,6 +136,27 @@ export function buildCalendarMonth(input: {
       driftDays: actualAt ? calendarDistance(session.plannedDate, actualAt) : null
     })
     if (['deferred', 'expired', 'stopped'].includes(session.status)) day.missedOrMovedCount += 1
+  })
+
+  ;(input.missedOpportunityEvents ?? []).forEach((event) => {
+    const key = calendarDayKey(event.plannedAt)
+    const day = key ? byKey.get(key) : undefined
+    const session = sessionById.get(event.sessionId)
+    if (!day || !session) return
+    const movedTo = event.changes.find((change) => change.sessionId === event.sessionId)?.toPlannedAt ?? event.input.nextOpportunityAt
+    day.plans.push({
+      id: `missed:${event.id}`,
+      sessionId: event.sessionId,
+      missedOpportunityEventId: event.id,
+      origin: 'missed-opportunity',
+      title: session.title,
+      plannedAt: event.plannedAt,
+      status: 'deferred',
+      plannedExerciseIds: session.exercises.map((exercise) => exercise.exerciseId),
+      actualDayKey: calendarDayKey(movedTo),
+      driftDays: calendarDistance(event.plannedAt, movedTo)
+    })
+    day.missedOrMovedCount += 1
   })
 
   setsBySession.forEach((sets, sessionId) => {

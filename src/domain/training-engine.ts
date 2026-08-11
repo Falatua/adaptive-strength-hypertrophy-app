@@ -2,7 +2,6 @@ import type {
   CompletedSetRecord,
   ContinuityState,
   Exercise,
-  MissedSessionReason,
   PlannedExercise,
   ProgressionDecision,
   ReadinessOutcome,
@@ -193,28 +192,6 @@ export function compressSession(session: TrainingSession, availableMinutes: numb
       return [{ ...exercise, sets: exercise.sets.slice(0, setCount), estimatedMinutes }]
     })
   return { ...session, durationMinutes: availableMinutes, exercises }
-}
-
-export function replanAfterMiss(sessions: TrainingSession[], missedId: string, context: MissedSessionReason): TrainingSession[] {
-  const updated = sessions.map((session) => session.id === missedId ? { ...session, status: context.continuing ? 'deferred' as const : 'expired' as const } : session)
-  const active = updated.filter((session) => !['completed', 'expired', 'stopped'].includes(session.status))
-  const completedPrimaryIds = new Set(
-    updated
-      .filter((session) => ['completed', 'partial-primary'].includes(session.status))
-      .flatMap((session) => session.exercises.filter((exercise) => exercise.role === 'primary').map((exercise) => exercise.exerciseId))
-  )
-  return active
-    .sort((a, b) => {
-      const aPrimary = a.exercises.find((exercise) => exercise.role === 'primary')
-      const bPrimary = b.exercises.find((exercise) => exercise.role === 'primary')
-      const aOverdue = aPrimary && !completedPrimaryIds.has(aPrimary.exerciseId) ? 1 : 0
-      const bOverdue = bPrimary && !completedPrimaryIds.has(bPrimary.exerciseId) ? 1 : 0
-      return bOverdue - aOverdue || new Date(a.plannedDate).getTime() - new Date(b.plannedDate).getTime()
-    })
-    .map((session, index) => ({
-      ...compressSession(session, context.nextMinutes || session.durationMinutes),
-      dayLabel: index === 0 ? 'Next best session' : session.dayLabel
-    }))
 }
 
 export function duplicateCandidates(name: string, exercises: Exercise[]) {

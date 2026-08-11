@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { CompletedSetRecord, TrainingSession } from './types'
+import type { CompletedSetRecord, MissedOpportunityEvent, TrainingSession } from './types'
 import { buildCalendarMonth, buildExerciseExposureSequence, buildFixedEventCountdown } from './timeline-engine'
 
 const session = (overrides: Partial<TrainingSession> = {}): TrainingSession => ({
@@ -29,6 +29,23 @@ describe('calendar and exposure timelines', () => {
     const view = buildCalendarMonth({ sessions: [moved], history: [imported], month: new Date(2026, 7, 1), now: new Date(2026, 7, 10) })
     expect(view.days.find((day) => day.key === '2026-08-07')).toMatchObject({ missedOrMovedCount: 1, plans: [{ status: 'deferred' }] })
     expect(view.days.find((day) => day.key === '2026-08-09')?.completions[0]).toMatchObject({ linkedToStoredSession: false, imported: true, title: 'Imported training' })
+  })
+
+  it('preserves the original missed date as an auditable moved opportunity after the session is replanned', () => {
+    const movedSession = session({ plannedDate: '2026-08-08T12:00:00.000Z', status: 'planned', completedAt: undefined })
+    const event: MissedOpportunityEvent = {
+      id: 'miss-1', ruleVersion: 'missed-opportunity-v1', sessionId: movedSession.id, mesocycleId: null, planVersion: null,
+      recordedAt: '2026-08-03T12:00:00.000Z', plannedAt: '2026-08-03T12:00:00.000Z', priorStatus: 'planned',
+      input: { reason: 'family', trainingOutcome: 'no-training', nextOpportunityAt: '2026-08-08T12:00:00.000Z', nextMinutes: 45, constraintState: 'continuing', note: '' },
+      continuityBefore: 'stable', continuityAfter: 'interrupted', consecutiveMisses: 1, mode: 'defer-one',
+      queueBefore: [movedSession.id], queueAfter: [movedSession.id], nextSessionId: movedSession.id, nextPrimaryExerciseId: 'competition-bench',
+      nextPrimaryLastExposureAt: null, nextPrimaryDaysSinceExposure: null, reasons: ['Moved from completed truth.'],
+      changes: [{ sessionId: movedSession.id, fromPlannedAt: '2026-08-03T12:00:00.000Z', toPlannedAt: movedSession.plannedDate, fromStatus: 'planned', toStatus: 'planned', fromDurationMinutes: 60, toDurationMinutes: 45, fromSetCount: 4, toSetCount: 3 }],
+      preservedTerminalSessionIds: [], completedSetCountBefore: 0, completedSetCountAfter: 0, openSetCountBefore: 4, openSetCountAfter: 3
+    }
+    const view = buildCalendarMonth({ sessions: [movedSession], history: [], missedOpportunityEvents: [event], month: new Date(2026, 7, 1), now: new Date(2026, 7, 10) })
+    expect(view.days.find((day) => day.key === '2026-08-03')?.plans[0]).toMatchObject({ origin: 'missed-opportunity', missedOpportunityEventId: 'miss-1', driftDays: 5, status: 'deferred' })
+    expect(view.days.find((day) => day.key === '2026-08-08')?.plans[0]).toMatchObject({ origin: 'current-session', status: 'planned' })
   })
 
   it('builds an exact-movement exposure sequence with calendar gaps and load-first change labels', () => {
