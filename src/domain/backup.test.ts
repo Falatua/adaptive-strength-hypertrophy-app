@@ -30,6 +30,7 @@ const state = (): RestorableAppState => ({
   exercises: structuredClone(exercises),
   sessions: structuredClone(sessions),
   history: structuredClone(history),
+  movementNotes: [],
   surveys: [],
   deferredFeedback: [],
   records: structuredClone(records),
@@ -52,6 +53,7 @@ describe('versioned backup and restore', () => {
     const parsed = parseBackup(JSON.stringify(backup))
     expect(parsed.backup.schemaVersion).toBe(BACKUP_SCHEMA_VERSION)
     expect(parsed.summary.completedSets).toBe(history.length)
+    expect(parsed.summary.movementNotes).toBe(0)
     expect(parsed.backup.data.surveys).toEqual([])
     expect(parsed.summary.deferredFeedback).toBe(0)
     expect(parsed.summary.planVersions).toBe(1)
@@ -69,6 +71,42 @@ describe('versioned backup and restore', () => {
     expect(parsed.summary.placementRoute).toBe('Base-Building Cycle')
     expect(parsed.summary.placementConfidence).toBe('high')
     expect(parsed.warnings).toEqual([])
+  })
+
+  it('migrates a verified version 24 backup without inventing movement notes', () => {
+    const prior: Omit<RestorableAppState, 'movementNotes'> & { movementNotes?: RestorableAppState['movementNotes'] } = state()
+    delete prior.movementNotes
+    const legacy = {
+      format: BACKUP_FORMAT,
+      schemaVersion: 24,
+      appVersion: '0.38.0',
+      exportedAt: '2026-08-10T12:00:00.000Z',
+      data: prior,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(prior)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.schemaVersion).toBe(BACKUP_SCHEMA_VERSION)
+    expect(parsed.backup.data.movementNotes).toEqual([])
+    expect(parsed.warnings[0]).toMatch(/movement notes begin/i)
+  })
+
+  it('round-trips exact-movement notes and rejects forged references', () => {
+    const current = state()
+    const session = current.sessions[0]
+    const planned = session.exercises[0]
+    const exercise = current.exercises.find((candidate) => candidate.id === planned.exerciseId)!
+    current.movementNotes = [{
+      id: 'movement-note-1', ruleVersion: 'movement-note-v1', sessionId: session.id, sessionTitle: session.title,
+      plannedExerciseId: planned.id, exerciseId: exercise.id, exerciseName: exercise.name,
+      mesocycleId: session.mesocycleId ?? null, planVersion: session.planVersion ?? null, microcycleNumber: session.microcycleNumber ?? null,
+      sessionDate: session.plannedDate, body: 'Thirty-degree bench. Keep the four-second eccentric.',
+      createdAt: '2026-08-10T12:00:00.000Z', updatedAt: '2026-08-10T12:00:00.000Z'
+    }]
+    const parsed = parseBackup(JSON.stringify(createBackup(current)))
+    expect(parsed.summary.movementNotes).toBe(1)
+    expect(parsed.backup.data.movementNotes[0].body).toMatch(/four-second eccentric/i)
+    current.movementNotes[0].exerciseId = 'missing-exercise'
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/movement note references an unknown exercise/i)
   })
 
   it('rejects a backup changed after export', () => {

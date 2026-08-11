@@ -11,7 +11,7 @@ confidence: verified-local-foundation
 
 ## Current Boundary
 
-Private alpha 0.38.0 contains the first cloud foundation, but no remote ForgePath project exists yet. Supabase reported that Falatua's Org is at its limit of two active free projects. Those projects are JB-OS and Roman TD Global Leaderboard. Neither may be paused, deleted, or reused without an explicit owner decision.
+Private alpha 0.39.0 contains the first cloud foundation and includes exact-movement notes in its validated version 25 bootstrap snapshot, but no remote ForgePath project exists yet. Supabase reported that Falatua's Org is at its limit of two active free projects. Those projects are JB-OS and Roman TD Global Leaderboard. Neither may be paused, deleted, or reused without an explicit owner decision.
 
 The local foundation includes:
 

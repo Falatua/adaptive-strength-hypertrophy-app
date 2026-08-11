@@ -16,6 +16,7 @@ import { beginPlacementVerification, cancelPlacementVerificationForPrimarySubsti
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment, movementPlacementExitReviewRuleVersion, placementExitReviewRuleVersion } from '../domain/placement-exit-engine'
 import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION, routeSessionProfile } from '../domain/route-session-engine'
 import { buildMissedOpportunityReplan } from '../domain/schedule-adaptation-engine'
+import { projectMovementNoteMerge, upsertMovementNote } from '../domain/movement-note-engine'
 import type {
   AppSettings,
   AthleteProfile,
@@ -32,6 +33,7 @@ import type {
   MesocyclePlan,
   MissedOpportunityEvent,
   MissedOpportunityInput,
+  MovementNoteRecord,
   NavKey,
   PersonalRecord,
   PlacementRecoveryResponse,
@@ -54,6 +56,7 @@ interface AppState {
   exercises: Exercise[]
   sessions: TrainingSession[]
   history: CompletedSetRecord[]
+  movementNotes: MovementNoteRecord[]
   surveys: SurveyRecord[]
   deferredFeedback: DeferredFeedbackRequest[]
   records: PersonalRecord[]
@@ -87,6 +90,7 @@ interface AppState {
   pinSession: (sessionId: string) => { ok: boolean; error?: string }
   setReadiness: (sessionId: string, answers: SurveyAnswer[], skipped: boolean, mode: EffectiveSurveyMode) => void
   updateSet: (sessionId: string, plannedExerciseId: string, setId: string, data: { reps?: number; load?: number; rir?: number }) => void
+  updateMovementNote: (sessionId: string, plannedExerciseId: string, body: string) => void
   toggleSetComplete: (sessionId: string, plannedExerciseId: string, setId: string) => void
   setPlacementWarmup: (sessionId: string, response: Exclude<PlacementWarmupResponse, 'not-answered'>) => void
   resolvePlacementRecovery: (eventId: string, response: Exclude<PlacementRecoveryResponse, 'pending'>) => void
@@ -140,6 +144,7 @@ const fresh = () => ({
   exercises: structuredClone(seedExercises),
   sessions: structuredClone(seedSessions),
   history: structuredClone(seedHistory),
+  movementNotes: [] as MovementNoteRecord[],
   surveys: [] as SurveyRecord[],
   deferredFeedback: [] as DeferredFeedbackRequest[],
   records: derivePersonalRecords(seedHistory),
@@ -376,6 +381,13 @@ export const useAppStore = create<AppState>()(
           })
         })
       })),
+      updateMovementNote: (sessionId, plannedExerciseId, body) => set((state) => {
+        const session = state.sessions.find((candidate) => candidate.id === sessionId)
+        const plannedExercise = session?.exercises.find((candidate) => candidate.id === plannedExerciseId)
+        const exercise = state.exercises.find((candidate) => candidate.id === plannedExercise?.exerciseId)
+        if (!session || !plannedExercise || !exercise) return { notice: 'That workout movement is no longer available for notes.' }
+        return { movementNotes: upsertMovementNote({ notes: state.movementNotes, session, plannedExercise, exercise, body }) }
+      }),
       toggleSetComplete: (sessionId, plannedExerciseId, setId) => set((state) => {
         const session = state.sessions.find((candidate) => candidate.id === sessionId)
         const planned = session?.exercises.find((candidate) => candidate.id === plannedExerciseId)
@@ -842,15 +854,16 @@ export const useAppStore = create<AppState>()(
         try {
           const projection = projectExerciseMerge({ exercises: state.exercises, history: state.history, sessions: state.sessions, athlete: state.athlete, sourceIds, targetId })
           const records = derivePersonalRecords(projection.history)
+          const movementNotes = projectMovementNoteMerge(state.movementNotes, sourceIds, projection.target)
           const affectedSetIds = state.history.filter((workSet) => sourceIds.includes(workSet.exerciseId)).map((workSet) => workSet.id)
           const event: HistoryMutationEvent = {
             id: nanoid(), type: 'exercise-merged', createdAt: new Date().toISOString(), reason: reason.trim(),
             description: `${projection.sources.map((exercise) => exercise.name).join(', ')} merged into ${projection.target.name}.`, affectedSetIds,
-            before: { history: state.history, exercises: state.exercises, sessions: state.sessions, athlete: state.athlete, substitutionEvents: state.substitutionEvents },
-            after: { history: projection.history, exercises: projection.exercises, sessions: projection.sessions, athlete: projection.athlete, substitutionEvents: state.substitutionEvents },
+            before: { history: state.history, exercises: state.exercises, sessions: state.sessions, athlete: state.athlete, substitutionEvents: state.substitutionEvents, movementNotes: state.movementNotes },
+            after: { history: projection.history, exercises: projection.exercises, sessions: projection.sessions, athlete: projection.athlete, substitutionEvents: state.substitutionEvents, movementNotes },
             recordsBefore: state.records, recordsAfter: records, volumeBefore: historyVolume(state.history), volumeAfter: historyVolume(projection.history)
           }
-          set({ exercises: projection.exercises, history: projection.history, sessions: projection.sessions, athlete: projection.athlete, records, historyMutations: [...state.historyMutations, event], notice: `${affectedSetIds.length} source sets now share ${projection.target.name}. Original names and an undo snapshot were preserved.` })
+          set({ exercises: projection.exercises, history: projection.history, movementNotes, sessions: projection.sessions, athlete: projection.athlete, records, historyMutations: [...state.historyMutations, event], notice: `${affectedSetIds.length} source sets and ${movementNotes.filter((note) => note.originalExerciseId && sourceIds.includes(note.originalExerciseId)).length} movement notes now share ${projection.target.name}. Original names and an undo snapshot were preserved.` })
           return { ok: true }
         } catch (error) {
           return { ok: false, error: error instanceof Error ? error.message : 'The movements could not be merged.' }
@@ -897,6 +910,7 @@ export const useAppStore = create<AppState>()(
           history: structuredClone(event.before.history), exercises: structuredClone(event.before.exercises), sessions: structuredClone(event.before.sessions),
           athlete: event.before.athlete ? structuredClone(event.before.athlete) : state.athlete,
           substitutionEvents: event.before.substitutionEvents ? structuredClone(event.before.substitutionEvents) : state.substitutionEvents,
+          movementNotes: event.before.movementNotes ? structuredClone(event.before.movementNotes) : state.movementNotes,
           records: structuredClone(event.recordsBefore), historyMutations,
           notice: `Undid: ${event.description} Charts and records now reflect the restored source data.`
         })
@@ -1024,7 +1038,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 22,
+      version: 23,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,
@@ -1032,6 +1046,7 @@ export const useAppStore = create<AppState>()(
         exercises: state.exercises,
         sessions: state.sessions,
         history: state.history,
+        movementNotes: state.movementNotes,
         surveys: state.surveys,
         deferredFeedback: state.deferredFeedback,
         records: state.records,
@@ -1060,6 +1075,7 @@ export const useAppStore = create<AppState>()(
           ...persisted,
           settings: { ...structuredClone(initialSettings), ...(persisted.settings ?? {}), activeEquipmentProfileId: legacyProfile.id, equipmentLocation: legacyProfile.name },
           equipmentProfiles,
+          movementNotes: persisted.movementNotes ?? [],
           athlete: {
             ...persisted.athlete,
             equipmentProfile: legacyProfile.name,

@@ -5,7 +5,7 @@ tags: [fitness, app, github-pages, deployment, qa, pwa]
 created: 2026-08-10
 updated: 2026-08-10
 status: verified-live
-app_version: 0.38.0
+app_version: 0.39.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
@@ -14,7 +14,7 @@ confidence: verified
 
 ## Outcome
 
-ForgePath private alpha 0.38.0 uses GitHub Pages as its continuously updated hosted preview. Every push to private source repository `Falatua/adaptive-strength-hypertrophy-app` on `main` triggers one workflow that verifies the application, builds for the public artifact repository's project subpath, and publishes only after every gate passes. GitHub's current plan does not support Pages directly from the private repository, so the separate public repository `Falatua/adaptive-strength-hypertrophy-app-pages` receives compiled files only.
+ForgePath private alpha 0.39.0 uses GitHub Pages as its continuously updated hosted preview. Every push to private source repository `Falatua/adaptive-strength-hypertrophy-app` on `main` triggers one workflow that verifies the application, builds for the public artifact repository's project subpath, and publishes only after every gate passes. GitHub's current plan does not support Pages directly from the private repository, so the separate public repository `Falatua/adaptive-strength-hypertrophy-app-pages` receives compiled files only.
 
 Hosted URL: `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`
 
@@ -22,8 +22,8 @@ Hosted URL: `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`
 
 1. Check out the exact `main` commit.
 2. Install locked dependencies with `npm ci`.
-3. Run UI boundaries, backend schema boundaries, lint, 195 deterministic tests, and the normal production build.
-4. Install Chromium and run all fifty-six desktop and phone browser journeys.
+3. Run UI boundaries, backend schema boundaries, lint, 201 deterministic tests, and the normal production build.
+4. Install Chromium and run all fifty-eight desktop and phone browser journeys.
 5. Build the PWA for `/adaptive-strength-hypertrophy-app-pages/`.
 6. Inspect the generated HTML, manifest, and service worker for Pages-safe paths.
 7. Use a dedicated write-enabled deploy key scoped only to the public artifact repository.

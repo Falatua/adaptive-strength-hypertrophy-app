@@ -5,7 +5,7 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-10
 status: canonical-build-reference-and-active-implementation
-version: 1.44.0
+version: 1.45.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -6209,6 +6209,55 @@ The interface describes explicit save and reviewed restore as the first slice. I
 Remote activation follows the version-controlled migration, not manual Table Editor recreation. Before enabling cloud configuration in Pages, verify invite-only Auth, anonymous denial, two-account Row Level Security isolation, unknown and revoked device denial, idempotent replay, changed-content rejection, stale-version conflict preservation, reviewed restore, local undo, offline retry, secret absence, and responsive phone and laptop UI.
 
 This gate supplements rather than replaces Chapter 68. Passing the first snapshot and Auth tests does not satisfy the full multi-device acceptance matrix.
+
+## 79. Exact-Movement Workout Notes and Longitudinal Recall
+
+### 79.1 Product Purpose
+
+Every planned movement in a workout may hold one optional athlete-authored note for that exact workout exposure. The note captures details that structured set data cannot express cleanly, including bench angle, pin position, stance, grip, tempo, eccentric or concentric duration, setup, cue, joint sensation, technical error, successful adjustment, and the reason a performance changed. It is a durable training notebook, not a disposable session text box.
+
+### 79.2 Exact Identity Contract
+
+A note is identified by the session, planned exercise slot, and canonical exercise ID. It stores the session title and date, canonical exercise name, mesocycle ID, plan version, microcycle number, creation time, update time, rule version, and up to 1,000 characters of text. This identity prevents one note from being copied across every set or silently moving to a substituted exercise.
+
+If the athlete writes a note and then substitutes the planned slot, the original movement keeps its note. The replacement may receive a separate note in the same planned slot. A confirmed duplicate-exercise merge maps the note to the retained canonical identity while preserving the original exercise ID and name. Undo restores the complete pre-merge note state.
+
+### 79.3 Workout Capture and Prior Recall
+
+Each movement card includes a clearly labeled text area after the movement decision context and before set logging. It autosaves locally as the athlete types, displays a character count, accepts line breaks, and remains optional. Emptying the field removes that exact note. The control must remain usable by touch, keyboard, and assistive technology on phone and desktop.
+
+When a prior note exists for the same canonical movement, the most recent earlier note appears immediately above the editor with its date, session title, and microcycle number when known. The current workout note does not replace or masquerade as the prior note. Recall sorting uses the actual session start date when available and the planned date otherwise.
+
+### 79.4 Exercise Library Notebook
+
+Exercise Detail includes a movement notebook before numeric exposure history. It lists the newest notes first and displays date, session, microcycle context, original identity after a merge, and the athlete's complete note text. The first slice displays the sixteen most recent entries without deleting older stored notes. The summary also shows the total note count for that canonical movement.
+
+The notebook is distinct from set history, prescription notes, post-session survey answers, and general session notes. It provides qualitative recall alongside exact load, repetition, RIR, volume, and record history without conflating those data types.
+
+### 79.5 Coaching and Learning Boundary
+
+Movement notes are athlete-authored context only in private alpha 0.39.0. They never automatically add load, repetitions, sets, exercises, volume, or readiness changes. The deterministic engine may show the note for recall, but no free text is interpreted as pain clearance, completion evidence, a verified PR, or authorization to progress.
+
+A later explicitly designed learning layer may extract proposed tags or patterns, but it must cite the source note, state confidence and limitations, preserve the original text, and require athlete review before affecting programming. Secrets or unnecessary sensitive health information should not be entered.
+
+### 79.6 Persistence, Backup, and Cloud Projection
+
+Local persistence version 23 stores movement notes. Backup schema version 25 includes the full note collection, validates unique identity and all session, exercise, original-exercise, and mesocycle references, rejects invalid dates and oversized text, and migrates a valid version 24 backup with an empty note collection rather than inventing history.
+
+The existing cloud bootstrap snapshot automatically includes notes because it projects the complete validated backup state. This does not claim entity-level note synchronization or cross-device handoff. Those capabilities remain subject to Chapters 68 and 78 and the remote Supabase acceptance gates.
+
+### 79.7 Acceptance Gate
+
+Release requires deterministic coverage for create, update, clear, exact-slot separation after substitution, newest-first recall, merge identity preservation, schema migration, backup round trip, and forged-reference rejection. Desktop and phone browser journeys must type a note in an active workout, leave without finishing, open the exact movement in Library, verify the note and stored identity, check horizontal containment, and report zero browser errors.
+
+### Version 1.45.0 Change Entry
+
+- Added R-368 through R-374 and the exact-movement workout note and longitudinal recall contract.
+- Added autosaving, 1,000-character movement notes with prior-note recall inside every workout movement card.
+- Added a newest-first Movement Notebook and total note count to exact Exercise Library detail.
+- Preserved independent note identity through substitutions and preserved original exercise identity through merge and undo.
+- Advanced backup schema from 24 to 25 and local persistence from 22 to 23 with a non-inventing version 24 migration.
+- Advanced the working application to private alpha 0.39.0 with 201 deterministic tests and fifty-eight desktop and phone browser journeys.
 
 ### Version 1.44.0 Change Entry
 

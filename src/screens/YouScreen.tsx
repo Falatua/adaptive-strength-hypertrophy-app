@@ -31,7 +31,7 @@ const placementExitChoices: { id: PlacementExitDecision; title: string; detail: 
 
 export function YouScreen() {
   const {
-    athlete, settings, updateSettings, equipmentProfiles, setActiveEquipmentProfile, saveEquipmentProfile, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, recordPlacementExitReview, recordMovementPlacementExitReview,
+    athlete, settings, updateSettings, equipmentProfiles, setActiveEquipmentProfile, saveEquipmentProfile, history, movementNotes, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, recordPlacementExitReview, recordMovementPlacementExitReview,
     activeMesocycleId, activeSessionId, onboardingComplete, recoverySnapshot, restoreBackup, undoLastRestore,
     restartOnboarding, resetDemo, setNotice
   } = useAppStore()
@@ -96,15 +96,15 @@ export function YouScreen() {
   }
 
   const exportData = () => {
-    const payload = createBackup({ athlete, settings, equipmentProfiles, history, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, activeMesocycleId, activeSessionId, onboardingComplete })
+    const payload = createBackup({ athlete, settings, equipmentProfiles, history, movementNotes, exercises, sessions, surveys, deferredFeedback, records, mesocycles, historyMutations, cycleReviews, substitutionEvents, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, activeMesocycleId, activeSessionId, onboardingComplete })
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `forgepath-backup-v24-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `forgepath-backup-v25-${new Date().toISOString().slice(0, 10)}.json`
     anchor.click()
     URL.revokeObjectURL(url)
-    setNotice('Verified version 24 backup created as open JSON, including source-backed priority-region dose, schedule eligibility and readiness evidence, missed-opportunity decisions, exact movement-lane and plan-route checkpoint reviews, productive checks, placement evidence, records, plans, substitutions, and surveys.')
+    setNotice('Verified version 25 backup created as open JSON, including exact-movement notes, source-backed priority-region dose, schedule eligibility and readiness evidence, missed-opportunity decisions, exact movement-lane and plan-route checkpoint reviews, productive checks, placement evidence, records, plans, substitutions, and surveys.')
   }
 
   const openEquipmentEditor = (profile?: EquipmentProfile) => {
@@ -239,7 +239,7 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.38.0 private alpha</strong></li><li><span>Rules</span><strong>0.38.0 cloud-foundation boundary</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Equipment v1 · Load increment v1 · Sound pack field-guide-synth-v1</strong></li><li><span>Backup schema</span><strong>Version 24</strong></li><li><span>Persistence</span><strong>Local v22 · cloud event v1</strong></li><li><span>Cloud sync</span><strong>{cloudConfiguration.status === 'ready' ? 'Ready for private sign-in' : 'Dedicated project pending'}</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.39.0 private alpha</strong></li><li><span>Rules</span><strong>0.39.0 exact-movement notes boundary</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Movement notes v1 · Equipment v1 · Load increment v1 · Sound pack field-guide-synth-v1</strong></li><li><span>Backup schema</span><strong>Version 25</strong></li><li><span>Persistence</span><strong>Local v23 · cloud event v1</strong></li><li><span>Cloud sync</span><strong>{cloudConfiguration.status === 'ready' ? 'Ready for private sign-in' : 'Dedicated project pending'}</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Reset private alpha</button>
         </aside>

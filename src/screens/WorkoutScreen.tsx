@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ChevronDown, Clock3, Info, Pause, Play, RefreshCcw, SkipForward, Sparkles, TimerReset, Trophy } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Pause, Play, RefreshCcw, SkipForward, Sparkles, TimerReset, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
@@ -11,6 +11,7 @@ import { SurveyModeChooser } from '../components/SurveyModeChooser'
 import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '../domain/equipment-engine'
 import { placementRouteLabels } from '../domain/placement-engine'
 import { playForgeSound } from '../services/sound-engine'
+import { MOVEMENT_NOTE_MAX_LENGTH, movementNotesForExercise } from '../domain/movement-note-engine'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary anchor',
@@ -21,7 +22,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, equipmentProfiles, history, settings, placementVerifications, updateSet, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, finishSession, leaveActiveSession, setNotice } = useAppStore()
+  const { sessions, exercises, equipmentProfiles, history, movementNotes, settings, placementVerifications, updateSet, updateMovementNote, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, finishSession, leaveActiveSession, setNotice } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
@@ -205,6 +206,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
             })
             const opportunities = deriveRecordOpportunities({ history, planned, exercise, readiness: session.readiness ?? 'confirm' })
             const exerciseAchievements = activeAchievementPreview.filter((event) => event.exerciseId === exercise.id)
+            const currentMovementNote = movementNotes.find((note) => note.sessionId === session.id && note.plannedExerciseId === planned.id && note.exerciseId === exercise.id)
+            const priorMovementNote = movementNotesForExercise(movementNotes, exercise.id).find((note) => note.id !== currentMovementNote?.id)
             return (
               <article className={`exercise-card exercise-card--${planned.role} ${equipmentFit.available ? '' : 'exercise-card--equipment-blocked'}`} key={planned.id}>
                 <div className="exercise-card__header">
@@ -224,6 +227,15 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                 </div>
                 {planned.prescriptionNote && <div className="substitution-prescription"><RefreshCcw size={16} /><span><strong>{planned.prescriptionMethod === 'exact-history' ? 'Exact-history replacement' : 'Baseline calibration'}</strong>{planned.prescriptionNote}</span></div>}
                 {planned.warmupGuidance && exerciseIndex === 0 && <div className="route-warmup-guidance"><Sparkles size={16} /><span><strong>Route-specific warm-up</strong>{planned.warmupGuidance}</span></div>}
+                <section className="movement-note-editor" aria-label={`${exercise.name} movement notebook`}>
+                  <div className="movement-note-editor__heading"><BookOpen size={18} /><span><strong>Movement note</strong><small>Saved to this exact movement and workout</small></span></div>
+                  {priorMovementNote && <div className="movement-note-recall"><span><b>Last note</b><small>{new Date(priorMovementNote.sessionDate).toLocaleDateString()}{priorMovementNote.microcycleNumber ? ` · Week ${priorMovementNote.microcycleNumber}` : ''} · {priorMovementNote.sessionTitle}</small></span><p>{priorMovementNote.body}</p></div>}
+                  <label>
+                    <span className="sr-only">{exercise.name} workout note</span>
+                    <textarea aria-label={`${exercise.name} workout note`} maxLength={MOVEMENT_NOTE_MAX_LENGTH} value={currentMovementNote?.body ?? ''} onChange={(event) => updateMovementNote(session.id, planned.id, event.target.value)} placeholder="Angle, tempo, setup, cue, joint feel, or what changed today..." />
+                  </label>
+                  <div className="movement-note-editor__meta"><small>Autosaved as you type. Notes provide context and never change progression by themselves.</small><small>{currentMovementNote?.body.length ?? 0}/{MOVEMENT_NOTE_MAX_LENGTH}</small></div>
+                </section>
                 <div className="set-table" role="table" aria-label={`${exercise.name} sets`}>
                   <div className="set-table__head" role="row"><span>Set</span><span>Load</span><span>Reps</span><span>RIR</span><span>Status</span></div>
                   {planned.sets.map((workSet, index) => (

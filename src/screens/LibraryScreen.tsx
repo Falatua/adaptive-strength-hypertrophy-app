@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
-import { AlertTriangle, BrainCircuit, ChevronRight, Clock3, Download, Dumbbell, FileCheck2, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Star, Target, Trash2, Undo2, Upload } from 'lucide-react'
+import { AlertTriangle, BookOpen, BrainCircuit, ChevronRight, Clock3, Download, Dumbbell, FileCheck2, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Star, Target, Trash2, Undo2, Upload } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { duplicateCandidates, volumeLoad } from '../domain/training-engine'
 import { findExerciseDuplicateGroups } from '../domain/catalog-engine'
@@ -10,6 +10,7 @@ import { exerciseEquipmentFit } from '../domain/equipment-engine'
 import { buildPlacementHistoryEvidence } from '../domain/placement-history-engine'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
+import { movementNotesForExercise } from '../domain/movement-note-engine'
 
 const regionFilters: { id: BodyRegion | 'all'; label: string }[] = [
   { id: 'all', label: 'All' }, { id: 'chest', label: 'Chest' }, { id: 'back', label: 'Back' }, { id: 'shoulders', label: 'Shoulders' },
@@ -24,7 +25,7 @@ const roleFilters = ['all', 'strength anchor', 'secondary builder', 'hypertrophy
 type BrowseDimension = 'body' | 'pattern' | 'role' | 'goal' | 'equipment' | 'favorites'
 
 export function LibraryScreen() {
-  const { athlete, activeSessionId, exercises, equipmentProfiles, history, historyMutations, substitutionEvents, settings, toggleFavorite, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, undoLatestHistoryMutation, restartOnboarding, setNotice } = useAppStore()
+  const { athlete, activeSessionId, exercises, equipmentProfiles, history, movementNotes, historyMutations, substitutionEvents, settings, toggleFavorite, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, undoLatestHistoryMutation, restartOnboarding, setNotice } = useAppStore()
   const [placementEvidenceAssessedAt] = useState(() => new Date().toISOString())
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState<BodyRegion | 'all'>('all')
@@ -96,6 +97,7 @@ export function LibraryScreen() {
     return [...byId.values()].sort((a, b) => b.score - a.score).slice(0, 3)
   }, [activeExercises, catalogEdit, catalogValues.aliases, catalogValues.name])
   const selectedHistory = selected ? history.filter((set) => set.exerciseId === selected.id).sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()) : []
+  const selectedMovementNotes = selected ? movementNotesForExercise(movementNotes, selected.id) : []
   const selectedMuscleCredits = selected ? muscleCreditsFor(selected.id, exercises) : undefined
   const selectedEquipmentFit = selected ? exerciseEquipmentFit(selected, activeEquipmentProfile) : undefined
   const groupedDates = selectedHistory.reduce<Record<string, typeof selectedHistory>>((groups, set) => {
@@ -348,6 +350,7 @@ export function LibraryScreen() {
               <div><small>Exact volume load</small><strong>{volumeLoad(selectedHistory).toLocaleString()}</strong></div>
               <div><small>Completed sets</small><strong>{selectedHistory.length}</strong></div>
               <div><small>Joint response</small><strong>{selected.jointFeeling}</strong></div>
+              <div><small>Saved notes</small><strong>{selectedMovementNotes.length}</strong></div>
             </div>
             <div className={`exercise-muscle-map ${selectedMuscleCredits ? '' : 'is-unmapped'}`}>
               <span><Target size={18} /><span><strong>{selected.custom ? selected.muscleMapping ? 'Athlete-reviewed muscle dose' : 'Muscle dose unmapped' : 'Built-in muscle-dose-v1 mapping'}</strong><small>{selected.custom && selected.muscleMapping ? `Reviewed ${new Date(selected.muscleMapping.reviewedAt).toLocaleDateString()} · editable and undoable` : selected.custom ? 'Completed and planned sets receive no muscle credit until you review a mapping.' : 'Protected product heuristic · editable mappings are limited to custom movements.'}</small></span></span>
@@ -356,6 +359,9 @@ export function LibraryScreen() {
             {selectedEquipmentFit && <div className={`exercise-equipment-fit ${selectedEquipmentFit.available ? 'is-available' : 'is-unavailable'}`}><Dumbbell size={18} /><span><strong>{selectedEquipmentFit.available ? `Available at ${activeEquipmentProfile.name}` : `Unavailable at ${activeEquipmentProfile.name}`}</strong><small>{selectedEquipmentFit.available ? `All required items are present: ${selectedEquipmentFit.required.join(', ')}.` : `Missing: ${selectedEquipmentFit.missing.join(', ')}. Other history and analytics remain available.`}</small></span></div>}
             <div className="catalog-control"><span><Pencil size={17} /><span><strong>{selected.custom ? 'Edit movement identity' : 'Manage search aliases'}</strong><small>{selected.custom ? 'Name, family, equipment, and body-part metadata can change without changing this movement’s history ID.' : 'The built-in taxonomy stays protected, but you can add the names you personally use.'}</small></span></span><button className="button button--secondary" onClick={() => openCatalogEdit(selected)}>Edit catalog</button></div>
             <div className="joint-picker"><span><Heart size={17} /><strong>How this feels on your joints</strong></span><div>{(['great', 'good', 'neutral', 'irritating', 'avoid'] as const).map((feeling) => <button key={feeling} className={selected.jointFeeling === feeling ? 'selected' : ''} onClick={() => { setJointFeeling(selected.id, feeling); setSelected({ ...selected, jointFeeling: feeling }) }}>{feeling}</button>)}</div></div>
+            <section className="movement-note-history"><div className="panel__header"><div><p className="eyebrow">Week-to-week recall</p><h3>Movement notebook</h3></div><BookOpen size={18} /></div>
+              {selectedMovementNotes.length ? <div className="movement-note-history__list">{selectedMovementNotes.slice(0, 16).map((note) => <article key={note.id}><div><strong>{new Date(note.sessionDate).toLocaleDateString()}</strong><small>{note.microcycleNumber ? `Week ${note.microcycleNumber}` : 'Outside a numbered microcycle'} · {note.sessionTitle}</small>{note.originalExerciseName && <small>Originally written for {note.originalExerciseName}</small>}</div><p>{note.body}</p></article>)}</div> : <div className="compact-empty"><BookOpen size={24} /><strong>No movement notes yet</strong><p>Workout notes about setup, tempo, cues, joint feel, and discoveries will stay attached to this exact movement here.</p></div>}
+            </section>
             <section><div className="panel__header"><div><p className="eyebrow">Exact movement only</p><h3>Exposure history</h3></div><History size={18} /></div>
               <div className="history-table history-table--editable">{Object.entries(groupedDates).slice(0, 8).map(([date, sets]) => <div className="history-day" key={date}><span><Clock3 size={14} />{new Date(`${date}T12:00:00`).toLocaleDateString()} · {volumeLoad(sets).toLocaleString()} volume</span>{sets.map((workSet) => <div className="history-set-row" key={workSet.id}><span><strong>{workSet.load} × {workSet.reps}</strong><small>Set {workSet.setIndex + 1} · {workSet.rirKnown === false ? 'RIR unknown' : `${workSet.rir} RIR`} · {workSet.qualityConfirmed ? `technique ${workSet.technique} · pain ${workSet.pain}` : 'quality not confirmed'}</small>{workSet.originalExerciseName && <small>Originally logged as {workSet.originalExerciseName}{workSet.importSourceName ? ` · ${workSet.importSourceName} row ${workSet.importRow}` : ''}</small>}</span><span><button aria-label={`Correct ${workSet.load} by ${workSet.reps} set`} onClick={() => openCorrection(workSet)}><Pencil size={15} /> Correct</button><button className="danger-link" aria-label={`Delete ${workSet.load} by ${workSet.reps} set`} onClick={() => { setSelected(null); setDeleteOpen(workSet); setDeleteReason(''); setFormError(null) }}><Trash2 size={15} /> Delete</button></span></div>)}</div>)}</div>
             </section>

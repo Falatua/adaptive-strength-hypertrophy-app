@@ -103,6 +103,8 @@ The detailed athlete dashboard with time-range controls:
 ### Library
 The personalized exercise catalog, movement relationships, equipment eligibility, substitutions, and exercise-response history.
 
+Every exact movement detail includes a Movement Notebook. Each workout movement accepts one optional note for setup, angle, tempo, cue, joint feel, technical error, or successful adjustment. The most recent earlier note appears during the next exposure, while Exercise Library preserves a newest-first chronology with date, session, week context, and original identity after a confirmed duplicate merge. Notes are athlete-authored recall context and never silently alter programming.
+
 ### You
 The editable athlete model:
 - goals;

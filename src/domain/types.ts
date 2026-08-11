@@ -342,6 +342,25 @@ export interface PlannedExercise {
   warmupGuidance?: string
 }
 
+export interface MovementNoteRecord {
+  id: string
+  ruleVersion: 'movement-note-v1'
+  sessionId: string
+  sessionTitle: string
+  plannedExerciseId: string
+  exerciseId: string
+  exerciseName: string
+  originalExerciseId?: string
+  originalExerciseName?: string
+  mesocycleId: string | null
+  planVersion: number | null
+  microcycleNumber: number | null
+  sessionDate: string
+  body: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface RouteSessionGenerationEvidence {
   ruleVersion: RouteSessionRuleVersion
   placementCreatedAt: string
@@ -645,6 +664,7 @@ export interface HistoryMutationSnapshot {
   sessions: TrainingSession[]
   athlete?: AthleteProfile
   substitutionEvents?: ExerciseSubstitutionEvent[]
+  movementNotes?: MovementNoteRecord[]
 }
 
 export interface HistoryMutationEvent {

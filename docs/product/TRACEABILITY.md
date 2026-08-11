@@ -17,8 +17,8 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Coverage Summary
 
-- Total requirement headings: 367.
-- Sequential range: R-001 through R-367.
+- Total requirement headings: 374.
+- Sequential range: R-001 through R-374.
 - Missing IDs: none after the 2026-08-10 verification.
 - Duplicate IDs: none after the 2026-08-10 verification.
 - Primary implementation authority: [[Adaptive Strength and Hypertrophy App Build Bible]].
@@ -26,7 +26,7 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Current Implementation Evidence
 
-Private alpha 0.38.0 is the current implementation boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[UX Audit 2026-08-10]], [[Functional UX Audit 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], and [[Adaptive Strength and Hypertrophy App Build Bible#78. Private Cloud Foundation and Activation Contract]]. Version 0.38.0 preserves the complete 0.37.0 training, UX, typography, and hosting behavior while adding a local-tested private cloud foundation. Verification includes 195 deterministic tests across twenty-one files, fifty-six Playwright journeys across desktop and phone, the generated Pages artifact check, and a static five-table Row Level Security and RPC boundary check. Backup schema 24 and local persistence 22 remain unchanged. The dedicated remote ForgePath project is blocked by the current Supabase free-project limit, so live authentication, two-account RLS isolation, and real cross-device acceptance are not claimed. R-362 through R-367 and Chapter 78 define this boundary. Personal readiness baselines, fixed-event pressure, downstream-fatigue interaction, complete later-session substitution, contextual preferences, companion progression, automatic entity-level cloud sync, active-workout handoff, and the new hypertrophy-policy controls remain incomplete.
+Private alpha 0.39.0 is the current implementation boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[UX Audit 2026-08-10]], [[Functional UX Audit 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], and [[Adaptive Strength and Hypertrophy App Build Bible#79. Exact-Movement Workout Notes and Longitudinal Recall]]. Version 0.39.0 preserves the complete 0.38.0 training, UX, hosting, and cloud-foundation behavior while adding durable exact-movement notes. Verification includes 201 deterministic tests across twenty-two files, fifty-eight Playwright journeys across desktop and phone, the generated Pages artifact check, and a static five-table Row Level Security and RPC boundary check. Backup schema 25 and local persistence 23 include movement notes and migrate version 24 without inventing note history. The dedicated remote ForgePath project is still blocked by the current Supabase free-project limit, so live authentication, two-account RLS isolation, real cross-device acceptance, and entity-level note sync are not claimed. R-368 through R-374 and Chapter 79 define the note boundary. Personal readiness baselines, fixed-event pressure, downstream-fatigue interaction, complete later-session substitution, contextual preferences, companion progression, automatic entity-level cloud sync, active-workout handoff, and the new hypertrophy-policy controls remain incomplete.
 
 ## Product and Training Traceability
 
@@ -94,6 +94,7 @@ Private alpha 0.38.0 is the current implementation boundary. Evidence is recorde
 | R-360 | Cross-device heading, subheading, label, supporting-copy, component, and dialog vertical rhythm | 18, 27, 70, 73, 74, 76 | [[Private Alpha Implementation 2026-08-10]], `DESIGN.md` | 1A, ongoing | Computed line-height and text-gap assertions across every primary destination and pre-session dialog on desktop and phone, plus visual review and first-viewport confirmation |
 | R-361 | Higgsfield and other generated visual authoring, loading semantics, local asset ownership, originality, performance, and accessibility | 18, 24, 27, 66, 70, 71, 77 | `DESIGN.md`, `DESIGN.json`, [[Pixel Training Adventure Visual and Interaction System]] | 1A onward | Provenance record, originality review, frame sequence review, responsive crops, reduced motion, media failure, offline behavior, bundle budget, console, and mobile performance gates |
 | R-362 to R-367 | Dedicated Supabase isolation, invite-only Auth, Row Level Security and credential boundaries, idempotent outbox events, conflict-preserving review and restore, and honest rollout status | 19, 20, 21, 24, 27, 68, 78 | [[Data Backend Storage and Learning Architecture]], [[ForgePath Supabase Backend Runbook]], `supabase/migrations/20260811000100_forgepath_cloud_foundation.sql` | 1A to 1B | Migration QC, anonymous denial, two-account RLS, idempotency, event-tamper, stale-version conflict, restore undo, offline outbox, secret scan, responsive journeys, and Chapter 68 multi-device gate |
+| R-368 to R-374 | Exact workout-movement notes, prior recall, Library notebook, identity safety, durable recovery, and programming authority boundary | 6.7, 15, 20, 21, 24, 27, 79 | [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]], [[Private Alpha Implementation 2026-08-10]] | 1A to 1C | Create, update, clear, substitution separation, merge and undo, chronology, backup migration, forged-reference rejection, autosave and Library recall on desktop and phone, console, and containment tests |
 
 ## Delivery Phase Key
 

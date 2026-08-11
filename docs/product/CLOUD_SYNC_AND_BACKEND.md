@@ -38,7 +38,7 @@ The current responsive PWA remains the fastest first client because it already r
 
 Native mobile distribution can still follow when device features, reliability testing, or public distribution justify it. Cloud identity and sync contracts must remain client-independent so the responsive web client and any future native client use the same authoritative records.
 
-Private alpha 0.38.0 implements the first cloud foundation but does not yet meet the full multi-device requirement. It includes invite-only authentication, device identity, a local retry outbox, idempotent snapshot events, a protected bootstrap snapshot, preserved version conflicts, and reviewed restore. Until a dedicated ForgePath project is provisioned and the remote acceptance gates pass, phone and laptop still create independent local states. Automatic entity-level synchronization and workout handoff remain later phases.
+Private alpha 0.39.0 preserves the first cloud foundation and includes exact-movement notes inside the validated version 25 bootstrap snapshot, but it does not yet meet the full multi-device requirement. It includes invite-only authentication, device identity, a local retry outbox, idempotent snapshot events, a protected bootstrap snapshot, preserved version conflicts, and reviewed restore. Until a dedicated ForgePath project is provisioned and the remote acceptance gates pass, phone and laptop still create independent local states. Automatic entity-level synchronization, note-level convergence, and workout handoff remain later phases.
 
 ## Cross-Device Sync Contract
 

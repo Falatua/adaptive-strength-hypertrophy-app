@@ -10,6 +10,7 @@ import type {
   HistoryMutationEvent,
   MesocyclePlan,
   MissedOpportunityEvent,
+  MovementNoteRecord,
   MovementPlacementExitReviewEvent,
   PersonalRecord,
   PlacementExitReviewEvent,
@@ -27,10 +28,11 @@ import { placementVerificationError } from './placement-verification-engine'
 import { movementPlacementExitReviewError, placementExitReviewError } from './placement-exit-engine'
 import { routeSessionGenerationError } from './route-session-engine'
 import { missedOpportunityEventError } from './schedule-adaptation-engine'
+import { movementNoteError } from './movement-note-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 24
-export const BACKUP_APP_VERSION = '0.38.0'
+export const BACKUP_SCHEMA_VERSION = 25
+export const BACKUP_APP_VERSION = '0.39.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -48,6 +50,7 @@ export interface RestorableAppState {
   exercises: Exercise[]
   sessions: TrainingSession[]
   history: CompletedSetRecord[]
+  movementNotes: MovementNoteRecord[]
   surveys: SurveyRecord[]
   deferredFeedback: DeferredFeedbackRequest[]
   records: PersonalRecord[]
@@ -83,6 +86,7 @@ export interface BackupPreview {
     exercises: number
     sessions: number
     completedSets: number
+    movementNotes: number
     surveys: number
     deferredFeedback: number
     records: number
@@ -204,6 +208,10 @@ function addLegacyMissedOpportunityEvents(candidate: Record<string, unknown>) {
   if (!Array.isArray(candidate.missedOpportunityEvents)) candidate.missedOpportunityEvents = []
 }
 
+function addLegacyMovementNotes(candidate: Record<string, unknown>) {
+  if (!Array.isArray(candidate.movementNotes)) candidate.movementNotes = []
+}
+
 function validateState(candidate: unknown, migrateLegacyState = false): asserts candidate is RestorableAppState {
   if (!isRecord(candidate)) throw new Error('Backup data is missing or invalid.')
   if (migrateLegacyState) {
@@ -213,9 +221,10 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
     addLegacyPlacementExitReviews(candidate)
     addLegacyMovementPlacementExitReviews(candidate)
     addLegacyMissedOpportunityEvents(candidate)
+    addLegacyMovementNotes(candidate)
   }
   const errors: string[] = []
-  const arrays = ['equipmentProfiles', 'exercises', 'sessions', 'history', 'surveys', 'deferredFeedback', 'records', 'mesocycles', 'historyMutations', 'cycleReviews', 'substitutionEvents', 'placementVerifications', 'placementExitReviews', 'movementPlacementExitReviews', 'missedOpportunityEvents'] as const
+  const arrays = ['equipmentProfiles', 'exercises', 'sessions', 'history', 'movementNotes', 'surveys', 'deferredFeedback', 'records', 'mesocycles', 'historyMutations', 'cycleReviews', 'substitutionEvents', 'placementVerifications', 'placementExitReviews', 'movementPlacementExitReviews', 'missedOpportunityEvents'] as const
   arrays.forEach((key) => {
     if (!Array.isArray(candidate[key])) errors.push(`${key} must be an array.`)
     else if (candidate[key].length > 500_000) errors.push(`${key} exceeds the private-alpha restore limit.`)
@@ -242,6 +251,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   const equipmentProfiles = candidate.equipmentProfiles as unknown[]
   const sessions = candidate.sessions as unknown[]
   const history = candidate.history as unknown[]
+  const movementNotes = candidate.movementNotes as unknown[]
   const surveys = candidate.surveys as unknown[]
   const deferredFeedback = candidate.deferredFeedback as unknown[]
   const records = candidate.records as unknown[]
@@ -257,6 +267,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   requireUniqueIds(equipmentProfiles, 'Equipment profiles', errors)
   requireUniqueIds(sessions, 'Sessions', errors)
   requireUniqueIds(history, 'Completed sets', errors)
+  requireUniqueIds(movementNotes, 'Movement notes', errors)
   requireUniqueIds(surveys, 'Surveys', errors)
   requireUniqueIds(deferredFeedback, 'Deferred feedback requests', errors)
   requireUniqueIds(records, 'Records', errors)
@@ -302,6 +313,24 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
     if (sourceSetIds.some((id) => typeof id !== 'string' || !historicalSetExerciseIds.has(id))) errors.push(`${label} history review references an unknown completed source set.`)
     if (typeof evidence.exerciseId === 'string' && sourceSetIds.some((id) => typeof id === 'string' && historicalSetExerciseIds.has(id) && !historicalSetExerciseIds.get(id)?.has(evidence.exerciseId as string))) errors.push(`${label} history review references a completed source set from a different exercise identity.`)
   }
+
+  const movementNoteKeys = new Set<string>()
+  movementNotes.forEach((note) => {
+    const noteError = movementNoteError(note)
+    if (noteError) errors.push(`A movement note is invalid: ${noteError}`)
+    if (!isRecord(note)) return
+    if (typeof note.sessionId !== 'string' || !sessionIds.has(note.sessionId)) errors.push('A movement note references an unknown session.')
+    const noteSession = sessions.find((session) => isRecord(session) && session.id === note.sessionId)
+    if (isRecord(noteSession) && Array.isArray(noteSession.exercises) && !noteSession.exercises.some((planned) => isRecord(planned) && planned.id === note.plannedExerciseId)) errors.push('A movement note references an unknown planned exercise slot.')
+    if (typeof note.exerciseId !== 'string' || !exerciseIds.has(note.exerciseId)) errors.push('A movement note references an unknown exercise.')
+    if (note.originalExerciseId !== undefined && (typeof note.originalExerciseId !== 'string' || !exerciseIds.has(note.originalExerciseId))) errors.push('A movement note references an unknown original exercise.')
+    if (note.mesocycleId !== null && (typeof note.mesocycleId !== 'string' || !mesocycleIds.has(note.mesocycleId))) errors.push('A movement note references an unknown mesocycle.')
+    if (typeof note.sessionId === 'string' && typeof note.plannedExerciseId === 'string' && typeof note.exerciseId === 'string') {
+      const key = `${note.sessionId}:${note.plannedExerciseId}:${note.exerciseId}`
+      if (movementNoteKeys.has(key)) errors.push('Movement notes contain more than one note for the same workout movement.')
+      movementNoteKeys.add(key)
+    }
+  })
 
   if (placement && Array.isArray(placement.movementPlacements)) placement.movementPlacements.forEach((movement) => {
     if (!isRecord(movement)) return
@@ -941,6 +970,19 @@ function migrateV23(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV24(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  const data = { ...candidate.data, movementNotes: [] }
+  validateState(data, true)
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 24 backup migrated safely. Existing workouts and cloud-foundation metadata remain intact; exact-movement notes begin with future workout entries.'
+  }
+}
+
 export function parseBackup(raw: string): BackupPreview {
   let candidate: unknown
   try {
@@ -1048,6 +1090,10 @@ export function parseBackup(raw: string): BackupPreview {
     const migrated = migrateV23(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 24) {
+    const migrated = migrateV24(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
@@ -1063,6 +1109,7 @@ export function parseBackup(raw: string): BackupPreview {
       exercises: backup.data.exercises.length,
       sessions: backup.data.sessions.length,
       completedSets: backup.data.history.length,
+      movementNotes: backup.data.movementNotes.length,
       surveys: backup.data.surveys.length,
       deferredFeedback: backup.data.deferredFeedback.length,
       records: backup.data.records.length,
@@ -1095,6 +1142,7 @@ export function backupStateFrom(source: RestorableAppState): RestorableAppState 
     exercises: structuredClone(source.exercises),
     sessions: structuredClone(source.sessions),
     history: structuredClone(source.history),
+    movementNotes: structuredClone(source.movementNotes),
     surveys: structuredClone(source.surveys),
     deferredFeedback: structuredClone(source.deferredFeedback),
     records: structuredClone(source.records),

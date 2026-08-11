@@ -2331,7 +2331,54 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: The interface and release documentation must distinguish a local save, pending dedicated project, signed-out configured project, active cloud request, confirmed cloud version, retrying outbox, validated cloud copy, and preserved conflict. The first snapshot bridge cannot be called automatic multi-device sync, entity merge, hydration, device revocation, or active-workout handoff until the Chapter 68 acceptance matrix passes against a live backend.
 - Detail: [[ForgePath Supabase Backend Runbook]]
 
+### R-368 Optional Note Per Workout Movement
+- Status: implemented
+- Provenance: from-user
+- Requirement: Every planned movement in a workout must allow one optional free-text note for that exact workout exposure. The note may capture angle, tempo, eccentric or concentric duration, setup, cue, joint feel, technical issue, successful adjustment, or another personally useful detail.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#79. Exact-Movement Workout Notes and Longitudinal Recall]]
+
+### R-369 Exact Note Identity and Context
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Store each note against the exact session, planned slot, and canonical exercise, with session date and title, mesocycle, plan version, microcycle number, timestamps, and a versioned note rule. Do not duplicate one note across sets.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#79. Exact-Movement Workout Notes and Longitudinal Recall]]
+
+### R-370 Prior Note Recall During Training
+- Status: implemented
+- Provenance: from-user
+- Requirement: When the same exact movement returns in a later workout, show the most recent earlier note with its date, session, and week context near the current note field so the athlete can reuse or correct prior setup and cues.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#79. Exact-Movement Workout Notes and Longitudinal Recall]]
+
+### R-371 Exercise Library Movement Notebook
+- Status: implemented
+- Provenance: from-user
+- Requirement: Exercise Detail must preserve a newest-first movement notebook so week-to-week and month-to-month notes remain browsable next to exact load, repetition, set, RIR, volume, and record history.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#79. Exact-Movement Workout Notes and Longitudinal Recall]]
+
+### R-372 Substitution, Merge, and Undo Safety for Notes
+- Status: implemented
+- Provenance: product-decision
+- Requirement: A substitution must not silently move a note from the original exercise to its replacement. Confirmed duplicate merges may map notes to the retained canonical identity only while preserving original exercise identity, and undo must restore the complete prior note state.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#79. Exact-Movement Workout Notes and Longitudinal Recall]]
+
+### R-373 Durable Note Persistence and Recovery
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Movement notes must survive navigation, reload, backup export and restore, and the complete cloud bootstrap snapshot. Migration from an older backup must preserve all prior data and create no fictional note history. Automatic cross-device entity synchronization remains gated by the cloud acceptance contract.
+- Detail: [[Data Backend Storage and Learning Architecture]]
+
+### R-374 Notes Cannot Silently Program Training
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Athlete-authored free text is recall context only in the first slice. It cannot automatically add load, repetitions, sets, exercises, volume, clearance, or a PR. Any later extraction or learning system must preserve the source note, disclose confidence and limitations, and require athlete review before changing programming.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#79. Exact-Movement Workout Notes and Longitudinal Recall]]
+
 ## Thread Coverage Audit
+
+### 2026-08-10 Exact-Movement Workout Notes Expansion
+- Scope: User requested durable notes on every workout movement, including setup, angle, tempo, cues, technical discoveries, and week-to-week recall through Exercise Library.
+- Result: Added R-368 through R-374 and Build Bible Chapter 79. Private alpha 0.39.0 adds autosaving exact-movement notes, prior-note recall during training, a newest-first Library notebook, substitution and merge identity protection, backup schema 25, and local persistence 23.
+- Status: Implemented with 201 deterministic tests and fifty-eight desktop and phone browser journeys. Notes remain athlete-authored recall context and do not silently change programming.
 
 ### 2026-08-10 Supabase Backend Foundation Expansion
 - Scope: User requested reconciliation with the original Build Bible and authorized beginning the Supabase backend while keeping the signed-in dashboard available.
@@ -2596,6 +2643,8 @@ This is the canonical traceability index for every durable requirement JB states
 - Exact boundary and default setting for focused-training or low-decoration mode.
 
 ## Change Log
+
+- 2026-08-10: Added R-368 through R-374 and Build Bible Chapter 79 for exact-movement workout notes. Private alpha 0.39.0 now autosaves one optional note per exact workout movement, recalls the prior note during training, preserves a newest-first Exercise Library notebook, protects substitution and merge identity, advances backup schema to 25 and local persistence to 23, and keeps free text outside automatic programming authority.
 
 - 2026-08-10: Added R-362 through R-367 and Build Bible Chapter 78 for the first Supabase backend foundation. Private alpha 0.38.0 now includes dedicated-project isolation, invite-only Auth, a five-table Row Level Security migration, stable device and event metadata, a retry outbox, idempotent snapshot saves, preserved conflicts, integrity-validated cloud review, and athlete-confirmed restore. Remote provisioning remains blocked by the organization's two-project free-plan limit, and automatic entity sync and workout handoff are not claimed.
 
