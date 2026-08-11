@@ -1,4 +1,4 @@
-import type { BodyRegion, Exercise, ExerciseMuscleMapping, MovementPattern } from './types'
+import type { BodyRegion, EquipmentProfile, Exercise, ExerciseMuscleMapping, MovementPattern } from './types'
 import { findExerciseDuplicatePairs, type ExerciseDuplicatePair } from './history-engine'
 import { exerciseMuscleMappingError } from './muscle-dose'
 
@@ -37,6 +37,41 @@ export function normalizeCatalogList(values: string[], excluded: string[] = []) 
     seen.add(key)
     return [cleaned]
   })
+}
+
+export function mergeSystemExerciseCatalog(current: Exercise[] | undefined, systemCatalog: Exercise[]) {
+  if (!current?.length) return structuredClone(systemCatalog)
+  const systemById = new Map(systemCatalog.map((exercise) => [exercise.id, exercise]))
+  const currentIds = new Set(current.map((exercise) => exercise.id))
+  const preserved = current.map((exercise) => {
+    const system = systemById.get(exercise.id)
+    if (!system || exercise.custom) return exercise
+    return {
+      ...structuredClone(system),
+      aliases: normalizeCatalogList([...system.aliases, ...exercise.aliases], [system.name]),
+      favorite: exercise.favorite,
+      jointFeeling: exercise.jointFeeling,
+      retired: exercise.retired,
+      mergedIntoId: exercise.mergedIntoId
+    }
+  })
+  return [...preserved, ...systemCatalog.filter((exercise) => !currentIds.has(exercise.id)).map((exercise) => structuredClone(exercise))]
+}
+
+export function mergeSystemEquipmentProfiles(current: EquipmentProfile[] | undefined, systemProfiles: EquipmentProfile[]) {
+  if (!current?.length) return structuredClone(systemProfiles)
+  const systemById = new Map(systemProfiles.map((profile) => [profile.id, profile]))
+  const currentIds = new Set(current.map((profile) => profile.id))
+  const preserved = current.map((profile) => {
+    const system = systemById.get(profile.id)
+    if (!system || profile.source !== 'seed') return profile
+    return {
+      ...profile,
+      equipment: normalizeCatalogList([...system.equipment, ...profile.equipment]),
+      updatedAt: system.updatedAt
+    }
+  })
+  return [...preserved, ...systemProfiles.filter((profile) => !currentIds.has(profile.id)).map((profile) => structuredClone(profile))]
 }
 
 export function projectExerciseCatalogEdit(exercises: Exercise[], exerciseId: string, input: ExerciseCatalogInput): ExerciseCatalogProjection {
@@ -88,7 +123,24 @@ export function projectExerciseCatalogEdit(exercises: Exercise[], exerciseId: st
 }
 
 export function findExerciseDuplicateGroups(exercises: Exercise[]): ExerciseDuplicateGroup[] {
-  const pairs = findExerciseDuplicatePairs(exercises)
+  // Curated system variations can intentionally share family words such as
+  // curl, press, squat, or pullover. The cleanup queue is for athlete-created
+  // identity fragmentation, not for treating legitimate system variations as
+  // probable duplicates.
+  const customPairs = findExerciseDuplicatePairs(exercises).filter((pair) => pair.first.custom && pair.second.custom)
+  const customSystemPairs = findExerciseDuplicatePairs(exercises).filter((pair) => pair.first.custom !== pair.second.custom)
+  const bestSystemScoreByCustomId = new Map<string, number>()
+  customSystemPairs.forEach((pair) => {
+    const customId = pair.first.custom ? pair.first.id : pair.second.id
+    bestSystemScoreByCustomId.set(customId, Math.max(bestSystemScoreByCustomId.get(customId) ?? 0, pair.score))
+  })
+  const pairs = [
+    ...customPairs,
+    ...customSystemPairs.filter((pair) => {
+      const customId = pair.first.custom ? pair.first.id : pair.second.id
+      return pair.score === bestSystemScoreByCustomId.get(customId)
+    })
+  ]
   const neighbors = new Map<string, Set<string>>()
   pairs.forEach((pair) => {
     neighbors.set(pair.first.id, new Set([...(neighbors.get(pair.first.id) ?? []), pair.second.id]))

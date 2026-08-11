@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { builtInMuscleCredits, filterMuscleDose, muscleDoseFor, plannedMuscleDoseFor } from './muscle-dose'
+import { filterMuscleDose, muscleCreditsFor, muscleDoseFor, plannedMuscleDoseFor } from './muscle-dose'
 import { exercises } from './seed'
 import type { CompletedSetRecord, Exercise, TrainingSession } from './types'
 
@@ -20,8 +20,9 @@ const setFor = (id: string, exerciseId: string, exerciseName = exerciseId): Comp
 })
 
 describe('muscle-dose-v1', () => {
-  it('maps every built-in exercise explicitly and leaves no silent fallback', () => {
-    expect(Object.keys(builtInMuscleCredits).sort()).toEqual(exercises.map((exercise) => exercise.id).sort())
+  it('maps every built-in exercise through the protected catalog taxonomy', () => {
+    expect(exercises.every((exercise) => Object.keys(muscleCreditsFor(exercise.id, exercises) ?? {}).length > 0)).toBe(true)
+    expect(muscleCreditsFor('leg-press-45', exercises)).toMatchObject({ quadriceps: 1, gluteals: 0.5 })
   })
 
   it('separates direct and fractional set-equivalents without changing completed source sets', () => {

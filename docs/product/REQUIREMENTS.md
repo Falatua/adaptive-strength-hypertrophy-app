@@ -2433,7 +2433,30 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Provide a destructive confirmed reset that removes all completed sets, sessions, plans, surveys, notes, feedback, records, corrections, reviews, substitutions, placement events, missed-opportunity events, active identities, and restore snapshots from the current browser, then restarts onboarding with zero training history. Retain only the canonical exercise catalog and equipment templates needed to create a new plan. Do not mutate Supabase, another browser, another device, or an exported backup.
 - Detail: [[Adaptive Strength and Hypertrophy App Build Bible#81. Clean Local Testing Reset Contract]]
 
+### R-385 Deep Built-In Exercise Catalog
+- Status: implemented
+- Provenance: from-user and research-supported
+- Requirement: Ship a materially deep canonical exercise catalog spanning powerlifting anchors and weak-point variations, hypertrophy machines and cables, unilateral work, specialty bars, bodyweight options, and direct accessories across every tracked region. Leg press must be available as a quadriceps-focused squat-pattern alternative. The app must not copy a competitor's proprietary catalog or add athlete-facing technique videos.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#82. Deep Exercise Catalog and Full-Library Substitution]]
+
+### R-386 Ranked Recommendations Plus Full-Library Athlete Choice
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Every in-workout movement-change flow must show the strongest educated matches first and also provide a searchable full-library path. Search must recognize names, aliases, families, body regions, movement patterns, roles, and equipment. A compatible athlete-selected movement remains available even when it is not among the first recommendations, with the existing protected-primary confirmation and honest tradeoff explanation.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#82. Deep Exercise Catalog and Full-Library Substitution]]
+
+### R-387 Catalog Upgrade and Progression Integrity
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Catalog expansion must migrate into existing browsers without erasing favorites, joint responses, athlete aliases, custom movements, or athlete-owned equipment profiles. New system equipment may extend seeded location templates. Every replacement retains its own exact history and conservative calibration when no history exists; the original load and progression clock are never transferred.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#82. Deep Exercise Catalog and Full-Library Substitution]]
+
 ## Thread Coverage Audit
+
+### 2026-08-11 Deep Exercise Library and Leg Press Substitution
+- Scope: JB requested a deeper RP Hypertrophy and JuggernautAI-informed exercise library after leg press was unavailable when replacing squats, plus the ability to enter the library and select a different movement.
+- Result: Added R-385 through R-387 and Build Bible Chapter 82. Private alpha 0.40.0 expands the built-in catalog from 22 to 154 canonical movements, adds three leg-press variants, upgrades seeded equipment, preserves athlete catalog state during migration, and adds recommended-versus-full-library browsing with semantic search inside the workout replacement flow.
+- Status: Implemented with deterministic catalog, migration, muscle-dose, and substitution tests plus phone and desktop leg-press journeys. Backup schema remains 25; local persistence advances to 24 for the catalog merge.
 
 ### 2026-08-11 Supabase Reliability and Cross-Device Data Audit
 - Scope: User requested detailed verification and repair of Supabase connection, algorithmic-data synchronization, error handling, and phone and laptop behavior.
@@ -2713,6 +2736,8 @@ This is the canonical traceability index for every durable requirement JB states
 - Exact boundary and default setting for focused-training or low-decoration mode.
 
 ## Change Log
+
+- 2026-08-11: Added R-385 through R-387 and Build Bible Chapter 82 after JB could not select leg press as a squat replacement. Private alpha 0.40.0 expands the built-in catalog to 154 movements, adds searchable full-library workout substitutions, preserves athlete catalog preferences and custom records during local persistence version 24 migration, and keeps replacement prescriptions exact-history-only or conservatively calibrated.
 
 - 2026-08-11: Added R-384 and Build Bible Chapter 81 after JB requested removal of bug-test weight-training data for a clean testing slate. Private alpha 0.39.2 adds a confirmed current-browser reset, enumerates every deleted data class, restarts onboarding, retains only catalog and equipment foundations, and verifies the zero-data boundary in a browser journey without touching Supabase.
 

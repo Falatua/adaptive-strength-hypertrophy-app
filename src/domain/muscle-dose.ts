@@ -78,6 +78,31 @@ export const builtInMuscleCredits: Readonly<Record<string, ExerciseCreditMap>> =
   'ab-wheel': { abdominals: 1, obliques: 0.5 }
 }
 
+const regionMuscle = (exercise: Exercise, region: Exercise['primaryRegion']): MuscleId => {
+  if (region === 'chest') return 'pectorals'
+  if (region === 'back') return exercise.roleTags.some((tag) => ['lats', 'pullover'].includes(tag)) || exercise.pattern === 'vertical-pull' ? 'latissimus' : 'upper-back'
+  if (region === 'shoulders') return exercise.roleTags.includes('rear delts') ? 'posterior-deltoids' : exercise.roleTags.includes('lateral delts') ? 'lateral-deltoids' : 'anterior-deltoids'
+  if (region === 'quadriceps') return 'quadriceps'
+  if (region === 'hamstrings') return 'hamstrings'
+  if (region === 'glutes') return 'gluteals'
+  if (region === 'biceps') return 'biceps'
+  if (region === 'triceps') return 'triceps'
+  if (region === 'forearms') return 'forearms'
+  if (region === 'calves') return 'calves'
+  return exercise.family === 'Anti-Rotation' || exercise.roleTags.includes('obliques') ? 'obliques' : 'abdominals'
+}
+
+const catalogMuscleCredits = (exercise: Exercise): ExerciseCreditMap => {
+  const direct = regionMuscle(exercise, exercise.primaryRegion)
+  const credits: ExerciseCreditMap = { [direct]: 1 }
+  exercise.regions.forEach((region) => {
+    const muscle = regionMuscle(exercise, region)
+    if (muscle !== direct) credits[muscle] = 0.5
+  })
+  if (exercise.regions.includes('back') && direct !== 'latissimus' && direct !== 'upper-back') credits['upper-back'] = 0.5
+  return credits
+}
+
 export function muscleCreditsFor(exerciseId: string, exercises: Exercise[] = []): ExerciseCreditMap | undefined {
   const exercise = exercises.find((candidate) => candidate.id === exerciseId && !candidate.retired)
   if (exercise?.custom && exercise.muscleMapping) {
@@ -86,7 +111,7 @@ export function muscleCreditsFor(exerciseId: string, exercises: Exercise[] = [])
       ...exercise.muscleMapping.secondary.map((muscle) => [muscle, 0.5] as const)
     ]) as ExerciseCreditMap
   }
-  return builtInMuscleCredits[exerciseId]
+  return builtInMuscleCredits[exerciseId] ?? (exercise && !exercise.custom ? catalogMuscleCredits(exercise) : undefined)
 }
 
 export interface MuscleDoseExercisePoint {

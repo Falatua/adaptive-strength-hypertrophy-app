@@ -1,10 +1,38 @@
 import { describe, expect, it } from 'vitest'
-import { exercises } from './seed'
-import { findExerciseDuplicateGroups, normalizeCatalogList, projectExerciseCatalogEdit } from './catalog-engine'
+import { equipmentProfiles, exercises } from './seed'
+import { findExerciseDuplicateGroups, mergeSystemEquipmentProfiles, mergeSystemExerciseCatalog, normalizeCatalogList, projectExerciseCatalogEdit } from './catalog-engine'
 
 describe('exercise catalog governance', () => {
   it('normalizes aliases without duplicating the canonical name', () => {
     expect(normalizeCatalogList([' Incline Bench ', 'incline bench', '', 'DB Incline'], ['Incline Bench Press'])).toEqual(['Incline Bench', 'DB Incline'])
+  })
+
+  it('ships a deep catalog with stable unique identities and no exact alias collision', () => {
+    expect(exercises).toHaveLength(154)
+    expect(new Set(exercises.map((exercise) => exercise.id)).size).toBe(exercises.length)
+    expect(new Set(exercises.map((exercise) => exercise.name.toLowerCase())).size).toBe(exercises.length)
+    const exactNames = new Map<string, string[]>()
+    exercises.forEach((exercise) => [exercise.name, ...exercise.aliases].forEach((name) => exactNames.set(name.toLowerCase(), [...(exactNames.get(name.toLowerCase()) ?? []), exercise.id])))
+    expect([...exactNames.entries()].filter(([, ids]) => new Set(ids).size > 1)).toEqual([])
+  })
+
+  it('adds new system movements without erasing athlete preferences or custom movements', () => {
+    const priorBench = { ...structuredClone(exercises.find((exercise) => exercise.id === 'competition-bench')!), favorite: false, jointFeeling: 'avoid' as const, aliases: ['My Meet Bench'] }
+    const custom = { ...structuredClone(priorBench), id: 'custom-sled', name: 'My Garage Sled', aliases: [], custom: true, jointFeeling: 'good' as const }
+    const merged = mergeSystemExerciseCatalog([priorBench, custom], exercises)
+    expect(merged).toHaveLength(exercises.length + 1)
+    expect(merged.find((exercise) => exercise.id === 'competition-bench')).toMatchObject({ favorite: false, jointFeeling: 'avoid' })
+    expect(merged.find((exercise) => exercise.id === 'competition-bench')?.aliases).toContain('My Meet Bench')
+    expect(merged.find((exercise) => exercise.id === 'leg-press-45')?.aliases).toContain('Leg Press')
+    expect(merged.find((exercise) => exercise.id === custom.id)).toEqual(custom)
+  })
+
+  it('expands seeded locations while preserving athlete-owned equipment profiles', () => {
+    const priorCommercial = { ...structuredClone(equipmentProfiles[0]), equipment: ['barbell', 'rack', 'plates'] }
+    const custom = { ...structuredClone(equipmentProfiles[0]), id: 'my-gym', name: 'My Gym', source: 'athlete' as const, equipment: ['barbell'] }
+    const merged = mergeSystemEquipmentProfiles([priorCommercial, custom], equipmentProfiles)
+    expect(merged.find((profile) => profile.id === priorCommercial.id)?.equipment).toContain('leg press machine')
+    expect(merged.find((profile) => profile.id === custom.id)?.equipment).toEqual(['barbell'])
   })
 
   it('lets an athlete edit a custom identity while keeping its stable ID', () => {

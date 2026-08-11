@@ -5,7 +5,7 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-11
 status: canonical-build-reference-and-active-implementation
-version: 1.49.0
+version: 1.50.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -6327,6 +6327,58 @@ An automated browser journey must begin with populated demonstration data, invok
 - Added R-384 and Chapter 81 for a true browser-local clean testing reset.
 - Replaced the misleading demonstration-profile reset action with a destructive, fully enumerated clear-and-restart flow.
 - Advanced the working application to private alpha 0.39.2 while preserving backup schema 25, local persistence 23, the closed cloud release gate, and the no-Supabase-mutation boundary.
+
+## 82. Deep Exercise Catalog and Full-Library Substitution
+
+### 82.1 Research Translation
+
+Public RP Hypertrophy materials support an expanding equipment-aware library, athlete-controlled exercise choice, custom movements, and stimulus-to-fatigue judgment. Public Juggernaut material supports exercise selection by weak point, training phase, main-lift relationship, and recovery cost. ForgePath uses those principles as research inputs without copying either product's proprietary catalog, wording, videos, or private recommendation logic.
+
+The product order is:
+
+1. preserve the planned role, primary target, movement relationship, equipment eligibility, joint response, and exact history;
+2. show six strongest educated matches with visible reasons and tradeoffs;
+3. let the athlete open the full compatible catalog and search names, aliases, families, patterns, body regions, roles, and equipment;
+4. require explicit protected-primary confirmation when specificity changes;
+5. prescribe from the selected movement's exact history or use a conservative load-discovery baseline;
+6. freeze the original movement's progression clock and never copy its load.
+
+### 82.2 Catalog Boundary
+
+Private alpha 0.40.0 ships 154 canonical built-in movements across squat, hinge, horizontal and vertical push, horizontal and vertical pull, isolation, and carry patterns. Coverage includes competition and close variations, weak-point and reduced-range work, specialty bars, accommodating resistance, leg press and other stable machine options, unilateral work, cables, dumbbells, bodyweight, calves, arms, and trunk.
+
+The first required leg-press family contains `45-Degree Leg Press`, `Horizontal Leg Press`, and `Single-Leg Press`. `Leg Press` is an alias of the 45-degree canonical identity so ordinary search finds it without creating a second progression clock. The 45-degree version is a squat-pattern quadriceps movement with glute involvement and requires the `leg press machine` equipment identity.
+
+Every built-in movement has an immutable ID, canonical name, aliases, family, broad pattern, primary and contributing regions, equipment requirements, concise purpose description, and role tags. Built-in muscle-dose attribution uses the protected catalog taxonomy when an older exact override is not present. This remains a programming heuristic, not a claim of measured activation.
+
+### 82.3 Existing-Browser Migration
+
+Local persistence version 24 merges missing system exercises and seeded equipment into an existing browser. The merge preserves athlete favorites, five-state joint response, personal aliases, retired or merged state, every custom movement, and every athlete-owned equipment profile. Seeded commercial, home, and travel profiles can gain new system equipment without replacing athlete increments or constraints. Backup schema remains version 25 because the exported state shape is unchanged.
+
+### 82.4 Replacement Interaction
+
+The replacement dialog opens on `Best matches`, capped at six for fast in-gym choice. `Browse full library` exposes every compatible, non-retired movement that satisfies the active location and current joint-avoid boundary. Search is immediate and semantic across catalog metadata. The athlete can return to the ranked set without losing the current reason or protected-primary confirmation state.
+
+The full library is an athlete-authority path, not a way to bypass equipment or safety constraints. A search with no compatible result explains the active boundary. A selected substitute receives its own exact-history prescription or baseline calibration, appears in the substitution ledger, and never inherits the replaced movement's load.
+
+### 82.5 Acceptance Gate
+
+- The seeded catalog contains exactly 154 unique immutable IDs and unique canonical names with no exact cross-exercise alias collision.
+- `Leg Press` finds the 45-degree, horizontal, and single-leg family in Exercise Library.
+- A commercial-gym squat can be replaced by 45-degree leg press from full-library browse on desktop and 390 by 844 phone layouts.
+- The protected-primary confirmation still blocks the first unconfirmed selection.
+- The replacement begins with zero-load conservative calibration when no exact leg-press history exists.
+- Existing athlete favorites, joint response, personal aliases, custom movements, and custom equipment profiles survive the local version 24 catalog migration.
+- Every built-in movement receives deterministic muscle-dose metadata, and custom movements remain unmapped until athlete-reviewed.
+- No horizontal overflow, console error, athlete-facing technique video, competitor asset, or copied competitor expression ships.
+
+### Version 1.50.0 Change Entry
+
+- Added R-385 through R-387 and Chapter 82 for a deep original exercise catalog and searchable full-library workout substitutions.
+- Expanded the built-in catalog from 22 to 154 canonical movements, including three leg-press identities and broad strength, powerbuilding, hypertrophy, machine, unilateral, cable, bodyweight, arm, calf, and trunk coverage.
+- Added local persistence version 24 catalog merging that preserves athlete preferences, aliases, custom movements, and custom equipment profiles.
+- Added deterministic muscle-dose fallback, catalog uniqueness checks, leg-press substitution rules, and phone plus desktop full-library journeys.
+- Advanced the working application to private alpha 0.40.0 while preserving backup schema 25, the closed cloud release gate, and exact-movement progression integrity.
 
 ### Version 1.47.0 Change Entry
 

@@ -5,6 +5,9 @@ import { rankExerciseSubstitutions } from './substitution-engine'
 const benchSession = structuredClone(sessions.find((session) => session.id === 'session-bench')!)
 const benchPlan = benchSession.exercises.find((planned) => planned.id === 'plan-bench')!
 const bench = exercises.find((exercise) => exercise.id === 'competition-bench')!
+const squatSession = structuredClone(sessions.find((session) => session.id === 'session-squat')!)
+const squatPlan = squatSession.exercises.find((planned) => planned.id === 'plan-squat')!
+const squat = exercises.find((exercise) => exercise.id === 'competition-squat')!
 
 const ranked = (reason: Parameters<typeof rankExerciseSubstitutions>[0]['reason'], sourceHistory = history) => rankExerciseSubstitutions({
   planned: structuredClone(benchPlan),
@@ -56,7 +59,21 @@ describe('explainable exercise substitutions', () => {
       planned: structuredClone(benchPlan), original: bench, exercises: structuredClone(exercises), history: structuredClone(history),
       athlete: structuredClone(athlete), readiness: 'normal', reason: 'equipment', equipmentProfile: travel
     })
-    expect(result.map((item) => item.candidate.id)).toEqual(['incline-db-press', 'hammer-curl'])
+    expect(result.map((item) => item.candidate.id)).toEqual(expect.arrayContaining(['incline-db-press', 'hammer-curl', 'push-up']))
+    expect(result.map((item) => item.candidate.id)).not.toEqual(expect.arrayContaining(['competition-squat', 'leg-press-45']))
     expect(result.every((item) => item.snapshot.reasons.includes('available at Travel Setup'))).toBe(true)
+  })
+
+  it('offers leg press as a compatible squat replacement without copying squat load', () => {
+    const commercial = equipmentProfiles.find((profile) => profile.id === 'equipment-commercial-gym')!
+    const result = rankExerciseSubstitutions({
+      planned: structuredClone(squatPlan), original: squat, exercises: structuredClone(exercises), history: structuredClone(history),
+      athlete: structuredClone(athlete), readiness: 'normal', reason: 'preference', equipmentProfile: commercial
+    })
+    const legPress = result.find((item) => item.candidate.id === 'leg-press-45')!
+    expect(legPress).toBeTruthy()
+    expect(legPress.snapshot).toMatchObject({ tier: expect.stringMatching(/best-match|good-alternative/), preserves: expect.stringMatching(/quadriceps.*squat/i) })
+    expect(legPress.prescriptionMethod).toBe('baseline-calibration')
+    expect(legPress.prescription.every((workSet) => workSet.targetLoad === 0 && workSet.targetRir >= 3)).toBe(true)
   })
 })

@@ -12,11 +12,12 @@ The authoritative product specifications live in JB's Obsidian vault:
 
 The public GitHub source repository stores release snapshots under [`docs/product/`](product/README.md) so the complete specification is preserved beside the implementation. Obsidian remains authoritative when a snapshot and the live vault differ.
 
-The first implementation is governed by the complete R-001 through R-330 register. It is a deliberately bounded private-alpha slice, not a claim that every requirement or later delivery phase is complete. Its exact status is recorded in Obsidian at `Outputs/Private Alpha Implementation 2026-08-10.md`.
+The first implementation is governed by the complete R-001 through R-387 register. It is a deliberately bounded private-alpha slice, not a claim that every requirement or later delivery phase is complete. Its exact status is recorded in Obsidian at `Outputs/Private Alpha Implementation 2026-08-10.md`.
 
 ## Implemented Private-Alpha Slice
 
 - Today, Plan, Progress, Library, and You navigation.
+- A 154-movement canonical built-in catalog plus six-match recommendations and searchable full-library workout substitutions, including a verified squat-to-leg-press path that preserves separate exact histories and prescriptions.
 - Repository-local product and design registers plus an original Today Training Field Guide that projects the current route, next earned progression target, confidence, and exact-source count into a compact handheld-inspired panel.
 - A standard UI boundary gate for original-expression, technique-video exclusion, readable typography, focus, reduced motion, compact mobile support, and context-document presence.
 - Four-stage, fully skippable starting-profile onboarding with Quick Start and history-import routes.

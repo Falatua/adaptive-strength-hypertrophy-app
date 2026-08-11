@@ -11,6 +11,12 @@ confidence: from-user
 
 # Product Navigation, Dashboard, Exercise Library, and Time-Aware Programming
 
+## Private Alpha 0.40.0 Deep Catalog Slice
+
+ForgePath now ships 154 canonical built-in movements and a two-level workout replacement flow. `Best matches` keeps six explainable recommendations fast in the gym; `Browse full library` searches every compatible active-location option by name, alias, family, pattern, body region, role, and equipment. The first verified scenario is replacing Competition Back Squat with 45-Degree Leg Press from the commercial-gym catalog while preserving protected-primary confirmation, using conservative load discovery when exact leg-press history is absent, and freezing the squat progression clock.
+
+Local persistence version 24 adds missing system movements and seeded equipment to existing browsers while preserving favorites, joint response, personal aliases, custom movements, and athlete-owned equipment profiles. The expanded catalog is original ForgePath taxonomy informed by public training principles. It does not reproduce competitor proprietary lists or add athlete-facing technique videos.
+
 ## Product Experience Principle
 The app should feel like a living portrait of the athlete, not a spreadsheet with workout totals. It should show what the system knows, what it is still learning, why it made a recommendation, and where the athlete can correct it.
 

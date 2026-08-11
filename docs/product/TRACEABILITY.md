@@ -3,7 +3,7 @@ type: product-traceability-matrix
 aliases: [App Build Bible Traceability, Requirement Coverage Matrix]
 tags: [fitness, app, requirements, traceability, build, qa]
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-11
 status: canonical-build-reference
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
@@ -17,16 +17,16 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Coverage Summary
 
-- Total requirement headings: 376.
-- Sequential range: R-001 through R-376.
-- Missing IDs: none after the 2026-08-10 verification.
-- Duplicate IDs: none after the 2026-08-10 verification.
+- Total requirement headings: 387.
+- Sequential range: R-001 through R-387.
+- Missing IDs: none after the 2026-08-11 verification.
+- Duplicate IDs: none after the 2026-08-11 verification.
 - Primary implementation authority: [[Adaptive Strength and Hypertrophy App Build Bible]].
 - Requirement wording and provenance authority: [[App Requirements Register]].
 
 ## Current Implementation Evidence
 
-Private alpha 0.39.2 and Build Bible 1.49.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], and [[Adaptive Strength and Hypertrophy App Build Bible#81. Clean Local Testing Reset Contract]]. Verification includes 210 deterministic tests, all sixty desktop and phone journeys including the clean reset, checksum-locked migrations, six passing live read-only database checks, nine passing rolled-back authenticated sync and isolation checks, and zero residual test rows. Fourteen tables force Row Level Security, normalized browser mutation grants are zero, the four profile/device mutation grants are intentional, two volume views invoke underlying RLS, and the snapshot RPC is authenticated-only. Public signup is disabled. The clean reset does not contact Supabase. Backup schema 25 and local persistence 23 remain unchanged. A real athlete invitation, physical phone-to-laptop restore, automatic entity sync, and active-workout handoff are not yet claimed.
+Private alpha 0.40.0 and Build Bible 1.50.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], [[Adaptive Strength and Hypertrophy App Build Bible#81. Clean Local Testing Reset Contract]], and [[Adaptive Strength and Hypertrophy App Build Bible#82. Deep Exercise Catalog and Full-Library Substitution]]. Verification includes 214 deterministic tests and sixty-two desktop and phone journeys, including clean reset and full-library leg-press substitution. The catalog contains 154 canonical movements and local persistence 24 merges new system identities without erasing athlete preferences or custom data. Checksum-locked Supabase migrations and the closed cloud gate remain unchanged. Backup schema remains 25. A real athlete invitation, physical phone-to-laptop restore, automatic entity sync, and active-workout handoff are not yet claimed.
 
 ## Product and Training Traceability
 
@@ -98,6 +98,7 @@ Private alpha 0.39.2 and Build Bible 1.49.0 are the current boundary. Evidence i
 | R-375 to R-376 | Permanent fourth Apex companion form and continued post-apex progression | 18, 66 | [[Pixel Training Adventure Visual and Interaction System]] | 1B to 1C | Four-form state replay, long-horizon breadth eligibility, athlete confirmation, permanent-form continuity, post-apex XP idempotency, anti-grind, accessibility, and originality review |
 | R-377 to R-383 | Migration integrity, live database acceptance, strict browser configuration, durable retry, response validation, complete checkpoint coverage, and guarded cloud release | 19, 20, 21, 24, 27, 68, 78, 80 | [[ForgePath Supabase Backend Runbook]], `supabase/migrations/manifest.json`, both `supabase/audits/` scripts | 1A to 1B | Local checksum QC, live read-only audit, rolled-back two-identity RPC and RLS drill, rollback proof, unit retry and corruption cases, desktop and phone cloud UI, invitation, and physical cross-device recovery |
 | R-384 | Confirmed browser-local clean testing reset with zero retained training truth and no cloud mutation | 19, 21, 24, 27, 81 | [[Private Alpha Implementation 2026-08-10]], `tests/e2e/private-alpha-reset.spec.ts` | 1A | Destructive-copy review, populated-state reset journey, zero-data persistence assertions, retained catalog and equipment assertion, onboarding restart, and cloud non-interaction |
+| R-385 to R-387 | Deep canonical catalog, leg-press coverage, ranked plus full-library athlete choice, semantic search, and preservation-safe catalog migration | 6.7, 15, 20, 21, 24, 27, 82 | [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]], `src/domain/exercise-catalog-expansion.ts`, `tests/e2e/exercise-library-expansion.spec.ts` | 1A to 1B | Catalog identity and alias uniqueness, seeded-equipment merge, preference and custom-record preservation, deterministic muscle dose, squat-to-leg-press ranking, conservative prescription, protected-primary confirmation, desktop and phone full-library search, console, and containment tests |
 
 ## Delivery Phase Key
 

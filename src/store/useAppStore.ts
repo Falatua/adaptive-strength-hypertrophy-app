@@ -9,7 +9,7 @@ import { derivePersonalRecords, historyVolume, projectExerciseMerge } from '../d
 import { buildCycleReview, buildNextMicrocycle } from '../domain/cycle-review-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
 import { buildDeferredFeedbackRequest, expireDeferredFeedbackRequests, summarizeSurveyEvidence } from '../domain/survey-engine'
-import { projectExerciseCatalogEdit, type ExerciseCatalogInput } from '../domain/catalog-engine'
+import { mergeSystemEquipmentProfiles, mergeSystemExerciseCatalog, projectExerciseCatalogEdit, type ExerciseCatalogInput } from '../domain/catalog-engine'
 import { equipmentGenerationEvidence, equipmentProfileError, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad, normalizedEquipmentProfile } from '../domain/equipment-engine'
 import { legacyPlacementForAthlete, placementRouteLabels } from '../domain/placement-engine'
 import { beginPlacementVerification, cancelPlacementVerificationForPrimarySubstitution, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery, revisePlacementSessionEvidence, summarizePlacementVerification } from '../domain/placement-verification-engine'
@@ -1064,7 +1064,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 23,
+      version: 24,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,
@@ -1092,13 +1092,14 @@ export const useAppStore = create<AppState>()(
       }),
       migrate: (persistedState) => {
         const persisted = persistedState as AppState
-        const equipmentProfiles = persisted.equipmentProfiles?.length ? persisted.equipmentProfiles : structuredClone(seedEquipmentProfiles)
+        const equipmentProfiles = mergeSystemEquipmentProfiles(persisted.equipmentProfiles, seedEquipmentProfiles)
         const requestedProfileId = persisted.settings?.activeEquipmentProfileId
         const legacyProfile = equipmentProfiles.find((profile) => profile.id === requestedProfileId)
           ?? equipmentProfiles.find((profile) => profile.name === persisted.settings?.equipmentLocation)
           ?? equipmentProfiles[0]
         return {
           ...persisted,
+          exercises: mergeSystemExerciseCatalog(persisted.exercises, seedExercises),
           settings: { ...structuredClone(initialSettings), ...(persisted.settings ?? {}), activeEquipmentProfileId: legacyProfile.id, equipmentLocation: legacyProfile.name },
           equipmentProfiles,
           movementNotes: persisted.movementNotes ?? [],

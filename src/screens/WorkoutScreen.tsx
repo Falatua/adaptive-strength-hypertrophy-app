@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Pause, Play, RefreshCcw, SkipForward, Sparkles, TimerReset, Trophy } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Pause, Play, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
@@ -26,6 +26,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
+  const [swapBrowseMode, setSwapBrowseMode] = useState<'recommended' | 'library'>('recommended')
+  const [swapSearch, setSwapSearch] = useState('')
   const [primaryOverrideConfirmed, setPrimaryOverrideConfirmed] = useState(false)
   const [swapError, setSwapError] = useState<string | null>(null)
   const [cancelledPlacementName, setCancelledPlacementName] = useState<string | null>(null)
@@ -92,12 +94,20 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     readiness: session.readiness ?? 'confirm',
     reason: swapReason,
     equipmentProfile: activeEquipmentProfile
-  }).slice(0, 6) : []
+  }) : []
+  const normalizedSwapSearch = swapSearch.trim().toLowerCase()
+  const librarySwaps = normalizedSwapSearch ? rankedSwaps.filter(({ candidate }) => [
+    candidate.name, candidate.family, candidate.pattern, candidate.primaryRegion,
+    ...candidate.aliases, ...candidate.regions, ...candidate.equipment, ...candidate.roleTags
+  ].some((value) => value.toLowerCase().includes(normalizedSwapSearch))) : rankedSwaps
+  const visibleSwaps = swapBrowseMode === 'recommended' ? rankedSwaps.slice(0, 6) : librarySwaps
 
   const openSwap = (planned: PlannedExercise) => {
     setSwapTarget(planned)
     const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)
     setSwapReason(exercise && !exerciseEquipmentFit(exercise, activeEquipmentProfile).available ? 'equipment' : 'none')
+    setSwapBrowseMode('recommended')
+    setSwapSearch('')
     setPrimaryOverrideConfirmed(false)
     setSwapError(null)
   }
@@ -271,7 +281,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         <button className={`button ${completedSets === totalSets && totalSets > 0 ? 'button--primary' : 'button--secondary'}`} onClick={openFinishFlow}>Finish workout <CheckCircle2 size={18} /></button>
       </footer>
 
-      <Modal open={Boolean(swapTarget)} onClose={() => setSwapTarget(null)} title="Choose an educated replacement" description="Tell ForgePath why you are changing it. The ranking and prescription update without borrowing the original movement's load." wide>
+      <Modal open={Boolean(swapTarget)} onClose={() => { setSwapTarget(null); setSwapSearch(''); setSwapBrowseMode('recommended') }} title="Choose an educated replacement" description="Start with the strongest matches or search every compatible movement available at this location. The replacement keeps its own history and load progression." wide>
         <div className="swap-controls">
           <label><span className="field-label">Why are you changing this movement? <small>Optional</small></span><select aria-label="Substitution reason" value={swapReason} onChange={(event) => { setSwapReason(event.target.value as SubstitutionReason); setSwapError(null) }}>
             <option value="none">No reason</option><option value="pain">Pain or joint irritation</option><option value="equipment">Equipment unavailable</option><option value="time">Short on time</option><option value="fatigue">Fatigue is high</option><option value="target-feel">Not feeling the target</option><option value="variety">Want variety</option><option value="preference">Prefer something else</option><option value="harder">Need a harder option</option><option value="easier">Need an easier option</option><option value="other">Other</option>
@@ -279,15 +289,23 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
           {swapTarget?.role === 'primary' && <label className="primary-override"><input type="checkbox" checked={primaryOverrideConfirmed} onChange={(event) => { setPrimaryOverrideConfirmed(event.target.checked); setSwapError(null) }} /><span><strong>Confirm primary-anchor change</strong><small>The replacement may preserve purpose, but it owns a separate progression clock and changes movement specificity.</small></span></label>}
         </div>
         {swapError && <p className="form-error" role="alert">{swapError}</p>}
+        <div className="swap-library-nav">
+          <div className="swap-library-tabs" role="group" aria-label="Replacement browsing mode">
+            <button className={swapBrowseMode === 'recommended' ? 'selected' : ''} aria-pressed={swapBrowseMode === 'recommended'} onClick={() => { setSwapBrowseMode('recommended'); setSwapSearch('') }}>Best matches <span>{Math.min(6, rankedSwaps.length)}</span></button>
+            <button className={swapBrowseMode === 'library' ? 'selected' : ''} aria-pressed={swapBrowseMode === 'library'} onClick={() => setSwapBrowseMode('library')}>Browse full library <span>{rankedSwaps.length}</span></button>
+          </div>
+          {swapBrowseMode === 'library' && <label className="search-box swap-library-search"><Search size={18} /><span className="sr-only">Search replacement library</span><input aria-label="Search replacement library" autoFocus value={swapSearch} onChange={(event) => setSwapSearch(event.target.value)} placeholder="Search leg press, machine, quads, aliases..." /></label>}
+          <small>{swapBrowseMode === 'recommended' ? 'Ranked by purpose, target, equipment, joint response, preference, and exact history.' : `${librarySwaps.length} compatible movement${librarySwaps.length === 1 ? '' : 's'} shown. Search names, aliases, body parts, roles, or equipment.`}</small>
+        </div>
         <div className="swap-list">
-          {rankedSwaps.map(({ candidate, snapshot, prescription, prescriptionMethod, prescriptionNote }) => (
+          {visibleSwaps.map(({ candidate, snapshot, prescription, prescriptionMethod, prescriptionNote }) => (
             <button key={candidate.id} className="swap-option" onClick={() => chooseSwap(candidate.id)}>
               <span className="swap-rank">{snapshot.rank}</span>
               <div><span className="eyebrow">{snapshot.tier.replace('-', ' ')}</span><strong>{candidate.name}</strong><small><b>Why:</b> {snapshot.reasons.join(' · ') || 'safe active alternative'}</small><small><b>Preserves:</b> {snapshot.preserves}</small><small><b>Changes:</b> {snapshot.changes}</small><small><b>History:</b> {snapshot.lastExposureAt ? `${snapshot.priorSetCount} exact sets · last ${new Date(snapshot.lastExposureAt).toLocaleDateString()}` : 'No exact exposure yet'}</small><small className="swap-prescription"><b>{prescriptionMethod === 'exact-history' ? 'History-based' : 'Calibration'}:</b> {prescription.length} set{prescription.length === 1 ? '' : 's'} · {prescription[0]?.targetLoad || 'choose load'} × {prescription[0]?.targetReps ?? 0} · {prescription[0]?.targetRir ?? 0} RIR</small><small>{prescriptionNote}</small></div>
               <span className="swap-score">{snapshot.score} pts<ChevronDown size={15} /></span>
             </button>
           ))}
-          {rankedSwaps.length === 0 && <div className="compact-empty"><AlertTriangle size={24} /><strong>No available replacement at {activeEquipmentProfile.name}</strong><p>Edit the location profile if equipment is missing from it, or skip this non-primary movement. ForgePath will not relax equipment constraints silently.</p></div>}
+          {visibleSwaps.length === 0 && <div className="compact-empty"><AlertTriangle size={24} /><strong>{normalizedSwapSearch ? 'No compatible movement matches that search' : `No available replacement at ${activeEquipmentProfile.name}`}</strong><p>{normalizedSwapSearch ? 'Try a common name, alias, body part, movement type, or equipment name. ForgePath will not silently relax the active equipment or joint constraints.' : 'Edit the location profile if equipment is missing from it, or skip this non-primary movement. ForgePath will not relax equipment constraints silently.'}</p></div>}
         </div>
         <p className="modal-note">Candidates satisfy every equipment item in {activeEquipmentProfile.name}. The selected movement receives a prescription from its own exact history or a conservative calibration, using the profile's executable load increment. The original exact-movement progression clock remains frozen.</p>
       </Modal>
