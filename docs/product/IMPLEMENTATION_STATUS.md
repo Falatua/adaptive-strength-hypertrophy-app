@@ -31,7 +31,8 @@ This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into 
 - Added a 1,000-character validation boundary. Notes are athlete-authored context and cannot silently change load, repetitions, sets, volume, clearance, or records.
 - Advanced backup schema from 24 to 25 and local persistence from 22 to 23. Version 24 migration creates no fictional note history, and the complete cloud bootstrap snapshot includes the validated note collection.
 - Verified 201 deterministic tests across twenty-two files and all fifty-eight desktop and phone browser journeys before release.
-- GitHub workflow, compiled artifact, and live mobile and desktop release evidence will be recorded after publication.
+- Published private source commit `22f1d0b30450a8fd1ec964bf9d536a9e07f95a24` through successful private workflow `31462496701`, compiled-artifact commit `4e1994f89fcd18ba937a76ca985f5959c8dad78a`, and successful public Pages workflow `31462938374`.
+- Verified that live `source-version.txt` matched the feature source. Fresh desktop and 390 by 844 phone sessions completed the exact note autosave and Library recall path with zero browser errors and no horizontal overflow.
 
 ## Private Alpha 0.38.0 Release Delta
 

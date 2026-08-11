@@ -53,6 +53,19 @@ Any failure prevents the deployment job from starting. A manually copied branch 
 - The Pages artifact check rejects root-only asset references.
 - The CI phone project uses an exact 390 by 844 viewport, and the Today composition preserves buffer above the fold for the primary start action across runner font and timing variation.
 
+## Verified 0.39.0 Release Evidence
+
+- Private source feature commit: `22f1d0b30450a8fd1ec964bf9d536a9e07f95a24`.
+- Successful private-source workflow: `31462496701`.
+- Public compiled-artifact commit: `4e1994f89fcd18ba937a76ca985f5959c8dad78a`.
+- Successful public Pages workflow: `31462938374`.
+- Live URL: `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`.
+- The live `source-version.txt` exactly matched the private source feature commit, and the app root returned HTTP 200.
+- Fresh 1440 by 900 desktop and 390 by 844 phone sessions completed Quick Start, started the workout without a survey, wrote an exact Competition Bench Press note, left the workout active, opened that exact movement in Library, and recovered the complete note.
+- Both live viewports had no horizontal overflow and produced zero console or page errors.
+- Visual evidence is stored locally under `output/playwright/live-movement-notes-desktop.png` and `output/playwright/live-movement-notes-mobile.png`; these screenshots are intentionally excluded from Git.
+- The remote backend remains unprovisioned, so the hosted note is local to that browser until the dedicated ForgePath Supabase project and entity-sync gate are complete.
+
 ## Verified 0.38.0 Release Evidence
 
 - Private source feature commit: `fb8cc2680a38ea71f935d1de3801f1f6d91a7018`.
