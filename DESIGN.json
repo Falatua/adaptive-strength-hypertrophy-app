@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 2,
+  "product": "ForgePath",
+  "northStar": "The Pocket Training Field Guide",
+  "generatedAt": "2026-08-10",
+  "colors": {
+    "nightTrail": { "value": "#0d0f0c", "role": "page background", "contrastWith": "boneText" },
+    "fieldPanel": { "value": "#141712", "role": "primary surface", "contrastWith": "boneText" },
+    "raisedPanel": { "value": "#191d17", "role": "raised surface", "contrastWith": "boneText" },
+    "routeGrid": { "value": "#20251d", "role": "environment and nested surface", "contrastWith": "boneText" },
+    "trailLine": { "value": "#30362b", "role": "standard boundary" },
+    "brightLine": { "value": "#434b3d", "role": "emphasized boundary" },
+    "boneText": { "value": "#f4f6ef", "role": "primary text", "contrastWith": "nightTrail" },
+    "quietSage": { "value": "#9aa391", "role": "secondary text", "contrastWith": "nightTrail" },
+    "progressLime": { "value": "#e7ff58", "role": "recommended and selected", "contrastWith": "nightTrail" },
+    "effortOrange": { "value": "#ff7a45", "role": "progression and effort" },
+    "evidenceBlue": { "value": "#61c8ff", "role": "evidence and focus" },
+    "insightPurple": { "value": "#ad8cff", "role": "records and insights" },
+    "warningRed": { "value": "#ff626b", "role": "safety and blocking state" }
+  },
+  "typography": {
+    "families": {
+      "interface": "Inter, ui-sans-serif, system-ui, sans-serif",
+      "label": "ui-monospace, SFMono-Regular, Menlo, monospace"
+    },
+    "styles": {
+      "display": { "size": "clamp(2rem, 4vw, 3.65rem)", "weight": 800, "lineHeight": 0.98 },
+      "headline": { "size": "clamp(1.55rem, 3vw, 2.55rem)", "weight": 800, "lineHeight": 1.06 },
+      "title": { "size": "1.12rem", "weight": 760, "lineHeight": 1.2 },
+      "body": { "size": "1rem", "weight": 400, "lineHeight": 1.58 },
+      "label": { "size": "0.7rem", "weight": 700, "lineHeight": 1.2, "letterSpacing": "0.13em" }
+    }
+  },
+  "radii": { "small": 8, "control": 10, "compactPanel": 11, "panel": 18, "hero": 24 },
+  "spacing": { "xxs": 5, "xs": 8, "sm": 12, "md": 16, "lg": 20, "xl": 24, "xxl": 32 },
+  "shadows": {
+    "panel": "0 18px 60px rgb(0 0 0 / 32%)",
+    "active": "4px 4px 0 #394022",
+    "modal": "0 30px 100px rgb(0 0 0 / 70%)"
+  },
+  "motion": {
+    "quick": "150ms",
+    "standard": "200ms",
+    "slow": "250ms",
+    "reducedMotion": "remove nonessential transforms and animation"
+  },
+  "breakpoints": { "compact": 620, "mobileNavigation": 880, "stackHero": 1180 },
+  "components": [
+    { "name": "PrimaryAction", "anatomy": ["label", "optional icon"], "states": ["default", "hover", "focus-visible", "disabled"], "rule": "Only one visually dominant action per decision group." },
+    { "name": "SecondaryAction", "anatomy": ["label", "optional icon"], "states": ["default", "hover", "focus-visible", "disabled"], "rule": "Never compete with the primary action." },
+    { "name": "StatusChip", "anatomy": ["icon", "written state"], "states": ["neutral", "recommended", "warning"], "rule": "Color never carries the state alone." },
+    { "name": "EvidencePanel", "anatomy": ["rule label", "plain-language headline", "evidence", "optional action"], "states": ["informational", "actionable", "blocking"], "rule": "Separate recorded fact, derived inference, and recommendation." },
+    { "name": "TrainingFieldGuide", "anatomy": ["route label", "path", "next win", "evidence", "route-notes action"], "states": ["baseline", "load", "repetitions", "sets", "hold", "protect", "reacclimate"], "rule": "Summarize the actual recommendation and exact-source confidence without becoming a second programming authority." },
+    { "name": "QuestBubble", "anatomy": ["optional icon", "short coaching sentence"], "states": ["quiet", "celebratory"], "rule": "Every message must be supported by completed or current session evidence." },
+    { "name": "DataInput", "anatomy": ["visible label", "native control", "optional help", "error"], "states": ["default", "focus-visible", "invalid", "disabled"], "rule": "Use familiar controls and never rely on placeholder text as the label." },
+    { "name": "PrimaryNavigation", "anatomy": ["icon", "label", "current state"], "states": ["default", "hover", "current", "focus-visible"], "rule": "Desktop sidebar and mobile bottom navigation share the same five destinations." },
+    { "name": "Modal", "anatomy": ["header", "close", "body", "actions"], "states": ["closed", "open"], "rule": "Use native dialog behavior and keep the primary completion action explicit." }
+  ],
+  "narrative": {
+    "foreground": "Fast, truthful training decisions and readable evidence.",
+    "delight": "Original handheld field-guide craft, pixel scenes, selectors, badges, and earned celebrations.",
+    "boundary": "No copied game IP, technique-video surface, fake progress, shame, or decorative AI filler."
+  }
+}

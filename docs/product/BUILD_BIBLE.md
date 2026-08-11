@@ -5,7 +5,7 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-10
 status: canonical-build-reference-and-active-implementation
-version: 1.35.0
+version: 1.36.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -5791,6 +5791,88 @@ Structured technique quality remains an athlete-entered field attached to comple
 - Internal research-video notes are not exposed as athlete instructional content.
 - Product, analytics, and privacy schemas contain no unused technique-video infrastructure.
 - Any future proposal to reverse this exclusion requires a new explicit decision from JB and a Build Bible version change.
+
+## 70. Context-Grounded Product Craft and Training Field Guide
+
+### 70.1 Status and Authority
+
+This chapter specifies R-321 through R-324 and governs how durable knowledge about JB becomes product craft. It authorizes bounded implementation judgment inside the existing product thesis. It does not authorize new medical claims, hidden programming authority, copied intellectual property, external publication, or unrelated scope expansion.
+
+Before substantive interface work, the implementation must load the relevant Obsidian project context, inspect the working product, and use the repository-local `PRODUCT.md`, `DESIGN.md`, and `DESIGN.json` registers. Direct current decisions from JB and training-safety requirements remain stronger than inferred preferences.
+
+### 70.2 Product Personality Translation
+
+JB is the first athlete, an experienced lifter, parent, UX practitioner, designer, and game developer. The interface should therefore:
+
+- prioritize the next useful training action over onboarding or instructional theater;
+- expose evidence, uncertainty, source identity, and rule boundaries for expert inspection;
+- support interrupted schedules without shame, streak pressure, or false debt;
+- keep phone interactions fast while allowing deeper laptop analysis;
+- use clear, compact writing without unexplained jargon or generic hype;
+- make quality, responsive containment, exact identity, and visual inspection part of delivery.
+
+The durable personality is grounded, playful, and exacting. A feature that is playful but obscures training truth fails. A feature that is exact but feels like generic enterprise software is incomplete.
+
+### 70.3 Original Handheld Craft Boundary
+
+The favored reference period is the Game Boy Advance era of compact adventure games, especially the emotional feel of Ruby, Sapphire, Emerald, FireRed, and LeafGreen. The product may translate:
+
+- framed field-guide panels;
+- clear directional selectors;
+- compact route and status language;
+- tile-like environmental composition;
+- crisp limited-palette pixel art;
+- earned progression moments;
+- immediate, soundless, tactile feedback.
+
+The shipped product cannot copy game titles, creatures, likenesses, silhouettes, maps, badges, fonts, logos, sounds, evolution staging, menu composition, dialogue, or other protected expression. Inspiration is a craft constraint, not an asset source. Originality review is mandatory before any new sprite or sound ships.
+
+### 70.4 Training Field Guide Contract
+
+Today includes one compact `TrainingFieldGuide` inside the session world. It is a projection of the deterministic engine, not a new decision system. It shows:
+
+1. the current plan route or an honest evidence-led fallback;
+2. the next earned progression target from the load, repetitions, sets, hold, protect, or reacclimation decision;
+3. the decision confidence and count of completed exact-movement source sets;
+4. one action that opens the full existing route explanation.
+
+The guide cannot award experience, change a prescription, hide a pain gate, imply that low confidence is failure, borrow neighboring movement history, or display a progression unsupported by the engine. Missing exact history remains a low-confidence baseline. Numeric training data uses the modern interface typeface; compact route labels may use monospace.
+
+### 70.5 UI Quality Gate
+
+`npm run qc:ui` runs before lint, deterministic tests, and the production build. Its first version checks the shipped interface for copied game references, technique-video surfaces, gradient text, and thick decorative side stripes. It also requires visible keyboard-focus support, reduced-motion handling, a compact mobile breakpoint, and the three product-design registers.
+
+This static check supplements rather than replaces browser and visual review. Every material UI feature still requires:
+
+- desktop and 390 by 844 phone behavior;
+- no horizontal overflow;
+- keyboard and accessible naming review;
+- zero browser errors;
+- reduced-motion compatibility when motion is present;
+- full-resolution visual inspection of the changed state;
+- a regression journey covering the meaningful user action.
+
+The gate must expand when a defect category repeats. It must not become a broad style enforcer that blocks necessary safety states or replaces human review.
+
+### 70.6 Private Alpha 0.32.0 Acceptance Evidence
+
+- Today shows Powerbuilding, the engine-derived next repetition target, high confidence, and twenty-eight exact source sets in the seeded Quick Start journey.
+- `Open route notes` opens the existing explainable-session dialog and creates no parallel recommendation.
+- The field guide is accessible by label, uses a 44-pixel action target, and remains contained on the 390 by 844 phone project.
+- Post-onboarding focus moves into the main product instead of leaving the hidden skip link active.
+- Six thick colored side-stripe callouts were converted to restrained full boundaries without changing their content or behavior.
+- The automated UI boundary gate passes across sixty-two shipped interface files.
+- The deterministic suite remains 189 tests across nineteen files.
+- The new journey passes on desktop Chromium and the phone project, increasing full Playwright coverage to forty-six journeys.
+
+### Version 1.36.0 Change Entry
+
+- Added R-321 through R-324 and the durable context-to-product authority boundary.
+- Added repository-local product and design registers with an explicit original handheld field-guide North Star.
+- Implemented the evidence-backed Today Training Field Guide as a projection of existing route and progression rules.
+- Added the standard UI boundary quality command and made it part of `npm run check`.
+- Corrected post-onboarding focus handoff and replaced six generic thick side-stripe callouts.
+- Increased desktop and phone Playwright journeys from forty-four to forty-six while retaining 189 deterministic tests.
 
 ### Version 1.35.0 Change Entry
 

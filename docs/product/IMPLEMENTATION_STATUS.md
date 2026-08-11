@@ -5,7 +5,7 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-10
 status: working-private-alpha
-app_version: 0.31.0
+app_version: 0.32.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
@@ -19,6 +19,16 @@ A working private, local-first application now exists at `/Users/redsky/Projects
 The code is preserved in the private GitHub repository `Falatua/adaptive-strength-hypertrophy-app`. Releases 0.1.0 through 0.30.0 remain in Git history. Private alpha 0.30.0 is commit `b204c54342a08366f8026e305171993ffb27aee7` and adds fresh readiness evidence without penalizing missing or stale answers. Private alpha 0.31.0 feature commit `06336129e7c2952e4645e088fbc0b4c8479208cf` adds source-backed relative priority-region dose as a bounded schedule tie-break. The first complete GitHub specification mirror is commit `20cf4298870a11608ddc69642c52c4a1c1b2867f`; subsequent specification commits refresh `docs/product/` without changing the verified app-version boundary. The latest remote identity is recorded in [[Adaptive Strength and Hypertrophy App]] and [[Codex Session Log]]. Dependency audit reported zero vulnerabilities. Gitleaks scanned the full repository and found no leaks. Diff whitespace validation passed.
 
 This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into a usable end-to-end browser and installable PWA experience. It is governed by the full requirement register but implements a bounded first slice. Deferred cloud, AI, social, and advanced longitudinal work must not be represented as complete.
+
+## Private Alpha 0.32.0 Release Delta
+
+- Added repository-local `PRODUCT.md`, `DESIGN.md`, and `DESIGN.json` registers grounded in JB's athlete profile, UX and game-development background, quality expectations, original handheld-adventure preferences, accessibility needs, and product anti-references.
+- Replaced the decorative Today quest line with an accessible Training Field Guide that shows the current route, the engine-derived next progression target, decision confidence, exact source-set count, and a direct action into the existing explanation.
+- Kept the field guide as a read-only projection of deterministic route and progression rules. It cannot change the workout, award progress, borrow movement history, or hide safety and uncertainty.
+- Added `npm run qc:ui` to the standard `npm run check` gate. It scans the shipped interface for copied game references, technique-video product surfaces, gradient text, thick decorative side stripes, and missing focus, reduced-motion, compact-mobile, or product-context foundations.
+- Converted six existing thick side-stripe callouts to restrained full boundaries and corrected the focus handoff from onboarding into the main training view.
+- Verified 189 deterministic tests across nineteen files, a clean production PWA build, the sixty-two-file UI boundary gate, and two new browser runs for the Training Field Guide across desktop Chromium and the 390 by 844 phone project. Full browser coverage is now forty-six journeys.
+- Full-resolution phone review confirmed readable route, next-win, and evidence rows, the 44-pixel route-notes control, deliberate pixel-world integration, and horizontal containment.
 
 ## Private Alpha 0.31.0 Release Delta
 

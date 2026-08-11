@@ -102,6 +102,7 @@ export function Onboarding() {
     const profile = equipmentProfiles.find((candidate) => candidate.id === equipmentProfileId) ?? equipmentProfiles[0]
     const sourceAssessment = quick ? buildPlacementAssessment({ ...inputs, equipmentProfileId: profile.id, skippedFields: [...new Set([...inputs.skippedFields, 'complete starting-profile confirmation'])] }, createdAt) : assessment
     const placement = applyPlacementDecision(sourceAssessment, quick ? 'quick-start' : placementDecision)
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
     setActiveEquipmentProfile(profile.id)
     completeOnboarding({
       trainingAge: experience ?? 0,

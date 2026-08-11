@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlarmClock, AlertTriangle, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, FileCheck2, Footprints, HelpCircle, RotateCcw, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
+import { AlarmClock, AlertTriangle, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, FileCheck2, Footprints, HelpCircle, RotateCcw, ShieldCheck, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import type { EffectiveSurveyMode, MissedOpportunityInput, SurveyAnswer } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
@@ -9,6 +9,7 @@ import { StatCard } from '../components/StatCard'
 import { SurveyModal } from '../components/SurveyModal'
 import { SurveyModeChooser } from '../components/SurveyModeChooser'
 import { PostSurveyModal } from '../components/PostSurveyModal'
+import { TrainingFieldGuide } from '../components/TrainingFieldGuide'
 import { pendingDeferredFeedback } from '../domain/survey-engine'
 import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '../domain/equipment-engine'
 import { summarizePlacementVerification } from '../domain/placement-verification-engine'
@@ -90,6 +91,14 @@ export function TodayScreen() {
     readiness: nextSession?.readiness ?? 'confirm'
   })
   const routeLabel = nextSession?.generation?.route.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+  const progressionTarget = progression.action === 'load'
+    ? `${progression.nextLoad} ${settings.units}`
+    : progression.action === 'reps'
+      ? `${progression.nextReps} reps`
+      : progression.action === 'sets'
+        ? `${progression.nextSets} sets`
+        : progression.title
+  const progressionEvidence = `${progression.confidence} confidence · ${primaryHistory.length} exact source set${primaryHistory.length === 1 ? '' : 's'}`
   const whyReasons = nextSession?.generation
     ? [
         { title: `${routeLabel} route`, detail: nextSession.generation.strategy },
@@ -225,11 +234,11 @@ export function TodayScreen() {
             {timeOptions.map((minutes) => <button key={minutes} className={settings.availableMinutes === minutes ? 'selected' : ''} onClick={() => updateSettings({ availableMinutes: minutes })}>{minutes}m</button>)}
           </div>
         </div>
-        <div className="hero-workout__world" aria-hidden="true">
-          <div className="world-grid" />
-          <div className="pixel-platform" />
+        <div className="hero-workout__world">
+          <div className="world-grid" aria-hidden="true" />
+          <div className="pixel-platform" aria-hidden="true" />
           <PixelAvatar mood="strong" size="large" />
-          <div className="quest-bubble"><Sparkles size={15} /> Load first. Earn the jump.</div>
+          <TrainingFieldGuide route={routeLabel ?? 'Evidence-led'} nextWin={progressionTarget} evidence={progressionEvidence} onOpen={() => setWhyOpen(true)} />
         </div>
       </section>
 

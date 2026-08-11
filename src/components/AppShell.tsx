@@ -1,5 +1,5 @@
 import { BarChart3, CalendarRange, Dumbbell, LibraryBig, Sparkles, UserRound } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import type { NavKey } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { PixelAvatar } from './PixelAvatar'
@@ -14,6 +14,17 @@ const navItems: { id: NavKey; label: string; icon: typeof Dumbbell }[] = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { nav, setNav, athlete, notice, setNotice, settings } = useAppStore()
+  const mainRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const activeElement = document.activeElement
+      if (activeElement === document.body || activeElement?.classList.contains('skip-link')) {
+        mainRef.current?.focus({ preventScroll: true })
+      }
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [])
 
   return (
     <div className={`app-shell ${settings.reducedMotion ? 'reduced-motion' : ''}`}>
@@ -38,10 +49,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar__footer">
           <Sparkles size={16} />
-          <span>Rules v0.31.0<br /><small>Local and private</small></span>
+          <span>Rules v0.32.0<br /><small>Local and private</small></span>
         </div>
       </aside>
-      <main id="main-content" className="main-content">{children}</main>
+      <main ref={mainRef} id="main-content" className="main-content" tabIndex={-1}>{children}</main>
       <nav className="bottom-nav" aria-label="Primary navigation">
         {navItems.map((item) => {
           const Icon = item.icon

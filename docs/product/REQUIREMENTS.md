@@ -2049,7 +2049,36 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Do not build, license, host, embed, prioritize, or market an athlete-facing exercise-technique video library, form-demo feed, video upload workflow, or automated technique-video analysis. Keep Exercise Detail and active workouts focused on programming purpose, concise setup notes, personal history, prescriptions, substitutions, feedback, and progression.
 - Detail: [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]]
 
+### R-321 Context-Grounded Product Judgment
+- Status: implemented-first-slice
+- Provenance: from-user
+- Requirement: Codex may proactively implement interface, design, writing, workflow, and quality improvements that fit JB's durable preferences, the Build Bible, and the real codebase, while preserving traceability and honestly distinguishing product decisions from direct athlete requirements.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#70. Context-Grounded Product Craft and Training Field Guide]]
+
+### R-322 Original Handheld Adventure Craft
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Use the compact confidence, tactile selection language, framed menus, route feeling, and pixel-world charm JB loves from Game Boy Advance-era adventure games as craft references, but ship only original characters, places, symbols, names, layouts, assets, progression, and sound. The serious training interface remains modern and readable.
+- Detail: [[Pixel Training Adventure Visual and Interaction System]]
+
+### R-323 Durable Product and Design Registers
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Preserve the app's users, purpose, personality, anti-references, accessibility commitments, North Star, tokens, typography, components, and design boundaries in repository-local `PRODUCT.md`, `DESIGN.md`, and `DESIGN.json` files that are loaded before substantive interface changes.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#70. Context-Grounded Product Craft and Training Field Guide]]
+
+### R-324 Automated and Visual UI Quality Gate
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Treat responsive visual review, keyboard focus, reduced motion, screen-reader labeling, compact mobile containment, console integrity, original-expression boundaries, technique-video exclusion, and regression automation as part of feature completion. UI quality checks must run in the standard verification command and expand as new interaction risks appear.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#70. Context-Grounded Product Craft and Training Field Guide]]
+
 ## Thread Coverage Audit
+
+### 2026-08-10 Context-Grounded Product Craft Expansion
+- Scope: User authorized Codex to implement fitting design, UI, writing, and QC choices from durable Obsidian context and reiterated a strong preference for the Ruby, Sapphire, Emerald, FireRed, and LeafGreen era of handheld adventure craft.
+- Result: Added R-321 through R-324, created durable product and design registers, implemented an original evidence-backed Training Field Guide on Today, added an automated UI boundary gate, replaced six generic thick side-stripe callouts, and corrected post-onboarding focus handoff.
+- Status: Private alpha 0.32.0 implements the first slice. It does not add copied creatures, names, art, maps, sounds, or an unearned game economy. Future original companion and world work remains governed by R-296 through R-303.
 
 ### 2026-08-10 Technique Video Exclusion
 - Scope: User explicitly rejected the technique-video emphasis used by other training apps and requested that it be removed or kept out of this product.
@@ -2275,6 +2304,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-10: Added R-321 through R-324 for context-grounded product judgment, original handheld-adventure craft, durable product and design registers, and automated-plus-visual UI QC. Private alpha 0.32.0 adds the Today Training Field Guide, post-onboarding focus handoff, design anti-pattern cleanup, a standard UI boundary check, 189 deterministic tests, and forty-six desktop and phone Playwright journeys.
 - 2026-08-10: Added R-320 to exclude athlete-facing technique videos, exercise-demo feeds, video uploads, and automated form-video analysis. Revised R-102 and R-121 so structured history and concise optional guidance remain possible without turning the app into an instructional-content product.
 - 2026-08-10: Added R-312 through R-319 for optimized phone and laptop use, one private account, local-first cloud synchronization, active-workout handoff, honest sync status, conflict preservation, cloud recovery, and the multi-device release gate. Responsive layouts are an implemented first slice; actual cross-device synchronization remains unimplemented.
 - 2026-08-10: Added R-304 through R-311 for exact-movement favorites, dislikes, do-not-recommend state, context-specific exercise use, preference-aware ranking, protected-primary conflicts, auditable history, and stated-versus-inferred separation. The existing favorite and joint-response controls are an implemented first slice; contextual preference behavior remains unimplemented.

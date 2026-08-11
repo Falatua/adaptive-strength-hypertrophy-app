@@ -6,7 +6,30 @@ async function enterRecommendedProfile(page: import('@playwright/test').Page) {
   await page.reload()
   await page.getByRole('button', { name: /Quick Start/ }).click()
   await expect(page.getByRole('heading', { name: 'Your next useful win.' })).toBeVisible()
+  await expect(page.locator('.skip-link')).toHaveCSS('top', '-80px')
+  const fieldGuide = page.getByLabel('Current training field guide')
+  await expect(fieldGuide).toContainText('Powerbuilding')
+  await expect(fieldGuide).toContainText(/confidence · \d+ exact source sets?/)
 }
+
+test('turns the current prescription into an original, evidence-backed field guide', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  const fieldGuide = page.getByLabel('Current training field guide')
+  await expect(fieldGuide).toContainText('Field guide')
+  await expect(fieldGuide).toContainText('Next win')
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.locator('.skip-link').evaluate((element) => { (element as HTMLElement).style.display = 'none' })
+    await page.locator('.hero-workout').screenshot({ path: 'output/playwright/training-field-guide-mobile.png' })
+  }
+  await fieldGuide.getByRole('button', { name: 'Open route notes' }).click()
+  await expect(page.getByRole('dialog')).toContainText('Powerbuilding route')
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  expect(browserErrors).toEqual([])
+})
 
 test('validates an athlete-controlled PR without changing the prescription', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
