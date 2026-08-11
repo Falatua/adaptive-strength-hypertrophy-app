@@ -52,7 +52,21 @@ Any failure prevents the deployment job from starting. A manually copied branch 
 - The Pages artifact check rejects root-only asset references.
 - The CI phone project uses an exact 390 by 844 viewport, and the Today composition preserves buffer above the fold for the primary start action across runner font and timing variation.
 
-## Verified Release Evidence
+## Verified 0.37.0 Release Evidence
+
+- Private source feature commit: `1195180d11e4b2ddf8de98fc9eb8cef64226d00a`.
+- Successful private-source workflow: `31457517568`.
+- Public compiled-artifact commit: `875d343c23e3ddc7cf92b3ba6dab8827780e47ef`.
+- Successful public Pages workflow: `31457920808`.
+- Live URL: `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`.
+- The live `source-version.txt` matched private source feature commit `1195180d11e4b2ddf8de98fc9eb8cef64226d00a` during release verification.
+- Unauthenticated HTTP checks returned 200 for the app and source identity.
+- A fresh phone browser rendered onboarding, Quick Start created a neutral Demo Athlete profile, and Today rendered rules version 0.37.0.
+- Across Today, Plan, Progress, Library, and You, visible headings retained at least a 1.04 line-height ratio and measured eyebrow or supporting-copy gaps retained at least eight pixels. The open pre-session dialog measured a 1.15 title line-height ratio and a ten-pixel title-to-copy gap.
+- At 390 by 844, the primary start action ended at 650 pixels and fixed navigation began at 781 pixels. Desktop and phone consoles contained zero errors or warnings.
+- Visual evidence is stored locally under `output/playwright/spacing-live-onboarding-mobile.png`, `output/playwright/spacing-live-mobile.png`, `output/playwright/spacing-live-desktop.png`, and `output/playwright/spacing-live-modal-desktop.png`; these screenshots are intentionally excluded from Git.
+
+## Prior 0.36.0 Baseline Evidence
 
 - Private source feature commit: `8257a8b6b0e94eaf6a0eefb4cf78302fee8335dc`.
 - Mobile gate hardening commit: `888b5d8669d8106455a76d4e96df5f4d34da9a30`.

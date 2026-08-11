@@ -29,6 +29,8 @@ This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into 
 - Added two cross-device browser journeys that inspect every main destination and the pre-session dialog for minimum heading line-height and text-gap contracts.
 - Advanced app, rules, README, backup metadata, and documentation to 0.37.0 while preserving backup schema 24 and local persistence 22.
 - Verified the redesigned rhythm visually across phone and desktop before the release gate.
+- Verified source feature commit `1195180d11e4b2ddf8de98fc9eb8cef64226d00a` through private workflow `31457517568`, public artifact commit `875d343c23e3ddc7cf92b3ba6dab8827780e47ef`, and public Pages workflow `31457920808`.
+- Verified the unauthenticated live site on phone and desktop with every primary destination at or above the spacing contract, the phone start action fully above fixed navigation, and zero browser console errors or warnings.
 
 ## Private Alpha 0.36.0 Release Delta
 
