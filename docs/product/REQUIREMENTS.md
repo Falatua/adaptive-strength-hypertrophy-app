@@ -2289,7 +2289,18 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Headers, subheaders, labels, and supporting text must maintain a consistent vertical rhythm on phone and laptop. Use a shared four-pixel-derived spacing scale, readable multiline heading line heights, at least eight pixels between a heading and its supporting copy, and clear separation between eyebrows, titles, body text, and following controls. Apply the contract to screens, hero blocks, panels, nested cards, onboarding, and dialogs without pushing the primary Today action below the first supported phone viewport.
 - Detail: [[Adaptive Strength and Hypertrophy App Build Bible#76. Cross-Device Typography and Vertical Rhythm Contract]]
 
+### R-361 Original Generated Motion and Higgsfield Production
+- Status: specified-unimplemented
+- Provenance: from-user and product-decision
+- Requirement: Higgsfield is an approved external authoring tool for original loading animations, transitions, environment loops, celebration plates, and visual polish when available, with GPT Images or another approved tool used when better suited. Generated media must become an optimized, versioned local app asset with provenance and originality review rather than a runtime provider dependency. Motion may represent only a real wait or completed transition, may never delay task completion, must preserve the primary training action and safety information, and requires written status, responsive behavior, failure fallback, and a static reduced-motion alternative.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#77. External Visual Authoring and Loading Motion Contract]]
+
 ## Thread Coverage Audit
+
+### 2026-08-10 Higgsfield and Generated Visual Motion Expansion
+- Scope: User approved using the Higgsfield connector and its broader creative integrations for special loading animations and other visual improvements that make the app more fun.
+- Result: Added R-361 and Build Bible Chapter 77. Higgsfield is now an approved authoring tool, while accepted assets remain original, exported, optimized, versioned, accessible, and independent of a live generation provider. Initial concept families are a plate-stack loader, field-guide route stamp, and quiet gym-environment loop.
+- Status: The production and quality contract is specified. No Higgsfield connector is exposed in the current workspace and no generated asset has been selected or shipped yet.
 
 ### 2026-08-10 Cross-Device Vertical Rhythm Expansion
 - Scope: User requested a complete phone and desktop review of header, subheader, and text spacing because several elements appeared too close together.
@@ -2545,6 +2556,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-10: Added R-361 and Build Bible Chapter 77 for Higgsfield and other approved generated-visual workflows. Loading motion must represent real latency, never create delay, remain optional and accessible, preserve training clarity, and ship as an optimized local asset with provenance rather than a runtime provider dependency.
 - 2026-08-10: Added R-360 and Build Bible Chapter 76 for cross-device vertical rhythm. Private alpha 0.37.0 standardizes headline, label, supporting-copy, screen, card, and dialog spacing while preserving the phone start-action fold and existing desktop density. Verification expands to 54 desktop and phone browser journeys.
 - 2026-08-10: Added R-355 through R-359 for automatic tested GitHub Pages deployment on every `main` update, project-subpath PWA integrity, public-preview privacy, a neutral new-visitor seed, and live mobile and desktop verification. Private alpha 0.36.0 preserves backup schema 24 and local persistence 22.
 - 2026-08-10: Added R-347 through R-354 from the deep functional mobile and desktop audit. Private alpha 0.35.0 corrects handlerless and notice-only controls, real Library browse piping, touch-safe progression reasoning, active-workout leave and resume, unresolved-session pin mutation, cross-device touch targets and containment, and release metadata integrity. Verification includes 191 deterministic tests, 52 desktop and phone journeys, production Lighthouse 100/100/100 desktop and 98/100/100 mobile, zero high dependency vulnerabilities, and zero secret findings.

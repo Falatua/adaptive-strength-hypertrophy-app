@@ -5,7 +5,7 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-10
 status: canonical-build-reference-and-active-implementation
-version: 1.42.0
+version: 1.43.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -6133,6 +6133,50 @@ The phone layout may reduce screen-level and section-level whitespace while pres
 ### 76.5 Automated and Visual Gate
 
 Desktop and phone browser tests measure visible level-one through level-three heading line heights, eyebrow-to-heading gaps, and heading-to-supporting-copy gaps across Today, Plan, Progress, Library, and You, plus the pre-session dialog. The release also requires visual review of onboarding and representative screens on phone and desktop because automated measurements do not fully evaluate perceived grouping, scanability, or balance.
+
+## 77. External Visual Authoring and Loading Motion Contract
+
+### 77.1 Approved Authoring Tools
+
+Higgsfield is an approved external authoring tool for original ForgePath loading moments, transitions, environment loops, celebration plates, and related visual polish when its connector or another authorized workflow is available. GPT Images and other approved tools remain valid when better suited to a still, sprite, texture, background, or controlled sequence. The tool is chosen for the creative task, but every result must meet the same product, originality, accessibility, performance, and quality gates.
+
+The first preferred concept families are a plate stack that fills one plate at a time, a field-guide route stamp that confirms a saved decision, and a quiet gym environment whose lights or equipment activate while a real operation completes. These concepts must be authored as original ForgePath expression and cannot reproduce protected characters, silhouettes, fonts, sounds, interfaces, maps, or animation sequences.
+
+### 77.2 Exported Asset and Provenance Boundary
+
+Generation is a production step, not a runtime app service. An accepted visual must be exported, optimized, reviewed, and stored as a versioned local asset. Its record includes the source tool, generation date, prompt or creative brief, license or usage basis, edit history, approval state, dimensions, duration, format, and compressed size. Provider credentials, prompts containing private athlete data, and live generation requests cannot enter the browser bundle.
+
+ForgePath remains usable when Higgsfield, GPT Images, or any other creative service is unavailable. No loading, workout, progress, survey, or save flow may depend on a provider connection.
+
+### 77.3 Honest Loading Semantics
+
+Do not show a loading animation for an operation that resolves immediately. A real wait shows plain written status first, then may add a visual when motion improves reassurance, continuity, or delight. The app must never add or extend a delay so an animation can finish. The visual exits or yields as soon as the operation completes, fails, or is canceled.
+
+Loading visuals do not authorize progress, imply a successful save before confirmation, or replace error and recovery language. Training numbers, pain and readiness state, save state, and the primary action remain readable throughout.
+
+### 77.4 Performance and Format
+
+Prefer lightweight WebM, AVIF, WebP, PNG sequences, SVG, CSS, or canvas according to the visual. Avoid GIF when a smaller accessible format is available. Decorative media is lazy-loaded, cannot block the first useful action or largest contentful paint, and should remain under 350 KB compressed per mobile loading asset unless device testing and measured value justify a documented exception.
+
+Every asset must crop safely across supported phone and desktop viewports, decode without errors, avoid layout shift, and have a no-media failure path. Repeated loops cannot create distracting flashes, heat, excessive battery use, or persistent GPU work after the state ends.
+
+### 77.5 Accessibility and Interruption Budget
+
+Every animated state includes understandable written status and a static fallback under `prefers-reduced-motion`. Meaning cannot depend on motion, color, or sound. Focus order, keyboard use, screen-reader announcements, and touch targets remain unchanged by decorative media.
+
+Active work sets remain the lowest-decoration mode. Loading motion cannot cover prescriptions, rest controls, set logging, pain input, or the finish path. Quiet mode may suppress celebratory motion, and reduced-motion preference always overrides decorative animation.
+
+### 77.6 Production Acceptance Gate
+
+Before any generated animation ships, verify provenance, originality, exact dimensions, duration, looping seam, alpha or background behavior, compressed size, decode, responsive crops, reduced-motion fallback, media failure, offline behavior, focus, console integrity, and mobile performance. Review the full sequence frame by frame for anatomy, visual artifacts, unintended text, brand drift, and protected-IP resemblance. A generated preview is not an approved app asset until this gate passes.
+
+### Version 1.43.0 Change Entry
+
+- Added R-361 and the external visual authoring and loading motion contract.
+- Approved Higgsfield, GPT Images, and other suitable tools as production inputs while keeping the shipped app provider-independent.
+- Defined plate-stack, route-stamp, and gym-environment loops as preferred first concept families.
+- Required honest wait semantics, local exported assets, provenance, originality, reduced-motion fallback, responsive behavior, performance budgets, and frame-by-frame review.
+- Kept the working application at private alpha 0.37.0 because no generated animation has shipped yet.
 
 ### Version 1.42.0 Change Entry
 

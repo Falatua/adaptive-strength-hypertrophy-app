@@ -1,5 +1,5 @@
 ---
-schemaVersion: 2
+schemaVersion: 3
 product: ForgePath
 northStar: The Pocket Training Field Guide
 tokens:
@@ -18,11 +18,11 @@ tokens:
     insight-purple: "#ad8cff"
     warning-red: "#ff626b"
   typography:
-    display: "800 3.65rem/0.98 Inter, ui-sans-serif, system-ui, sans-serif"
-    headline: "800 2.55rem/1.06 Inter, ui-sans-serif, system-ui, sans-serif"
-    title: "760 1.12rem/1.2 Inter, ui-sans-serif, system-ui, sans-serif"
-    body: "400 1rem/1.58 Inter, ui-sans-serif, system-ui, sans-serif"
-    label: "700 0.7rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace"
+    display: "800 3.65rem/1.04 Inter, ui-sans-serif, system-ui, sans-serif"
+    headline: "800 2.55rem/1.10 Inter, ui-sans-serif, system-ui, sans-serif"
+    title: "760 1.12rem/1.22 Inter, ui-sans-serif, system-ui, sans-serif"
+    body: "400 1rem/1.62 Inter, ui-sans-serif, system-ui, sans-serif"
+    label: "700 0.7rem/1.35 ui-monospace, SFMono-Regular, Menlo, monospace"
   radii:
     small: 8
     control: 10
@@ -30,13 +30,13 @@ tokens:
     panel: 18
     hero: 24
   spacing:
-    xxs: 5
+    xxs: 4
     xs: 8
     sm: 12
     md: 16
-    lg: 20
-    xl: 24
-    xxl: 32
+    lg: 24
+    xl: 32
+    xxl: 48
   elevation:
     panel: "0 18px 60px rgb(0 0 0 / 32%)"
     active: "4px 4px 0 #394022"
@@ -79,6 +79,21 @@ Avoid stacking multiple floating glass panels. Use blur only for persistent navi
 - Data input: familiar native control proportions, one-pixel trail-line, clear focus ring, explicit label and help when needed.
 - Modal: native dialog behavior, sticky header, visible close action, contained mobile width, and a single primary completion action.
 - Sound cue: original synthesized pocket-console feedback under 700 milliseconds, low-volume, meaningful rather than ambient, off by default, previewable, and always suppressed by quiet mode.
+- Loading moment: an original compact visual tied to a real wait state, with written status, a static reduced-motion fallback, no fake delay, and no effect on training logic.
+
+# Motion and Generated Visual Assets
+
+Higgsfield is an approved external authoring tool for original ForgePath loading moments, transitions, environment loops, celebration plates, and other visual polish when its connector or production workflow is available. GPT Images and other tools may also be used when they are the better fit. Tool choice does not change the design or quality contract.
+
+The strongest first concepts are a plate stack that fills one plate at a time, a field-guide route stamp that confirms a saved decision, and a quiet gym environment whose lights or equipment activate as progress loads. These are concept families, not copied game assets. Every character, silhouette, animation, sound, icon, and interface treatment must remain original and independently ownable.
+
+Generated media is an authoring input, not a runtime dependency. Accepted work must be exported, optimized, reviewed, and stored as a versioned local app asset with its prompt, source tool, generation date, license or usage basis, edit history, and approval state. No provider key or generation request belongs in the browser bundle.
+
+Do not show a loader for an operation that resolves immediately. If a real wait becomes perceptible, show plain status first and introduce motion only when it improves reassurance or continuity. Never add delay so an animation can finish. Loops must end or yield cleanly as soon as the operation completes.
+
+Prefer lightweight WebM, AVIF, WebP, PNG sequences, SVG, CSS, or canvas according to the visual. Avoid GIF when a smaller accessible format is available. Decorative motion must be lazy-loaded, must not block the first useful action, and should remain under a 350 KB compressed mobile budget per loading asset unless measured evidence justifies an exception.
+
+Every animated state requires a still fallback under `prefers-reduced-motion`, an understandable written status, safe contrast, responsive cropping, and a failure path that leaves the task fully usable. Motion, characters, and celebration can never obscure load, repetitions, sets, RIR, pain, readiness, save status, or the primary workout action.
 
 # Do's and Don'ts
 
@@ -91,6 +106,7 @@ Do:
 - Verify 320-pixel mobile containment, keyboard use, visible focus, reduced motion, contrast, and readable large text.
 - Use real completed training data for records, experience, celebrations, and comparisons.
 - Pair optional sound with a visible state change. Warning and achievement meaning must never depend on audio alone.
+- Use Higgsfield or another suitable creative tool for authored visual polish when the exported result passes originality, accessibility, performance, and app-fit review.
 
 Don't:
 
@@ -98,5 +114,6 @@ Don't:
 - Add technique-video browsing, form-video feeds, or demo libraries.
 - Put a game skin over unclear or unsafe programming logic.
 - Use fake pixelation, noisy scanlines, excessive glow, gradient text, or generated visual filler.
+- Add decorative loading motion to fast local actions, hold a completed action for an animation, or require a live generation provider to use the app.
 - Shame irregular schedules, invent missing readiness, imply medical clearance, or rewrite history.
 - Make data labels pixel-styled, tiny, color-only, or dependent on hover.
