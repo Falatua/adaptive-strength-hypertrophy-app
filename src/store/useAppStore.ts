@@ -717,6 +717,7 @@ export const useAppStore = create<AppState>()(
           input: context,
           continuity: state.athlete.continuity,
           weeklyOpportunities: state.athlete.weeklyOpportunities,
+          priorityRegions: state.athlete.priorityRegions,
           exercises: state.exercises,
           equipmentProfile: activeEquipmentProfile,
           surveys: state.surveys,
@@ -997,7 +998,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 21,
+      version: 22,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,

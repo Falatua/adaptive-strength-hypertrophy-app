@@ -1,4 +1,5 @@
 import type {
+  BodyRegion,
   CompletedSetRecord,
   ContinuityState,
   EquipmentProfile,
@@ -10,6 +11,8 @@ import type {
   ScheduleAdaptationMode,
   ScheduleReadinessAction,
   ScheduleReadinessEvidence,
+  SchedulePriorityDoseCandidate,
+  SchedulePriorityRegionDosePoint,
   SessionStatus,
   SurveyRecord,
   TrainingSession
@@ -17,11 +20,13 @@ import type {
 import { exerciseEquipmentFit } from './equipment-engine'
 import { compressSession, readinessFromSurvey } from './training-engine'
 
-export const MISSED_OPPORTUNITY_RULE_VERSION = 'missed-opportunity-v4' as const
+export const MISSED_OPPORTUNITY_RULE_VERSION = 'missed-opportunity-v5' as const
 export const SCHEDULE_ELIGIBILITY_RULE_VERSION = 'schedule-eligibility-v1' as const
 export const SCHEDULE_READINESS_RULE_VERSION = 'schedule-readiness-v1' as const
+export const SCHEDULE_PRIORITY_DOSE_RULE_VERSION = 'schedule-priority-dose-v1' as const
 export const SCHEDULE_READINESS_FRESH_HOURS = 24
-const SUPPORTED_MISSED_OPPORTUNITY_RULE_VERSIONS = ['missed-opportunity-v1', 'missed-opportunity-v2', 'missed-opportunity-v3', MISSED_OPPORTUNITY_RULE_VERSION] as const
+export const SCHEDULE_PRIORITY_DOSE_WINDOW_DAYS = 28
+const SUPPORTED_MISSED_OPPORTUNITY_RULE_VERSIONS = ['missed-opportunity-v1', 'missed-opportunity-v2', 'missed-opportunity-v3', 'missed-opportunity-v4', MISSED_OPPORTUNITY_RULE_VERSION] as const
 
 interface ReplanRequest {
   eventId: string
@@ -32,6 +37,7 @@ interface ReplanRequest {
   input: MissedOpportunityInput
   continuity: ContinuityState
   weeklyOpportunities: number
+  priorityRegions: BodyRegion[]
   exercises: Exercise[]
   equipmentProfile: EquipmentProfile
   safetyGateActive: boolean
@@ -47,6 +53,7 @@ export type MissedOpportunityReplanResult =
 const OPEN_STATUSES: SessionStatus[] = ['planned', 'deferred']
 const TERMINAL_STATUSES: SessionStatus[] = ['completed', 'partial-primary', 'partial-no-primary', 'expired', 'stopped']
 const PHYSIOLOGICAL_REASONS = new Set(['illness', 'pain'])
+const BODY_REGIONS: BodyRegion[] = ['chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']
 
 const setCount = (session: TrainingSession) => session.exercises.reduce((total, exercise) => total + exercise.sets.length, 0)
 
@@ -192,6 +199,70 @@ export function scheduleSessionEligibility(session: TrainingSession, exercises: 
   }
 }
 
+export function schedulePriorityDoseContext(input: {
+  sessions: TrainingSession[]
+  history: CompletedSetRecord[]
+  exercises: Exercise[]
+  equipmentProfile: EquipmentProfile
+  priorityRegions: BodyRegion[]
+  recordedAt: string
+}): {
+  windowStartAt: string
+  windowEndAt: string
+  declaredPriorityRegions: BodyRegion[]
+  referenceCompletedSetCount: number
+  regions: SchedulePriorityRegionDosePoint[]
+  candidates: SchedulePriorityDoseCandidate[]
+} {
+  const windowEnd = new Date(input.recordedAt)
+  const windowStart = new Date(windowEnd.getTime() - SCHEDULE_PRIORITY_DOSE_WINDOW_DAYS * 86_400_000)
+  const declaredPriorityRegions = [...new Set(input.priorityRegions)]
+  const windowHistory = input.history.filter((workSet) => {
+    const completedAt = new Date(workSet.completedAt).getTime()
+    return completedAt >= windowStart.getTime() && completedAt <= windowEnd.getTime()
+  })
+  const sourceByRegion = new Map(declaredPriorityRegions.map((region) => [region, windowHistory.filter((workSet) => workSet.primaryRegion === region)]))
+  const referenceCompletedSetCount = Math.max(0, ...[...sourceByRegion.values()].map((sets) => sets.length))
+  const regions: SchedulePriorityRegionDosePoint[] = declaredPriorityRegions.map((region) => {
+    const sourceSets = sourceByRegion.get(region) ?? []
+    const lastCompletedAt = sourceSets.reduce<string | null>((latest, workSet) => !latest || new Date(workSet.completedAt) > new Date(latest) ? workSet.completedAt : latest, null)
+    return {
+      region,
+      completedSetCount: sourceSets.length,
+      relativeGapSets: referenceCompletedSetCount - sourceSets.length,
+      lastCompletedAt,
+      sourceSetIds: sourceSets.map((workSet) => workSet.id)
+    }
+  })
+  const regionById = new Map(regions.map((point) => [point.region, point]))
+  const candidates = input.sessions.map((session) => {
+    const eligibility = scheduleSessionEligibility(session, input.exercises, input.equipmentProfile)
+    const removed = new Set(eligibility.removableSupport.map((item) => item.plannedExerciseId))
+    const executablePriorityWork = session.exercises.flatMap((planned) => {
+      if (removed.has(planned.id)) return []
+      const exercise = input.exercises.find((candidate) => candidate.id === planned.exerciseId)
+      return exercise && declaredPriorityRegions.includes(exercise.primaryRegion) ? [{ region: exercise.primaryRegion, sets: planned.sets.length }] : []
+    })
+    const coveredPriorityRegions = [...new Set(executablePriorityWork.map((item) => item.region))]
+    const relativeGapScore = Math.max(0, ...coveredPriorityRegions.map((region) => regionById.get(region)?.relativeGapSets ?? 0))
+    return {
+      sessionId: session.id,
+      coveredPriorityRegions,
+      largestGapRegions: relativeGapScore > 0 ? coveredPriorityRegions.filter((region) => regionById.get(region)?.relativeGapSets === relativeGapScore) : [],
+      relativeGapScore,
+      executablePlannedSetCount: executablePriorityWork.reduce((total, item) => total + item.sets, 0)
+    }
+  })
+  return {
+    windowStartAt: windowStart.toISOString(),
+    windowEndAt: windowEnd.toISOString(),
+    declaredPriorityRegions,
+    referenceCompletedSetCount,
+    regions,
+    candidates
+  }
+}
+
 export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOpportunityReplanResult {
   const recordedAt = request.recordedAt ?? new Date().toISOString()
   if (request.safetyGateActive) return { ok: false, error: request.safetyGateReason ?? 'Automatic schedule rebuilding is paused until the active pain or restriction review is resolved.' }
@@ -209,6 +280,8 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
   if (!queueBeforeSessions.length) return { ok: false, error: 'There is no open exposure queue to rebuild.' }
   if (request.input.preferredNextSessionId && !queueBeforeSessions.some((session) => session.id === request.input.preferredNextSessionId)) return { ok: false, error: 'The preferred next session is no longer in the open queue.' }
   const eligibilityBySession = new Map(queueBeforeSessions.map((session) => [session.id, scheduleSessionEligibility(session, request.exercises, request.equipmentProfile)]))
+  const priorityDoseContext = schedulePriorityDoseContext({ sessions: queueBeforeSessions, history: request.history, exercises: request.exercises, equipmentProfile: request.equipmentProfile, priorityRegions: request.priorityRegions, recordedAt })
+  const priorityDoseBySession = new Map(priorityDoseContext.candidates.map((candidate) => [candidate.sessionId, candidate]))
   const preferredEligibility = request.input.preferredNextSessionId ? eligibilityBySession.get(request.input.preferredNextSessionId) : null
   if (preferredEligibility && !preferredEligibility.eligibleToLead) return { ok: false, error: `${preferredEligibility.primaryExerciseName ?? 'That session'} cannot lead at ${request.equipmentProfile.name}. ${preferredEligibility.reasons.join(' ')}` }
   if (![...eligibilityBySession.values()].some((eligibility) => eligibility.eligibleToLead)) return { ok: false, error: `No open session has an executable protected primary at ${request.equipmentProfile.name}. Change the location or review substitutions before rebuilding.` }
@@ -222,8 +295,22 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
     const primaryExerciseId = session.exercises.find((exercise) => exercise.role === 'primary')?.exerciseId ?? null
     const lastExposureAt = primaryExerciseId ? latestExactExposure(request.history, primaryExerciseId) : null
     const daysSinceExposure = lastExposureAt ? calendarDaysBetween(lastExposureAt, recordedAt) : null
-    return { session, originalIndex, primaryExerciseId, lastExposureAt, daysSinceExposure, eligibility: eligibilityBySession.get(session.id)! }
+    return { session, originalIndex, primaryExerciseId, lastExposureAt, daysSinceExposure, eligibility: eligibilityBySession.get(session.id)!, priorityDose: priorityDoseBySession.get(session.id)! }
   }).sort((a, b) => {
+    const aPinned = a.session.id === request.input.preferredNextSessionId ? 1 : 0
+    const bPinned = b.session.id === request.input.preferredNextSessionId ? 1 : 0
+    const aPriority = a.daysSinceExposure ?? 10_000
+    const bPriority = b.daysSinceExposure ?? 10_000
+    return bPinned - aPinned
+      || Number(b.eligibility.eligibleToLead) - Number(a.eligibility.eligibleToLead)
+      || Number(b.eligibility.fullyExecutable) - Number(a.eligibility.fullyExecutable)
+      || bPriority - aPriority
+      || b.priorityDose.relativeGapScore - a.priorityDose.relativeGapScore
+      || new Date(a.session.plannedDate).getTime() - new Date(b.session.plannedDate).getTime()
+      || a.originalIndex - b.originalIndex
+  })
+
+  const baselineNext = [...ranked].sort((a, b) => {
     const aPinned = a.session.id === request.input.preferredNextSessionId ? 1 : 0
     const bPinned = b.session.id === request.input.preferredNextSessionId ? 1 : 0
     const aPriority = a.daysSinceExposure ?? 10_000
@@ -234,7 +321,7 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
       || bPriority - aPriority
       || new Date(a.session.plannedDate).getTime() - new Date(b.session.plannedDate).getTime()
       || a.originalIndex - b.originalIndex
-  })
+  })[0]
 
   const spacingDays = Math.max(1, Math.round(7 / Math.max(1, request.weeklyOpportunities)))
   const nextOpportunityAt = new Date(request.input.nextOpportunityAt).toISOString()
@@ -275,6 +362,15 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
     }
   })
   const next = ranked[0]
+  const selectedPriorityDose = next.priorityDose
+  const doseAppliedAsTieBreak = !request.input.preferredNextSessionId && baselineNext.session.id !== next.session.id
+  const doseReason = priorityDoseContext.declaredPriorityRegions.length === 0
+    ? 'No priority regions are declared, so region dose did not affect this schedule decision.'
+    : priorityDoseContext.referenceCompletedSetCount === 0
+      ? `No completed priority-region sets exist inside the rolling ${SCHEDULE_PRIORITY_DOSE_WINDOW_DAYS}-day window, so no relative dose gap was inferred.`
+      : doseAppliedAsTieBreak
+        ? `${selectedPriorityDose.largestGapRegions.join(', ')} had ${selectedPriorityDose.relativeGapScore} fewer completed set${selectedPriorityDose.relativeGapScore === 1 ? '' : 's'} than the most represented declared priority region inside the rolling ${SCHEDULE_PRIORITY_DOSE_WINDOW_DAYS}-day window, resolving an otherwise equal queue choice.`
+        : `Rolling ${SCHEDULE_PRIORITY_DOSE_WINDOW_DAYS}-day priority-region dose was reviewed but did not override equipment eligibility, athlete control, or exact-primary exposure priority.`
   const openSetCountBefore = queueBeforeSessions.reduce((total, session) => total + setCount(session), 0)
   const openSetCountAfter = adaptedQueue.reduce((total, session) => total + setCount(session), 0)
   const reasons = [
@@ -282,6 +378,7 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
     `${next.session.title} has an executable protected primary at ${request.equipmentProfile.name}.`,
     ...(selectedEligibility.removableSupport.length ? [`${selectedEligibility.removableSupport.length} unavailable or joint-flagged support movement${selectedEligibility.removableSupport.length === 1 ? ' was' : 's were'} removed from the first session instead of creating impossible work.`] : []),
     readiness.reason,
+    doseReason,
     next.daysSinceExposure === null
       ? 'The next protected primary has no completed exact exposure, so its baseline remains unresolved.'
       : `The next protected primary has waited ${next.daysSinceExposure} calendar day${next.daysSinceExposure === 1 ? '' : 's'} since its latest completed exact exposure.`,
@@ -346,7 +443,17 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
       removedPlannedExerciseIds: selectedEligibility.removableSupport.map((item) => item.plannedExerciseId),
       removedExerciseNames: selectedEligibility.removableSupport.map((item) => item.exerciseName)
     },
-    readiness
+    readiness,
+    priorityDose: {
+      ruleVersion: SCHEDULE_PRIORITY_DOSE_RULE_VERSION,
+      windowDays: SCHEDULE_PRIORITY_DOSE_WINDOW_DAYS,
+      ...priorityDoseContext,
+      selectedSessionId: next.session.id,
+      selectedGapScore: selectedPriorityDose.relativeGapScore,
+      selectedGapRegions: selectedPriorityDose.largestGapRegions,
+      appliedAsTieBreak: doseAppliedAsTieBreak,
+      reason: doseReason
+    }
   }
 
   return { ok: true, sessions, event, continuity }
@@ -363,7 +470,7 @@ export function missedOpportunityEventError(value: unknown, sessions: TrainingSe
   if (!event.input || !['family', 'work', 'time', 'travel', 'sleep', 'illness', 'pain', 'equipment', 'motivation', 'other'].includes(event.input.reason)) return 'Missed-opportunity reason is invalid.'
   if (!event.input || !['no-training', 'different-training-unlogged'].includes(event.input.trainingOutcome)) return 'Missed-opportunity training outcome is invalid.'
   if (!event.input || !['ended', 'continuing', 'uncertain'].includes(event.input.constraintState)) return 'Missed-opportunity constraint state is invalid.'
-  if (['missed-opportunity-v2', 'missed-opportunity-v3', MISSED_OPPORTUNITY_RULE_VERSION].includes(String(event.ruleVersion)) && event.input?.preferredNextSessionId === undefined) return 'Missed-opportunity preference evidence is missing.'
+  if (['missed-opportunity-v2', 'missed-opportunity-v3', 'missed-opportunity-v4', MISSED_OPPORTUNITY_RULE_VERSION].includes(String(event.ruleVersion)) && event.input?.preferredNextSessionId === undefined) return 'Missed-opportunity preference evidence is missing.'
   if (event.input?.preferredNextSessionId !== undefined && event.input.preferredNextSessionId !== null && (typeof event.input.preferredNextSessionId !== 'string' || !sessionIds.has(event.input.preferredNextSessionId))) return 'Missed-opportunity preferred session is invalid.'
   if (!event.input || Number.isNaN(new Date(event.input.nextOpportunityAt).getTime()) || !Number.isFinite(event.input.nextMinutes) || event.input.nextMinutes < 15 || event.input.nextMinutes > 90 || typeof event.input.note !== 'string' || event.input.note.length > 500) return 'Missed-opportunity next-step input is invalid.'
   if (!event.recordedAt || Number.isNaN(new Date(event.recordedAt).getTime()) || !event.plannedAt || Number.isNaN(new Date(event.plannedAt).getTime())) return 'Missed-opportunity dates are invalid.'
@@ -373,7 +480,7 @@ export function missedOpportunityEventError(value: unknown, sessions: TrainingSe
   if (![event.queueBefore, event.queueAfter, event.reasons, event.changes, event.preservedTerminalSessionIds].every(Array.isArray)) return 'Missed-opportunity replay evidence is incomplete.'
   if ([...(event.queueBefore ?? []), ...(event.queueAfter ?? []), ...(event.preservedTerminalSessionIds ?? [])].some((id) => typeof id !== 'string' || !sessionIds.has(id))) return 'Missed-opportunity queue references an unknown session.'
   if (event.input?.preferredNextSessionId && (!(event.queueBefore ?? []).includes(event.input.preferredNextSessionId) || event.nextSessionId !== event.input.preferredNextSessionId)) return 'Missed-opportunity preferred session was not honored.'
-  if (['missed-opportunity-v3', MISSED_OPPORTUNITY_RULE_VERSION].includes(String(event.ruleVersion))) {
+  if (['missed-opportunity-v3', 'missed-opportunity-v4', MISSED_OPPORTUNITY_RULE_VERSION].includes(String(event.ruleVersion))) {
     const eligibility = event.eligibility
     if (!eligibility || eligibility.ruleVersion !== SCHEDULE_ELIGIBILITY_RULE_VERSION || typeof eligibility.equipmentProfileId !== 'string' || !eligibility.equipmentProfileId || typeof eligibility.equipmentProfileName !== 'string' || !eligibility.equipmentProfileName || Number.isNaN(new Date(eligibility.equipmentProfileUpdatedAt).getTime()) || eligibility.safetyGateState !== 'clear') return 'Missed-opportunity eligibility evidence is invalid.'
     if (!Array.isArray(eligibility.candidates) || !Array.isArray(eligibility.removedPlannedExerciseIds) || !Array.isArray(eligibility.removedExerciseNames)) return 'Missed-opportunity eligibility replay is incomplete.'
@@ -382,7 +489,7 @@ export function missedOpportunityEventError(value: unknown, sessions: TrainingSe
     if (!eligibility.candidates.find((candidate) => candidate.sessionId === event.nextSessionId)?.eligibleToLead) return 'Missed-opportunity next session was not eligible to lead.'
     if (eligibility.removedPlannedExerciseIds.length !== eligibility.removedExerciseNames.length || eligibility.removedPlannedExerciseIds.some((id) => typeof id !== 'string') || eligibility.removedExerciseNames.some((name) => typeof name !== 'string')) return 'Missed-opportunity removed-movement evidence is invalid.'
   }
-  if (event.ruleVersion === MISSED_OPPORTUNITY_RULE_VERSION) {
+  if (['missed-opportunity-v4', MISSED_OPPORTUNITY_RULE_VERSION].includes(String(event.ruleVersion))) {
     const readiness = event.readiness
     if (!readiness || readiness.ruleVersion !== SCHEDULE_READINESS_RULE_VERSION || !['current', 'stale', 'missing'].includes(String(readiness.freshness)) || !['normal', 'confirm', 'protect', 'reacclimate', 'pain-aware', 'unknown'].includes(String(readiness.effectiveOutcome)) || !(readiness.sourceOutcome === null || ['normal', 'confirm', 'protect', 'reacclimate', 'pain-aware'].includes(String(readiness.sourceOutcome))) || !['proceed', 'confirm-at-warmup', 'trim-optional', 'reacclimation-review', 'blocked', 'unknown'].includes(String(readiness.action)) || typeof readiness.reason !== 'string' || !readiness.reason || !(readiness.sourceSurveyId === null || typeof readiness.sourceSurveyId === 'string') || !(readiness.capturedAt === null || !Number.isNaN(new Date(readiness.capturedAt).getTime())) || !(readiness.ageHours === null || Number.isFinite(readiness.ageHours))) return 'Missed-opportunity readiness evidence is invalid.'
     if (readiness.action === 'blocked' || (readiness.freshness === 'current' && readiness.effectiveOutcome === 'unknown') || (readiness.freshness !== 'current' && (readiness.effectiveOutcome !== 'unknown' || readiness.action !== 'unknown'))) return 'Missed-opportunity readiness decision is invalid.'
@@ -391,6 +498,17 @@ export function missedOpportunityEventError(value: unknown, sessions: TrainingSe
     if (readiness.freshness === 'missing' && readiness.sourceOutcome !== null) return 'Missed-opportunity missing readiness cannot contain an outcome.'
     const expectedAction = readiness.sourceOutcome ? readinessAction(readiness.sourceOutcome) : 'unknown'
     if (readiness.freshness === 'current' && (readiness.effectiveOutcome !== readiness.sourceOutcome || readiness.action !== expectedAction)) return 'Missed-opportunity readiness action does not match its source evidence.'
+  }
+  if (event.ruleVersion === MISSED_OPPORTUNITY_RULE_VERSION) {
+    const dose = event.priorityDose
+    if (!dose || dose.ruleVersion !== SCHEDULE_PRIORITY_DOSE_RULE_VERSION || dose.windowDays !== SCHEDULE_PRIORITY_DOSE_WINDOW_DAYS || Number.isNaN(new Date(dose.windowStartAt).getTime()) || Number.isNaN(new Date(dose.windowEndAt).getTime()) || new Date(dose.windowStartAt).getTime() >= new Date(dose.windowEndAt).getTime() || dose.windowEndAt !== event.recordedAt || new Date(dose.windowEndAt).getTime() - new Date(dose.windowStartAt).getTime() !== SCHEDULE_PRIORITY_DOSE_WINDOW_DAYS * 86_400_000 || !Array.isArray(dose.declaredPriorityRegions) || new Set(dose.declaredPriorityRegions).size !== dose.declaredPriorityRegions.length || dose.declaredPriorityRegions.some((region) => !BODY_REGIONS.includes(region)) || !Number.isInteger(dose.referenceCompletedSetCount) || dose.referenceCompletedSetCount < 0 || !Array.isArray(dose.regions) || !Array.isArray(dose.candidates) || typeof dose.appliedAsTieBreak !== 'boolean' || typeof dose.reason !== 'string' || !dose.reason) return 'Missed-opportunity priority-dose evidence is invalid.'
+    if (dose.regions.length !== dose.declaredPriorityRegions.length || new Set(dose.regions.map((point) => point.region)).size !== dose.regions.length || dose.regions.some((point) => !dose.declaredPriorityRegions.includes(point.region) || !Number.isInteger(point.completedSetCount) || point.completedSetCount < 0 || !Number.isInteger(point.relativeGapSets) || point.relativeGapSets < 0 || point.relativeGapSets !== dose.referenceCompletedSetCount - point.completedSetCount || !(point.lastCompletedAt === null || !Number.isNaN(new Date(point.lastCompletedAt).getTime())) || !Array.isArray(point.sourceSetIds) || point.sourceSetIds.length !== point.completedSetCount || new Set(point.sourceSetIds).size !== point.sourceSetIds.length || point.sourceSetIds.some((id) => typeof id !== 'string'))) return 'Missed-opportunity priority-region dose is invalid.'
+    if (dose.referenceCompletedSetCount !== Math.max(0, ...dose.regions.map((point) => point.completedSetCount))) return 'Missed-opportunity priority-dose reference is invalid.'
+    const regionGap = new Map(dose.regions.map((point) => [point.region, point.relativeGapSets]))
+    if (dose.candidates.length !== event.queueBefore?.length || new Set(dose.candidates.map((candidate) => candidate.sessionId)).size !== dose.candidates.length || dose.candidates.some((candidate) => !sessionIds.has(candidate.sessionId) || !(event.queueBefore ?? []).includes(candidate.sessionId) || !Array.isArray(candidate.coveredPriorityRegions) || new Set(candidate.coveredPriorityRegions).size !== candidate.coveredPriorityRegions.length || candidate.coveredPriorityRegions.some((region) => !dose.declaredPriorityRegions.includes(region)) || !Array.isArray(candidate.largestGapRegions) || new Set(candidate.largestGapRegions).size !== candidate.largestGapRegions.length || candidate.largestGapRegions.some((region) => !candidate.coveredPriorityRegions.includes(region)) || !Number.isInteger(candidate.relativeGapScore) || candidate.relativeGapScore < 0 || !Number.isInteger(candidate.executablePlannedSetCount) || candidate.executablePlannedSetCount < 0 || candidate.relativeGapScore !== Math.max(0, ...candidate.coveredPriorityRegions.map((region) => regionGap.get(region) ?? 0)) || candidate.largestGapRegions.some((region) => regionGap.get(region) !== candidate.relativeGapScore) || (candidate.relativeGapScore === 0 && candidate.largestGapRegions.length > 0))) return 'Missed-opportunity priority-dose candidate is invalid.'
+    if (dose.candidates.some((candidate) => candidate.largestGapRegions.join('|') !== (candidate.relativeGapScore > 0 ? candidate.coveredPriorityRegions.filter((region) => regionGap.get(region) === candidate.relativeGapScore) : []).join('|'))) return 'Missed-opportunity priority-dose candidate gaps are incomplete.'
+    const selected = dose.candidates.find((candidate) => candidate.sessionId === event.nextSessionId)
+    if (!selected || dose.selectedSessionId !== event.nextSessionId || dose.selectedGapScore !== selected.relativeGapScore || !Array.isArray(dose.selectedGapRegions) || dose.selectedGapRegions.length !== selected.largestGapRegions.length || dose.selectedGapRegions.some((region, index) => region !== selected.largestGapRegions[index]) || (event.input?.preferredNextSessionId && dose.appliedAsTieBreak)) return 'Missed-opportunity selected priority-dose evidence is invalid.'
   }
   if ((event.changes ?? []).some((change) => !change || typeof change !== 'object' || !sessionIds.has(change.sessionId) || Number.isNaN(new Date(change.fromPlannedAt).getTime()) || Number.isNaN(new Date(change.toPlannedAt).getTime()) || !Number.isFinite(change.fromSetCount) || !Number.isFinite(change.toSetCount))) return 'Missed-opportunity session changes are invalid.'
   if (event.completedSetCountBefore !== event.completedSetCountAfter) return 'Missed-opportunity evidence cannot create or remove completed sets.'

@@ -165,7 +165,7 @@ test('defers optional feedback without blocking training and replays quality evi
   await expect(page.getByText('185 heaviest completed load', { exact: false }).first()).toBeVisible()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted?.version).toBe(21)
+  expect(persisted?.version).toBe(22)
   expect(persisted?.state?.deferredFeedback?.at(-1)).toMatchObject({ mode: 'minimal', status: 'completed' })
   expect(persisted?.state?.deferredFeedback?.at(-1)?.surveyId).toBeTruthy()
   expect(persisted?.state?.history?.filter((workSet: { sessionId: string }) => workSet.sessionId === persisted.state.deferredFeedback.at(-1).sessionId).every((workSet: { qualityConfirmed?: boolean }) => workSet.qualityConfirmed === true)).toBe(true)
@@ -279,6 +279,8 @@ test('records a missed opportunity and rebuilds only the open exposure queue fro
   await expect(proof).toContainText('Open planned sets')
   await expect(proof).toContainText('Readiness evidence')
   await expect(proof).toContainText('unknown · no penalty')
+  await expect(proof).toContainText('Priority dose tie-break')
+  await expect(proof).toContainText('reviewed · no override')
   await proof.getByText('Why this order?').click()
   await expect(proof).toContainText('Reported training without completed set records earns no progression')
   if (testInfo.project.name === 'mobile-chromium') {
@@ -288,18 +290,21 @@ test('records a missed opportunity and rebuilds only the open exposure queue fro
   }
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(21)
+  expect(persisted.version).toBe(22)
   expect(persisted.state.sessions).toHaveLength(before.sessions)
   expect(persisted.state.history).toHaveLength(before.history)
   expect(persisted.state.missedOpportunityEvents).toHaveLength(1)
   expect(persisted.state.missedOpportunityEvents[0]).toMatchObject({
-    ruleVersion: 'missed-opportunity-v4', consecutiveMisses: 1, mode: 'defer-one',
+    ruleVersion: 'missed-opportunity-v5', consecutiveMisses: 1, mode: 'defer-one',
     input: { reason: 'family', trainingOutcome: 'different-training-unlogged', nextMinutes: 30, constraintState: 'uncertain', preferredNextSessionId: before.pinSessionId }
   })
   expect(persisted.state.missedOpportunityEvents[0].completedSetCountAfter).toBe(persisted.state.missedOpportunityEvents[0].completedSetCountBefore)
   expect(persisted.state.missedOpportunityEvents[0].openSetCountAfter).toBeLessThanOrEqual(persisted.state.missedOpportunityEvents[0].openSetCountBefore)
   expect(persisted.state.missedOpportunityEvents[0].eligibility).toMatchObject({ ruleVersion: 'schedule-eligibility-v1', equipmentProfileId: 'equipment-home-gym', safetyGateState: 'clear' })
   expect(persisted.state.missedOpportunityEvents[0].readiness).toMatchObject({ ruleVersion: 'schedule-readiness-v1', freshness: 'missing', effectiveOutcome: 'unknown', action: 'unknown' })
+  expect(persisted.state.missedOpportunityEvents[0].priorityDose).toMatchObject({ ruleVersion: 'schedule-priority-dose-v1', windowDays: 28, appliedAsTieBreak: false, selectedSessionId: before.pinSessionId })
+  const completedSetIds = new Set(persisted.state.history.map((workSet: { id: string }) => workSet.id))
+  expect(persisted.state.missedOpportunityEvents[0].priorityDose.regions.flatMap((region: { sourceSetIds: string[] }) => region.sourceSetIds).every((id: string) => completedSetIds.has(id))).toBe(true)
   expect(persisted.state.missedOpportunityEvents[0].eligibility.removedExerciseNames.length).toBeGreaterThan(0)
   const firstOpen = persisted.state.sessions.find((session: { status: string }) => ['planned', 'deferred'].includes(session.status))
   expect(firstOpen.id).toBe(persisted.state.missedOpportunityEvents[0].nextSessionId)
@@ -313,6 +318,7 @@ test('records a missed opportunity and rebuilds only the open exposure queue fro
   await expect(planDecision).toContainText('removed from the first session')
   await expect(planDecision).toContainText('unknown readiness · missing')
   await expect(planDecision).toContainText('readiness remains unknown')
+  await expect(planDecision).toContainText('28-day priority dose · reviewed')
   if (testInfo.project.name === 'mobile-chromium') await planDecision.screenshot({ path: 'output/playwright/schedule-change-plan-mobile.png' })
   await page.getByRole('button', { name: 'Progress', exact: true }).click()
   const missedDay = page.locator('.calendar-grid > button.has-moved:not(.outside-month)').first()
@@ -598,7 +604,7 @@ test('turns imported exact history into athlete-reviewed placement evidence with
   }
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(21)
+  expect(persisted.version).toBe(22)
   expect(persisted.state.athlete.placement.ruleVersion).toBe('placement-v3')
   const benchInput = persisted.state.athlete.placement.inputs.movementProfiles.find((profile: { exerciseId: string }) => profile.exerciseId === 'competition-bench')
   const benchPlacement = persisted.state.athlete.placement.movementPlacements.find((placement: { exerciseId: string }) => placement.exerciseId === 'competition-bench')
@@ -703,7 +709,7 @@ test('filters the initial route queue through the selected training location', a
       planProfileId: state.mesocycles.find((plan: { id: string }) => plan.id === state.activeMesocycleId)?.generationEquipment?.profileId
     }
   })
-  expect(generated).toMatchObject({ persistenceVersion: 21, supportFits: true, planProfileId: 'equipment-home-gym' })
+  expect(generated).toMatchObject({ persistenceVersion: 22, supportFits: true, planProfileId: 'equipment-home-gym' })
   expect(generated.ruleVersions.every((value: string) => value === 'route-session-v3')).toBe(true)
   expect(generated.profileIds.every((value: string) => value === 'equipment-home-gym')).toBe(true)
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
@@ -774,7 +780,7 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
   await expect(page.getByText(/first work sets/i)).toBeVisible()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(21)
+  expect(persisted.version).toBe(22)
   expect(persisted.state.athlete.placement).toMatchObject({ ruleVersion: 'placement-v3', recommendedRoute: 'strength', selectedRoute: 'base-building', confidence: 'high', decision: 'conservative' })
   expect(persisted.state.athlete.placement.movementPlacements.map((movement: { exerciseId: string; selectedRoute: string }) => [movement.exerciseId, movement.selectedRoute])).toEqual([
     ['competition-squat', 'introductory-skill'], ['competition-bench', 'base-building'], ['sumo-deadlift', 'reacclimation']
@@ -858,7 +864,7 @@ test('turns warm-up, first-set, session, and recovery evidence into an auditable
   if (testInfo.project.name === 'mobile-chromium') await page.locator('.placement-profile-evidence').screenshot({ path: 'output/playwright/placement-verification-profile-mobile.png' })
 
   let persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(21)
+  expect(persisted.version).toBe(22)
   expect(persisted.state.placementVerifications).toHaveLength(1)
   expect(persisted.state.placementVerifications[0]).toMatchObject({ ruleVersion: 'placement-verification-v1', status: 'resolved', verdict: 'supports-route', warmupResponse: 'as-expected', recoveryResponse: 'recovered' })
   expect(persisted.state.history.some((workSet: { id: string }) => workSet.id === persisted.state.placementVerifications[0].firstSet.sourceSetId)).toBe(true)
@@ -944,7 +950,7 @@ test('turns repeated productive checks into an athlete-reviewed placement checkp
   await expect(checkpoint.getByRole('button', { name: 'Current evidence reviewed' })).toBeDisabled()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(21)
+  expect(persisted.version).toBe(22)
   expect(persisted.state.placementExitReviews).toHaveLength(1)
   expect(persisted.state.placementExitReviews[0]).toMatchObject({
     ruleVersion: 'placement-exit-review-v1',
@@ -1019,7 +1025,7 @@ test('keeps productive checkpoints independent per exact movement and saves the 
   await expect(lane.getByRole('button', { name: 'Current lane evidence reviewed' })).toBeDisabled()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(21)
+  expect(persisted.version).toBe(22)
   expect(persisted.state.movementPlacementExitReviews).toHaveLength(1)
   expect(persisted.state.movementPlacementExitReviews[0]).toMatchObject({
     ruleVersion: 'movement-placement-exit-review-v1', exerciseId: 'competition-bench', decision: 'continue-current',

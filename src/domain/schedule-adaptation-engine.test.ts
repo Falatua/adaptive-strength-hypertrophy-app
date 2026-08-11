@@ -60,6 +60,7 @@ const run = (overrides: Partial<Parameters<typeof buildMissedOpportunityReplan>[
   input: input(),
   continuity: 'stable',
   weeklyOpportunities: 3,
+  priorityRegions: ['chest', 'back', 'triceps'],
   exercises: structuredClone(exercises),
   equipmentProfile: structuredClone(equipmentProfiles[0]),
   safetyGateActive: false,
@@ -87,7 +88,7 @@ describe('missed-opportunity replanning', () => {
     const result = run({ input: input({ preferredNextSessionId: 'session-bench' }) })
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    expect(result.event.ruleVersion).toBe('missed-opportunity-v4')
+    expect(result.event.ruleVersion).toBe('missed-opportunity-v5')
     expect(result.event.queueAfter).toEqual(['session-bench', 'session-squat', 'session-deadlift'])
     expect(result.event.nextSessionId).toBe('session-bench')
     expect(result.event.reasons[0]).toMatch(/athlete pinned/i)
@@ -212,6 +213,51 @@ describe('missed-opportunity replanning', () => {
     if (!result.ok) return
     expect(result.event.completedSetCountAfter).toBe(result.event.completedSetCountBefore)
     expect(result.event.reasons.join(' ')).toMatch(/logged or imported/i)
+  })
+
+  it('uses relative 28-day priority-region dose only to resolve an otherwise equal queue choice', () => {
+    const sessions = structuredClone(seedSessions)
+    sessions[0].exercises = sessions[0].exercises.filter((planned) => planned.id !== 'plan-row')
+    const equalPrimaryHistory = [
+      { ...completedSet('competition-bench', '2026-08-08T12:00:00.000Z', 'equal-bench'), primaryRegion: 'chest' as const },
+      { ...completedSet('competition-squat', '2026-08-08T12:00:00.000Z', 'equal-squat'), primaryRegion: 'quadriceps' as const },
+      { ...completedSet('sumo-deadlift', '2026-08-08T12:00:00.000Z', 'equal-deadlift'), primaryRegion: 'glutes' as const },
+      { ...completedSet('coffin-press', '2026-08-02T12:00:00.000Z', 'chest-dose-1'), primaryRegion: 'chest' as const },
+      { ...completedSet('coffin-press', '2026-08-02T12:05:00.000Z', 'chest-dose-2'), primaryRegion: 'chest' as const }
+    ]
+    const result = run({ sessions, history: equalPrimaryHistory, priorityRegions: ['chest', 'back'] })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.event.nextSessionId).toBe('session-deadlift')
+    expect(result.event.priorityDose).toMatchObject({
+      ruleVersion: 'schedule-priority-dose-v1', windowDays: 28, appliedAsTieBreak: true,
+      selectedSessionId: 'session-deadlift', selectedGapScore: 3, selectedGapRegions: ['back']
+    })
+    expect(result.event.priorityDose?.regions).toEqual([
+      expect.objectContaining({ region: 'chest', completedSetCount: 3, relativeGapSets: 0, sourceSetIds: ['equal-bench', 'chest-dose-1', 'chest-dose-2'] }),
+      expect.objectContaining({ region: 'back', completedSetCount: 0, relativeGapSets: 3, sourceSetIds: [] })
+    ])
+    expect(result.event.openSetCountAfter).toBeLessThanOrEqual(result.event.openSetCountBefore)
+    expect(missedOpportunityEventError(result.event, result.sessions)).toBeNull()
+    expect(missedOpportunityEventError({ ...result.event, priorityDose: { ...result.event.priorityDose!, selectedGapScore: 99 } }, result.sessions)).toMatch(/selected priority-dose/i)
+  })
+
+  it('never lets relative priority-region dose override an athlete next-session pin', () => {
+    const sessions = structuredClone(seedSessions)
+    sessions[0].exercises = sessions[0].exercises.filter((planned) => planned.id !== 'plan-row')
+    const history = [
+      { ...completedSet('competition-bench', '2026-08-08T12:00:00.000Z', 'pin-bench'), primaryRegion: 'chest' as const },
+      { ...completedSet('competition-squat', '2026-08-08T12:00:00.000Z', 'pin-squat'), primaryRegion: 'quadriceps' as const },
+      { ...completedSet('sumo-deadlift', '2026-08-08T12:00:00.000Z', 'pin-deadlift'), primaryRegion: 'glutes' as const },
+      { ...completedSet('coffin-press', '2026-08-02T12:00:00.000Z', 'pin-chest-dose'), primaryRegion: 'chest' as const }
+    ]
+    const result = run({ sessions, history, priorityRegions: ['chest', 'back'], input: input({ preferredNextSessionId: 'session-bench' }) })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.event.nextSessionId).toBe('session-bench')
+    expect(result.event.priorityDose).toMatchObject({ appliedAsTieBreak: false, selectedSessionId: 'session-bench', selectedGapScore: 0, selectedGapRegions: [] })
+    expect(result.event.priorityDose?.reason).toMatch(/did not override/i)
+    expect(missedOpportunityEventError(result.event, result.sessions)).toBeNull()
   })
 
   it('rejects an opportunity in the past and a session that is already complete', () => {

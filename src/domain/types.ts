@@ -769,9 +769,41 @@ export interface ScheduleReadinessEvidence {
   reason: string
 }
 
+export interface SchedulePriorityRegionDosePoint {
+  region: BodyRegion
+  completedSetCount: number
+  relativeGapSets: number
+  lastCompletedAt: string | null
+  sourceSetIds: string[]
+}
+
+export interface SchedulePriorityDoseCandidate {
+  sessionId: string
+  coveredPriorityRegions: BodyRegion[]
+  largestGapRegions: BodyRegion[]
+  relativeGapScore: number
+  executablePlannedSetCount: number
+}
+
+export interface SchedulePriorityDoseEvidence {
+  ruleVersion: 'schedule-priority-dose-v1'
+  windowDays: 28
+  windowStartAt: string
+  windowEndAt: string
+  declaredPriorityRegions: BodyRegion[]
+  referenceCompletedSetCount: number
+  regions: SchedulePriorityRegionDosePoint[]
+  candidates: SchedulePriorityDoseCandidate[]
+  selectedSessionId: string
+  selectedGapScore: number
+  selectedGapRegions: BodyRegion[]
+  appliedAsTieBreak: boolean
+  reason: string
+}
+
 export interface MissedOpportunityEvent {
   id: string
-  ruleVersion: 'missed-opportunity-v1' | 'missed-opportunity-v2' | 'missed-opportunity-v3' | 'missed-opportunity-v4'
+  ruleVersion: 'missed-opportunity-v1' | 'missed-opportunity-v2' | 'missed-opportunity-v3' | 'missed-opportunity-v4' | 'missed-opportunity-v5'
   sessionId: string
   mesocycleId: string | null
   planVersion: number | null
@@ -798,6 +830,7 @@ export interface MissedOpportunityEvent {
   openSetCountAfter: number
   eligibility?: ScheduleEligibilityEvidence
   readiness?: ScheduleReadinessEvidence
+  priorityDose?: SchedulePriorityDoseEvidence
 }
 
 export interface WeeklyVolumePoint {

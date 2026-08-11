@@ -29,8 +29,8 @@ import { routeSessionGenerationError } from './route-session-engine'
 import { missedOpportunityEventError } from './schedule-adaptation-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 23
-export const BACKUP_APP_VERSION = '0.30.0'
+export const BACKUP_SCHEMA_VERSION = 24
+export const BACKUP_APP_VERSION = '0.31.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -274,6 +274,8 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   const sessionIds = new Set(sessions.flatMap((session) => isRecord(session) && typeof session.id === 'string' ? [session.id] : []))
   const mesocycleIds = new Set(mesocycles.flatMap((plan) => isRecord(plan) && typeof plan.id === 'string' ? [plan.id] : []))
   const completedSetIds = new Set(history.flatMap((workSet) => isRecord(workSet) && typeof workSet.id === 'string' ? [workSet.id] : []))
+  const completedSetRegions = new Map(history.flatMap((workSet) => isRecord(workSet) && typeof workSet.id === 'string' && typeof workSet.primaryRegion === 'string' ? [[workSet.id, workSet.primaryRegion]] : []))
+  const completedSetsById = new Map(history.flatMap((workSet) => isRecord(workSet) && typeof workSet.id === 'string' ? [[workSet.id, workSet]] : []))
   const surveyIds = new Set(surveys.flatMap((survey) => isRecord(survey) && typeof survey.id === 'string' ? [survey.id] : []))
   const substitutionEventIds = new Set(substitutionEvents.flatMap((event) => isRecord(event) && typeof event.id === 'string' ? [event.id] : []))
   const placementVerificationIds = new Set(placementVerifications.flatMap((event) => isRecord(event) && typeof event.id === 'string' ? [event.id] : []))
@@ -507,6 +509,31 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
     if (eventError) errors.push(`A missed opportunity event is invalid: ${eventError}`)
     if (isRecord(event) && isRecord(event.eligibility) && (typeof event.eligibility.equipmentProfileId !== 'string' || !equipmentProfileIds.has(event.eligibility.equipmentProfileId))) errors.push('A missed opportunity event references an unknown equipment profile.')
     if (isRecord(event) && isRecord(event.readiness) && event.readiness.sourceSurveyId !== null && (typeof event.readiness.sourceSurveyId !== 'string' || !surveyIds.has(event.readiness.sourceSurveyId))) errors.push('A missed opportunity event references an unknown readiness survey.')
+    if (isRecord(event) && isRecord(event.priorityDose) && Array.isArray(event.priorityDose.regions)) {
+      const priorityDose = event.priorityDose
+      const priorityDoseRegions = priorityDose.regions as unknown[]
+      const citedSourceIds: string[] = []
+      priorityDoseRegions.forEach((point) => {
+        if (!isRecord(point) || typeof point.region !== 'string' || !Array.isArray(point.sourceSetIds)) return
+        const sourceDates: string[] = []
+        point.sourceSetIds.forEach((sourceId) => {
+          if (typeof sourceId !== 'string' || !completedSetIds.has(sourceId)) errors.push('A missed opportunity priority-dose point references an unknown completed source set.')
+          else if (completedSetRegions.get(sourceId) !== point.region) errors.push('A missed opportunity priority-dose point references a completed source set from a different primary region.')
+          if (typeof sourceId === 'string') {
+            citedSourceIds.push(sourceId)
+            const sourceSet = completedSetsById.get(sourceId)
+            if (isRecord(sourceSet) && typeof sourceSet.completedAt === 'string') {
+              sourceDates.push(sourceSet.completedAt)
+              const completedAt = new Date(sourceSet.completedAt).getTime()
+              if (completedAt < new Date(String(priorityDose.windowStartAt)).getTime() || completedAt > new Date(String(priorityDose.windowEndAt)).getTime()) errors.push('A missed opportunity priority-dose source set falls outside its recorded window.')
+            }
+          }
+        })
+        const expectedLastCompletedAt = sourceDates.reduce<string | null>((latest, completedAt) => !latest || new Date(completedAt) > new Date(latest) ? completedAt : latest, null)
+        if (point.lastCompletedAt !== expectedLastCompletedAt) errors.push('A missed opportunity priority-dose point has an invalid latest completion date.')
+      })
+      if (new Set(citedSourceIds).size !== citedSourceIds.length) errors.push('A missed opportunity priority-dose source set is cited more than once.')
+    }
   })
 
   substitutionEvents.forEach((event) => {
@@ -902,6 +929,18 @@ function migrateV22(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV23(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  validateState(candidate.data, true)
+  return {
+    data: candidate.data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 23 backup migrated safely. Existing readiness-aware schedule decisions remain replayable; relative priority-region dose evidence begins with version 5 check-ins.'
+  }
+}
+
 export function parseBackup(raw: string): BackupPreview {
   let candidate: unknown
   try {
@@ -1003,6 +1042,10 @@ export function parseBackup(raw: string): BackupPreview {
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 22) {
     const migrated = migrateV22(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 23) {
+    const migrated = migrateV23(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {

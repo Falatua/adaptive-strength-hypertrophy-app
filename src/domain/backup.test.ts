@@ -403,6 +403,7 @@ describe('versioned backup and restore', () => {
       eventId: 'missed-opportunity-backup-1', sessions: current.sessions, history: current.history,
       priorEvents: [], missedSessionId: current.sessions[0].id, continuity: current.athlete.continuity,
       weeklyOpportunities: current.athlete.weeklyOpportunities, recordedAt,
+      priorityRegions: current.athlete.priorityRegions,
       exercises: current.exercises, equipmentProfile: current.equipmentProfiles[0], safetyGateActive: false,
       surveys: current.surveys,
       input: {
@@ -419,15 +420,22 @@ describe('versioned backup and restore', () => {
     const parsed = parseBackup(JSON.stringify(backup))
     expect(parsed.summary.missedOpportunityEvents).toBe(1)
     expect(parsed.backup.data.missedOpportunityEvents[0]).toMatchObject({
-      id: 'missed-opportunity-backup-1', ruleVersion: 'missed-opportunity-v4',
+      id: 'missed-opportunity-backup-1', ruleVersion: 'missed-opportunity-v5',
       completedSetCountBefore: current.history.length, completedSetCountAfter: current.history.length
     })
+    expect(parsed.backup.data.missedOpportunityEvents[0].priorityDose).toMatchObject({ ruleVersion: 'schedule-priority-dose-v1', windowDays: 28 })
     expect(parsed.backup.data.missedOpportunityEvents[0].readiness).toMatchObject({ sourceSurveyId: 'readiness-survey-backup-1', freshness: 'current', effectiveOutcome: 'confirm', action: 'confirm-at-warmup' })
 
     const forgedReadiness = createBackup(current)
     forgedReadiness.data.missedOpportunityEvents[0].readiness!.sourceSurveyId = 'missing-readiness-survey'
     forgedReadiness.integrity.value = fnv1a32(stable(forgedReadiness.data))
     expect(() => parseBackup(JSON.stringify(forgedReadiness))).toThrow(/unknown readiness survey/i)
+
+    const forgedPriority = createBackup(current)
+    const citedRegion = forgedPriority.data.missedOpportunityEvents[0].priorityDose!.regions.find((region) => region.sourceSetIds.length > 0)!
+    citedRegion.sourceSetIds[0] = 'missing-priority-source-set'
+    forgedPriority.integrity.value = fnv1a32(stable(forgedPriority.data))
+    expect(() => parseBackup(JSON.stringify(forgedPriority))).toThrow(/unknown completed source set/i)
 
     backup.data.missedOpportunityEvents[0].completedSetCountAfter += 1
     backup.integrity.value = fnv1a32(stable(backup.data))
@@ -443,6 +451,7 @@ describe('versioned backup and restore', () => {
       eventId: 'legacy-missed-v1', sessions: current.sessions, history: current.history, priorEvents: [],
       missedSessionId: current.sessions[0].id, continuity: current.athlete.continuity,
       weeklyOpportunities: current.athlete.weeklyOpportunities, recordedAt,
+      priorityRegions: current.athlete.priorityRegions,
       exercises: current.exercises, equipmentProfile: current.equipmentProfiles[0], safetyGateActive: false,
       input: { trainingOutcome: 'no-training', reason: 'family', nextOpportunityAt: nextOpportunity.toISOString(), nextMinutes: 30, constraintState: 'ended', note: '', preferredNextSessionId: null }
     })
@@ -453,6 +462,7 @@ describe('versioned backup and restore', () => {
     delete legacyEvent.input.preferredNextSessionId
     delete legacyEvent.eligibility
     delete legacyEvent.readiness
+    delete legacyEvent.priorityDose
     current.sessions = result.sessions
     current.missedOpportunityEvents = [legacyEvent]
     const legacyData = structuredClone(current)
@@ -475,6 +485,7 @@ describe('versioned backup and restore', () => {
       eventId: 'legacy-missed-v2', sessions: current.sessions, history: current.history, priorEvents: [],
       missedSessionId: pinnedSessionId, continuity: current.athlete.continuity,
       weeklyOpportunities: current.athlete.weeklyOpportunities, recordedAt,
+      priorityRegions: current.athlete.priorityRegions,
       exercises: current.exercises, equipmentProfile: current.equipmentProfiles[0], safetyGateActive: false,
       input: { trainingOutcome: 'no-training', reason: 'family', nextOpportunityAt: nextOpportunity.toISOString(), nextMinutes: 30, constraintState: 'ended', note: '', preferredNextSessionId: pinnedSessionId }
     })
@@ -484,6 +495,7 @@ describe('versioned backup and restore', () => {
     legacyEvent.ruleVersion = 'missed-opportunity-v2'
     delete legacyEvent.eligibility
     delete legacyEvent.readiness
+    delete legacyEvent.priorityDose
     current.sessions = result.sessions
     current.missedOpportunityEvents = [legacyEvent]
     const legacyData = structuredClone(current)
@@ -505,6 +517,7 @@ describe('versioned backup and restore', () => {
       eventId: 'legacy-missed-v3', sessions: current.sessions, history: current.history, priorEvents: [],
       missedSessionId: current.sessions[0].id, continuity: current.athlete.continuity,
       weeklyOpportunities: current.athlete.weeklyOpportunities, recordedAt,
+      priorityRegions: current.athlete.priorityRegions,
       exercises: current.exercises, equipmentProfile: current.equipmentProfiles[0], safetyGateActive: false,
       input: { trainingOutcome: 'no-training', reason: 'family', nextOpportunityAt: nextOpportunity.toISOString(), nextMinutes: 30, constraintState: 'ended', note: '', preferredNextSessionId: null }
     })
@@ -513,6 +526,7 @@ describe('versioned backup and restore', () => {
     const legacyEvent = structuredClone(result.event)
     legacyEvent.ruleVersion = 'missed-opportunity-v3'
     delete legacyEvent.readiness
+    delete legacyEvent.priorityDose
     current.sessions = result.sessions
     current.missedOpportunityEvents = [legacyEvent]
     const legacyData = structuredClone(current)
@@ -524,6 +538,38 @@ describe('versioned backup and restore', () => {
     expect(parsed.backup.data.missedOpportunityEvents[0]).toMatchObject({ id: 'legacy-missed-v3', ruleVersion: 'missed-opportunity-v3', eligibility: { ruleVersion: 'schedule-eligibility-v1' } })
     expect(parsed.backup.data.missedOpportunityEvents[0].readiness).toBeUndefined()
     expect(parsed.warnings[0]).toMatch(/version 22/i)
+  })
+
+  it('migrates a verified version 23 backup while preserving version 4 readiness decisions', () => {
+    const current = state()
+    const recordedAt = current.sessions[0].plannedDate
+    const nextOpportunity = new Date(recordedAt)
+    nextOpportunity.setDate(nextOpportunity.getDate() + 1)
+    const result = buildMissedOpportunityReplan({
+      eventId: 'legacy-missed-v4', sessions: current.sessions, history: current.history, priorEvents: [],
+      missedSessionId: current.sessions[0].id, continuity: current.athlete.continuity,
+      weeklyOpportunities: current.athlete.weeklyOpportunities, recordedAt,
+      priorityRegions: current.athlete.priorityRegions,
+      exercises: current.exercises, equipmentProfile: current.equipmentProfiles[0], safetyGateActive: false,
+      surveys: [],
+      input: { trainingOutcome: 'no-training', reason: 'family', nextOpportunityAt: nextOpportunity.toISOString(), nextMinutes: 30, constraintState: 'ended', note: '', preferredNextSessionId: null }
+    })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    const legacyEvent = structuredClone(result.event)
+    legacyEvent.ruleVersion = 'missed-opportunity-v4'
+    delete legacyEvent.priorityDose
+    current.sessions = result.sessions
+    current.missedOpportunityEvents = [legacyEvent]
+    const legacyData = structuredClone(current)
+    const legacy = {
+      format: BACKUP_FORMAT, schemaVersion: 23, appVersion: '0.30.0', exportedAt: '2026-08-10T12:00:00.000Z', data: legacyData,
+      integrity: { algorithm: 'fnv1a32', value: fnv1a32(stable(legacyData)) }
+    }
+    const parsed = parseBackup(JSON.stringify(legacy))
+    expect(parsed.backup.data.missedOpportunityEvents[0]).toMatchObject({ id: 'legacy-missed-v4', ruleVersion: 'missed-opportunity-v4', readiness: { ruleVersion: 'schedule-readiness-v1' } })
+    expect(parsed.backup.data.missedOpportunityEvents[0].priorityDose).toBeUndefined()
+    expect(parsed.warnings[0]).toMatch(/version 23/i)
   })
 
   it('round-trips route-generated sessions and rejects forged route provenance', () => {
