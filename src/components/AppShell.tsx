@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar__footer">
           <Sparkles size={16} />
-          <span>Rules v0.27.0<br /><small>Local and private</small></span>
+          <span>Rules v0.28.0<br /><small>Local and private</small></span>
         </div>
       </aside>
       <main id="main-content" className="main-content">{children}</main>

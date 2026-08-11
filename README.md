@@ -1,4 +1,4 @@
-# ForgePath Private Alpha 0.27.0
+# ForgePath Private Alpha 0.28.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
@@ -31,7 +31,7 @@ npm run test:e2e
 
 ## Current verification
 
-- 177 deterministic domain tests
+- 180 deterministic domain tests
 - forty-four desktop and phone browser journeys for auditable missed-opportunity rebuilding, source-backed records, linked calendar and exact exposure history, explainable athlete placement, athlete-reviewed exact-history evidence, plan-route and exact-movement criterion exits, equipment-aware route generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
 - lint clean
 - production PWA build clean
@@ -58,7 +58,7 @@ npm run test:e2e
 - changing a protected primary cancels that session's active check for the original exact movement; the replacement keeps its own completed history and substitution evidence, while the original movement loses neither a verification opportunity nor receives borrowed confirmation
 - calendar-exposure-v1 keeps planned dates, actual completed dates, moved or stopped opportunities, exact source-set volume, imported or unlinked activity, per-movement exposure order, calendar gaps, and explicit fixed-event countdowns separate but linked
 - the calendar never converts an empty day into missed-work debt, while exposure order uses only the selected canonical movement and describes load, repetition, set, or volume changes without authorizing progression
-- missed-opportunity-v1 records whether other training happened, the disruption reason and state, next realistic date and minutes, optional athlete context, the complete queue before and after, every moved session, exact-primary exposure evidence, continuity change, and completed-set conservation
+- missed-opportunity-v2 records whether other training happened, the disruption reason and state, next realistic date and minutes, optional athlete context, an optional athlete-controlled next-session pin, the complete queue before and after, every moved session, exact-primary exposure evidence, continuity change, and completed-set conservation
 - one miss may defer and time-fit the highest-value exact exposure; repeated misses rebuild the open sequence and remove optional fatigue; ongoing illness, pain, or a longer interruption requests reacclimation without diagnosing the athlete
 - completed, partial, expired, and stopped sessions remain in the ledger; reported but unlogged training earns no credit; current plans move to the new date while the original missed date remains visible in Progress
 - painful verification pauses the next automatic workout start, while skipped warm-up, survey, or recovery answers remain unknown and never erase completed training

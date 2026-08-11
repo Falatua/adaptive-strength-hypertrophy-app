@@ -13,6 +13,7 @@ const input = (overrides: Partial<MissedOpportunityInput> = {}): MissedOpportuni
   nextMinutes: 45,
   constraintState: 'continuing',
   note: 'Childcare changed the week.',
+  preferredNextSessionId: null,
   ...overrides
 })
 
@@ -62,6 +63,26 @@ describe('missed-opportunity replanning', () => {
     expect(result.sessions.find((session) => session.id === 'session-bench')?.status).toBe('planned')
     expect(result.event.openSetCountAfter).toBeLessThanOrEqual(result.event.openSetCountBefore)
     expect(result.event.completedSetCountAfter).toBe(result.event.completedSetCountBefore)
+  })
+
+  it('honors an athlete pin while retaining exact-exposure order for the remaining queue', () => {
+    const result = run({ input: input({ preferredNextSessionId: 'session-bench' }) })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.event.ruleVersion).toBe('missed-opportunity-v2')
+    expect(result.event.queueAfter).toEqual(['session-bench', 'session-squat', 'session-deadlift'])
+    expect(result.event.nextSessionId).toBe('session-bench')
+    expect(result.event.reasons[0]).toMatch(/athlete pinned/i)
+    expect(missedOpportunityEventError(result.event, result.sessions)).toBeNull()
+  })
+
+  it('rejects a stale or forged preferred session', () => {
+    const stale = run({ input: input({ preferredNextSessionId: 'missing-session' }) })
+    expect(stale).toMatchObject({ ok: false, error: expect.stringMatching(/no longer in the open queue/i) })
+    const result = run({ input: input({ preferredNextSessionId: 'session-bench' }) })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(missedOpportunityEventError({ ...result.event, nextSessionId: 'session-squat' }, result.sessions)).toMatch(/was not honored/i)
   })
 
   it('preserves completed, partial, expired, and stopped session objects instead of deleting the ledger', () => {

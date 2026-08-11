@@ -716,6 +716,7 @@ export interface MissedOpportunityInput {
   nextMinutes: number
   constraintState: ScheduleConstraintState
   note: string
+  preferredNextSessionId?: string | null
 }
 
 export interface ScheduleAdaptationChange {
@@ -732,7 +733,7 @@ export interface ScheduleAdaptationChange {
 
 export interface MissedOpportunityEvent {
   id: string
-  ruleVersion: 'missed-opportunity-v1'
+  ruleVersion: 'missed-opportunity-v1' | 'missed-opportunity-v2'
   sessionId: string
   mesocycleId: string | null
   planVersion: number | null

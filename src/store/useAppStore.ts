@@ -989,7 +989,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 18,
+      version: 19,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,

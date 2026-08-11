@@ -32,7 +32,7 @@ export function TodayScreen() {
   const [equipmentGateOpen, setEquipmentGateOpen] = useState(false)
   const [pendingStart, setPendingStart] = useState<{ answers: SurveyAnswer[]; skipped: boolean; mode: EffectiveSurveyMode; minutes: number } | null>(null)
   const [placementExitAssessedAt] = useState(() => new Date().toISOString())
-  const [missReason, setMissReason] = useState<MissedOpportunityInput>({ reason: 'family', trainingOutcome: 'no-training', nextOpportunityAt: dateInputFor(1), nextMinutes: 45, constraintState: 'continuing', note: '' })
+  const [missReason, setMissReason] = useState<MissedOpportunityInput>({ reason: 'family', trainingOutcome: 'no-training', nextOpportunityAt: dateInputFor(1), nextMinutes: 45, constraintState: 'continuing', note: '', preferredNextSessionId: null })
   const [missError, setMissError] = useState<string | null>(null)
   const nextSession = sessions.find((session) => ['planned', 'deferred'].includes(session.status)) ?? sessions[0]
   const primaryPlan = nextSession?.exercises.find((exercise) => exercise.role === 'primary')
@@ -306,6 +306,7 @@ export function TodayScreen() {
         </select></label>
         <label><span className="field-label">Next realistic opportunity</span><input type="date" min={dateInputFor(0)} value={missReason.nextOpportunityAt} onChange={(event) => setMissReason((current) => ({ ...current, nextOpportunityAt: event.target.value }))} /></label>
         <label><span className="field-label">Minutes likely available</span><select id="next-time" value={missReason.nextMinutes} onChange={(event) => setMissReason((current) => ({ ...current, nextMinutes: Number(event.target.value) }))}>{[15, 30, 45, 60, 75, 90].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}</select></label>
+        <label><span className="field-label">Which session should lead?</span><select value={missReason.preferredNextSessionId ?? ''} onChange={(event) => setMissReason((current) => ({ ...current, preferredNextSessionId: event.target.value || null }))}><option value="">Recommend from completed exposure</option>{sessions.filter((session) => ['planned', 'deferred'].includes(session.status)).map((session) => <option key={session.id} value={session.id}>Pin {session.title}</option>)}</select><small className="field-help">A pin overrides the first choice only. ForgePath still orders the remaining queue from exact completed work.</small></label>
         </div>
         <fieldset className="missed-checkin__state"><legend>What is the disruption doing now?</legend>{([
           ['ended', 'Ended', 'Return to the normal queue with the declared time.'],

@@ -10,7 +10,8 @@ import type {
 } from './types'
 import { compressSession } from './training-engine'
 
-export const MISSED_OPPORTUNITY_RULE_VERSION = 'missed-opportunity-v1' as const
+export const MISSED_OPPORTUNITY_RULE_VERSION = 'missed-opportunity-v2' as const
+const SUPPORTED_MISSED_OPPORTUNITY_RULE_VERSIONS = ['missed-opportunity-v1', MISSED_OPPORTUNITY_RULE_VERSION] as const
 
 interface ReplanRequest {
   eventId: string
@@ -82,6 +83,7 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
 
   const queueBeforeSessions = request.sessions.filter((session) => OPEN_STATUSES.includes(session.status))
   if (!queueBeforeSessions.length) return { ok: false, error: 'There is no open exposure queue to rebuild.' }
+  if (request.input.preferredNextSessionId && !queueBeforeSessions.some((session) => session.id === request.input.preferredNextSessionId)) return { ok: false, error: 'The preferred next session is no longer in the open queue.' }
   const lastCompletedAt = request.history.reduce<string | null>((latest, workSet) => !latest || new Date(workSet.completedAt) > new Date(latest) ? workSet.completedAt : latest, null)
   const relevantPriorMisses = request.priorEvents.filter((event) => (!lastCompletedAt || new Date(event.recordedAt) > new Date(lastCompletedAt)) && event.mesocycleId === (missed.mesocycleId ?? null))
   const consecutiveMisses = relevantPriorMisses.length + 1
@@ -94,9 +96,12 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
     const daysSinceExposure = lastExposureAt ? calendarDaysBetween(lastExposureAt, recordedAt) : null
     return { session, originalIndex, primaryExerciseId, lastExposureAt, daysSinceExposure }
   }).sort((a, b) => {
+    const aPinned = a.session.id === request.input.preferredNextSessionId ? 1 : 0
+    const bPinned = b.session.id === request.input.preferredNextSessionId ? 1 : 0
     const aPriority = a.daysSinceExposure ?? 10_000
     const bPriority = b.daysSinceExposure ?? 10_000
-    return bPriority - aPriority
+    return bPinned - aPinned
+      || bPriority - aPriority
       || new Date(a.session.plannedDate).getTime() - new Date(b.session.plannedDate).getTime()
       || a.originalIndex - b.originalIndex
   })
@@ -138,6 +143,7 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
   const openSetCountBefore = queueBeforeSessions.reduce((total, session) => total + setCount(session), 0)
   const openSetCountAfter = adaptedQueue.reduce((total, session) => total + setCount(session), 0)
   const reasons = [
+    ...(request.input.preferredNextSessionId ? [`The athlete pinned ${next.session.title} as the next session; exact-exposure recency still orders the remaining queue.`] : []),
     next.daysSinceExposure === null
       ? 'The next protected primary has no completed exact exposure, so its baseline remains unresolved.'
       : `The next protected primary has waited ${next.daysSinceExposure} calendar day${next.daysSinceExposure === 1 ? '' : 's'} since its latest completed exact exposure.`,
@@ -161,7 +167,7 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
     recordedAt,
     plannedAt: missed.plannedDate,
     priorStatus: missed.status,
-    input: { ...request.input, note: request.input.note.trim() },
+    input: { ...request.input, preferredNextSessionId: request.input.preferredNextSessionId ?? null, note: request.input.note.trim() },
     continuityBefore: request.continuity,
     continuityAfter: continuity,
     consecutiveMisses,
@@ -188,13 +194,15 @@ export function missedOpportunityEventError(value: unknown, sessions: TrainingSe
   if (!value || typeof value !== 'object' || Array.isArray(value)) return 'Missed-opportunity evidence is not an object.'
   const event = value as Partial<MissedOpportunityEvent>
   const sessionIds = new Set(sessions.map((session) => session.id))
-  if (event.ruleVersion !== MISSED_OPPORTUNITY_RULE_VERSION) return 'Missed-opportunity rule version is invalid.'
+  if (!SUPPORTED_MISSED_OPPORTUNITY_RULE_VERSIONS.includes(event.ruleVersion as typeof SUPPORTED_MISSED_OPPORTUNITY_RULE_VERSIONS[number])) return 'Missed-opportunity rule version is invalid.'
   if (typeof event.id !== 'string' || !event.id) return 'Missed-opportunity ID is missing.'
   if (typeof event.sessionId !== 'string' || !sessionIds.has(event.sessionId)) return 'Missed opportunity references an unknown session.'
   if (typeof event.nextSessionId !== 'string' || !sessionIds.has(event.nextSessionId)) return 'Missed opportunity references an unknown next session.'
   if (!event.input || !['family', 'work', 'time', 'travel', 'sleep', 'illness', 'pain', 'equipment', 'motivation', 'other'].includes(event.input.reason)) return 'Missed-opportunity reason is invalid.'
   if (!event.input || !['no-training', 'different-training-unlogged'].includes(event.input.trainingOutcome)) return 'Missed-opportunity training outcome is invalid.'
   if (!event.input || !['ended', 'continuing', 'uncertain'].includes(event.input.constraintState)) return 'Missed-opportunity constraint state is invalid.'
+  if (event.ruleVersion === MISSED_OPPORTUNITY_RULE_VERSION && event.input?.preferredNextSessionId === undefined) return 'Missed-opportunity preference evidence is missing.'
+  if (event.input?.preferredNextSessionId !== undefined && event.input.preferredNextSessionId !== null && (typeof event.input.preferredNextSessionId !== 'string' || !sessionIds.has(event.input.preferredNextSessionId))) return 'Missed-opportunity preferred session is invalid.'
   if (!event.input || Number.isNaN(new Date(event.input.nextOpportunityAt).getTime()) || !Number.isFinite(event.input.nextMinutes) || event.input.nextMinutes < 15 || event.input.nextMinutes > 90 || typeof event.input.note !== 'string' || event.input.note.length > 500) return 'Missed-opportunity next-step input is invalid.'
   if (!event.recordedAt || Number.isNaN(new Date(event.recordedAt).getTime()) || !event.plannedAt || Number.isNaN(new Date(event.plannedAt).getTime())) return 'Missed-opportunity dates are invalid.'
   if (!['planned', 'deferred'].includes(String(event.priorStatus))) return 'Missed-opportunity prior status is invalid.'
@@ -202,6 +210,7 @@ export function missedOpportunityEventError(value: unknown, sessions: TrainingSe
   if (!['defer-one', 'rebuild-sequence', 'reacclimation-review'].includes(String(event.mode)) || !Number.isInteger(event.consecutiveMisses) || Number(event.consecutiveMisses) < 1) return 'Missed-opportunity decision mode is invalid.'
   if (![event.queueBefore, event.queueAfter, event.reasons, event.changes, event.preservedTerminalSessionIds].every(Array.isArray)) return 'Missed-opportunity replay evidence is incomplete.'
   if ([...(event.queueBefore ?? []), ...(event.queueAfter ?? []), ...(event.preservedTerminalSessionIds ?? [])].some((id) => typeof id !== 'string' || !sessionIds.has(id))) return 'Missed-opportunity queue references an unknown session.'
+  if (event.input?.preferredNextSessionId && (!(event.queueBefore ?? []).includes(event.input.preferredNextSessionId) || event.nextSessionId !== event.input.preferredNextSessionId)) return 'Missed-opportunity preferred session was not honored.'
   if ((event.changes ?? []).some((change) => !change || typeof change !== 'object' || !sessionIds.has(change.sessionId) || Number.isNaN(new Date(change.fromPlannedAt).getTime()) || Number.isNaN(new Date(change.toPlannedAt).getTime()) || !Number.isFinite(change.fromSetCount) || !Number.isFinite(change.toSetCount))) return 'Missed-opportunity session changes are invalid.'
   if (event.completedSetCountBefore !== event.completedSetCountAfter) return 'Missed-opportunity evidence cannot create or remove completed sets.'
   if (!Number.isFinite(event.openSetCountBefore) || !Number.isFinite(event.openSetCountAfter) || Number(event.openSetCountAfter) > Number(event.openSetCountBefore)) return 'Missed-opportunity evidence contains catch-up volume.'
