@@ -31,9 +31,17 @@ export function CloudSyncPanel() {
         setCheckingSession(false)
       })
       const { data: listener } = client.auth.onAuthStateChange((_event, nextSession) => {
-        if (mounted) setSession(nextSession)
+        if (mounted) {
+          setSession(nextSession)
+          setCheckingSession(false)
+          if (!nextSession) setCloudCopy(null)
+        }
       })
       unsubscribe = () => listener.subscription.unsubscribe()
+    }).catch((cause: unknown) => {
+      if (!mounted) return
+      setError(cause instanceof Error ? cause.message : 'The private cloud session could not be checked.')
+      setCheckingSession(false)
     })
     return () => {
       mounted = false
@@ -121,9 +129,9 @@ export function CloudSyncPanel() {
 
   if (cloudConfiguration.status !== 'ready') {
     return <section className="panel cloud-panel cloud-panel--pending" aria-label="Cloud sync setup">
-      <div className="panel__header"><div><p className="eyebrow">Cloud foundation</p><h3>Dedicated project pending</h3></div><CloudOff size={19} /></div>
+      <div className="panel__header"><div><p className="eyebrow">Private cloud</p><h3>Release gate closed</h3></div><CloudOff size={19} /></div>
       <div className="cloud-boundary"><ShieldCheck size={23} /><div><strong>Local training stays available</strong><p>{cloudConfiguration.reason} No JB-OS or Roman TD data will be reused.</p></div></div>
-      <p className="chart-note">The app is ready for a ForgePath Supabase URL and browser-safe publishable key. Service-role keys and database passwords never belong in this app.</p>
+      <p className="chart-note">This build contains no cloud endpoint or publishable key. Service-role keys and database passwords never belong in the app.</p>
     </section>
   }
 
@@ -132,7 +140,7 @@ export function CloudSyncPanel() {
   }
 
   return <section className="panel cloud-panel" aria-label="Cloud sync">
-    <div className="panel__header"><div><p className="eyebrow">Private cloud</p><h3>{session ? 'Account and device sync' : 'Connect your invited account'}</h3></div><Cloud size={19} /></div>
+    <div className="panel__header"><div><p className="eyebrow">Private cloud</p><h3>{session ? 'Manual cross-device checkpoint' : 'Connect your invited account'}</h3></div><Cloud size={19} /></div>
     {!session ? <>
       <p className="callout-copy">Only an email already invited to this private alpha can sign in. Asking for a link never creates a public account.</p>
       <label className="cloud-email"><span className="field-label">Invited email</span><span><Mail size={16} /><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /></span></label>

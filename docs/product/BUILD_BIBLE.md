@@ -5,7 +5,7 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-11
 status: canonical-build-reference-and-active-implementation
-version: 1.47.0
+version: 1.48.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -6226,7 +6226,7 @@ Every normalized table enables and forces Row Level Security. Authenticated clie
 
 Completed sets retain entered load and unit, normalized kilograms, repetitions, exact exercise identity, movement family, exclusive primary region, non-additive involved regions, source device, source event, version, and completion time. `volume_load_kg` is a stored generated value equal to normalized load multiplied by repetitions. Security-invoker views produce source-set facts and daily, weekly, monthly, and yearly rollups for total training and exclusive primary-region scopes. Survey answers store `answered`, `skipped`, `not-sure`, `prefer-not`, and `not-answered` explicitly, and only an answered row may contain a value.
 
-The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the private source repository. Both committed migrations were applied transactionally on 2026-08-11. A live catalog audit confirmed fourteen of fourteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, eighteen authenticated ownership policies, and one snapshot RPC. Browser-safe project configuration is stored only as private GitHub Actions secrets, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The variable remains unset until remote public signup is disabled. App version 0.39.0, backup schema 25, and local persistence 23 remain unchanged because the deployed client still uses explicit snapshot save and reviewed restore rather than normalized entity sync.
+The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the private source repository. Both committed migrations were applied transactionally on 2026-08-11. The repaired remote migration ledger matches the exact committed files by SHA-256. A live catalog audit confirmed fourteen of fourteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed nine identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as private GitHub Actions secrets, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The variable remains unset until one approved athlete is invited and a real phone-to-laptop recovery drill passes. App version 0.39.1, backup schema 25, and local persistence 23 preserve the explicit snapshot save and reviewed restore boundary rather than claiming normalized entity sync.
 
 ## 79. Exact-Movement Workout Notes and Longitudinal Recall
 
@@ -6267,6 +6267,42 @@ The existing cloud bootstrap snapshot automatically includes notes because it pr
 ### 79.7 Acceptance Gate
 
 Release requires deterministic coverage for create, update, clear, exact-slot separation after substitution, newest-first recall, merge identity preservation, schema migration, backup round trip, and forged-reference rejection. Desktop and phone browser journeys must type a note in an active workout, leave without finishing, open the exact movement in Library, verify the note and stored identity, check horizontal containment, and report zero browser errors.
+
+## 80. Supabase Reliability and Release Evidence Contract
+
+### 80.1 Migration History Is Product State
+
+The remote database objects and the Supabase migration ledger must agree. Applying SQL manually without recording its timestamp, name, and exact content is drift even when every table appears correct, because later CLI comparison depends on `supabase_migrations.schema_migrations`. Every reviewed migration has a committed SHA-256 digest. Remote repair must use the exact committed file and must be verified by digest, never reconstructed from memory or copied from an editor buffer.
+
+### 80.2 Repeatable Live Acceptance
+
+The repository owns two production checks. The read-only acceptance audit proves migration checksums, fourteen forced-RLS tables, absence of normalized browser mutations, the exact four ownership/device mutations, two security-invoker volume views, and authenticated-only snapshot execution. The transactional drill creates two reserved test identities, exercises the authenticated role, registers one owned device, proves projection writes fail, applies a snapshot, replays it idempotently, preserves a stale conflict, proves current-snapshot invariants, proves the second identity sees no first-identity cloud rows, and then rolls back. A separate query must confirm zero reserved test users and rows remain.
+
+### 80.3 Browser Contract and Untrusted Responses
+
+The browser accepts only a canonical HTTPS Supabase project origin and a browser-safe modern publishable key or legacy anonymous JWT. It rejects credentialed URLs, paths, queries, fragments, ports, non-project hosts, incomplete configuration, and arbitrary secret-shaped strings. A checked-in TypeScript database contract covers every table and function currently called by the browser.
+
+Every pending snapshot envelope must contain valid event and device UUIDs, positive device sequence, nonnegative base version, valid queue time, and a backup that passes the complete schema and integrity validator. Invalid local outbox data is removed rather than sent. The RPC result is untrusted until status, safe integer version, and exact event identity match the queued request.
+
+### 80.4 Retry, Conflict, and Restore Invariants
+
+A network or server failure retains the exact event ID, device sequence, base version, payload, and checksum for retry. A confirmed exact replay clears the outbox and advances local confirmed metadata once. If state changed while an earlier event waited, the older event is delivered first and the current state is then queued against the acknowledged version. A conflict retains the local outbox and local base version. Only a successful accepted save or athlete-approved restore clears pending state.
+
+### 80.5 Release Boundary
+
+Public signup stays disabled. The public Pages artifact receives the project URL and publishable key only when `FORGEPATH_CLOUD_RELEASE_ENABLED` is exactly `true`. The switch cannot be enabled until an approved athlete accepts a real invitation, an uninvited address cannot create an account, phone and laptop complete explicit save/check/restore with integrity and undo, and offline retry recovers without data loss. This manual checkpoint path is not automatic synchronization, entity merge, new-device hydration, or active-workout handoff.
+
+### 80.6 Algorithmic Data Coverage
+
+The validated whole-state snapshot includes athlete and placement inputs, settings, equipment profiles, canonical exercises and preferences, sessions, completed source sets, movement notes, surveys and explicit missingness, deferred feedback, personal-record projections, corrections, cycle reviews, substitutions, placement verification and exits, missed-opportunity events, mesocycles, and active plan and session identities. This preserves the current deterministic algorithm inputs across a reviewed restore. Interface-only state such as whether the workout screen is visibly open is not part of the restorable contract and cannot be represented as active-workout handoff.
+
+### Version 1.48.0 Change Entry
+
+- Added R-377 through R-383 and Chapter 80 for migration-ledger integrity, repeatable live acceptance, typed browser contracts, outbox and response hardening, rolled-back isolation proof, and the remaining release gate.
+- Repaired the remote Supabase migration ledger from exact committed migration files and verified both SHA-256 digests.
+- Disabled public signup and verified persistence after reload.
+- Passed six live read-only acceptance checks and nine fully rolled-back authenticated sync and isolation checks, then proved zero test rows remained.
+- Advanced the working application to private alpha 0.39.1 while preserving backup schema 25, local persistence 23, explicit snapshot save, reviewed restore, and the honest boundary around automatic sync.
 
 ### Version 1.47.0 Change Entry
 

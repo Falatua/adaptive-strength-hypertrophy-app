@@ -12,7 +12,7 @@ This directory records the complete product and implementation specification in 
 - [Pixel Training Adventure](PIXEL_TRAINING_ADVENTURE.md): original character world, evolving companion, XP, level-up, evolution, accessibility, and asset rules.
 - [Exercise Library and Recommendations](EXERCISE_LIBRARY_AND_RECOMMENDATIONS.md): catalog identity, preferences, contextual exercise rules, substitutions, and recommendation behavior.
 - [Cloud Sync and Backend](CLOUD_SYNC_AND_BACKEND.md): phone-laptop parity, local-first storage, authenticated synchronization, workout handoff, conflicts, security, and recovery.
-- [Supabase Backend Runbook](SUPABASE_BACKEND_RUNBOOK.md): current project-limit blocker, activation sequence, credential boundaries, remote acceptance gates, and next backend slices.
+- [Supabase Backend Runbook](SUPABASE_BACKEND_RUNBOOK.md): live project state, migration checksums, credential boundaries, repeatable acceptance gates, remaining invitation drill, and next backend slices.
 
 JB's Dropbox-backed Obsidian vault remains the editable source of truth. These files are release snapshots and must be refreshed from Obsidian whenever a substantive app release changes the shared brain.
 

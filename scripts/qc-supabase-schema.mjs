@@ -1,8 +1,13 @@
 import { readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { resolve } from 'node:path'
 
-const foundationPath = resolve('supabase/migrations/20260811000100_forgepath_cloud_foundation.sql')
-const trainingCorePath = resolve('supabase/migrations/20260811000200_forgepath_training_core.sql')
+const manifestPath = resolve('supabase/migrations/manifest.json')
+const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+const migrationDirectory = resolve('supabase/migrations')
+const [foundationEntry, trainingCoreEntry] = manifest.migrations
+const foundationPath = resolve(migrationDirectory, foundationEntry.file)
+const trainingCorePath = resolve(migrationDirectory, trainingCoreEntry.file)
 const foundation = readFileSync(foundationPath, 'utf8')
 const trainingCore = readFileSync(trainingCorePath, 'utf8')
 const migration = `${foundation}\n${trainingCore}`
@@ -23,6 +28,15 @@ const requiredTables = [
   'forgepath_survey_answers'
 ]
 const failures = []
+
+if (manifest.schemaVersion !== 1 || manifest.migrations.length !== 2) failures.push('migration manifest shape is invalid')
+for (const entry of manifest.migrations) {
+  if (`${entry.version}_${entry.name}.sql` !== entry.file) failures.push(`${entry.file} does not match its version and name`)
+  const contents = readFileSync(resolve(migrationDirectory, entry.file))
+  const digest = createHash('sha256').update(contents).digest('hex')
+  if (digest !== entry.sha256) failures.push(`${entry.file} checksum drifted from the reviewed migration manifest`)
+  if (entry.remoteStatementCount !== 1) failures.push(`${entry.file} remote statement count no longer matches the repaired migration ledger`)
+}
 
 for (const table of requiredTables) {
   if (!migration.includes(`create table public.${table}`)) failures.push(`${table} is missing`)
@@ -72,9 +86,22 @@ const deployWorkflow = readFileSync(resolve('.github/workflows/deploy-pages.yml'
 if (!deployWorkflow.includes("vars.FORGEPATH_CLOUD_RELEASE_ENABLED == 'true'")) failures.push('Pages does not gate cloud configuration behind the remote-auth release switch')
 if (!deployWorkflow.includes('secrets.FORGEPATH_SUPABASE_URL') || !deployWorkflow.includes('secrets.FORGEPATH_SUPABASE_PUBLISHABLE_KEY')) failures.push('Pages is missing browser-safe ForgePath secret references')
 
+const acceptanceAudit = readFileSync(resolve('supabase/audits/forgepath_acceptance.sql'), 'utf8')
+for (const entry of manifest.migrations) {
+  if (!acceptanceAudit.includes(entry.version) || !acceptanceAudit.includes(entry.sha256)) failures.push(`production acceptance audit is missing ${entry.file}`)
+}
+
+const transactionalAudit = readFileSync(resolve('supabase/audits/forgepath_transactional_sync_test.sql'), 'utf8')
+for (const evidence of ['normalized_projection_write_denied', 'snapshot_apply', 'snapshot_idempotent_replay', 'snapshot_conflict_preserved', 'snapshot_invariants', 'cross_athlete_isolation', 'rollback;']) {
+  if (!transactionalAudit.includes(evidence)) failures.push(`transactional production audit is missing ${evidence}`)
+}
+for (const evidence of ['migration_ledger', 'table_rls', 'normalized_browser_mutation_grants', 'ownership_mutation_grants', 'volume_view_security', 'snapshot_rpc']) {
+  if (!acceptanceAudit.includes(`'${evidence}'`)) failures.push(`production acceptance audit is missing ${evidence}`)
+}
+
 if (failures.length) {
   console.error(`Supabase foundation QC failed:\n- ${failures.join('\n- ')}`)
   process.exit(1)
 }
 
-console.log(`Supabase foundation QC passed for ${requiredTables.length} RLS-protected tables, two security-invoker volume views, explicit survey missingness, and the idempotent conflict-preserving snapshot RPC.`)
+console.log(`Supabase foundation QC passed for ${manifest.migrations.length} checksum-locked migrations, ${requiredTables.length} RLS-protected tables, two security-invoker volume views, explicit survey missingness, and the idempotent conflict-preserving snapshot RPC.`)

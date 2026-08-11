@@ -5,7 +5,7 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-11
 status: working-private-alpha
-app_version: 0.39.0
+app_version: 0.39.1
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
@@ -18,7 +18,18 @@ A working private, local-first application now exists at `/Users/redsky/Projects
 
 The code is preserved in the private GitHub repository `Falatua/adaptive-strength-hypertrophy-app`. Releases 0.1.0 through 0.34.0 remain in Git history. Private alpha 0.30.0 is commit `b204c54342a08366f8026e305171993ffb27aee7` and adds fresh readiness evidence without penalizing missing or stale answers. Private alpha 0.31.0 feature commit `06336129e7c2952e4645e088fbc0b4c8479208cf` adds source-backed relative priority-region dose as a bounded schedule tie-break. Private alpha 0.32.0 feature commit `035e175` adds context-grounded product and design registers, the evidence-backed Today Training Field Guide, post-onboarding focus handoff, and automated UI boundaries. Private alpha 0.33.0 adds the original `field-guide-synth-v1` runtime sound pack. Private alpha 0.34.0 feature commit `2f469b4ef237092ab5a8687d2fdd03626ab55194` adds the cross-device UX task-focus corrections recorded in [[UX Audit 2026-08-10]]. Private alpha 0.35.0 feature commit `900010570c60981b2b2beeb58cf31f66b754ee37` adds the functional UX corrections recorded in [[Functional UX Audit 2026-08-10]]. Private alpha 0.36.0 feature commits `8257a8b6b0e94eaf6a0eefb4cf78302fee8335dc` and `888b5d8669d8106455a76d4e96df5f4d34da9a30` add the automatic private-source-to-public-artifact Pages release, exact subpath PWA behavior, neutral visitor seed, and stable 390 by 844 mobile gate recorded in [[GitHub Pages Deployment 2026-08-10]]. Private alpha 0.37.0 standardizes readable vertical rhythm across headers, subheaders, supporting text, cards, and dialogs on phone and laptop. The first complete GitHub specification mirror is commit `20cf4298870a11608ddc69642c52c4a1c1b2867f`; later specification commits keep `docs/product/` aligned with implementation. The latest remote identity is recorded in [[Adaptive Strength and Hypertrophy App]] and [[Codex Session Log]].
 
-Private alpha 0.39.0 adds durable exact-movement workout notes and longitudinal Exercise Library recall while preserving the 0.38.0 cloud foundation. The dedicated remote ForgePath project and normalized training schema now exist in a separate approved organization. Full cross-device synchronization remains incomplete.
+Private alpha 0.39.1 hardens the durable exact-movement note and complete-state snapshot path. The dedicated remote ForgePath project, migration ledger, forced Row Level Security, grants, security-invoker views, snapshot RPC, replay, conflict preservation, and simulated two-identity isolation now have live repeatable proof. Public signup is disabled. Full automatic cross-device synchronization remains incomplete.
+
+## Private Alpha 0.39.1 Cloud Reliability Delta
+
+- Repaired the missing Supabase CLI migration ledger from the exact committed SQL and verified both remote statement payloads against SHA-256 checksums.
+- Added a committed migration manifest, a six-check read-only production acceptance audit, and a nine-check rolled-back authenticated sync and isolation drill.
+- Verified the transactional drill left zero test users, devices, events, or snapshots.
+- Disabled public signup and verified the setting persisted after a hard reload. No athlete was invited because an exact approved email was not supplied.
+- Replaced permissive project URL and key checks with canonical Supabase project-origin validation and browser-safe modern or legacy key validation.
+- Added a typed browser database contract, strict outbox-envelope validation, strict RPC status/version/event validation, durable network retry behavior, conflict retention, idempotent replay, and session-start failure handling.
+- Kept cloud behavior explicitly manual: save a complete validated checkpoint, check it on another signed-in device, and choose restore. Automatic entity merge and active-workout handoff remain off.
+- Kept backup schema 25 and local persistence 23 because the restorable state shape did not change.
 
 This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into a usable end-to-end browser and installable PWA experience. It is governed by the full requirement register but implements a bounded first slice. Automatic entity-level cloud convergence, AI, social, and advanced longitudinal work must not be represented as complete.
 
@@ -28,6 +39,12 @@ This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into 
 - Added continued post-apex mastery levels, cosmetics, environment development, journal emblems, and bounded celebration milestones so long-term progression does not stop at the fourth form.
 - Added strict originality boundaries around Gigantamax, G-Max, Dynamax, Machamp, giant-form silhouettes, signature clouds or energy, battle mechanics, sounds, camera language, and interface terminology.
 - Kept app version 0.39.0, backup schema 25, and local persistence 23 unchanged because companion code, XP economy, original assets, and animations remain unimplemented.
+
+## Build Bible 1.48.0 Cloud Reliability Delta
+
+- Added the migration-history, checksum, live audit, rollback, typed-contract, outbox, and release-gate requirements in Chapter 80 and R-377 through R-383.
+- Recorded public signup as disabled and the nine transactional identity, RLS, replay, conflict, and isolation assertions as verified live.
+- Preserved the distinction between the proven manual snapshot bridge and unimplemented automatic entity synchronization.
 
 ## Build Bible 1.47.0 Backend Activation Delta
 

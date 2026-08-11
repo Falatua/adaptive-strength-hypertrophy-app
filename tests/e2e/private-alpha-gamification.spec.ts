@@ -139,7 +139,7 @@ test('shows an honest cloud foundation without weakening local backup or respons
 
   const cloudPanel = page.getByLabel(/Cloud sync/)
   await expect(cloudPanel).toBeVisible()
-  const pendingHeading = cloudPanel.getByRole('heading', { name: 'Dedicated project pending' })
+  const pendingHeading = cloudPanel.getByRole('heading', { name: 'Release gate closed' })
   const authHeading = cloudPanel.getByRole('heading', { name: 'Connect your invited account' })
   if (await pendingHeading.isVisible()) {
     await expect(cloudPanel).toContainText('Local training stays available')

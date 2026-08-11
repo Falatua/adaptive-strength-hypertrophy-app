@@ -5,7 +5,7 @@ tags: [fitness, app, github-pages, deployment, qa, pwa]
 created: 2026-08-10
 updated: 2026-08-10
 status: verified-live
-app_version: 0.39.0
+app_version: 0.39.1
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
@@ -14,7 +14,7 @@ confidence: verified
 
 ## Outcome
 
-ForgePath private alpha 0.39.0 uses GitHub Pages as its continuously updated hosted preview. Every push to private source repository `Falatua/adaptive-strength-hypertrophy-app` on `main` triggers one workflow that verifies the application, builds for the public artifact repository's project subpath, and publishes only after every gate passes. GitHub's current plan does not support Pages directly from the private repository, so the separate public repository `Falatua/adaptive-strength-hypertrophy-app-pages` receives compiled files only.
+ForgePath private alpha 0.39.1 uses GitHub Pages as its continuously updated hosted preview. Every push to private source repository `Falatua/adaptive-strength-hypertrophy-app` on `main` triggers one workflow that verifies the application, builds for the public artifact repository's project subpath, and publishes only after every gate passes. GitHub's current plan does not support Pages directly from the private repository, so the separate public repository `Falatua/adaptive-strength-hypertrophy-app-pages` receives compiled files only.
 
 Hosted URL: `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`
 
@@ -22,7 +22,7 @@ Hosted URL: `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`
 
 1. Check out the exact `main` commit.
 2. Install locked dependencies with `npm ci`.
-3. Run UI boundaries, backend schema boundaries, lint, 201 deterministic tests, and the normal production build.
+3. Run UI boundaries, backend schema boundaries, lint, 210 deterministic tests, and the normal production build.
 4. Install Chromium and run all fifty-eight desktop and phone browser journeys.
 5. Build the PWA for `/adaptive-strength-hypertrophy-app-pages/`.
 6. Inspect the generated HTML, manifest, and service worker for Pages-safe paths.
@@ -38,9 +38,9 @@ Any failure prevents the deployment job from starting. A manually copied branch 
 - The artifact repository and Pages URL are public and shareable.
 - Only compiled files and `source-version.txt` are published. Source, tests, project documents, and vault material remain private.
 - A new browser receives a neutral Demo Athlete seed and enters onboarding.
-- Each hosted browser currently stores its own state locally because no dedicated ForgePath Supabase project is configured in the deployment.
+- Each hosted browser currently stores its own state locally because the ForgePath cloud release switch is intentionally closed.
 - The compiled client contains a dormant invite-only authentication and explicit snapshot-sync foundation. Cloud configuration is browser-safe and optional; no project URL or publishable key was shipped in this release.
-- Cloud backup, phone-to-laptop synchronization, background hydration, device revocation UI, automatic merge, and active-workout handoff are not active on the hosted preview.
+- The live ForgePath database exists and passes its migration, RLS, RPC, replay, conflict, and simulated isolation gates, but cloud backup, phone-to-laptop recovery, background hydration, device revocation UI, automatic merge, and active-workout handoff are not active on the hosted preview.
 - Clearing browser site data removes that browser's state unless the athlete exported a backup first.
 - No credentials, API keys, private exports, or identifiable friend data belong in the compiled artifact.
 
@@ -64,7 +64,7 @@ Any failure prevents the deployment job from starting. A manually copied branch 
 - Fresh 1440 by 900 desktop and 390 by 844 phone sessions completed Quick Start, started the workout without a survey, wrote an exact Competition Bench Press note, left the workout active, opened that exact movement in Library, and recovered the complete note.
 - Both live viewports had no horizontal overflow and produced zero console or page errors.
 - Visual evidence is stored locally under `output/playwright/live-movement-notes-desktop.png` and `output/playwright/live-movement-notes-mobile.png`; these screenshots are intentionally excluded from Git.
-- The remote backend remains unprovisioned, so the hosted note is local to that browser until the dedicated ForgePath Supabase project and entity-sync gate are complete.
+- That release predates the dedicated backend activation, so its hosted note remained local to that browser.
 
 ## Verified 0.38.0 Release Evidence
 

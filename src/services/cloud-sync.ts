@@ -1,5 +1,6 @@
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { BACKUP_APP_VERSION, BACKUP_SCHEMA_VERSION, createBackup, parseBackup, type ForgePathBackup, type RestorableAppState } from '../domain/backup'
+import type { ForgePathDatabase, Json } from './supabase.types'
 
 export const CLOUD_RULE_VERSION = 'cloud-sync-v1'
 export const CLOUD_DEVICE_STORAGE_KEY = 'forgepath-cloud-device-v1'
@@ -25,7 +26,7 @@ export type CloudSnapshot = {
   updatedAt: string
 }
 
-type PendingSnapshot = {
+export type PendingSnapshot = {
   eventId: string
   deviceId: string
   deviceSequence: number
@@ -45,28 +46,41 @@ const configuredUrl = import.meta.env.VITE_SUPABASE_URL?.trim() ?? ''
 const configuredPublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() ?? ''
 
 export function evaluateCloudConfiguration(url: string, publishableKey: string): CloudConfiguration {
-  if (!url && !publishableKey) return { status: 'missing', reason: 'A dedicated ForgePath cloud project has not been connected yet.' }
+  if (!url && !publishableKey) return { status: 'missing', reason: 'Private cloud access is not enabled in this build.' }
   if (!url || !publishableKey) return { status: 'invalid', reason: 'The ForgePath cloud connection is incomplete.' }
   try {
     const parsed = new URL(url)
-    if (parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.supabase.co')) throw new Error('invalid host')
+    const isCanonicalProjectOrigin = parsed.protocol === 'https:'
+      && /^[a-z0-9]{20}\.supabase\.co$/.test(parsed.hostname)
+      && !parsed.username
+      && !parsed.password
+      && !parsed.port
+      && (parsed.pathname === '/' || parsed.pathname === '')
+      && !parsed.search
+      && !parsed.hash
+    if (!isCanonicalProjectOrigin) throw new Error('invalid host')
+    url = parsed.origin
   } catch {
     return { status: 'invalid', reason: 'The ForgePath cloud project URL is invalid.' }
   }
-  if (publishableKey.length < 20) return { status: 'invalid', reason: 'The ForgePath publishable key is invalid.' }
+  const isModernPublishableKey = /^sb_publishable_[A-Za-z0-9_-]{20,}$/.test(publishableKey)
+  const isLegacyAnonJwt = /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(publishableKey) && publishableKey.length >= 100
+  if (!isModernPublishableKey && !isLegacyAnonJwt) return { status: 'invalid', reason: 'The ForgePath publishable key is invalid.' }
   return { status: 'ready', url, publishableKey }
 }
 
 export const cloudConfiguration = evaluateCloudConfiguration(configuredUrl, configuredPublishableKey)
 
-let cloudClient: SupabaseClient | null = null
-let cloudClientPromise: Promise<SupabaseClient> | null = null
+export type ForgePathCloudClient = SupabaseClient<ForgePathDatabase>
+
+let cloudClient: ForgePathCloudClient | null = null
+let cloudClientPromise: Promise<ForgePathCloudClient> | null = null
 
 export async function getCloudClient() {
   if (cloudConfiguration.status !== 'ready') return null
   if (cloudClient) return cloudClient
   if (!cloudClientPromise) {
-    cloudClientPromise = import('@supabase/supabase-js').then(({ createClient }) => createClient(cloudConfiguration.url, cloudConfiguration.publishableKey, {
+    cloudClientPromise = import('@supabase/supabase-js').then(({ createClient }) => createClient<ForgePathDatabase>(cloudConfiguration.url, cloudConfiguration.publishableKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     }))
   }
@@ -103,20 +117,28 @@ function localServerVersion(storage: Storage) {
   return positiveInteger(storage.getItem(CLOUD_VERSION_STORAGE_KEY))
 }
 
-function readPending(storage: Storage): PendingSnapshot | null {
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+const validIsoDate = (value: unknown) => typeof value === 'string' && !Number.isNaN(new Date(value).getTime())
+
+export function readPendingSnapshot(storage: Storage): PendingSnapshot | null {
   const raw = storage.getItem(CLOUD_OUTBOX_STORAGE_KEY)
   if (!raw) return null
   try {
-    const candidate = JSON.parse(raw) as PendingSnapshot
-    parseBackup(JSON.stringify(candidate.backup))
-    return candidate
+    const candidate = JSON.parse(raw) as Partial<PendingSnapshot>
+    if (!candidate || !uuidPattern.test(candidate.eventId ?? '') || !uuidPattern.test(candidate.deviceId ?? '')) throw new Error('invalid identity')
+    if (!Number.isSafeInteger(candidate.deviceSequence) || Number(candidate.deviceSequence) < 1) throw new Error('invalid sequence')
+    if (!Number.isSafeInteger(candidate.baseVersion) || Number(candidate.baseVersion) < 0) throw new Error('invalid base version')
+    if (!validIsoDate(candidate.queuedAt)) throw new Error('invalid queue date')
+    const parsed = parseBackup(JSON.stringify(candidate.backup))
+    return { ...candidate, backup: parsed.backup } as PendingSnapshot
   } catch {
     storage.removeItem(CLOUD_OUTBOX_STORAGE_KEY)
     return null
   }
 }
 
-function queueSnapshot(backup: ForgePathBackup, storage: Storage): PendingSnapshot {
+export function queueCloudSnapshot(backup: ForgePathBackup, storage: Storage): PendingSnapshot {
   const pending: PendingSnapshot = {
     eventId: crypto.randomUUID(),
     deviceId: cloudDeviceId(storage),
@@ -138,7 +160,7 @@ async function requireAuthenticatedClient() {
   return { client, session: data.session }
 }
 
-async function registerDevice(client: SupabaseClient, session: Session, deviceId: string) {
+async function registerDevice(client: ForgePathCloudClient, session: Session, deviceId: string) {
   const now = new Date().toISOString()
   const platform = typeof navigator === 'undefined' ? 'Web' : navigator.platform || 'Web'
   const { error } = await client.from('forgepath_devices').upsert({
@@ -153,7 +175,29 @@ async function registerDevice(client: SupabaseClient, session: Session, deviceId
   if (error) throw error
 }
 
-async function sendPending(client: SupabaseClient, session: Session, pending: PendingSnapshot, storage: Storage): Promise<CloudPushResult> {
+export function parseCloudPushResult(row: PushRpcRow, expectedEventId: string): CloudPushResult {
+  const status = row.status
+  if (!['applied', 'already_applied', 'conflict'].includes(status ?? '')) throw new Error('The cloud returned an unknown sync result.')
+  const serverVersion = Number(row.server_version)
+  if (!Number.isSafeInteger(serverVersion) || serverVersion < 0) throw new Error('The cloud returned an invalid version.')
+  const eventId = String(row.event_id ?? '')
+  if (eventId !== expectedEventId) throw new Error('The cloud returned a mismatched sync event.')
+  return {
+    status: status as CloudPushResult['status'],
+    serverVersion,
+    eventId,
+    message: String(row.message ?? '')
+  }
+}
+
+export function recordCloudPushResult(result: CloudPushResult, storage: Storage, confirmedAt = new Date().toISOString()) {
+  if (result.status === 'conflict') return
+  storage.setItem(CLOUD_VERSION_STORAGE_KEY, String(result.serverVersion))
+  storage.setItem(CLOUD_LAST_SYNC_STORAGE_KEY, confirmedAt)
+  storage.removeItem(CLOUD_OUTBOX_STORAGE_KEY)
+}
+
+async function sendPending(client: ForgePathCloudClient, session: Session, pending: PendingSnapshot, storage: Storage): Promise<CloudPushResult> {
   await registerDevice(client, session, pending.deviceId)
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
   const { data, error } = await client.rpc('push_forgepath_snapshot', {
@@ -167,37 +211,27 @@ async function sendPending(client: SupabaseClient, session: Session, pending: Pe
     p_checksum: pending.backup.integrity.value,
     p_occurred_at: pending.queuedAt,
     p_timezone: timezone,
-    p_payload: pending.backup
+    p_payload: pending.backup as unknown as Json
   })
   if (error) throw error
-  const row = (data ?? {}) as PushRpcRow
-  const status = row.status
-  if (!['applied', 'already_applied', 'conflict'].includes(status ?? '')) throw new Error('The cloud returned an unknown sync result.')
-  const serverVersion = Number(row.server_version)
-  if (!Number.isSafeInteger(serverVersion) || serverVersion < 0) throw new Error('The cloud returned an invalid version.')
-  const result: CloudPushResult = {
-    status: status as CloudPushResult['status'],
-    serverVersion,
-    eventId: String(row.event_id ?? pending.eventId),
-    message: String(row.message ?? '')
-  }
-  if (result.status !== 'conflict') {
-    storage.setItem(CLOUD_VERSION_STORAGE_KEY, String(result.serverVersion))
-    storage.setItem(CLOUD_LAST_SYNC_STORAGE_KEY, new Date().toISOString())
-    storage.removeItem(CLOUD_OUTBOX_STORAGE_KEY)
-  }
+  const result = parseCloudPushResult((data ?? {}) as PushRpcRow, pending.eventId)
+  recordCloudPushResult(result, storage)
   return result
 }
 
 export async function pushCloudSnapshot(state: RestorableAppState): Promise<CloudPushResult> {
   const storage = requireBrowserStorage()
   const { client, session } = await requireAuthenticatedClient()
+  return pushCloudSnapshotUsing(state, client, session, storage)
+}
+
+export async function pushCloudSnapshotUsing(state: RestorableAppState, client: ForgePathCloudClient, session: Session, storage: Storage): Promise<CloudPushResult> {
   const currentBackup = createBackup(state)
-  const existing = readPending(storage)
-  const pending = existing ?? queueSnapshot(currentBackup, storage)
+  const existing = readPendingSnapshot(storage)
+  const pending = existing ?? queueCloudSnapshot(currentBackup, storage)
   const first = await sendPending(client, session, pending, storage)
   if (first.status === 'conflict' || pending.backup.integrity.value === currentBackup.integrity.value) return first
-  return sendPending(client, session, queueSnapshot(currentBackup, storage), storage)
+  return sendPending(client, session, queueCloudSnapshot(currentBackup, storage), storage)
 }
 
 export async function fetchCloudSnapshot(): Promise<CloudSnapshot | null> {
@@ -211,7 +245,9 @@ export async function fetchCloudSnapshot(): Promise<CloudSnapshot | null> {
   const preview = parseBackup(JSON.stringify(data.payload))
   const serverVersion = Number(data.version)
   if (!Number.isSafeInteger(serverVersion) || serverVersion < 1) throw new Error('The cloud copy has an invalid version.')
-  return { backup: preview.backup, serverVersion, updatedAt: String(data.updated_at) }
+  const updatedAt = String(data.updated_at)
+  if (!validIsoDate(updatedAt)) throw new Error('The cloud copy has an invalid update time.')
+  return { backup: preview.backup, serverVersion, updatedAt }
 }
 
 export function acceptCloudSnapshot(serverVersion: number, storage = requireBrowserStorage()) {

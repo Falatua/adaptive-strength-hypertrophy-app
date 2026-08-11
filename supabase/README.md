@@ -6,6 +6,6 @@ The normalized tables are server-written projections. Authenticated browsers may
 
 The browser receives only the project URL and publishable key. Never place a database password, secret key, legacy service-role key, or provider API key in this repository, a Vite variable, GitHub Pages, or the Obsidian vault.
 
-The current free Supabase organization already contains two active projects and cannot create ForgePath until an owner upgrades, pauses a project, or creates the project in another appropriate organization. Do not reuse the JB-OS or Roman TD database.
+The dedicated production project is ForgePath. Its migration history is repaired and checksum-locked to `migrations/manifest.json`; `audits/forgepath_acceptance.sql` provides the repeatable read-only production proof. Do not reuse the JB-OS or Roman TD database.
 
-When a dedicated project exists, follow `docs/product/SUPABASE_BACKEND_RUNBOOK.md`. Apply migrations from version control and do not recreate the schema manually in Table Editor.
+Follow `docs/product/SUPABASE_BACKEND_RUNBOOK.md`. Apply migrations from version control, run the acceptance audit after each deployment, and do not recreate the schema manually in Table Editor.

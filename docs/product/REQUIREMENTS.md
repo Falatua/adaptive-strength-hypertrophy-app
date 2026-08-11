@@ -3,7 +3,7 @@ type: requirements-register
 aliases: [Adaptive Training App Requirements, App Requirements Register]
 tags: [fitness, app, requirements, source-of-truth, continuity]
 created: 2026-08-09
-updated: 2026-08-10
+updated: 2026-08-11
 status: active
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: from-user
@@ -2385,7 +2385,54 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Reaching the fourth Apex Form must not end progression. Source-backed XP continues to advance mastery levels, cosmetics, environment development, journal emblems, and bounded celebrations without resetting lifetime progress, affecting athletic programming, or rewarding unsafe extra work.
 - Detail: [[Pixel Training Adventure Visual and Interaction System]]
 
+### R-377 Migration Ledger and Checksum Integrity
+- Status: implemented-verified-live
+- Provenance: product-decision
+- Requirement: Every live database migration must exist in the Supabase migration ledger with the committed timestamp, name, exact SQL content, and reviewed SHA-256 digest. Manual SQL application without matching ledger history is deployment drift and must block release until repaired and verified.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#80. Supabase Reliability and Release Evidence Contract]]
+
+### R-378 Repeatable Production Database Audit
+- Status: implemented-verified-live
+- Provenance: from-user and product-decision
+- Requirement: Version control must include a read-only production audit for migration parity, forced Row Level Security, browser grants, security-invoker views, and RPC execution boundaries, plus a rolled-back two-identity drill for device registration, denied projection mutation, apply, replay, conflict, invariants, and athlete isolation.
+- Detail: [[ForgePath Supabase Backend Runbook]]
+
+### R-379 Strict Browser Connection Validation
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Accept only a canonical HTTPS Supabase project origin and browser-safe publishable or legacy anonymous key. Reject credentialed URLs, paths, queries, fragments, ports, spoofed hosts, partial configuration, and arbitrary secret-shaped values before creating a client.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#80. Supabase Reliability and Release Evidence Contract]]
+
+### R-380 Validated Durable Snapshot Outbox
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Validate every queued event envelope and its complete backup before delivery. Network failure retains the exact event for idempotent retry; confirmed apply or replay clears it; conflict preserves it; and state changed during retry queues a second event only after the older event is acknowledged.
+- Detail: [[Data Backend Storage and Learning Architecture]]
+
+### R-381 Untrusted Cloud Response Boundary
+- Status: implemented
+- Provenance: product-decision
+- Requirement: A cloud response may update confirmed local metadata only when its status is one of the documented outcomes, its server version is a safe nonnegative integer, and its event ID exactly matches the queued event. Invalid or mismatched responses stop without clearing recoverable local state.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#80. Supabase Reliability and Release Evidence Contract]]
+
+### R-382 Complete Algorithm-State Checkpoint Coverage
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: The manual cloud checkpoint must contain every restorable athlete, equipment, exercise, session, source-set, note, survey, feedback, record, correction, cycle, substitution, placement, missed-opportunity, mesocycle, and active identity field used by current deterministic programming. Interface-only visibility state does not qualify as active-workout handoff.
+- Detail: [[Data Backend Storage and Learning Architecture]]
+
+### R-383 Cloud Release Gate After Database Proof
+- Status: partially-implemented
+- Provenance: from-user and product-decision
+- Requirement: Keep public signup disabled and the Pages cloud release switch closed until one exact approved athlete invitation, real email-link acceptance, uninvited-address denial, phone-to-laptop save/check/restore with integrity and undo, and offline retry recovery pass. Database simulation is necessary evidence but cannot replace the real-device drill.
+- Detail: [[ForgePath Supabase Backend Runbook]]
+
 ## Thread Coverage Audit
+
+### 2026-08-11 Supabase Reliability and Cross-Device Data Audit
+- Scope: User requested detailed verification and repair of Supabase connection, algorithmic-data synchronization, error handling, and phone and laptop behavior.
+- Result: Added R-377 through R-383 and Build Bible Chapter 80. Repaired and checksum-verified the migration ledger, disabled public signup, added typed client contracts and strict validation, expanded retry and conflict tests, and committed repeatable read-only and rolled-back production audits.
+- Status: Six read-only database checks and nine transactional two-identity checks pass live, with zero test rows after rollback. The public release switch remains closed pending the exact approved athlete email and real email-link and cross-device recovery drill. Automatic entity merge and active-workout handoff remain unimplemented.
 
 ### 2026-08-10 Fourth Apex Companion Expansion
 - Scope: User requested a fourth companion tier inspired by the continued spectacle of a Gigantamax Machamp after Machop, Machoke, and Machamp so the evolution path does not feel finished at three forms.

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "migrations": [
+    {
+      "version": "20260811000100",
+      "name": "forgepath_cloud_foundation",
+      "file": "20260811000100_forgepath_cloud_foundation.sql",
+      "sha256": "c18793b38bfcfa6b45b483bc1be0c4a9051cc50649efd4c8c38946559331813c",
+      "remoteStatementCount": 1
+    },
+    {
+      "version": "20260811000200",
+      "name": "forgepath_training_core",
+      "file": "20260811000200_forgepath_training_core.sql",
+      "sha256": "50484d39e0ef86cbe49cce813357586d185fa23b1e7c3847a88b9bc45ceef5c8",
+      "remoteStatementCount": 1
+    }
+  ]
+}
