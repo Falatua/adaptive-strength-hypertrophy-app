@@ -1,4 +1,4 @@
-# ForgePath Private Alpha 0.40.0
+# ForgePath Private Alpha 0.40.1
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
@@ -68,6 +68,8 @@ npm run check:pages
 - athletes can confirm the route, choose a more conservative route, request faster submaximal verification, correct or import history, or change the goal without losing existing training data
 - pain-modified placement is not treated as medical clearance and pauses automatic workout starts until the athlete reassesses the restriction state
 - the first one to three productive sessions per exact protected movement can capture an optional warm-up response, the first completed primary work set, completion, effort, technique, pain, time fit, and recovery without requiring a maximum attempt
+- movement-specific placement questions stay hidden until every set of that exact movement is logged, so no prompt interrupts the work it asks about; an unreached prompt stays an explicit unknown and the post-session pain answer remains an independent route to the same reassessment gate
+- the opening onboarding step offers Powerlifting and Hypertrophy, pre-selects neither, and keeps history import in Library and the placement result instead of the first screen
 - placement checks resolve as route-supporting, evidence-incomplete, review-suggested, or reassessment-required; the app never silently changes the athlete's route
 - placement-exit-v1 joins only productive checks from the exact placement version and matching plan route, evaluates resolved evidence, repeated support, pain boundaries, and recovery, and discloses any different movement-lane checks it excludes
 - the athlete must explicitly keep the current route, open a versioned reassessment, or defer with a reason; pain-changing evidence cannot be confirmed as safe to continue and no checkpoint silently rewrites placement or programming

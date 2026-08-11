@@ -1327,7 +1327,7 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .onboarding-equipment { align-items: stretch; }
 .onboarding-equipment button { display: grid; gap: 3px; min-height: 58px; }
 .onboarding-equipment small { color: var(--muted); font-size: .58rem; }
-.onboarding-fast-routes { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 18px 0 24px; }
+.onboarding-fast-routes { display: grid; grid-template-columns: 1fr; gap: 9px; margin: 18px 0 24px; }
 .onboarding-fast-routes button { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding: 13px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); color: var(--text); text-align: left; }
 .onboarding-fast-routes svg { color: var(--lime); }
 .onboarding-fast-routes strong, .onboarding-fast-routes small { display: block; }

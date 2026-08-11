@@ -9,9 +9,7 @@ import { useAppStore } from '../store/useAppStore'
 import { PixelAvatar } from './PixelAvatar'
 
 const goals: Array<{ id: PlacementGoal; label: string }> = [
-  { id: 'powerbuilding', label: 'Powerbuilding' }, { id: 'strength', label: 'Strength' },
-  { id: 'hypertrophy', label: 'Hypertrophy' }, { id: 'power', label: 'Power' },
-  { id: 'event-specific', label: 'Event-specific' }, { id: 'return-to-training', label: 'Return to training' }
+  { id: 'strength', label: 'Powerlifting' }, { id: 'hypertrophy', label: 'Hypertrophy' }
 ]
 const times = [30, 45, 60, 75]
 
@@ -29,8 +27,8 @@ export function Onboarding() {
   const isHistoryReview = onboardingStartStep === 1
   const [createdAt] = useState(() => new Date().toISOString())
   const [step, setStep] = useState<number>(onboardingStartStep)
-  const [goal, setGoal] = useState<PlacementGoal | null>(isHistoryReview ? priorInputs.goal : 'powerbuilding')
-  const [fixedEvent, setFixedEvent] = useState(isHistoryReview ? priorInputs.fixedEvent ?? '' : '')
+  const [goal, setGoal] = useState<PlacementGoal | null>(isHistoryReview ? priorInputs.goal : null)
+  const fixedEvent = isHistoryReview ? priorInputs.fixedEvent ?? '' : ''
   const [minutes, setMinutes] = useState(isHistoryReview ? priorInputs.defaultMinutes : 60)
   const [opportunities, setOpportunities] = useState(isHistoryReview ? priorInputs.weeklyOpportunities : 3)
   const [experience, setExperience] = useState<number | null>(isHistoryReview ? priorInputs.trainingAge : 8)
@@ -126,7 +124,7 @@ export function Onboarding() {
 
   const skipStep = () => {
     if (step === 0) {
-      setGoal(null); setFixedEvent(''); setExperience(null); setSkippedFields((current) => [...new Set([...current, 'goal', 'structured training history'])])
+      setGoal(null); setExperience(null); setSkippedFields((current) => [...new Set([...current, 'goal', 'structured training history'])])
     } else if (step === 1) {
       setMovementSkill(null); setStrengthTolerance(null); setVolumeTolerance(null); setDataConfidence(null); setSkippedFields((current) => [...new Set([...current, 'movement skill', 'intensity tolerance', 'volume tolerance', 'current performance evidence'])])
       setMovementProfiles((current) => current.map((profile) => ({ ...profile, movementSkill: null, strengthTolerance: null, dataConfidence: null })))
@@ -151,9 +149,8 @@ export function Onboarding() {
         {step === 0 && <section>
           <p className="eyebrow">01 · Direction and training history</p><h2>Build my starting profile</h2>
           <p className="muted">Answer what you know. Every question can be skipped, and missing evidence lowers confidence instead of becoming a fake answer.</p>
-          <div className="onboarding-fast-routes"><button onClick={() => persistPlacement('quick-start', 'today', true)}><Sparkles size={18} /><span><strong>Quick Start</strong><small>Enter now with a low-confidence calibration route.</small></span></button><button onClick={() => persistPlacement('quick-start', 'library', true)}><BrainCircuit size={18} /><span><strong>Import History</strong><small>Set up locally, then map prior completed sets.</small></span></button></div>
+          <div className="onboarding-fast-routes"><button onClick={() => persistPlacement('quick-start', 'today', true)}><Sparkles size={18} /><span><strong>Quick Start</strong><small>Enter now with a low-confidence calibration route.</small></span></button></div>
           <label className="field-label">Primary goal</label><div className="choice-grid placement-goals">{goals.map((item) => <button key={item.id} className={goal === item.id ? 'selected' : ''} onClick={() => setGoal(item.id)}>{goal === item.id && <Check size={16} />}{item.label}</button>)}<button className={goal === null ? 'selected' : ''} onClick={() => setGoal(null)}>Not sure yet</button></div>
-          {goal === 'event-specific' && <label><span className="field-label">Event and date, if known</span><input value={fixedEvent} onChange={(event) => setFixedEvent(event.target.value)} placeholder="Example: powerlifting meet · 2026-12-12" /></label>}
           <label><span className="field-label">Years of structured training</span><input aria-label="Years of structured training" type="number" min="0" max="60" value={experience ?? ''} onChange={(event) => setExperience(event.target.value === '' ? null : Number(event.target.value))} placeholder="Skip if uncertain" /></label>
         </section>}
 
