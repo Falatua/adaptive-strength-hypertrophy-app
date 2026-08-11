@@ -4,10 +4,10 @@ aliases: [ForgePath GitHub Pages Deployment]
 tags: [fitness, app, github-pages, deployment, qa, pwa]
 created: 2026-08-10
 updated: 2026-08-10
-status: verification-in-progress
+status: verified-live
 app_version: 0.36.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
-confidence: verified-local
+confidence: verified
 ---
 
 # GitHub Pages Deployment 2026-08-10
@@ -51,4 +51,17 @@ Any failure prevents the deployment job from starting. A manually copied branch 
 - The generated service worker contains the navigation fallback.
 - The Pages artifact check rejects root-only asset references.
 - The CI phone project uses an exact 390 by 844 viewport, and the Today composition preserves buffer above the fold for the primary start action across runner font and timing variation.
-- Final GitHub workflow, commit, and live mobile and desktop evidence will be added after deployment completes.
+
+## Verified Release Evidence
+
+- Private source feature commit: `8257a8b6b0e94eaf6a0eefb4cf78302fee8335dc`.
+- Mobile gate hardening commit: `888b5d8669d8106455a76d4e96df5f4d34da9a30`.
+- Successful private-source workflow: `31455623333`.
+- Public compiled-artifact commit: `4b7c3c432ff323c24dd7f115a51793955857f885`.
+- Successful public Pages workflow: `31456005382`.
+- Live URL: `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`.
+- The live `source-version.txt` exactly matches private source commit `888b5d8669d8106455a76d4e96df5f4d34da9a30`.
+- Unauthenticated HTTP checks returned 200 for the app, icon, manifest, and service worker. The manifest start URL and scope both use `/adaptive-strength-hypertrophy-app-pages/`.
+- A fresh desktop browser showed onboarding, Quick Start created a neutral Demo Athlete profile, and Today rendered private alpha 0.36.0 with zero console errors or warnings.
+- At an exact 390 by 844 viewport, the primary start action remained fully visible above the fixed navigation. The check-in chooser opened, Library navigation completed, and the browser console remained clean.
+- Visual evidence is stored locally under `output/playwright/pages-live-desktop.png` and `output/playwright/pages-live-mobile.png`; these screenshots are intentionally excluded from Git.
