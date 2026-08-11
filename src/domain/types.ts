@@ -754,9 +754,24 @@ export interface ScheduleEligibilityEvidence {
   removedExerciseNames: string[]
 }
 
+export type ScheduleReadinessFreshness = 'current' | 'stale' | 'missing'
+export type ScheduleReadinessAction = 'proceed' | 'confirm-at-warmup' | 'trim-optional' | 'reacclimation-review' | 'blocked' | 'unknown'
+
+export interface ScheduleReadinessEvidence {
+  ruleVersion: 'schedule-readiness-v1'
+  sourceSurveyId: string | null
+  capturedAt: string | null
+  ageHours: number | null
+  freshness: ScheduleReadinessFreshness
+  sourceOutcome: ReadinessOutcome | null
+  effectiveOutcome: ReadinessOutcome | 'unknown'
+  action: ScheduleReadinessAction
+  reason: string
+}
+
 export interface MissedOpportunityEvent {
   id: string
-  ruleVersion: 'missed-opportunity-v1' | 'missed-opportunity-v2' | 'missed-opportunity-v3'
+  ruleVersion: 'missed-opportunity-v1' | 'missed-opportunity-v2' | 'missed-opportunity-v3' | 'missed-opportunity-v4'
   sessionId: string
   mesocycleId: string | null
   planVersion: number | null
@@ -782,6 +797,7 @@ export interface MissedOpportunityEvent {
   openSetCountBefore: number
   openSetCountAfter: number
   eligibility?: ScheduleEligibilityEvidence
+  readiness?: ScheduleReadinessEvidence
 }
 
 export interface WeeklyVolumePoint {

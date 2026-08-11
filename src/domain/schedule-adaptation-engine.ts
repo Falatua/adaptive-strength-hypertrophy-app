@@ -5,17 +5,23 @@ import type {
   Exercise,
   MissedOpportunityEvent,
   MissedOpportunityInput,
+  ReadinessOutcome,
   ScheduleAdaptationChange,
   ScheduleAdaptationMode,
+  ScheduleReadinessAction,
+  ScheduleReadinessEvidence,
   SessionStatus,
+  SurveyRecord,
   TrainingSession
 } from './types'
 import { exerciseEquipmentFit } from './equipment-engine'
-import { compressSession } from './training-engine'
+import { compressSession, readinessFromSurvey } from './training-engine'
 
-export const MISSED_OPPORTUNITY_RULE_VERSION = 'missed-opportunity-v3' as const
+export const MISSED_OPPORTUNITY_RULE_VERSION = 'missed-opportunity-v4' as const
 export const SCHEDULE_ELIGIBILITY_RULE_VERSION = 'schedule-eligibility-v1' as const
-const SUPPORTED_MISSED_OPPORTUNITY_RULE_VERSIONS = ['missed-opportunity-v1', 'missed-opportunity-v2', MISSED_OPPORTUNITY_RULE_VERSION] as const
+export const SCHEDULE_READINESS_RULE_VERSION = 'schedule-readiness-v1' as const
+export const SCHEDULE_READINESS_FRESH_HOURS = 24
+const SUPPORTED_MISSED_OPPORTUNITY_RULE_VERSIONS = ['missed-opportunity-v1', 'missed-opportunity-v2', 'missed-opportunity-v3', MISSED_OPPORTUNITY_RULE_VERSION] as const
 
 interface ReplanRequest {
   eventId: string
@@ -30,6 +36,7 @@ interface ReplanRequest {
   equipmentProfile: EquipmentProfile
   safetyGateActive: boolean
   safetyGateReason?: string
+  surveys?: SurveyRecord[]
   recordedAt?: string
 }
 
@@ -65,15 +72,84 @@ const trimOptionalFatigue = (session: TrainingSession) => ({
   exercises: session.exercises.filter((exercise) => exercise.role !== 'optional')
 })
 
-const continuityAfterMiss = (before: ContinuityState, input: MissedOpportunityInput, consecutiveMisses: number): ContinuityState => {
+const readinessAction = (outcome: ReadinessOutcome): ScheduleReadinessAction => {
+  if (outcome === 'pain-aware') return 'blocked'
+  if (outcome === 'reacclimate') return 'reacclimation-review'
+  if (outcome === 'protect') return 'trim-optional'
+  if (outcome === 'confirm') return 'confirm-at-warmup'
+  return 'proceed'
+}
+
+export function scheduleReadinessEvidence(input: {
+  sessionId: string
+  surveys: SurveyRecord[]
+  continuity: ContinuityState
+  recordedAt: string
+}): ScheduleReadinessEvidence {
+  const latest = input.surveys
+    .filter((survey) => survey.sessionId === input.sessionId && survey.type === 'pre')
+    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0]
+  if (!latest || latest.skipped || (latest.answeredCount ?? latest.answers.filter((answer) => answer.status === 'answered').length) === 0) {
+    return {
+      ruleVersion: SCHEDULE_READINESS_RULE_VERSION,
+      sourceSurveyId: latest?.id ?? null,
+      capturedAt: latest?.completedAt ?? null,
+      ageHours: latest ? Math.round(((new Date(input.recordedAt).getTime() - new Date(latest.completedAt).getTime()) / 3_600_000) * 10) / 10 : null,
+      freshness: 'missing',
+      sourceOutcome: null,
+      effectiveOutcome: 'unknown',
+      action: 'unknown',
+      reason: latest ? 'The pre-session check-in was skipped or contained no answered readiness evidence, so readiness remains unknown.' : 'No pre-session readiness check-in was recorded for the missed session, so readiness remains unknown.'
+    }
+  }
+  const ageHours = Math.round(((new Date(input.recordedAt).getTime() - new Date(latest.completedAt).getTime()) / 3_600_000) * 10) / 10
+  const sourceOutcome = readinessFromSurvey(latest.answers, input.continuity)
+  if (ageHours < 0 || ageHours > SCHEDULE_READINESS_FRESH_HOURS) {
+    return {
+      ruleVersion: SCHEDULE_READINESS_RULE_VERSION,
+      sourceSurveyId: latest.id,
+      capturedAt: latest.completedAt,
+      ageHours,
+      freshness: 'stale',
+      sourceOutcome,
+      effectiveOutcome: 'unknown',
+      action: 'unknown',
+      reason: `The latest readiness check-in is outside the ${SCHEDULE_READINESS_FRESH_HOURS}-hour decision window and cannot change the rebuilt plan.`
+    }
+  }
+  const action = readinessAction(sourceOutcome)
+  const actionReason: Record<ScheduleReadinessAction, string> = {
+    proceed: 'Fresh readiness evidence supports the planned session with normal warm-up confirmation.',
+    'confirm-at-warmup': 'Fresh readiness evidence is mixed, so the rebuilt session must be confirmed by the warm-up before progression.',
+    'trim-optional': 'Fresh readiness evidence is protective, so optional fatigue is removed without adding work elsewhere.',
+    'reacclimation-review': 'Fresh readiness evidence supports a reacclimation review instead of automatic overload.',
+    blocked: 'Fresh pain evidence changes what can be trained, so automatic schedule rebuilding is paused for movement review.',
+    unknown: 'Readiness remains unknown.'
+  }
+  return {
+    ruleVersion: SCHEDULE_READINESS_RULE_VERSION,
+    sourceSurveyId: latest.id,
+    capturedAt: latest.completedAt,
+    ageHours,
+    freshness: 'current',
+    sourceOutcome,
+    effectiveOutcome: sourceOutcome,
+    action,
+    reason: actionReason[action]
+  }
+}
+
+const continuityAfterMiss = (before: ContinuityState, input: MissedOpportunityInput, consecutiveMisses: number, readinessAction?: ScheduleReadinessAction): ContinuityState => {
   if (before === 'returning') return before
+  if (readinessAction === 'reacclimation-review') return 'returning'
   if (PHYSIOLOGICAL_REASONS.has(input.reason) && input.constraintState !== 'ended') return 'returning'
   if (consecutiveMisses >= 3) return 'returning'
   if (input.constraintState !== 'ended' || consecutiveMisses >= 2) return 'interrupted'
   return before
 }
 
-const modeFor = (input: MissedOpportunityInput, consecutiveMisses: number): ScheduleAdaptationMode => {
+const modeFor = (input: MissedOpportunityInput, consecutiveMisses: number, readinessAction?: ScheduleReadinessAction): ScheduleAdaptationMode => {
+  if (readinessAction === 'reacclimation-review') return 'reacclimation-review'
   if ((PHYSIOLOGICAL_REASONS.has(input.reason) && input.constraintState !== 'ended') || consecutiveMisses >= 3) return 'reacclimation-review'
   if (consecutiveMisses >= 2) return 'rebuild-sequence'
   return 'defer-one'
@@ -119,6 +195,8 @@ export function scheduleSessionEligibility(session: TrainingSession, exercises: 
 export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOpportunityReplanResult {
   const recordedAt = request.recordedAt ?? new Date().toISOString()
   if (request.safetyGateActive) return { ok: false, error: request.safetyGateReason ?? 'Automatic schedule rebuilding is paused until the active pain or restriction review is resolved.' }
+  const readiness = scheduleReadinessEvidence({ sessionId: request.missedSessionId, surveys: request.surveys ?? [], continuity: request.continuity, recordedAt })
+  if (readiness.action === 'blocked') return { ok: false, error: `${readiness.reason} Reassess before rebuilding. This is not medical clearance.` }
   const missed = request.sessions.find((session) => session.id === request.missedSessionId)
   if (!missed) return { ok: false, error: 'That planned opportunity no longer exists.' }
   if (!OPEN_STATUSES.includes(missed.status)) return { ok: false, error: 'Only an unstarted planned or deferred opportunity can be marked missed.' }
@@ -137,8 +215,8 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
   const lastCompletedAt = request.history.reduce<string | null>((latest, workSet) => !latest || new Date(workSet.completedAt) > new Date(latest) ? workSet.completedAt : latest, null)
   const relevantPriorMisses = request.priorEvents.filter((event) => (!lastCompletedAt || new Date(event.recordedAt) > new Date(lastCompletedAt)) && event.mesocycleId === (missed.mesocycleId ?? null))
   const consecutiveMisses = relevantPriorMisses.length + 1
-  const mode = modeFor(request.input, consecutiveMisses)
-  const continuity = continuityAfterMiss(request.continuity, request.input, consecutiveMisses)
+  const mode = modeFor(request.input, consecutiveMisses, readiness.action)
+  const continuity = continuityAfterMiss(request.continuity, request.input, consecutiveMisses, readiness.action)
 
   const ranked = queueBeforeSessions.map((session, originalIndex) => {
     const primaryExerciseId = session.exercises.find((exercise) => exercise.role === 'primary')?.exerciseId ?? null
@@ -175,7 +253,7 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
       adapted = { ...adapted, exercises: adapted.exercises.filter((exercise) => !removed.has(exercise.id)) }
     }
     if (index === 0) adapted = compressSession(adapted, request.input.nextMinutes)
-    if (index === 0 && (mode !== 'defer-one' || request.input.constraintState !== 'ended')) adapted = trimOptionalFatigue(adapted)
+    if (index === 0 && (mode !== 'defer-one' || request.input.constraintState !== 'ended' || readiness.action === 'trim-optional' || readiness.action === 'reacclimation-review')) adapted = trimOptionalFatigue(adapted)
     return adapted
   })
 
@@ -203,6 +281,7 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
     ...(request.input.preferredNextSessionId ? [`The athlete pinned ${next.session.title} as the next session; exact-exposure recency still orders the remaining queue.`] : []),
     `${next.session.title} has an executable protected primary at ${request.equipmentProfile.name}.`,
     ...(selectedEligibility.removableSupport.length ? [`${selectedEligibility.removableSupport.length} unavailable or joint-flagged support movement${selectedEligibility.removableSupport.length === 1 ? ' was' : 's were'} removed from the first session instead of creating impossible work.`] : []),
+    readiness.reason,
     next.daysSinceExposure === null
       ? 'The next protected primary has no completed exact exposure, so its baseline remains unresolved.'
       : `The next protected primary has waited ${next.daysSinceExposure} calendar day${next.daysSinceExposure === 1 ? '' : 's'} since its latest completed exact exposure.`,
@@ -266,7 +345,8 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
       }),
       removedPlannedExerciseIds: selectedEligibility.removableSupport.map((item) => item.plannedExerciseId),
       removedExerciseNames: selectedEligibility.removableSupport.map((item) => item.exerciseName)
-    }
+    },
+    readiness
   }
 
   return { ok: true, sessions, event, continuity }
@@ -283,7 +363,7 @@ export function missedOpportunityEventError(value: unknown, sessions: TrainingSe
   if (!event.input || !['family', 'work', 'time', 'travel', 'sleep', 'illness', 'pain', 'equipment', 'motivation', 'other'].includes(event.input.reason)) return 'Missed-opportunity reason is invalid.'
   if (!event.input || !['no-training', 'different-training-unlogged'].includes(event.input.trainingOutcome)) return 'Missed-opportunity training outcome is invalid.'
   if (!event.input || !['ended', 'continuing', 'uncertain'].includes(event.input.constraintState)) return 'Missed-opportunity constraint state is invalid.'
-  if (event.ruleVersion === MISSED_OPPORTUNITY_RULE_VERSION && event.input?.preferredNextSessionId === undefined) return 'Missed-opportunity preference evidence is missing.'
+  if (['missed-opportunity-v2', 'missed-opportunity-v3', MISSED_OPPORTUNITY_RULE_VERSION].includes(String(event.ruleVersion)) && event.input?.preferredNextSessionId === undefined) return 'Missed-opportunity preference evidence is missing.'
   if (event.input?.preferredNextSessionId !== undefined && event.input.preferredNextSessionId !== null && (typeof event.input.preferredNextSessionId !== 'string' || !sessionIds.has(event.input.preferredNextSessionId))) return 'Missed-opportunity preferred session is invalid.'
   if (!event.input || Number.isNaN(new Date(event.input.nextOpportunityAt).getTime()) || !Number.isFinite(event.input.nextMinutes) || event.input.nextMinutes < 15 || event.input.nextMinutes > 90 || typeof event.input.note !== 'string' || event.input.note.length > 500) return 'Missed-opportunity next-step input is invalid.'
   if (!event.recordedAt || Number.isNaN(new Date(event.recordedAt).getTime()) || !event.plannedAt || Number.isNaN(new Date(event.plannedAt).getTime())) return 'Missed-opportunity dates are invalid.'
@@ -293,7 +373,7 @@ export function missedOpportunityEventError(value: unknown, sessions: TrainingSe
   if (![event.queueBefore, event.queueAfter, event.reasons, event.changes, event.preservedTerminalSessionIds].every(Array.isArray)) return 'Missed-opportunity replay evidence is incomplete.'
   if ([...(event.queueBefore ?? []), ...(event.queueAfter ?? []), ...(event.preservedTerminalSessionIds ?? [])].some((id) => typeof id !== 'string' || !sessionIds.has(id))) return 'Missed-opportunity queue references an unknown session.'
   if (event.input?.preferredNextSessionId && (!(event.queueBefore ?? []).includes(event.input.preferredNextSessionId) || event.nextSessionId !== event.input.preferredNextSessionId)) return 'Missed-opportunity preferred session was not honored.'
-  if (event.ruleVersion === MISSED_OPPORTUNITY_RULE_VERSION) {
+  if (['missed-opportunity-v3', MISSED_OPPORTUNITY_RULE_VERSION].includes(String(event.ruleVersion))) {
     const eligibility = event.eligibility
     if (!eligibility || eligibility.ruleVersion !== SCHEDULE_ELIGIBILITY_RULE_VERSION || typeof eligibility.equipmentProfileId !== 'string' || !eligibility.equipmentProfileId || typeof eligibility.equipmentProfileName !== 'string' || !eligibility.equipmentProfileName || Number.isNaN(new Date(eligibility.equipmentProfileUpdatedAt).getTime()) || eligibility.safetyGateState !== 'clear') return 'Missed-opportunity eligibility evidence is invalid.'
     if (!Array.isArray(eligibility.candidates) || !Array.isArray(eligibility.removedPlannedExerciseIds) || !Array.isArray(eligibility.removedExerciseNames)) return 'Missed-opportunity eligibility replay is incomplete.'
@@ -301,6 +381,16 @@ export function missedOpportunityEventError(value: unknown, sessions: TrainingSe
     if (eligibility.candidates.length !== event.queueBefore?.length || new Set(candidateIds).size !== eligibility.candidates.length || candidateIds.some((sessionId) => !(event.queueBefore ?? []).includes(sessionId)) || eligibility.candidates.some((candidate) => !sessionIds.has(candidate.sessionId) || typeof candidate.eligibleToLead !== 'boolean' || typeof candidate.fullyExecutable !== 'boolean' || (candidate.fullyExecutable && !candidate.eligibleToLead) || !Array.isArray(candidate.primaryMissingEquipment) || candidate.primaryMissingEquipment.some((item) => typeof item !== 'string') || !Array.isArray(candidate.reasons) || candidate.reasons.some((reason) => typeof reason !== 'string') || !['great', 'good', 'neutral', 'irritating', 'avoid', null].includes(candidate.primaryJointResponse) || !Number.isInteger(candidate.supportReviewCount) || candidate.supportReviewCount < 0)) return 'Missed-opportunity candidate eligibility is invalid.'
     if (!eligibility.candidates.find((candidate) => candidate.sessionId === event.nextSessionId)?.eligibleToLead) return 'Missed-opportunity next session was not eligible to lead.'
     if (eligibility.removedPlannedExerciseIds.length !== eligibility.removedExerciseNames.length || eligibility.removedPlannedExerciseIds.some((id) => typeof id !== 'string') || eligibility.removedExerciseNames.some((name) => typeof name !== 'string')) return 'Missed-opportunity removed-movement evidence is invalid.'
+  }
+  if (event.ruleVersion === MISSED_OPPORTUNITY_RULE_VERSION) {
+    const readiness = event.readiness
+    if (!readiness || readiness.ruleVersion !== SCHEDULE_READINESS_RULE_VERSION || !['current', 'stale', 'missing'].includes(String(readiness.freshness)) || !['normal', 'confirm', 'protect', 'reacclimate', 'pain-aware', 'unknown'].includes(String(readiness.effectiveOutcome)) || !(readiness.sourceOutcome === null || ['normal', 'confirm', 'protect', 'reacclimate', 'pain-aware'].includes(String(readiness.sourceOutcome))) || !['proceed', 'confirm-at-warmup', 'trim-optional', 'reacclimation-review', 'blocked', 'unknown'].includes(String(readiness.action)) || typeof readiness.reason !== 'string' || !readiness.reason || !(readiness.sourceSurveyId === null || typeof readiness.sourceSurveyId === 'string') || !(readiness.capturedAt === null || !Number.isNaN(new Date(readiness.capturedAt).getTime())) || !(readiness.ageHours === null || Number.isFinite(readiness.ageHours))) return 'Missed-opportunity readiness evidence is invalid.'
+    if (readiness.action === 'blocked' || (readiness.freshness === 'current' && readiness.effectiveOutcome === 'unknown') || (readiness.freshness !== 'current' && (readiness.effectiveOutcome !== 'unknown' || readiness.action !== 'unknown'))) return 'Missed-opportunity readiness decision is invalid.'
+    if (readiness.freshness === 'current' && (!readiness.sourceSurveyId || !readiness.capturedAt || readiness.ageHours === null || readiness.ageHours < 0 || readiness.ageHours > SCHEDULE_READINESS_FRESH_HOURS)) return 'Missed-opportunity current readiness freshness is invalid.'
+    if (readiness.freshness === 'stale' && (!readiness.sourceSurveyId || !readiness.capturedAt || readiness.ageHours === null || (readiness.ageHours >= 0 && readiness.ageHours <= SCHEDULE_READINESS_FRESH_HOURS))) return 'Missed-opportunity stale readiness freshness is invalid.'
+    if (readiness.freshness === 'missing' && readiness.sourceOutcome !== null) return 'Missed-opportunity missing readiness cannot contain an outcome.'
+    const expectedAction = readiness.sourceOutcome ? readinessAction(readiness.sourceOutcome) : 'unknown'
+    if (readiness.freshness === 'current' && (readiness.effectiveOutcome !== readiness.sourceOutcome || readiness.action !== expectedAction)) return 'Missed-opportunity readiness action does not match its source evidence.'
   }
   if ((event.changes ?? []).some((change) => !change || typeof change !== 'object' || !sessionIds.has(change.sessionId) || Number.isNaN(new Date(change.fromPlannedAt).getTime()) || Number.isNaN(new Date(change.toPlannedAt).getTime()) || !Number.isFinite(change.fromSetCount) || !Number.isFinite(change.toSetCount))) return 'Missed-opportunity session changes are invalid.'
   if (event.completedSetCountBefore !== event.completedSetCountAfter) return 'Missed-opportunity evidence cannot create or remove completed sets.'

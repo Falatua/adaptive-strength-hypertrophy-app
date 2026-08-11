@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { equipmentProfiles, exercises, history as seedHistory, sessions as seedSessions } from './seed'
 import { buildMissedOpportunityReplan, missedOpportunityEventError } from './schedule-adaptation-engine'
-import type { CompletedSetRecord, MissedOpportunityInput, TrainingSession } from './types'
+import type { CompletedSetRecord, MissedOpportunityInput, SurveyRecord, TrainingSession } from './types'
 
 const recordedAt = '2026-08-10T12:00:00.000Z'
 const nextOpportunityAt = '2026-08-12T12:00:00.000Z'
@@ -32,6 +32,19 @@ const completedSet = (exerciseId: string, completedAt: string, id = `${exerciseI
   pain: 0,
   qualityConfirmed: true,
   setIndex: 0
+})
+
+const preSurvey = (answers: SurveyRecord['answers'], completedAt = '2026-08-10T11:00:00.000Z'): SurveyRecord => ({
+  id: `pre:${completedAt}`,
+  sessionId: 'session-bench',
+  type: 'pre',
+  completedAt,
+  answers,
+  skipped: false,
+  mode: 'quick',
+  answeredCount: answers.filter((answer) => answer.status === 'answered').length,
+  unknownCount: answers.filter((answer) => answer.status !== 'answered').length,
+  confidence: 'medium'
 })
 
 const run = (overrides: Partial<Parameters<typeof buildMissedOpportunityReplan>[0]> = {}) => buildMissedOpportunityReplan({
@@ -67,13 +80,14 @@ describe('missed-opportunity replanning', () => {
     expect(result.event.openSetCountAfter).toBeLessThanOrEqual(result.event.openSetCountBefore)
     expect(result.event.completedSetCountAfter).toBe(result.event.completedSetCountBefore)
     expect(result.event.eligibility).toMatchObject({ ruleVersion: 'schedule-eligibility-v1', equipmentProfileId: 'equipment-commercial-gym' })
+    expect(result.event.readiness).toMatchObject({ ruleVersion: 'schedule-readiness-v1', freshness: 'missing', effectiveOutcome: 'unknown', action: 'unknown' })
   })
 
   it('honors an athlete pin while retaining exact-exposure order for the remaining queue', () => {
     const result = run({ input: input({ preferredNextSessionId: 'session-bench' }) })
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    expect(result.event.ruleVersion).toBe('missed-opportunity-v3')
+    expect(result.event.ruleVersion).toBe('missed-opportunity-v4')
     expect(result.event.queueAfter).toEqual(['session-bench', 'session-squat', 'session-deadlift'])
     expect(result.event.nextSessionId).toBe('session-bench')
     expect(result.event.reasons[0]).toMatch(/athlete pinned/i)
@@ -109,6 +123,42 @@ describe('missed-opportunity replanning', () => {
     expect(unavailable).toMatchObject({ ok: false, error: expect.stringMatching(/cannot lead at Travel Setup/i) })
     const blocked = run({ safetyGateActive: true, safetyGateReason: 'Reassess the current pain restriction before automatic schedule rebuilding.' })
     expect(blocked).toMatchObject({ ok: false, error: expect.stringMatching(/pain restriction/i) })
+  })
+
+  it('uses only fresh readiness evidence and never penalizes missing or stale answers', () => {
+    const protective = run({
+      input: input({ constraintState: 'ended' }),
+      surveys: [preSurvey([
+        { id: 'fatigue', value: 4, status: 'answered' },
+        { id: 'energy', value: 1, status: 'answered' }
+      ])]
+    })
+    expect(protective.ok).toBe(true)
+    if (!protective.ok) return
+    expect(protective.event.readiness).toMatchObject({ freshness: 'current', sourceOutcome: 'protect', effectiveOutcome: 'protect', action: 'trim-optional', ageHours: 1 })
+    expect(protective.event.reasons.join(' ')).toMatch(/protective/i)
+    expect(protective.sessions.find((session) => session.id === protective.event.nextSessionId)?.exercises.some((exercise) => exercise.role === 'optional')).toBe(false)
+
+    const stale = run({
+      input: input({ constraintState: 'ended' }),
+      surveys: [preSurvey([{ id: 'pain', value: 5, status: 'answered' }], '2026-08-08T11:00:00.000Z')]
+    })
+    expect(stale.ok).toBe(true)
+    if (!stale.ok) return
+    expect(stale.event.readiness).toMatchObject({ freshness: 'stale', sourceOutcome: 'pain-aware', effectiveOutcome: 'unknown', action: 'unknown', ageHours: 49 })
+    expect(stale.event.mode).toBe('defer-one')
+  })
+
+  it('blocks a rebuild from fresh pain readiness and rejects forged readiness actions', () => {
+    const surveys = [preSurvey([{ id: 'pain', value: 5, status: 'answered' }])]
+    const blocked = run({ surveys })
+    expect(blocked).toMatchObject({ ok: false, error: expect.stringMatching(/fresh pain evidence/i) })
+
+    const valid = run({ surveys: [preSurvey([{ id: 'stress', value: 4, status: 'answered' }])] })
+    expect(valid.ok).toBe(true)
+    if (!valid.ok) return
+    expect(valid.event.readiness).toMatchObject({ sourceOutcome: 'confirm', action: 'confirm-at-warmup' })
+    expect(missedOpportunityEventError({ ...valid.event, readiness: { ...valid.event.readiness!, action: 'proceed' } }, valid.sessions)).toMatch(/does not match/i)
   })
 
   it('preserves completed, partial, expired, and stopped session objects instead of deleting the ledger', () => {

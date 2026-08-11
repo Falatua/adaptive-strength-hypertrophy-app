@@ -719,6 +719,7 @@ export const useAppStore = create<AppState>()(
           weeklyOpportunities: state.athlete.weeklyOpportunities,
           exercises: state.exercises,
           equipmentProfile: activeEquipmentProfile,
+          surveys: state.surveys,
           safetyGateActive,
           safetyGateReason: safetyGateActive ? 'Automatic schedule rebuilding is paused because the current pain or restriction evidence changes what can be trained. Reassess the profile before rebuilding. This is not medical clearance.' : undefined
         })
@@ -996,7 +997,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 20,
+      version: 21,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,

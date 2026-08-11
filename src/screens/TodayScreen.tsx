@@ -190,6 +190,7 @@ export function TodayScreen() {
             <span><small>Continuity</small><strong>{latestScheduleChange.continuityBefore} → {latestScheduleChange.continuityAfter}</strong></span>
             <span><small>Miss sequence</small><strong>{latestScheduleChange.consecutiveMisses}</strong></span>
             {latestScheduleChange.eligibility && <span><small>Equipment eligibility</small><strong>{latestScheduleChange.eligibility.equipmentProfileName}</strong><em>{latestScheduleChange.eligibility.removedExerciseNames.length ? `${latestScheduleChange.eligibility.removedExerciseNames.length} support movement${latestScheduleChange.eligibility.removedExerciseNames.length === 1 ? '' : 's'} removed` : 'fully executable'}</em></span>}
+            {latestScheduleChange.readiness && <span><small>Readiness evidence</small><strong>{latestScheduleChange.readiness.effectiveOutcome.replaceAll('-', ' ')}</strong><em>{latestScheduleChange.readiness.freshness === 'current' ? `${latestScheduleChange.readiness.action.replaceAll('-', ' ')} · ${latestScheduleChange.readiness.ageHours ?? 0}h old` : latestScheduleChange.readiness.freshness === 'stale' ? 'stale · not applied' : 'unknown · no penalty'}</em></span>}
           </div>
           <details><summary>Why this order?</summary>{latestScheduleChange.reasons.map((reason) => <p key={reason}><CheckCircle2 size={14} />{reason}</p>)}</details>
         </div>
@@ -317,7 +318,7 @@ export function TodayScreen() {
           ['uncertain', 'Uncertain', 'Protect flexibility until the schedule is clearer.']
         ] as const).map(([value, title, detail]) => <button type="button" key={value} aria-pressed={missReason.constraintState === value} onClick={() => setMissReason((current) => ({ ...current, constraintState: value }))}><strong>{title}</strong><small>{detail}</small></button>)}</fieldset>
         <label><span className="field-label">Optional context</span><textarea maxLength={500} value={missReason.note} onChange={(event) => setMissReason((current) => ({ ...current, note: event.target.value }))} placeholder="Example: Kids were up most of the night. Friday morning should be realistic, but I only have 30 minutes." /></label>
-        <div className="missed-checkin__guardrail"><ShieldCheck size={18} /><span><strong>What the rebuild can do</strong><small>Move open sessions, rank overdue exact primaries, reduce optional fatigue, and fit the next time window. Completed sessions and source sets remain untouched.</small></span></div>
+        <div className="missed-checkin__guardrail"><ShieldCheck size={18} /><span><strong>What the rebuild can do</strong><small>Move open sessions, rank executable exact primaries, use answered readiness evidence from the last 24 hours, reduce optional fatigue, and fit the next time window. Skipped, missing, or stale readiness stays unknown. Completed sessions and source sets remain untouched.</small></span></div>
         {missError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Plan not rebuilt</strong>{missError}</span></div>}
         </div>
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setMissedOpen(false)}>Cancel</button><button className="button button--primary" onClick={() => {
