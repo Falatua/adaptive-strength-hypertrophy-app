@@ -1,17 +1,20 @@
 {
   "name": "adaptive-strength-hypertrophy-app",
   "private": true,
-  "version": "0.35.0",
+  "version": "0.36.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:pages": "VITE_BASE_PATH=/adaptive-strength-hypertrophy-app-pages/ npm run build",
     "preview": "vite preview",
     "test": "vitest run src",
     "test:watch": "vitest src",
     "test:e2e": "playwright test",
     "lint": "eslint .",
     "qc:ui": "node scripts/qc-ui-boundaries.mjs",
+    "qc:pages": "node scripts/qc-pages-build.mjs",
+    "check:pages": "npm run build:pages && npm run qc:pages",
     "check": "npm run qc:ui && npm run lint && npm run test && npm run build"
   },
   "dependencies": {

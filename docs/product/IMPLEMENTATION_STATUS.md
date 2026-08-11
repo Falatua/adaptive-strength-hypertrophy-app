@@ -5,7 +5,7 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-10
 status: working-private-alpha
-app_version: 0.35.0
+app_version: 0.36.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
@@ -19,6 +19,16 @@ A working private, local-first application now exists at `/Users/redsky/Projects
 The code is preserved in the private GitHub repository `Falatua/adaptive-strength-hypertrophy-app`. Releases 0.1.0 through 0.34.0 remain in Git history. Private alpha 0.30.0 is commit `b204c54342a08366f8026e305171993ffb27aee7` and adds fresh readiness evidence without penalizing missing or stale answers. Private alpha 0.31.0 feature commit `06336129e7c2952e4645e088fbc0b4c8479208cf` adds source-backed relative priority-region dose as a bounded schedule tie-break. Private alpha 0.32.0 feature commit `035e175` adds context-grounded product and design registers, the evidence-backed Today Training Field Guide, post-onboarding focus handoff, and automated UI boundaries. Private alpha 0.33.0 adds the original `field-guide-synth-v1` runtime sound pack. Private alpha 0.34.0 feature commit `2f469b4ef237092ab5a8687d2fdd03626ab55194` adds the cross-device UX task-focus corrections recorded in [[UX Audit 2026-08-10]]. Private alpha 0.35.0 feature commit `900010570c60981b2b2beeb58cf31f66b754ee37` adds the functional UX corrections recorded in [[Functional UX Audit 2026-08-10]]. The first complete GitHub specification mirror is commit `20cf4298870a11608ddc69642c52c4a1c1b2867f`; later specification commits keep `docs/product/` aligned with implementation. The latest remote identity is recorded in [[Adaptive Strength and Hypertrophy App]] and [[Codex Session Log]].
 
 This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into a usable end-to-end browser and installable PWA experience. It is governed by the full requirement register but implements a bounded first slice. Deferred cloud, AI, social, and advanced longitudinal work must not be represented as complete.
+
+## Private Alpha 0.36.0 Release Delta
+
+- Added `.github/workflows/deploy-pages.yml` so every push to private source `main` runs the full release gate and automatically publishes the exact passing compiled artifact to public repository `Falatua/adaptive-strength-hypertrophy-app-pages` through a repository-scoped deploy key.
+- Added a project-subpath-aware PWA build for `/adaptive-strength-hypertrophy-app-pages/` and a generated-artifact check covering compiled assets, favicon, manifest start URL and scope, and service-worker navigation fallback.
+- Preserved the private source repository. The public artifact repository receives no source, tests, Build Bible files, or vault material.
+- Replaced the fresh JB-named seed with a neutral Demo Athlete seed. Existing persisted browser state and backup compatibility remain unchanged.
+- Advanced app, rules, README, and backup metadata to 0.36.0 while preserving backup schema 24 and local persistence 22.
+- Added explicit documentation that Pages does not provide authentication, cloud sync, cross-device handoff, shared storage, or private access control.
+- Live workflow and mobile and desktop evidence are recorded in [[GitHub Pages Deployment 2026-08-10]].
 
 ## Private Alpha 0.35.0 Release Delta
 

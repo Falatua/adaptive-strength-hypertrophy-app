@@ -2253,7 +2253,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Package version, visible app and rules diagnostics, backup export metadata, README, audit record, and implementation status must agree before release. The release gate includes handler inventory, cross-device browser workflows, 320-pixel containment, production Lighthouse, console review, dependency audit, secret scan, deterministic tests, and a production PWA build.
 - Detail: [[Functional UX Audit 2026-08-10]]
 
+### R-355 Automatic Main-to-Pages Deployment
+- Status: implemented
+- Provenance: from-user
+- Requirement: Every update merged or pushed to the private source repository's GitHub `main` must automatically publish the matching tested compiled build to the public Pages artifact repository so the hosted preview stays aligned without exposing private source or project documentation.
+- Detail: [[GitHub Pages Deployment 2026-08-10]]
+
+### R-356 Deployment Quality Gate
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: GitHub Pages deployment must wait for UI boundary checks, lint, deterministic tests, a production build, all desktop and phone browser journeys, and the Pages artifact check. Any failed gate blocks publication.
+- Detail: [[GitHub Pages Deployment 2026-08-10]]
+
+### R-357 Project-Subpath PWA Integrity
+- Status: implemented
+- Provenance: product-decision
+- Requirement: The production PWA must load, launch, install, update, and navigate correctly from `/adaptive-strength-hypertrophy-app-pages/`, including assets, favicon, manifest start URL and scope, service worker, and navigation fallback.
+- Detail: [[GitHub Pages Deployment 2026-08-10]]
+
+### R-358 Public Preview Privacy Boundary
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Keep the source repository private while treating the artifact repository and Pages URL as public. Publish only compiled output and source identity, never Build Bible files, tests, vault material, credentials, private exports, or a JB-named personal record seed. New browsers receive a neutral demo seed. Clearly disclose that current data is browser-local and not authenticated, encrypted, synchronized, or backed up to the cloud.
+- Detail: [[GitHub Pages Deployment 2026-08-10]]
+
+### R-359 Live Hosted Release Verification
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Do not call a Pages release complete from a green workflow alone. Verify the unauthenticated live URL on mobile and desktop, check compiled resources and browser errors, and record the final commit, workflow run, URL, and current hosting boundary.
+- Detail: [[GitHub Pages Deployment 2026-08-10]]
+
 ## Thread Coverage Audit
+
+### 2026-08-10 Automatic GitHub Pages Hosting Expansion
+- Scope: User requested that every app update reach GitHub and GitHub Pages so the hosted site can be used for testing and shared access.
+- Result: Added R-355 through R-359 and Build Bible Chapter 75. Private alpha 0.36.0 adds a quality-gated main-to-Pages workflow, subpath-safe PWA build, generated-artifact check, public-preview boundary, neutral new-visitor seed, and required live mobile and desktop verification.
+- Status: Implementation and local verification are complete. Final workflow and public URL evidence are recorded in [[GitHub Pages Deployment 2026-08-10]]. Cloud accounts, shared data, access control, and cross-device sync remain deferred.
 
 ### 2026-08-10 Deep Functional Mobile and Desktop Audit
 - Scope: User requested a deep bug audit across mobile and desktop covering all buttons, feature piping, workflows, and wireframes.
@@ -2499,6 +2534,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-10: Added R-355 through R-359 for automatic tested GitHub Pages deployment on every `main` update, project-subpath PWA integrity, public-preview privacy, a neutral new-visitor seed, and live mobile and desktop verification. Private alpha 0.36.0 preserves backup schema 24 and local persistence 22.
 - 2026-08-10: Added R-347 through R-354 from the deep functional mobile and desktop audit. Private alpha 0.35.0 corrects handlerless and notice-only controls, real Library browse piping, touch-safe progression reasoning, active-workout leave and resume, unresolved-session pin mutation, cross-device touch targets and containment, and release metadata integrity. Verification includes 191 deterministic tests, 52 desktop and phone journeys, production Lighthouse 100/100/100 desktop and 98/100/100 mobile, zero high dependency vulnerabilities, and zero secret findings.
 - 2026-08-10: Added R-331 through R-346 from JB's hypertrophy requirements source and the complete mobile-desktop UX audit. Private alpha 0.34.0 implements destination context reset, onboarding semantics, non-obstructive compact notices, an above-fold Today start path, Library discovery before placement calibration, and active-workout completion hierarchy. Selectable double progression, per-exercise increments, week-specific builder controls, and upper-lower templates remain specified but unimplemented.
 - 2026-08-10: Added R-325 through R-330 for an original pocket-console sound language, opt-in preview, quiet-mode precedence, semantic event mapping, nonessential low-interruption audio, and provenance gates. Private alpha 0.33.0 adds `field-guide-synth-v1`, 191 deterministic tests across twenty files, and persisted sound-plus-quiet browser verification inside the existing forty-six desktop and phone journeys.

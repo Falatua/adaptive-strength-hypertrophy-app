@@ -1,8 +1,8 @@
-# ForgePath Private Alpha 0.35.0
+# ForgePath Private Alpha 0.36.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
-The private repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 354 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, exercise-library and recommendation specification, cloud-sync and backend specification, and pixel training-adventure specification. Obsidian remains the editable source of truth.
+The private repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 359 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
 ## Run locally
 
@@ -17,11 +17,18 @@ The working interface name is ForgePath. It remains a private-alpha label until 
 
 The current PWA is responsive on phone and laptop, but each browser still has an independent local data store. Authentication, cloud synchronization, workout handoff, and conflict resolution are specified in [Build Bible Chapter 68](docs/product/BUILD_BIBLE.md#68-phone-laptop-and-cloud-synchronization) and are not yet implemented.
 
+## Hosted preview
+
+Every push to the private source repository's `main` runs the deterministic checks, all desktop and mobile browser journeys, and a GitHub Pages-specific PWA build before publishing only the compiled artifact to the public `Falatua/adaptive-strength-hypertrophy-app-pages` repository. A failed gate blocks the release. The hosted preview lives at `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`.
+
+The Pages URL is a public preview, even though the source repository is private. Each browser keeps its own data in local storage and receives a neutral demo seed on first use. There is no account, cloud sync, shared workout database, or cross-device handoff yet. Do not enter information you would not want stored unencrypted in that browser, and export a backup before clearing site data.
+
 ## Verify
 
 ```bash
 npm run check
 npm run test:e2e
+npm run check:pages
 ```
 
 ## Current architecture

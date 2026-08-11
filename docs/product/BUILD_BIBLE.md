@@ -5,7 +5,7 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-10
 status: canonical-build-reference-and-active-implementation
-version: 1.36.0
+version: 1.41.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -6087,6 +6087,38 @@ The package version, visible interface version, diagnostic rules label, backup e
 - production PWA build, lint, dependency audit, and secret scan.
 
 Private alpha 0.35.0 preserves backup schema 24 and local persistence 22. `workoutVisible` is a backward-compatible presentation flag. An older stored state with no flag opens an active workout as before.
+
+## 75. Automatic GitHub Pages Hosting and Public Preview Contract
+
+### 75.1 Main Is the Deployment Source
+
+Every push to private source repository `main` must trigger the Pages workflow. Because the current GitHub plan cannot serve Pages directly from a private repository, a separate public artifact repository receives only the generated `dist` output plus the exact source commit identity. Manual artifact copying is not the normal release path. The workflow deploys only the exact checked-out commit and exposes both source and public artifact commits through GitHub history.
+
+### 75.2 Quality Gates Before Publication
+
+Pages publication is downstream of the normal deterministic UI boundary scan, lint, domain tests, production build, the full desktop and phone Playwright suite, and a dedicated Pages artifact check. A failing gate blocks deployment. The deployment job cannot run if the verification and build job fails.
+
+### 75.3 Project-Subpath PWA Integrity
+
+The hosted path is `/adaptive-strength-hypertrophy-app-pages/`, not the domain root. The Pages build must prefix compiled assets, favicon, web manifest, manifest launch URL, manifest scope, and service-worker navigation behavior for that path. A release check inspects the generated artifact and rejects root-only URLs that would work locally but fail on Pages.
+
+### 75.4 Public Preview and Local Data Boundary
+
+The source GitHub repository remains private. The public artifact repository and Pages preview are reachable by anyone with the URL. The artifact repository contains no editable source, project documentation, tests, or vault material. New visitors receive a neutral Demo Athlete seed and complete onboarding in their own browser. No JB-named seed, credential, API key, private health record, or personal workout export may be compiled into the public artifact.
+
+Pages hosting does not provide authentication, a shared database, cloud backup, phone-to-laptop synchronization, active-workout handoff, or access control. Workout state remains unencrypted browser-local storage. The interface and documentation must state this honestly, and users should not enter sensitive information on a shared device.
+
+### 75.5 Live Release Verification
+
+A successful workflow is necessary but not sufficient. Each substantive release must verify the final public URL without relying on an authenticated GitHub session. Verification covers HTTP availability, compiled asset loading, service-worker and manifest paths, browser console integrity, onboarding visibility, and representative mobile and desktop interaction. The release record stores the final commit, workflow run, URL, and verified boundary.
+
+### Version 1.41.0 Change Entry
+
+- Added R-355 through R-359 and the automatic GitHub Pages hosting contract.
+- Added a main-branch workflow gated by deterministic checks and all desktop and phone browser journeys, then restricted publication to a compiled public artifact repository through a repository-scoped deploy key.
+- Added a project-subpath PWA build and generated-artifact verification.
+- Replaced the JB-named fresh seed with a neutral Demo Athlete seed while preserving existing browser state.
+- Advanced visible and backup application metadata to private alpha 0.36.0 without changing backup schema 24 or local persistence 22.
 
 ### Version 1.40.0 Change Entry
 
