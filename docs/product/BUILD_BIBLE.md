@@ -6042,6 +6042,60 @@ The onboarding form is the page's `main` landmark and owns the `main-content` sk
 
 Private alpha 0.34.0 preserves all training calculations, backup schema 24, and local persistence 22. Verification adds two cross-device browser journeys for task visibility, destination scroll reset, Library search visibility, workout finish hierarchy, console integrity, and horizontal containment. Full audit evidence lives in [[UX Audit 2026-08-10]].
 
+## 74. Functional UX Integrity and Cross-Device Workflow Contract
+
+### 74.1 No Simulated Success
+
+Every visible control must connect to a real state transition, navigation outcome, decision surface, file action, or explicitly disabled state. A toast or notice may confirm a completed action, but it cannot substitute for that action. Static handler inventory is a release gate, and browser tests must verify the downstream result rather than only the appearance of confirmation copy.
+
+### 74.2 Canonical Library Browse Contract
+
+Library category cards are entry points into one canonical catalog, not decorative navigation. Body part and goal or weak point expose region facets; movement type exposes mechanical-pattern facets; training role exposes role tags; equipment activates the current-location availability view; and My movements activates exact preferred state. Entering a category clears stale browse facets before revealing the relevant filter controls. Search, facets, and favorites may then compose deliberately.
+
+Filters expose pressed state, result count, expandable-region semantics, and one clear-all action. They never create a new exercise identity, rewrite history, or treat a related variation as the same movement.
+
+### 74.3 Active Workout Presentation State
+
+An active session and the currently visible screen are separate concepts. Leaving a workout hides the workout surface and returns to Today while retaining `activeSessionId`, current set completion, prescriptions, and verification evidence. Today shows one unambiguous resume action. Resume reopens the same session and must not call start logic, reset `startedAt`, recompress by a new time budget, round loads again, or create another verification event.
+
+Finishing remains the only action that converts completed working sets into immutable history and clears the active session.
+
+### 74.4 Real Priority Mutation
+
+A Plan pin may reorder only unresolved `planned` or `deferred` sessions. It cannot mutate an active, completed, partial, stopped, or expired session. The selected session becomes first among unresolved opportunities while every historical object retains its original training truth. Today still gives an already active workout precedence until that workout is finished.
+
+### 74.5 Touch-Safe Reasoning
+
+No core explanation may depend on hover. The in-workout information action opens a native dialog that names the exact movement and discloses decision title, progression action, evidence confidence, engine explanation, and authority limits. The dialog is read-only and may not mutate work, authorize a PR chase, borrow family history, or override readiness and pain gates.
+
+### 74.6 Responsive Acceptance Matrix
+
+Every primary destination must be reviewed at 320 by 568, phone portrait near 390 by 844, tablet portrait near 768 by 1024, phone landscape near 844 by 390, and desktop near 1440 by 900. Page-level horizontal overflow is a release blocker.
+
+Phone and tablet controls target 44 by 44 pixels. The 320-pixel seven-column calendar is a documented compact exception: date cells may remain 33 by 54 pixels with spacing because they exceed WCAG 2.2 AA's 24-pixel minimum and avoid a horizontally scrolling month.
+
+### 74.7 Release Integrity
+
+The package version, visible interface version, diagnostic rules label, backup export application version, repository README, implementation status, and audit record must agree. Release verification includes:
+
+- static UI boundaries and a handlerless-control scan;
+- deterministic unit and domain tests;
+- desktop and mobile browser journeys that inspect stored downstream state;
+- keyboard dialog dismissal and browser console review;
+- 320-pixel, tablet, landscape, and desktop containment sweeps;
+- production Lighthouse performance, accessibility, and best-practice scores;
+- production PWA build, lint, dependency audit, and secret scan.
+
+Private alpha 0.35.0 preserves backup schema 24 and local persistence 22. `workoutVisible` is a backward-compatible presentation flag. An older stored state with no flag opens an active workout as before.
+
+### Version 1.40.0 Change Entry
+
+- Added R-347 through R-354 and the functional UX integrity contract.
+- Replaced Library placeholder category behavior with real canonical filters and corrected preferred-movement browsing.
+- Added touch-safe progression reasoning, active-workout leave and resume, and real unresolved-session priority mutation.
+- Aligned backup export metadata and every visible release label at private alpha 0.35.0.
+- Verified 191 deterministic tests across twenty files, fifty-two desktop and phone journeys, zero horizontal overflow at the acceptance matrix, production Lighthouse 100/100/100 desktop and 98/100/100 mobile, zero high dependency vulnerabilities, and zero secret findings.
+
 ### Version 1.39.0 Change Entry
 
 - Added R-341 through R-346 and the cross-device task-focus contract.

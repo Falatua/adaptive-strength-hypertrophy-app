@@ -5,7 +5,7 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-10
 status: working-private-alpha
-app_version: 0.34.0
+app_version: 0.35.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
@@ -16,9 +16,22 @@ confidence: verified
 
 A working private, local-first application now exists at `/Users/redsky/Projects/adaptive-strength-hypertrophy-app`. Its provisional interface name is **ForgePath Private Alpha**. The name is not final product approval.
 
-The code is preserved in the private GitHub repository `Falatua/adaptive-strength-hypertrophy-app`. Releases 0.1.0 through 0.33.0 remain in Git history. Private alpha 0.30.0 is commit `b204c54342a08366f8026e305171993ffb27aee7` and adds fresh readiness evidence without penalizing missing or stale answers. Private alpha 0.31.0 feature commit `06336129e7c2952e4645e088fbc0b4c8479208cf` adds source-backed relative priority-region dose as a bounded schedule tie-break. Private alpha 0.32.0 feature commit `035e175` adds context-grounded product and design registers, the evidence-backed Today Training Field Guide, post-onboarding focus handoff, and automated UI boundaries. Private alpha 0.33.0 adds the original `field-guide-synth-v1` runtime sound pack. Private alpha 0.34.0 feature commit `2f469b4ef237092ab5a8687d2fdd03626ab55194` adds the cross-device UX task-focus corrections recorded in [[UX Audit 2026-08-10]]. The first complete GitHub specification mirror is commit `20cf4298870a11608ddc69642c52c4a1c1b2867f`; later specification commits keep `docs/product/` aligned with implementation. The latest remote identity is recorded in [[Adaptive Strength and Hypertrophy App]] and [[Codex Session Log]].
+The code is preserved in the private GitHub repository `Falatua/adaptive-strength-hypertrophy-app`. Releases 0.1.0 through 0.34.0 remain in Git history. Private alpha 0.30.0 is commit `b204c54342a08366f8026e305171993ffb27aee7` and adds fresh readiness evidence without penalizing missing or stale answers. Private alpha 0.31.0 feature commit `06336129e7c2952e4645e088fbc0b4c8479208cf` adds source-backed relative priority-region dose as a bounded schedule tie-break. Private alpha 0.32.0 feature commit `035e175` adds context-grounded product and design registers, the evidence-backed Today Training Field Guide, post-onboarding focus handoff, and automated UI boundaries. Private alpha 0.33.0 adds the original `field-guide-synth-v1` runtime sound pack. Private alpha 0.34.0 feature commit `2f469b4ef237092ab5a8687d2fdd03626ab55194` adds the cross-device UX task-focus corrections recorded in [[UX Audit 2026-08-10]]. Private alpha 0.35.0 feature commit `900010570c60981b2b2beeb58cf31f66b754ee37` adds the functional UX corrections recorded in [[Functional UX Audit 2026-08-10]]. The first complete GitHub specification mirror is commit `20cf4298870a11608ddc69642c52c4a1c1b2867f`; later specification commits keep `docs/product/` aligned with implementation. The latest remote identity is recorded in [[Adaptive Strength and Hypertrophy App]] and [[Codex Session Log]].
 
 This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into a usable end-to-end browser and installable PWA experience. It is governed by the full requirement register but implements a bounded first slice. Deferred cloud, AI, social, and advanced longitudinal work must not be represented as complete.
+
+## Private Alpha 0.35.0 Release Delta
+
+- Audited 135 button definitions and removed the last handlerless or simulated-success controls from the implemented product boundary.
+- Replaced Library placeholder category notices with real body-part, pattern, role, equipment, and preferred-movement filtering. `My movements` now returns the sixteen preferred canonical exercises rather than an unsupported empty query.
+- Added expandable filter semantics, pressed states, clear-all behavior, and compact touch-target hardening.
+- Replaced hover-only in-workout progression detail with a native touch and keyboard dialog that discloses decision, action, confidence, explanation, and authority boundary.
+- Added active-workout leave and resume without restarting, recompressing, or losing logged sets and verification state.
+- Made Plan pinning reorder the real unresolved queue and disabled false pin actions on the active session.
+- Aligned package, diagnostics, visible rules, README, and backup export metadata at 0.35.0 while preserving backup schema 24 and local persistence 22.
+- Verified 191 deterministic tests across twenty files and fifty-two desktop and phone Playwright journeys.
+- Verified zero horizontal overflow across Today, Plan, Progress, Library, and You at 320 by 568, 393 by 851, 768 by 1024, 844 by 390, and 1440 by 900.
+- Verified production Lighthouse at desktop 100 performance, 100 accessibility, 100 best practices and mobile 98 performance, 100 accessibility, 100 best practices. Dependency and secret scans found zero vulnerabilities or leaks.
 
 ## Private Alpha 0.34.0 Release Delta
 

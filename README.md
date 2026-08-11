@@ -2,7 +2,7 @@
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
-The private repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 346 requirements, traceability matrix, verified implementation status, cross-device UX audit, exercise-library and recommendation specification, cloud-sync and backend specification, and pixel training-adventure specification. Obsidian remains the editable source of truth.
+The private repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 354 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, exercise-library and recommendation specification, cloud-sync and backend specification, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
 ## Run locally
 
@@ -36,11 +36,12 @@ npm run test:e2e
 ## Current verification
 
 - 191 deterministic domain tests
-- forty-eight desktop and phone browser journeys, including predictable destination context, first-viewport phone task actions, active-workout hierarchy, an original synthesized sound pack with persisted opt-in and quiet-mode precedence, an evidence-backed Training Field Guide, accessible route-note opening, auditable missed-opportunity rebuilding, source-backed records, linked calendar and exact exposure history, explainable athlete placement, athlete-reviewed exact-history evidence, plan-route and exact-movement criterion exits, equipment-aware route generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
+- fifty-two desktop and phone browser journeys, including real Library category and filter piping, touch-safe workout reasoning, active-workout leave and resume with logged-set conservation, real next-session priority mutation, predictable destination context, first-viewport phone task actions, active-workout hierarchy, an original synthesized sound pack with persisted opt-in and quiet-mode precedence, an evidence-backed Training Field Guide, accessible route-note opening, auditable missed-opportunity rebuilding, source-backed records, linked calendar and exact exposure history, explainable athlete placement, athlete-reviewed exact-history evidence, plan-route and exact-movement criterion exits, equipment-aware route generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
 - automated UI boundary QC for original game-inspired expression, the technique-video exclusion, readable typography, focus and reduced-motion support, compact mobile coverage, and required product-design context
 - lint clean
 - production PWA build clean
-- desktop and 390 px phone browser journeys checked
+- 320 px phone, 390 px phone, 768 px tablet, 844 by 390 landscape, and 1440 px desktop layouts checked
+- production Lighthouse scores: desktop 100 performance, 100 accessibility, 100 best practices; mobile 98 performance, 100 accessibility, 100 best practices
 - reload persistence, survey skip paths, substitutions, partial sessions, and progress updates verified
 - versioned backup export, validation, restore, malformed-file rejection, and one-step restore undo verified
 - daily, weekly, rolling 28-day, calendar-month, calendar-quarter, yearly, and all-time analytics reconcile to completed source sets

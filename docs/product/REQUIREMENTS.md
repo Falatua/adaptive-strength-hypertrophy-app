@@ -2205,7 +2205,60 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Onboarding must provide a real main landmark at the skip-link destination and expose the four-step state as an accessible progress indicator with current position.
 - Detail: [[UX Audit 2026-08-10]]
 
+### R-347 Interactive Control Integrity
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Every visible button must complete a real task, open a real decision surface, or be visibly disabled with a valid reason. A control may not simulate success through a notice when no underlying state, navigation, or data action occurred.
+- Detail: [[Functional UX Audit 2026-08-10]]
+
+### R-348 Canonical Library Browse Piping
+- Status: implemented
+- Provenance: from-user
+- Requirement: Body part, movement type, training role, goal or weak point, equipment, and preferred-movement browse entries must route into real canonical catalog filters. Category entry resets stale facets, exact exercise identity remains unchanged, and the visible count must reconcile to the filtered catalog.
+- Detail: [[Functional UX Audit 2026-08-10]]
+
+### R-349 Expandable Filter Semantics
+- Status: implemented
+- Provenance: product-decision
+- Requirement: The Library filter control must visibly expand and collapse the filter region, expose `aria-expanded`, retain explicit pressed states, and provide a single clear-all action without losing exercise history or preferences.
+- Detail: [[Functional UX Audit 2026-08-10]]
+
+### R-350 Cross-Device Target and Containment Floor
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Core phone and tablet actions use 44-pixel targets where the wireframe permits. Compact calendar cells may use the WCAG 2.2 AA 24-pixel minimum when a seven-column 320-pixel layout would otherwise require horizontal scrolling. Every primary destination must remain horizontally contained at 320-pixel phone, phone portrait, tablet portrait, phone landscape, and desktop widths.
+- Detail: [[Functional UX Audit 2026-08-10]]
+
+### R-351 Touch-Safe Progression Explanation
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: In-workout progression reasoning must be available without hover. A keyboard and touch-safe dialog must disclose the exact movement, decision, progression action, confidence, explanation, and authority boundary without mutating the prescription.
+- Detail: [[Functional UX Audit 2026-08-10]]
+
+### R-352 Active Workout Leave and Resume
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: The athlete may leave an active workout to use the rest of the app and later resume it. Active session identity, completed-set flags, prescriptions, and placement-verification state must survive without restarting, recompressing, or duplicating the session.
+- Detail: [[Functional UX Audit 2026-08-10]]
+
+### R-353 Real Next-Session Priority Pin
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Pinning an unresolved session must change the actual unresolved queue order used for the next training priority. Active and historical sessions remain immutable, and a success notice may appear only after the reorder succeeds.
+- Detail: [[Functional UX Audit 2026-08-10]]
+
+### R-354 Release Metadata and Functional Audit Gate
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Package version, visible app and rules diagnostics, backup export metadata, README, audit record, and implementation status must agree before release. The release gate includes handler inventory, cross-device browser workflows, 320-pixel containment, production Lighthouse, console review, dependency audit, secret scan, deterministic tests, and a production PWA build.
+- Detail: [[Functional UX Audit 2026-08-10]]
+
 ## Thread Coverage Audit
+
+### 2026-08-10 Deep Functional Mobile and Desktop Audit
+- Scope: User requested a deep bug audit across mobile and desktop covering all buttons, feature piping, workflows, and wireframes.
+- Result: Added R-347 through R-354. Private alpha 0.35.0 replaces placeholder Library categories with real filters, fixes preferred-movement browsing, makes workout reasoning touch-safe, adds active-workout leave and resume, makes Plan pinning mutate the real queue, aligns backup and release metadata, and hardens compact targets and containment.
+- Status: The implemented private-alpha boundary passes 191 deterministic tests, 52 desktop and phone browser journeys, 320-pixel phone, tablet, landscape, and desktop manual sweeps, production Lighthouse, console, dependency, secret, and build gates. Cloud sync and other explicitly deferred systems remain outside this pass.
 
 ### 2026-08-10 Hypertrophy Requirements and Cross-Device UX Audit
 - Scope: User supplied `hypertrophy-app-requirements.md`, then requested a deep UX, UXD, and UI audit across mobile and desktop after reconciliation.
@@ -2446,6 +2499,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-10: Added R-347 through R-354 from the deep functional mobile and desktop audit. Private alpha 0.35.0 corrects handlerless and notice-only controls, real Library browse piping, touch-safe progression reasoning, active-workout leave and resume, unresolved-session pin mutation, cross-device touch targets and containment, and release metadata integrity. Verification includes 191 deterministic tests, 52 desktop and phone journeys, production Lighthouse 100/100/100 desktop and 98/100/100 mobile, zero high dependency vulnerabilities, and zero secret findings.
 - 2026-08-10: Added R-331 through R-346 from JB's hypertrophy requirements source and the complete mobile-desktop UX audit. Private alpha 0.34.0 implements destination context reset, onboarding semantics, non-obstructive compact notices, an above-fold Today start path, Library discovery before placement calibration, and active-workout completion hierarchy. Selectable double progression, per-exercise increments, week-specific builder controls, and upper-lower templates remain specified but unimplemented.
 - 2026-08-10: Added R-325 through R-330 for an original pocket-console sound language, opt-in preview, quiet-mode precedence, semantic event mapping, nonessential low-interruption audio, and provenance gates. Private alpha 0.33.0 adds `field-guide-synth-v1`, 191 deterministic tests across twenty files, and persisted sound-plus-quiet browser verification inside the existing forty-six desktop and phone journeys.
 - 2026-08-10: Added R-321 through R-324 for context-grounded product judgment, original handheld-adventure craft, durable product and design registers, and automated-plus-visual UI QC. Private alpha 0.32.0 adds the Today Training Field Guide, post-onboarding focus handoff, design anti-pattern cleanup, a standard UI boundary check, 189 deterministic tests, and forty-six desktop and phone Playwright journeys.
