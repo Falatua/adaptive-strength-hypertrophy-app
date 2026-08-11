@@ -33,7 +33,9 @@ This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into 
 - Added `SUPABASE_BACKEND_RUNBOOK.md`, a browser-safe environment template, GitHub Actions configuration hooks, and a backend quality check in the standard release gate.
 - Confirmed in the signed-in Supabase dashboard that Falatua's Org is limited to two active free projects and currently contains JB-OS and Roman TD Global Leaderboard. Neither project was modified.
 - Advanced app, rules, README, backup application metadata, and documentation to 0.38.0 while preserving backup schema 24 and local persistence 22.
-- Verified 195 deterministic tests across twenty-one files, the five-table Row Level Security and sync-function static boundary, all fifty-six desktop and phone browser journeys, and the local Pages artifact. The private workflow and final live URL gates remain required before release confirmation.
+- Verified 195 deterministic tests across twenty-one files, the five-table Row Level Security and sync-function static boundary, all fifty-six desktop and phone browser journeys, and the local Pages artifact.
+- Published private source commit `fb8cc2680a38ea71f935d1de3801f1f6d91a7018` through successful private workflow `31460513415`, compiled-artifact commit `961cd407e0d2597603f594575f714723e2414af9`, and successful public Pages workflow `31460913708`.
+- Verified that the live `source-version.txt` exactly matched `fb8cc2680a38ea71f935d1de3801f1f6d91a7018`. Fresh desktop and 390 by 844 phone sessions completed Quick Start, opened You, rendered the honest pending-project cloud state, retained local backup/recovery, showed 0.38.0 diagnostics, produced zero browser errors, and had no horizontal overflow.
 
 ## Private Alpha 0.37.0 Release Delta
 
@@ -608,7 +610,7 @@ Screenshots are stored inside the code project at `output/playwright/` and are d
 ## Known Boundaries and Deferred Work
 
 - Browser storage is not yet SQLite or Postgres. Versioned local backup now reduces private-alpha loss risk but does not replace cloud or native durability.
-- No authentication, Supabase, Row Level Security, cross-device sync, cloud backup, device hydration, active-workout handoff, or conflict resolution exists yet. Phone and laptop browser instances currently hold independent local state.
+- The version-controlled Supabase schema, forced Row Level Security, invite-only client boundary, event outbox, explicit snapshot save, cloud review, athlete-confirmed restore, and conflict-preserving server function now exist. No dedicated remote project is active or configured, so hosted phone and laptop instances still hold independent local state. Automatic entity-level merge, device revocation UI, background hydration, and active-workout handoff remain deferred.
 - No OpenAI, Anthropic, retrieval, statistical calibration service, or unstructured-feedback interpretation exists yet.
 - The original evolving training companion, source-backed XP ledger, levels, three-stage evolution, and post-workout ceremony are specified in Chapter 66 but are not implemented. Actual Pokémon characters, names, likenesses, mechanics, and presentation are prohibited.
 - The current athlete-learning display is seeded and deterministic. It is not a trained personal model.
@@ -633,7 +635,7 @@ Screenshots are stored inside the code project at `output/playwright/` and are d
 7. Expand completed-set import into structured coach, reliable-estimate, and vendor evidence adapters with explicit source quality, while adding in-flow distinct movement creation, orphan-alias review, unrelated-group bulk operations, and remaining catalog-governance tools. Do not add athlete technique-video import or analysis.
 8. Calibrate custom mappings, planned muscle dose, relative priority-region schedule evidence, progression, interruption, reacclimation, PR gates, and micro-win thresholds from actual comparable exposures.
 9. Add fixed-event schedule pressure with explicit athlete-authored dates, bounded phase logic, and no-debt safeguards, then add block, recent, return, and yearly record scopes and longer-horizon planning without weakening exact-movement authority.
-10. Revisit React Native, SQLite, Supabase, authentication, and sync only when native or multi-device needs justify the migration.
+10. Provision a dedicated ForgePath Supabase project after account capacity is approved, apply and inspect the committed migration, invite the initial private-alpha account, add browser-safe deployment configuration, and run the documented authenticated push, pull, conflict, restore, revocation, and isolation drills before enabling cloud sync. React Native and SQLite remain later evidence-gated decisions.
 
 ## Continuity Rule
 

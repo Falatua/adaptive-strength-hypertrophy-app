@@ -5,7 +5,7 @@ tags: [fitness, app, github-pages, deployment, qa, pwa]
 created: 2026-08-10
 updated: 2026-08-10
 status: verified-live
-app_version: 0.37.0
+app_version: 0.38.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
@@ -14,7 +14,7 @@ confidence: verified
 
 ## Outcome
 
-ForgePath private alpha 0.37.0 uses GitHub Pages as its continuously updated hosted preview. Every push to private source repository `Falatua/adaptive-strength-hypertrophy-app` on `main` triggers one workflow that verifies the application, builds for the public artifact repository's project subpath, and publishes only after every gate passes. GitHub's current plan does not support Pages directly from the private repository, so the separate public repository `Falatua/adaptive-strength-hypertrophy-app-pages` receives compiled files only.
+ForgePath private alpha 0.38.0 uses GitHub Pages as its continuously updated hosted preview. Every push to private source repository `Falatua/adaptive-strength-hypertrophy-app` on `main` triggers one workflow that verifies the application, builds for the public artifact repository's project subpath, and publishes only after every gate passes. GitHub's current plan does not support Pages directly from the private repository, so the separate public repository `Falatua/adaptive-strength-hypertrophy-app-pages` receives compiled files only.
 
 Hosted URL: `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`
 
@@ -22,8 +22,8 @@ Hosted URL: `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`
 
 1. Check out the exact `main` commit.
 2. Install locked dependencies with `npm ci`.
-3. Run UI boundaries, lint, 191 deterministic tests, and the normal production build.
-4. Install Chromium and run all fifty-four desktop and phone browser journeys.
+3. Run UI boundaries, backend schema boundaries, lint, 195 deterministic tests, and the normal production build.
+4. Install Chromium and run all fifty-six desktop and phone browser journeys.
 5. Build the PWA for `/adaptive-strength-hypertrophy-app-pages/`.
 6. Inspect the generated HTML, manifest, and service worker for Pages-safe paths.
 7. Use a dedicated write-enabled deploy key scoped only to the public artifact repository.
@@ -38,8 +38,9 @@ Any failure prevents the deployment job from starting. A manually copied branch 
 - The artifact repository and Pages URL are public and shareable.
 - Only compiled files and `source-version.txt` are published. Source, tests, project documents, and vault material remain private.
 - A new browser receives a neutral Demo Athlete seed and enters onboarding.
-- Each browser stores its own state locally. There is no shared account or shared workout database.
-- Authentication, cloud backup, phone-to-laptop synchronization, active-workout handoff, server-side encryption, and private access control are not implemented.
+- Each hosted browser currently stores its own state locally because no dedicated ForgePath Supabase project is configured in the deployment.
+- The compiled client contains a dormant invite-only authentication and explicit snapshot-sync foundation. Cloud configuration is browser-safe and optional; no project URL or publishable key was shipped in this release.
+- Cloud backup, phone-to-laptop synchronization, background hydration, device revocation UI, automatic merge, and active-workout handoff are not active on the hosted preview.
 - Clearing browser site data removes that browser's state unless the athlete exported a backup first.
 - No credentials, API keys, private exports, or identifiable friend data belong in the compiled artifact.
 
@@ -51,6 +52,19 @@ Any failure prevents the deployment job from starting. A manually copied branch 
 - The generated service worker contains the navigation fallback.
 - The Pages artifact check rejects root-only asset references.
 - The CI phone project uses an exact 390 by 844 viewport, and the Today composition preserves buffer above the fold for the primary start action across runner font and timing variation.
+
+## Verified 0.38.0 Release Evidence
+
+- Private source feature commit: `fb8cc2680a38ea71f935d1de3801f1f6d91a7018`.
+- Successful private-source workflow: `31460513415`.
+- Public compiled-artifact commit: `961cd407e0d2597603f594575f714723e2414af9`.
+- Successful public Pages workflow: `31460913708`.
+- Live URL: `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`.
+- The live `source-version.txt` exactly matched the private source feature commit during release verification, and the app root returned HTTP 200.
+- Fresh desktop and 390 by 844 phone sessions rendered onboarding, completed Quick Start, navigated to You, and showed `Dedicated project pending`, `Local training stays available`, `Backup and recovery`, and `0.38.0 private alpha`.
+- Both live viewports matched their exact widths with no horizontal overflow and produced zero console or page errors.
+- Visual evidence is stored locally under `output/playwright/live-cloud-foundation-desktop.png` and `output/playwright/live-cloud-foundation-mobile.png`; these screenshots are intentionally excluded from Git.
+- The backend remains unprovisioned because Falatua's Org was confirmed at its two-active-free-project limit. JB-OS and Roman TD Global Leaderboard were not modified or reused.
 
 ## Verified 0.37.0 Release Evidence
 
