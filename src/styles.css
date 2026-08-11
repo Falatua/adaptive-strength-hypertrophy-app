@@ -1076,8 +1076,10 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .schedule-rebuild-proof__facts strong { overflow: visible; white-space: normal; }
   .missed-checkin__choices, .missed-checkin__state { grid-template-columns: 1fr; }
   h1 { font-size: 2.35rem; }
+  .screen--today { padding-top: 18px; }
   .screen-header { margin-bottom: 20px; }
   .screen--today .screen-header { gap: 12px; }
+  .screen--today .screen-header > div:first-child > p:last-child { display: none; }
   .screen--today .local-pill { width: auto; padding: 7px 10px; }
   .screen--today .local-pill strong { display: inline; margin: 0 0 0 5px; }
   .feedback-followup { grid-template-columns: auto minmax(0, 1fr); }
@@ -1085,11 +1087,11 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .header-actions { width: 100%; }
   .header-actions .button { flex: 1; }
   .hero-workout { min-height: 0; border-radius: 18px; }
-  .hero-workout__content { padding: 23px 18px; }
-  .hero-workout__meta { margin-bottom: 20px; }
-  .hero-workout h2 { font-size: 2.3rem; }
+  .hero-workout__content { padding: 18px; }
+  .hero-workout__meta { margin-bottom: 12px; }
+  .hero-workout h2 { font-size: 2.2rem; }
   .hero-workout__objective { margin-bottom: 16px; }
-  .anchor-prescription { grid-template-columns: auto 1fr; }
+  .anchor-prescription { grid-template-columns: auto 1fr; margin: 18px 0; }
   .anchor-prescription__decision { grid-column: 1 / -1; padding: 10px 0 0; border-left: 0; border-top: 1px solid var(--line); }
   .hero-workout__actions { display: grid; }
   .hero-workout__actions .button { width: 100%; }

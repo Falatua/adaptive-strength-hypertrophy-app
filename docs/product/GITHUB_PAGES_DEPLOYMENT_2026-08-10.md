@@ -50,4 +50,5 @@ Any failure prevents the deployment job from starting. A manually copied branch 
 - `manifest.webmanifest` launches and scopes the PWA to `/adaptive-strength-hypertrophy-app-pages/`.
 - The generated service worker contains the navigation fallback.
 - The Pages artifact check rejects root-only asset references.
+- The CI phone project uses an exact 390 by 844 viewport, and the Today composition preserves buffer above the fold for the primary start action across runner font and timing variation.
 - Final GitHub workflow, commit, and live mobile and desktop evidence will be added after deployment completes.

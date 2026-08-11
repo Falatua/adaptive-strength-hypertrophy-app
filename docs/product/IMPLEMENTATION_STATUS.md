@@ -28,6 +28,7 @@ This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into 
 - Replaced the fresh JB-named seed with a neutral Demo Athlete seed. Existing persisted browser state and backup compatibility remain unchanged.
 - Advanced app, rules, README, and backup metadata to 0.36.0 while preserving backup schema 24 and local persistence 22.
 - Added explicit documentation that Pages does not provide authentication, cloud sync, cross-device handoff, shared storage, or private access control.
+- Added extra first-viewport space around the 390 by 844 phone start action and made the CI phone viewport exact after the first cloud run exposed a font and runner-sensitive fold boundary.
 - Live workflow and mobile and desktop evidence are recorded in [[GitHub Pages Deployment 2026-08-10]].
 
 ## Private Alpha 0.35.0 Release Delta
