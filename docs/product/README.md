@@ -1,6 +1,6 @@
 # ForgePath Product Specification Snapshot
 
-This directory records the complete product and implementation specification in the private GitHub repository so each release can be reviewed beside the code that implements it.
+This directory records the complete product and implementation specification in the public GitHub source repository so each release can be reviewed beside the code that implements it.
 
 - [Build Bible](BUILD_BIBLE.md): canonical behavior, architecture, decision rules, delivery phases, and release chapters.
 - [Requirements](REQUIREMENTS.md): all 376 numbered product requirements and their implementation notes.

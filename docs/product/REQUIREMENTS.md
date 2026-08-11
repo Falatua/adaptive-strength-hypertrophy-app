@@ -2256,7 +2256,7 @@ This is the canonical traceability index for every durable requirement JB states
 ### R-355 Automatic Main-to-Pages Deployment
 - Status: implemented
 - Provenance: from-user
-- Requirement: Every update merged or pushed to the private source repository's GitHub `main` must automatically publish the matching tested compiled build to the public Pages artifact repository so the hosted preview stays aligned without exposing private source or project documentation.
+- Requirement: Every update merged or pushed to the public source repository's GitHub `main` must automatically publish the matching tested compiled build to the public Pages artifact repository so the hosted preview stays aligned. The artifact repository must remain compiled-output-only even though tracked source, tests, and project-document snapshots are public in the source repository.
 - Detail: [[GitHub Pages Deployment 2026-08-10]]
 
 ### R-356 Deployment Quality Gate

@@ -3,7 +3,7 @@ type: deployment-verification
 aliases: [ForgePath GitHub Pages Deployment]
 tags: [fitness, app, github-pages, deployment, qa, pwa]
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-11
 status: verified-live
 app_version: 0.39.1
 project: "[[Adaptive Strength and Hypertrophy App]]"
@@ -14,7 +14,7 @@ confidence: verified
 
 ## Outcome
 
-ForgePath private alpha 0.39.1 uses GitHub Pages as its continuously updated hosted preview. Every push to private source repository `Falatua/adaptive-strength-hypertrophy-app` on `main` triggers one workflow that verifies the application, builds for the public artifact repository's project subpath, and publishes only after every gate passes. GitHub's current plan does not support Pages directly from the private repository, so the separate public repository `Falatua/adaptive-strength-hypertrophy-app-pages` receives compiled files only.
+ForgePath private alpha 0.39.1 uses GitHub Pages as its continuously updated hosted preview. The source repository `Falatua/adaptive-strength-hypertrophy-app` is public as of 2026-08-11. Every push to its `main` branch triggers one workflow that verifies the application, builds for the artifact repository's project subpath, and publishes only after every gate passes. The separate public repository `Falatua/adaptive-strength-hypertrophy-app-pages` remains the compiled hosting target so the existing quality-gated URL and deployment path stay stable.
 
 Hosted URL: `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`
 
@@ -34,15 +34,24 @@ Any failure prevents the deployment job from starting. A manually copied branch 
 
 ## Hosting and Privacy Boundary
 
-- The GitHub source repository remains private.
+- The GitHub source repository is public and shareable.
 - The artifact repository and Pages URL are public and shareable.
-- Only compiled files and `source-version.txt` are published. Source, tests, project documents, and vault material remain private.
+- The source repository publicly exposes its tracked source, tests, and project-document snapshots. The artifact repository still receives only compiled files and `source-version.txt`. Obsidian vault material, local exports, and untracked files are not published.
 - A new browser receives a neutral Demo Athlete seed and enters onboarding.
 - Each hosted browser currently stores its own state locally because the ForgePath cloud release switch is intentionally closed.
 - The compiled client contains a dormant invite-only authentication and explicit snapshot-sync foundation. Cloud configuration is browser-safe and optional; no project URL or publishable key was shipped in this release.
 - The live ForgePath database exists and passes its migration, RLS, RPC, replay, conflict, and simulated isolation gates, but cloud backup, phone-to-laptop recovery, background hydration, device revocation UI, automatic merge, and active-workout handoff are not active on the hosted preview.
 - Clearing browser site data removes that browser's state unless the athlete exported a backup first.
 - No credentials, API keys, private exports, or identifiable friend data belong in the compiled artifact.
+
+## Public Source Transition 2026-08-11
+
+- Source repository visibility changed from private to public at JB's request.
+- A full redacted Git-history scan covered 59 commits and found no credential leaks before the visibility change.
+- Unauthenticated GitHub and Pages requests both returned HTTP 200 after the change.
+- The source repository homepage now points to the live Pages URL.
+- The cloud release variable remains unset, so this visibility change does not activate Supabase in the hosted bundle or enable public athlete signup.
+- The existing artifact repository, project-subpath URL, and quality-gated deployment workflow remain unchanged.
 
 ## Local Verification
 
