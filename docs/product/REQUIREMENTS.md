@@ -1899,7 +1899,60 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Continue building toward the complete product while clearly separating verified working behavior, partially implemented behavior, and deferred phases. Passing a first alpha must not be represented as completion of all requirements.
 - Detail: [[Private Alpha Implementation 2026-08-10]]
 
+### R-296 Original Evolving Training Companion
+- Status: captured
+- Provenance: from-user and product-decision
+- Requirement: Offer an optional original pixel training companion with a clear three-stage growth arc that evokes the satisfying progression of classic monster-training games without copying any existing creature, name, silhouette, anatomy, costume, icon, interface, or evolution sequence.
+- Detail: [[Pixel Training Adventure Visual and Interaction System]]
+
+### R-297 Completed-Workout Experience Points
+- Status: captured
+- Provenance: from-user
+- Requirement: Award visible experience points from completed workout events so consistent use gradually raises the companion's level. XP must derive from stored training truth and remain auditable after corrections, restore, and sync.
+- Detail: [[Pixel Training Adventure Visual and Interaction System]]
+
+### R-298 Anti-Grind Experience Economy
+- Status: captured
+- Provenance: product-decision
+- Requirement: Use bounded session and achievement XP rather than raw tonnage, extra sets, maximum load, or workout duration so cosmetic leveling never encourages junk volume, unsafe effort, pain continuation, survey gaming, or fabricated sessions.
+- Detail: [[Pixel Training Adventure Visual and Interaction System]]
+
+### R-299 Level and Evolution Gates
+- Status: captured
+- Provenance: from-user and product-decision
+- Requirement: Let the companion progress through many visible levels and eventually unlock three original forms. Evolution eligibility must use versioned XP plus meaningful completed-exposure milestones, remain separate from athlete placement level, and require an explicit athlete confirmation rather than changing silently.
+- Detail: [[Pixel Training Adventure Visual and Interaction System]]
+
+### R-300 Post-Workout Level-Up Sequence
+- Status: captured
+- Provenance: from-user and product-decision
+- Requirement: Present a fun original pixel level-up and evolution sequence only after training is safely recorded or from a later replay prompt. It cannot interrupt an active set, hide saved results, delay safety actions, or become required before the next workout.
+- Detail: [[Pixel Training Adventure Visual and Interaction System]]
+
+### R-301 Non-Punitive Companion Continuity
+- Status: captured
+- Provenance: product-decision
+- Requirement: Never remove XP, lower a level, reverse an evolution, weaken a companion, or shame the athlete because of missed workouts, deloads, injury, illness, childcare, travel, schedule interruption, survey skipping, or a conservative training decision.
+- Detail: [[Pixel Training Adventure Visual and Interaction System]]
+
+### R-302 Companion Accessibility and Athlete Control
+- Status: captured
+- Provenance: product-decision
+- Requirement: Make the companion, XP display, level-up motion, sound, haptics, and evolution ceremony optional. Provide reduced-motion, celebration-only, silent, focused-training, skip-now, and replay-later controls without removing any training functionality or earned progress.
+- Detail: [[Pixel Training Adventure Visual and Interaction System]]
+
+### R-303 Originality and Intellectual-Property Boundary
+- Status: captured
+- Provenance: product-decision
+- Requirement: Treat references such as Machop, Machoke, Machamp, and Pokémon only as shorthand for a readable three-stage strength fantasy. Do not ship those names, likenesses, four-arm progression, facial structures, costumes, badges, sounds, fonts, terminology, level thresholds, trade mechanics, or other recognizable protected expression. Create and document an independently ownable creature world and evolution language before public use.
+- Detail: [[Pixel Training Adventure Visual and Interaction System]]
+
 ## Thread Coverage Audit
+
+### 2026-08-10 Original Training Companion Evolution Expansion
+- Scope: User requested custom strength-creature sprites with workout XP, visible levels, a celebratory level-up sequence, and a three-stage growth arc inspired by the feeling of Machop to Machoke to Machamp.
+- Result: Captured an original evolving companion, completed-workout XP, anti-grind economy, versioned level and evolution gates, post-workout celebration, non-punitive continuity, accessibility controls, and strict intellectual-property boundary as R-296 through R-303.
+- Status: Product behavior is specified but not implemented. Final creature names, silhouettes, level curve, form thresholds, animation frames, and art-production method remain open for original design exploration.
 
 ### 2026-08-10 Private Alpha Build Expansion
 - Scope: User directed Codex to begin building immediately, produce a working app the same day, defer backend and data infrastructure where necessary, use the Build Bible as the authority, include a real visual product, and continue until the larger application is complete.
@@ -2105,6 +2158,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-10: Added R-296 through R-303 for an optional original three-stage training companion, completed-workout XP, anti-grind progression, level and evolution gates, post-workout level-up sequence, non-punitive continuity, accessibility controls, and a strict no-Pokémon-copying boundary. The feature is specified and remains unimplemented.
 - 2026-08-10: Advanced R-039, R-040, R-054, R-060, R-145, and R-146 after private alpha 0.31.0 added `missed-opportunity-v5` and `schedule-priority-dose-v1`; completed-source-set comparison across athlete-declared priority regions in an inclusive rolling 28-day window; executable candidate coverage after support removal; strict priority below pin, eligibility, full executability, and exact-primary recency; applied-versus-reviewed UI evidence; no target-dose, neglect, progression, or catch-up claim; backup schema version 24; local persistence version 22; 189 deterministic tests; and forty-four desktop and phone Playwright journeys. Fixed-event pressure and downstream fatigue remain deferred.
 - 2026-08-10: Advanced R-014, R-032, R-054, R-060, and R-180 after private alpha 0.30.0 added `missed-opportunity-v4` and `schedule-readiness-v1`; a 24-hour evidence window; bounded proceed, confirm, trim, reacclimation, block, and unknown actions; missing-is-unknown schedule behavior; source-survey validation; backup schema version 23; local persistence version 21; 186 deterministic tests; and forty-four desktop and phone Playwright journeys. Personal baselines, repeated-signal reliability, muscle-dose priority, fixed-event pressure, and downstream fatigue remain deferred.
 - 2026-08-10: Advanced R-046, R-054, R-058, and R-060 after private alpha 0.29.0 added `missed-opportunity-v3` and `schedule-eligibility-v1`; active-profile protected-primary screening; support removal before time compression; hard pain and restriction gating; eligibility-aware athlete pins; full reason replay; backup schema version 22; local persistence version 20; 183 deterministic tests; and forty-four desktop and phone Playwright journeys. Current readiness, muscle-dose gap, fixed-event pressure, downstream fatigue, and full later-session substitution remain deferred.

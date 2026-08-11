@@ -12,7 +12,7 @@ The authoritative product specifications live in JB's Obsidian vault:
 
 The private GitHub repository stores release snapshots under [`docs/product/`](product/README.md) so the complete specification is preserved beside the implementation. Obsidian remains authoritative when a snapshot and the live vault differ.
 
-The first implementation is governed by the complete R-001 through R-295 register. It is a deliberately bounded private-alpha slice, not a claim that every requirement or later delivery phase is complete. Its exact status is recorded in Obsidian at `Outputs/Private Alpha Implementation 2026-08-10.md`.
+The first implementation is governed by the complete R-001 through R-303 register. It is a deliberately bounded private-alpha slice, not a claim that every requirement or later delivery phase is complete. Its exact status is recorded in Obsidian at `Outputs/Private Alpha Implementation 2026-08-10.md`.
 
 ## Implemented Private-Alpha Slice
 

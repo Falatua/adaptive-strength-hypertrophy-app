@@ -5,7 +5,7 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-10
 status: canonical-build-reference-and-active-implementation
-version: 1.31.0
+version: 1.32.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -937,12 +937,19 @@ Use crisp modern interface components for numbers, forms, accessibility, charts,
 
 - customizable athlete avatar;
 - original training companions or coaches with narrow functional roles;
+- one optional original three-stage training companion with source-backed levels, post-workout XP, and athlete-confirmed evolution;
 - gym room, journal, journey map, or town-like progress environment;
 - emblems for movement families, muscles, cycles, and achievements;
 - emoji-like pixel reactions for effort, recovery, pain-aware caution, PRs, and micro wins;
 - cosmetic environment progress tied to verified behavior, not spending or punishment;
 - small idle animations outside active sets;
 - reduced-motion and focused-training modes.
+
+### Original Companion Boundary
+
+The emotional reference may be a familiar three-stage monster-training progression, but the product must own its character world. References such as Machop, Machoke, Machamp, and Pokémon are shorthand for a satisfying small-to-developed-to-champion arc only. Do not reproduce names, recognizable anatomy, four-arm progression, silhouettes, costumes, interface language, sounds, fonts, numeric thresholds, trade mechanics, or evolution effects.
+
+Companion progression is cosmetic and motivational. It never changes athlete placement, exercise selection, progression eligibility, readiness, fatigue, pain decisions, or cycle status. Detailed behavior is specified in Chapter 66 and [[Pixel Training Adventure Visual and Interaction System]].
 
 ### Design Tokens to Establish
 
@@ -5275,3 +5282,206 @@ The next coherent schedule factor is fixed-event pressure with explicit athlete-
 - Advanced backup schema from 23 to 24 and local persistence from 21 to 22 with a non-inventing version 23 migration.
 - Increased deterministic coverage from 186 to 189 tests while retaining forty-four passing desktop and phone journeys.
 - Published private release commit `06336129e7c2952e4645e088fbc0b4c8479208cf`; local and remote `main` match and the repository worktree is clean.
+
+## 66. Original Training Companion, XP, and Evolution System
+
+### 66.1 Status and Requirement Authority
+
+This chapter specifies R-296 through R-303. It is a post-0.31.0 product decision and is not yet implemented in the working private alpha.
+
+The objective is to turn long-term training consistency into a visible original character journey. The companion earns bounded experience from completed training truth, gains many levels, and can unlock a three-stage form progression. The game layer supports training adherence and delight without becoming programming authority.
+
+### 66.2 Originality Contract
+
+The desired emotional cadence is familiar: begin with a compact determined creature, develop into a visibly more capable middle form, and eventually reveal a powerful champion form. This can evoke the satisfaction of classic monster evolution without copying a particular property.
+
+Machop, Machoke, Machamp, and Pokémon must not appear in shipped names, descriptions, art, metadata, code identifiers, audio, marketing, or interface labels. The original companion must not reuse recognizable:
+
+- head, face, body, limb, hand, or foot construction;
+- blue or gray humanoid palette as a combined identity cue;
+- head crests, wrestling briefs, championship belts, four-arm transformation, or signature poses;
+- Poké Ball, evolution screen, badges, fonts, sound design, flashes, terminology, numeric level thresholds, or trade mechanic;
+- sprite dimensions, animation frames, silhouettes, or scene composition traced from protected assets.
+
+Before public use, retain an originality sheet showing independent silhouette exploration, construction, palette, naming, lore, animation, and side-by-side rejection of overly similar directions. Private placeholders should also use original names and shapes so temporary art does not become production debt.
+
+### 66.3 Companion State Model
+
+`CompanionProfile` should contain:
+
+- stable companion ID;
+- original species or family ID;
+- athlete-selected display name;
+- current form ID;
+- current level;
+- lifetime earned XP;
+- XP currently available toward the next level;
+- selected palette and cosmetic IDs;
+- motion, sound, haptic, and visibility preferences;
+- created, updated, and last-celebrated timestamps;
+- current rule and asset versions.
+
+`CompanionFormDefinition` should contain:
+
+- stable form ID and family ID;
+- sequence index of one, two, or three;
+- original name, description, silhouette class, and asset bundle version;
+- level and completed-milestone eligibility criteria;
+- idle, acknowledgement, level-up, and evolution animation references;
+- reduced-motion and static alternatives;
+- accessibility label and non-image description.
+
+Companion form is not athlete ability. No field may be reused as training experience, movement skill, strength tolerance, volume tolerance, readiness, continuity, or progression state.
+
+### 66.4 XP Ledger
+
+Every award is an append-only `CompanionXpEvent` containing:
+
+- stable event ID;
+- XP rule version;
+- athlete and companion IDs;
+- source type and stable source ID;
+- awarded amount;
+- bounded reason code and plain-language explanation;
+- earned timestamp;
+- supersession or correction reference when applicable.
+
+Initial source types may include:
+
+- completed workout;
+- honestly ended partial workout;
+- validated personal record;
+- source-backed micro win;
+- technique-quality achievement;
+- return achievement;
+- consistency achievement;
+- recovery or learning achievement;
+- completed exposure round.
+
+Planned work, missed work, survey completion alone, friend comparison, purchases, advertisements, and unlogged activity cannot award XP. One source event may award at most one event for the same XP rule version and reason category.
+
+### 66.5 Anti-Grind Economy
+
+The first XP function is bounded by event category. It must not directly multiply by volume load, absolute weight, workout duration, working-set count, repetitions, bodyweight, calorie estimate, or streak length.
+
+This prevents the companion from rewarding:
+
+- junk volume;
+- unsafe extra sets;
+- training through pain;
+- deliberately overstated loads or repetitions;
+- avoiding appropriate deloads;
+- choosing longer sessions when a short session better fits life;
+- performing low-value work only to grind levels;
+- completing surveys for cosmetic advantage.
+
+A completed session may receive a bounded base award. An honest partial session may receive a smaller source-backed award so the game recognizes real work without pretending full completion. Any full-completion bonus must remain small enough that partial training is not framed as failure.
+
+Validated PRs and achievements can add capped bonuses, but no single performance result should dominate long-term levels. The exact XP table and curve require fixture testing across strength, hypertrophy, short, long, partial, deload, travel, reacclimation, and return sessions before implementation authority is granted.
+
+### 66.6 Level Calculation
+
+Level derives from the sum of active XP events under one versioned curve. The system stores the rule version needed to replay historical levels after restore, correction, duplicate merge, or sync.
+
+Requirements:
+
+- many visible levels exist between major forms;
+- early levels arrive quickly enough to teach the loop;
+- later levels slow gradually without requiring unsafe training frequency;
+- no level requires a PR, streak, maximum attempt, public share, payment, or survey answer;
+- level never decreases because training was missed or reduced;
+- corrections may supersede an invalid XP event, with the reason visible, but the interface must handle any resulting level reconciliation without shame.
+
+The cadence may feel familiar, but do not copy another game's level cap, evolution thresholds, curve table, terminology, or formula.
+
+### 66.7 Evolution Eligibility and Athlete Control
+
+A major form becomes eligible only when both are true:
+
+1. the companion reaches the versioned XP or level threshold;
+2. the athlete completes the versioned breadth milestone for that form.
+
+Breadth milestones should reward durable engagement rather than brute output. Candidate evidence includes completed exposure rounds, a mix of strength and hypertrophy sessions aligned to the plan, a return after interruption, or a set of source-backed learning and technique achievements. Final criteria remain open for calibration.
+
+Eligibility creates an invitation. The athlete can evolve now, save it for later, preview the form, or keep the current form. Evolution is recorded as an append-only `CompanionEvolutionEvent` with prior form, selected form, eligibility snapshot, decision, timestamp, and rule version.
+
+No missed workout, deload, illness, pain restriction, injury, childcare disruption, travel period, schedule change, or conservative programming decision may reverse a form or remove eligibility.
+
+### 66.8 Level-Up and Evolution Experience
+
+XP is calculated only after the workout and all source records are committed. The workout result screen shows:
+
+- XP earned and why;
+- current level and progress to the next;
+- any new cosmetic or form eligibility;
+- a continue action that is always immediately available.
+
+A normal level-up uses a brief original animation. A major evolution may use a longer original ceremony with silhouette transition, light, particles, sound, and haptics, followed by the new form and its original name. The ceremony must not imitate a protected evolution screen or sound.
+
+The athlete can skip, replay later, reduce motion, show celebration-only motion, mute sound, disable haptics, hide the companion, or use focused-training mode. Skipping presentation never skips saved XP or form eligibility.
+
+No level-up or evolution presentation may:
+
+- interrupt an active set or rest-timer action;
+- cover pain, technique, equipment, or data-loss warnings;
+- block workout completion or the next session;
+- imply that the training prescription changed;
+- require social sharing;
+- prevent screen-reader or large-text access to the result.
+
+### 66.9 Product Surfaces
+
+- `Today`: small companion state, level, next-level progress, and optional greeting.
+- `Workout`: minimal or hidden companion presence; no XP meter that encourages extra work.
+- `Workout Result`: source-backed XP explanation and optional level-up sequence.
+- `Progress`: lifetime level timeline, XP-event audit, forms, and correction history.
+- `Plan`: optional journey marker only; companion level does not affect programming.
+- `You`: companion visibility, name, cosmetics, motion, sound, haptic, focused-mode, and replay settings.
+- `Achievements`: exact source event beside every XP bonus.
+- `Friends`: future privacy-controlled form or level sharing without global rankings or shame.
+
+### 66.10 Persistence and Replay
+
+The local-first implementation must store companion profile, XP events, evolution events, rule versions, asset versions, and presentation preferences in the same versioned backup boundary as training history. Derived level and eligibility must be recomputable from the active ledger.
+
+Restore rejects unknown source types, duplicate source awards under the same rule, negative or non-integer XP, impossible level totals, invalid form order, evolution without an eligibility snapshot, and references to missing governed source events. Offline and future cloud paths must use the same idempotency keys so reconnecting cannot duplicate XP.
+
+If a training source is corrected or superseded, the companion ledger records a correction rather than mutating history invisibly. Cosmetic state never becomes the authority for whether a workout, PR, or achievement occurred.
+
+### 66.11 Acceptance Tests
+
+Before implementation is considered complete, prove:
+
+- a completed short workout and completed long workout earn bounded fair XP;
+- an honest partial session receives only its defined bounded credit;
+- a missed session, planned session, survey, or extra unplanned set cannot create XP;
+- the same source cannot award twice after reload, restore, or sync retry;
+- history correction and duplicate merge replay XP deterministically;
+- no missed week, deload, or interruption removes levels or reverses a form;
+- level and athlete training placement remain independent;
+- evolution requires both versioned threshold and milestone evidence plus athlete confirmation;
+- skip, reduced motion, silent, hidden-companion, and replay-later paths preserve all training functionality;
+- phone and large-text layouts keep training results readable beneath the celebration;
+- originality review rejects any companion or sequence that is confusingly close to the named inspiration.
+
+### 66.12 Deferred Decisions
+
+- final companion family and world name;
+- final three form names;
+- silhouette, anatomy, palette, lore, personality, and equipment motif;
+- one companion family versus several selectable archetypes;
+- exact XP awards, level curve, level cap, and form thresholds;
+- qualifying breadth milestones;
+- cosmetic inventory and environment interaction;
+- whether a companion can remain permanently in an earlier form;
+- final animation grid, frame count, sound, and haptic language;
+- public social visibility and moderation boundaries.
+
+### Version 1.32.0 Change Entry
+
+- Added R-296 through R-303 and the build-ready original companion specification.
+- Defined bounded completed-workout XP, anti-grind invariants, level replay, three-stage evolution eligibility, athlete confirmation, and post-workout presentation.
+- Kept companion progression separate from training placement, readiness, programming, and safety authority.
+- Added non-punitive continuity, accessibility, reduced-motion, skip, replay, and focused-training controls.
+- Established a strict originality boundary that uses Pokémon references only as emotional shorthand and prohibits copied names, likenesses, mechanics, thresholds, and presentation.
+- Feature remains specified and unimplemented after private alpha 0.31.0.
