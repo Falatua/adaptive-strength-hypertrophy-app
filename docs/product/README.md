@@ -6,6 +6,7 @@ This directory records the complete product and implementation specification in 
 - [Requirements](REQUIREMENTS.md): all 320 numbered product requirements and their implementation notes.
 - [Traceability](TRACEABILITY.md): requirement-to-specification and verification mapping.
 - [Implementation Status](IMPLEMENTATION_STATUS.md): verified current release, boundaries, QA evidence, and next priorities.
+- [Cross-Device UX Audit](UX_AUDIT_2026-08-10.md): mobile and desktop heuristic findings, accessibility and performance evidence, corrections, and remaining priorities.
 - [Pixel Training Adventure](PIXEL_TRAINING_ADVENTURE.md): original character world, evolving companion, XP, level-up, evolution, accessibility, and asset rules.
 - [Exercise Library and Recommendations](EXERCISE_LIBRARY_AND_RECOMMENDATIONS.md): catalog identity, preferences, contextual exercise rules, substitutions, and recommendation behavior.
 - [Cloud Sync and Backend](CLOUD_SYNC_AND_BACKEND.md): phone-laptop parity, local-first storage, authenticated synchronization, workout handoff, conflicts, security, and recovery.

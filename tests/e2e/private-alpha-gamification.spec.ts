@@ -31,6 +31,36 @@ test('turns the current prescription into an original, evidence-backed field gui
   expect(browserErrors).toEqual([])
 })
 
+test('keeps destination context and primary mobile actions in view', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Dismiss message' }).click()
+
+  const primaryStartAction = page.getByRole('button', { name: 'Choose check-in & start' })
+  if (testInfo.project.name === 'mobile-chromium') await expect(primaryStartAction).toBeInViewport()
+
+  await page.getByRole('button', { name: 'Progress', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Your training, made legible.' })).toBeVisible()
+  await page.evaluate(() => window.scrollTo(0, 1800))
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(500)
+  await page.getByRole('button', { name: 'Library', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'One movement. One history.' })).toBeVisible()
+  expect(await page.evaluate(() => window.scrollY)).toBe(0)
+  if (testInfo.project.name === 'mobile-chromium') await expect(page.getByPlaceholder('Search names, aliases, roles, equipment...')).toBeInViewport()
+
+  await page.getByRole('button', { name: 'Today', exact: true }).click()
+  await page.getByRole('button', { name: 'Start without check-in' }).click()
+  const finishAction = page.getByRole('button', { name: 'Finish workout' })
+  await expect(finishAction).toHaveClass(/button--secondary/)
+  await expect(page.locator('.workout-footer')).toContainText('0 of 16 sets complete.')
+
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  expect(browserErrors).toEqual([])
+})
+
 test('validates an athlete-controlled PR without changing the prescription', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })

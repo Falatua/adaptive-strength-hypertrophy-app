@@ -5915,6 +5915,147 @@ The static protected-reference scan remains active across source code. Before an
 
 The first slice does not include ambient music, character cries, companion-specific motifs, volume sliders, per-cue switches, headphones detection, downloaded assets, cloud preference sync, or native haptic-audio coordination. Those features require evidence that they improve repeated real training rather than adding noise.
 
+## 72. Hypertrophy Double Progression and Upper-Lower Templates
+
+### 72.1 Source and Decision Boundary
+
+This chapter specifies R-331 through R-340 from JB's `hypertrophy-app-requirements.md`. The document reinforces existing mesocycle editing, exact history, and exercise selection requirements, then adds an explicit five-to-ten-repetition double-progression option, per-exercise loading increments, upper-lower templates, and hypertrophy-oriented exercise traits.
+
+The source does not replace ForgePath's broader programming model. A failure-based repetition target can be useful in a bounded hypertrophy context, but it is not automatically appropriate for protected strength anchors, power work, technical practice, return-to-training calibration, unstable schedules, active pain, or low-confidence readiness. ForgePath therefore models it as a selectable policy attached to an exercise or plan role.
+
+### 72.2 Mesocycle Builder Contract
+
+The future builder must support:
+
+- an athlete-selected length expressed in calendar weeks;
+- different available training opportunities for each week;
+- standard four-opportunity upper-lower and minimalist three-opportunity upper-lower seeds;
+- complete custom day structures;
+- explicit exercise assignment, order, role, set prescription, repetition range, effort target, and increment for each day;
+- a preview showing what will change before a version is applied;
+- immutable completed and partial sessions;
+- versioned replacement of future planned work only;
+- criterion review that may extend, recover, complete, or pivot even when the original week count has elapsed.
+
+The builder must keep calendar structure separate from completed exposure order. Missing a Wednesday and Friday does not grant those exposures, advance the double-progression clock, or create catch-up volume.
+
+### 72.3 Double-Progression State Machine
+
+Each configured exercise owns an exact-movement progression state:
+
+1. The plan defines a lower repetition bound, upper repetition bound, effort target, qualified-set rule, and executable load increment.
+2. Completed sets are evaluated only from that canonical exercise and the applicable plan version.
+3. If the upper bound is reached with the configured effort evidence, usable technique, and acceptable pain, the next like exposure may add the configured load.
+4. After load increases, repetitions may return toward the lower bound.
+5. If the top qualification is not met, the next safe progression remains repetition-first inside this policy.
+6. If readiness, recovery, continuity, time, or joint response is adverse, the engine may hold, trim, recalibrate, or leave the decision for confirmation instead of forcing progression.
+
+The initial source example is five to ten repetitions with a failure target. Product implementation must store failure as explicit `0 RIR` or another deliberately defined effort state. Missing effort data is unknown. It cannot qualify a load increase.
+
+### 72.4 Increment Resolution
+
+The load increment resolution order is:
+
+1. exact-exercise override;
+2. active location and equipment-class increment;
+3. conservative unit default.
+
+The selected increment must be executable on the current equipment. A nominal 2.5-pound isolation increment is not executable when a machine stack moves only ten pounds. The interface must show the resolved increment, its source, and any rounding. Cross-unit conversion, assistance direction, bodyweight contribution, unilateral conventions, plate inventory, and machine-stack physics require their own explicit implementations.
+
+### 72.5 Template Contract
+
+The standard template seeds two upper and two lower opportunities. The minimalist template seeds two upper and one lower opportunity. Neither template promises optimal frequency or volume. Both must be editable and must pass through the same equipment, time, joint, preference, protected-anchor, priority-region, and maintenance-dose checks as a custom plan.
+
+Templates may propose primary, secondary, priority, maintenance, and optional roles. They must not silently replace a protected exact strength anchor. Every selected movement retains its own history and progression clock.
+
+### 72.6 Exercise Selection Traits
+
+Structured hypertrophy traits should include:
+
+| Trait | Product use | Boundary |
+|---|---|---|
+| Lengthened challenge | Discovery and goal-fit ranking | Not a universal superiority claim |
+| Shortened-position contraction | Variety and target-feel context | Not a proxy for stimulus magnitude |
+| Stability demand | Fatigue and target-focus tradeoff | Low stabilization is not always better |
+| Target-muscle tension | Explainable ranking | Starts as a reviewed product heuristic |
+| Joint response | Athlete-specific gate and ranking | Pain is not diagnosed |
+| Equipment fit | Hard executability gate | Missing equipment cannot be ignored |
+| Preference | Athlete-authored tie-break or exclusion | Separate from joint safety and familiarity |
+| Exact history | Prescription and familiarity evidence | No family load borrowing |
+
+Machine exercises can rank highly when they offer useful stability, target focus, and executable progression for the current goal. Free weights remain appropriate when specificity, skill, power, protected strength practice, equipment, or athlete preference makes them the better fit.
+
+### 72.7 Acceptance Gate
+
+Before R-331 through R-340 advance to implemented status, verification must cover custom week lengths, week-to-week day changes, missed opportunities, exact history isolation, top-of-range qualification, unknown effort, technique and pain gates, exercise-specific increment precedence, equipment rounding, both upper-lower templates, custom edits, backup and restore, and desktop and phone plan review.
+
+Private alpha 0.34.0 does not implement this state machine or template editor. Existing exact history, mesocycle revision, schedule adaptation, equipment increments, and exercise catalog behavior remain valid first slices.
+
+## 73. Cross-Device UX Audit and Task-Focus System
+
+### 73.1 Audit Scope
+
+This chapter specifies R-341 through R-346 and records the mobile and desktop audit completed after the 0.33.0 sound release. The review covered onboarding, Today, Plan, Progress, Library, You, and the active workout at desktop and 390 by 844 phone dimensions. It combined heuristic review, cognitive-load review, responsive visual inspection, accessibility scanning, browser journeys, console review, performance-oriented static inspection, and production verification.
+
+### 73.2 Navigation and Context
+
+Primary-navigation changes must reset the document and main region to the top after the destination renders, then focus the main region without producing a visible focus ring for pointer users. This establishes a predictable page transition for keyboard, screen-reader, and touch users. Lazy-loaded screens must finish rendering before browser assertions inspect their scroll state.
+
+### 73.3 Transient Notice Contract
+
+Notices are status feedback, not storage. They must:
+
+- use a polite atomic live region;
+- remain manually dismissible;
+- clear automatically after ten seconds;
+- sit at the top of compact mobile screens so the bottom navigation and workout action remain unobstructed;
+- preserve the real state elsewhere in the interface or data model;
+- never contain the only copy of a safety decision, saved record, or recovery action.
+
+### 73.4 Today Task Focus
+
+The compact Today viewport must expose the date, next-useful-win framing, local-save state, session identity, exact primary anchor, immediate progression decision, and primary start action. The hero uses a concise engine-derived objective. Full route strategy and supporting evidence remain in `Why this session?` and the Training Field Guide instead of repeating in the hero.
+
+### 73.5 Library Information Architecture
+
+Library's first task is finding or managing a movement. On compact screens:
+
+- the descriptive header copy is removed after the clear page title;
+- import, quality, and add actions share a compact action row;
+- category cards become a horizontal, touch-scrollable strip;
+- search, filters, result count, body-part filters, and equipment availability appear inside the first working viewport;
+- the advanced placement-history panel follows the movement browser rather than blocking discovery.
+
+Desktop retains the broader category grid and descriptive context because its viewport can support them without delaying the browser.
+
+### 73.6 Active Workout Hierarchy
+
+On phones, readiness and equipment chips remain visible while the repeated full objective is removed. If a placement warm-up response is active, it is the immediate task and every response has a 44-pixel target. The workout footer discloses completed sets. Finish remains available for control and safety, but uses secondary styling until all planned sets are complete. Completion never becomes impossible because work was partial.
+
+The progress indicator animates with a compositor-friendly horizontal transform rather than layout-changing width transitions. Reduced-motion behavior remains authoritative.
+
+### 73.7 Onboarding Semantics
+
+The onboarding form is the page's `main` landmark and owns the `main-content` skip-link target. Its four visual bars expose progressbar semantics, minimum, maximum, current value, and a readable `Step n of 4` value. Decorative bars remain hidden from assistive technology.
+
+### 73.8 Verification Boundary
+
+Private alpha 0.34.0 preserves all training calculations, backup schema 24, and local persistence 22. Verification adds two cross-device browser journeys for task visibility, destination scroll reset, Library search visibility, workout finish hierarchy, console integrity, and horizontal containment. Full audit evidence lives in [[UX Audit 2026-08-10]].
+
+### Version 1.39.0 Change Entry
+
+- Added R-341 through R-346 and the cross-device task-focus contract.
+- Corrected navigation scroll and focus, onboarding landmark semantics, compact transient notices, Today objective density, Library mobile discovery, and active-workout completion hierarchy.
+- Replaced layout-changing workout progress width animation with a horizontal transform.
+- Advanced the verified application to private alpha 0.34.0 with 191 deterministic tests across twenty files and forty-eight browser journeys.
+
+### Version 1.38.0 Change Entry
+
+- Added R-331 through R-340 from JB's hypertrophy requirements source.
+- Defined selectable exact-movement double progression, verified top-of-range qualification, per-exercise increment precedence, editable upper-lower templates, and structured hypertrophy exercise traits.
+- Preserved failure-based work as a bounded policy rather than a universal progression rule.
+- Recorded existing exact history, mesocycle, schedule, and equipment behavior as partial foundations while leaving the new policy and templates honestly unimplemented.
+
 ### Version 1.37.0 Change Entry
 
 - Added R-325 through R-330 and the original audio ownership boundary.

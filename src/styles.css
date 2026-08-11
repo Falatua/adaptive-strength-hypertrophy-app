@@ -920,7 +920,7 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .timer-button { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); font-size: .7rem; }
 .timer-button.active { border-color: var(--orange); color: var(--orange); }
 .workout-progress { height: 4px; margin-top: 14px; background: #080a07; }
-.workout-progress span { display: block; height: 100%; background: var(--lime); transition: width .25s; }
+.workout-progress span { display: block; width: 100%; height: 100%; background: var(--lime); transform-origin: left center; transition: transform .25s; }
 .workout-main { width: min(1020px, calc(100% - 28px)); margin: 0 auto; padding: 25px 0 40px; }
 .warmup-check { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 12px; padding: 13px; border: 1px solid rgb(255 122 69 / 35%); border-radius: 11px; background: rgb(255 122 69 / 7%); }
 .warmup-check > div { display: flex; align-items: center; gap: 8px; }
@@ -1039,7 +1039,7 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .bottom-nav { position: fixed; z-index: 30; inset: auto 0 0; display: grid; grid-template-columns: repeat(5, 1fr); padding: 7px max(6px, env(safe-area-inset-right)) max(7px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left)); background: rgb(16 19 15 / 96%); border-top: 1px solid var(--line); backdrop-filter: blur(20px); }
   .bottom-nav button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 3px; border: 0; border-radius: 8px; background: transparent; color: var(--dim); font-size: .56rem; }
   .bottom-nav button.active { color: var(--lime); background: rgb(231 255 88 / 7%); }
-  .toast { bottom: 84px; }
+  .toast { top: max(12px, env(safe-area-inset-top)); right: 12px; bottom: auto; left: 12px; max-width: none; }
   .screen-header { flex-direction: column; }
   .screen-header .segmented-control { width: 100%; overflow: auto; flex-wrap: nowrap; }
   .today-grid, .insight-grid, .charts-grid, .long-horizon { grid-template-columns: 1fr; }
@@ -1069,14 +1069,18 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .missed-checkin__choices, .missed-checkin__state { grid-template-columns: 1fr; }
   h1 { font-size: 2.35rem; }
   .screen-header { margin-bottom: 20px; }
+  .screen--today .screen-header { gap: 12px; }
+  .screen--today .local-pill { width: auto; padding: 7px 10px; }
+  .screen--today .local-pill strong { display: inline; margin: 0 0 0 5px; }
   .feedback-followup { grid-template-columns: auto minmax(0, 1fr); }
   .feedback-followup__actions { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; }
   .header-actions { width: 100%; }
   .header-actions .button { flex: 1; }
   .hero-workout { min-height: 0; border-radius: 18px; }
   .hero-workout__content { padding: 23px 18px; }
-  .hero-workout__meta { margin-bottom: 32px; }
-  .hero-workout h2 { font-size: 2.55rem; }
+  .hero-workout__meta { margin-bottom: 20px; }
+  .hero-workout h2 { font-size: 2.3rem; }
+  .hero-workout__objective { margin-bottom: 16px; }
   .anchor-prescription { grid-template-columns: auto 1fr; }
   .anchor-prescription__decision { grid-column: 1 / -1; padding: 10px 0 0; border-left: 0; border-top: 1px solid var(--line); }
   .hero-workout__actions { display: grid; }
@@ -1116,6 +1120,11 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .history-table small { text-align: left; }
   .screen-header__actions { width: 100%; justify-content: stretch; }
   .screen-header__actions .button { flex: 1; }
+  .screen:has(.library-browser) .screen-header > div:first-child > p:last-child { display: none; }
+  .screen:has(.library-browser) .screen-header__actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .screen:has(.library-browser) .screen-header__actions .button { min-width: 0; padding-inline: 6px; font-size: .68rem; white-space: nowrap; }
+  .library-categories { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity; }
+  .library-categories button { flex: 0 0 145px; min-height: 100px; scroll-snap-align: start; }
   .history-set-row { grid-template-columns: 1fr; }
   .history-set-row > span:last-child { justify-content: flex-start; }
   .mutation-list > div { grid-template-columns: auto 1fr; }
@@ -1154,7 +1163,7 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .timer-button { margin-left: auto; }
   .workout-main { width: calc(100% - 18px); }
   .workout-objective { align-items: flex-start; flex-wrap: wrap; }
-  .workout-objective p { flex-basis: 100%; }
+  .workout-objective p { display: none; }
   .exercise-card__header { grid-template-columns: auto 1fr; padding: 13px; }
   .exercise-actions { grid-column: 1 / -1; }
   .exercise-title h2 { font-size: 1.08rem; }
@@ -1164,6 +1173,7 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .workout-footer .button { width: 100%; }
   .warmup-check { align-items: flex-start; flex-direction: column; }
   .warmup-check > div:last-child { flex-wrap: wrap; }
+  .warmup-check button { min-height: 44px; }
   .swap-option { grid-template-columns: auto 1fr; }
   .swap-controls { grid-template-columns: 1fr; }
   .swap-score { grid-column: 2; }
@@ -1352,7 +1362,7 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .movement-exit-boundaries summary { cursor: pointer; font-size: .7rem; font-weight: 800; }
 .movement-exit-boundaries p { margin: 7px 0 0; color: var(--muted); font-size: .65rem; line-height: 1.45; }
 .movement-exit-callout { border-style: dashed; }
-.placement-history-panel { margin-bottom: 16px; }
+.placement-history-panel { margin: 16px 0; }
 .placement-history-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 12px; }
 .placement-history-grid article { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
 .placement-history-grid article.has-evidence { border-color: rgb(224 255 67 / 26%); }

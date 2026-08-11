@@ -249,13 +249,6 @@ export function LibraryScreen() {
         <div className="screen-header__actions"><button className="button button--secondary" onClick={openImport}><Upload size={17} /> Import history</button><button className="button button--secondary" onClick={() => setQualityOpen(true)}><ListChecks size={17} /> Data quality {duplicateGroups.length ? `(${duplicateGroups.length})` : ''}</button><button className="button button--primary" onClick={() => { setFormError(null); setAddOpen(true) }}><Plus size={17} /> Add movement</button></div>
       </header>
 
-      <section className="panel placement-history-panel">
-        <div className="panel__header"><div><p className="eyebrow">Placement-history-v1</p><h3>Use exact history without guessing</h3></div><BrainCircuit size={20} /></div>
-        <p className="chart-note">ForgePath can summarize exact recent work and suggest evidence confidence or heavy-work tolerance. You must review and accept each suggestion. Skill, pain, recovery, and neighboring variations are never inferred.</p>
-        <div className="placement-history-grid">{placementEvidence.map((evidence) => <article key={evidence.exerciseId} className={evidence.totalSetCount ? 'has-evidence' : ''}><span><strong>{evidence.exerciseName}</strong><small>{evidence.basis === 'recent-window' ? `${evidence.recentSetCount} sets · ${evidence.recentExposureDateCount} dates in ${evidence.windowDays} days` : evidence.basis === 'latest-stale' ? 'Exact history exists, but it is stale' : 'No exact history'}</small></span><div><b>Evidence {evidence.suggestedDataConfidence}/5</b><b>{evidence.suggestedStrengthTolerance === null ? 'Tolerance not inferred' : `Tolerance ${evidence.suggestedStrengthTolerance}/5`}</b></div>{evidence.recentImportedSetCount > 0 && <small>{evidence.recentImportedSetCount} recent imported set{evidence.recentImportedSetCount === 1 ? '' : 's'} remain numeric-only.</small>}</article>)}</div>
-        <div className="placement-history-action"><span><ShieldCheck size={17} /><small>Reviewing creates a new placement version and future plan. Completed history is never rewritten.</small></span><button className="button button--secondary" disabled={Boolean(activeSessionId) || !placementEvidence.some((evidence) => evidence.totalSetCount > 0)} onClick={() => restartOnboarding(1)}>Review in placement</button></div>
-      </section>
-
       <section className="library-categories">
         {[
           ['Body part', '11 regions', 'chest'], ['Movement type', '8 patterns', 'squat'], ['Training role', 'Anchor to accessory', 'primary'],
@@ -290,6 +283,13 @@ export function LibraryScreen() {
             })}
           </div>
         ) : <div className="empty-state"><Search size={32} /><h3>No movements match this exact filter.</h3><p>{availability === 'available' ? `No movement meets every selected constraint at ${activeEquipmentProfile.name}. Review the profile or relax only the visible filter.` : 'Remove a filter or create a distinct custom movement. ForgePath will warn about likely duplicates first.'}</p><button className="button button--secondary" onClick={() => { setSearch(''); setRegion('all'); setAvailability('all') }}>Clear filters</button></div>}
+      </section>
+
+      <section className="panel placement-history-panel">
+        <div className="panel__header"><div><p className="eyebrow">Placement-history-v1</p><h3>Use exact history without guessing</h3></div><BrainCircuit size={20} /></div>
+        <p className="chart-note">ForgePath can summarize exact recent work and suggest evidence confidence or heavy-work tolerance. You must review and accept each suggestion. Skill, pain, recovery, and neighboring variations are never inferred.</p>
+        <div className="placement-history-grid">{placementEvidence.map((evidence) => <article key={evidence.exerciseId} className={evidence.totalSetCount ? 'has-evidence' : ''}><span><strong>{evidence.exerciseName}</strong><small>{evidence.basis === 'recent-window' ? `${evidence.recentSetCount} sets · ${evidence.recentExposureDateCount} dates in ${evidence.windowDays} days` : evidence.basis === 'latest-stale' ? 'Exact history exists, but it is stale' : 'No exact history'}</small></span><div><b>Evidence {evidence.suggestedDataConfidence}/5</b><b>{evidence.suggestedStrengthTolerance === null ? 'Tolerance not inferred' : `Tolerance ${evidence.suggestedStrengthTolerance}/5`}</b></div>{evidence.recentImportedSetCount > 0 && <small>{evidence.recentImportedSetCount} recent imported set{evidence.recentImportedSetCount === 1 ? '' : 's'} remain numeric-only.</small>}</article>)}</div>
+        <div className="placement-history-action"><span><ShieldCheck size={17} /><small>Reviewing creates a new placement version and future plan. Completed history is never rewritten.</small></span><button className="button button--secondary" disabled={Boolean(activeSessionId) || !placementEvidence.some((evidence) => evidence.totalSetCount > 0)} onClick={() => restartOnboarding(1)}>Review in placement</button></div>
       </section>
 
       <Modal open={Boolean(selected)} onClose={() => setSelected(null)} title={selected?.name ?? 'Movement'} description={selected?.description} wide>

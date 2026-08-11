@@ -18,13 +18,18 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
-      const activeElement = document.activeElement
-      if (activeElement === document.body || activeElement?.classList.contains('skip-link')) {
-        mainRef.current?.focus({ preventScroll: true })
-      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+      mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+      mainRef.current?.focus({ preventScroll: true })
     })
     return () => cancelAnimationFrame(frame)
-  }, [])
+  }, [nav])
+
+  useEffect(() => {
+    if (!notice) return
+    const timeout = window.setTimeout(() => setNotice(null), 10_000)
+    return () => window.clearTimeout(timeout)
+  }, [notice, setNotice])
 
   return (
     <div className={`app-shell ${settings.reducedMotion ? 'reduced-motion' : ''}`}>
@@ -49,7 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar__footer">
           <Sparkles size={16} />
-          <span>Rules v0.33.0<br /><small>Local and private</small></span>
+          <span>Rules v0.34.0<br /><small>Local and private</small></span>
         </div>
       </aside>
       <main ref={mainRef} id="main-content" className="main-content" tabIndex={-1}>{children}</main>
@@ -64,7 +69,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         })}
       </nav>
       {notice && (
-        <div className="toast" role="status" aria-live="polite">
+        <div className="toast" role="status" aria-live="polite" aria-atomic="true">
           <span>{notice}</span>
           <button onClick={() => setNotice(null)} aria-label="Dismiss message">×</button>
         </div>

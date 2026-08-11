@@ -144,9 +144,9 @@ export function Onboarding() {
         <PixelAvatar size="large" mood={step === 3 ? 'celebrate' : 'strong'} />
         <div className="onboarding__art-copy"><span className="eyebrow">Private Alpha · Local first</span><h1>Build the athlete.<br />Adapt the path.</h1><p>Experience, current readiness, and real-life capacity stay separate. The app starts with a hypothesis, then learns from completed work.</p></div>
       </div>
-      <div className="onboarding__panel">
+      <main id="main-content" className="onboarding__panel" tabIndex={-1}>
         <div className="onboarding__brand"><span className="brand__mark">F</span><strong>ForgePath</strong></div>
-        <div className="onboarding__steps" aria-label="Onboarding progress">{[0, 1, 2, 3].map((item) => <span key={item} className={step >= item ? 'active' : ''} />)}</div>
+        <div className="onboarding__steps" role="progressbar" aria-label="Onboarding progress" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step + 1} aria-valuetext={`Step ${step + 1} of 4`}>{[0, 1, 2, 3].map((item) => <span key={item} className={step >= item ? 'active' : ''} aria-hidden="true" />)}</div>
 
         {step === 0 && <section>
           <p className="eyebrow">01 · Direction and training history</p><h2>Build my starting profile</h2>
@@ -211,7 +211,7 @@ export function Onboarding() {
 
         <div className="onboarding__actions">{step > 0 && <button className="button button--ghost" onClick={() => { setDecision('confirmed'); setStep((current) => current - 1) }}>Back</button>}{step < 3 ? <button className="button button--primary" onClick={() => { setDecision('confirmed'); setStep((current) => current + 1) }}>Continue <ArrowRight size={17} /></button> : <button className="button button--primary" onClick={() => persistPlacement()}>This looks right · Enter ForgePath <ArrowRight size={17} /></button>}</div>
         {step < 3 ? <button className="onboarding__skip" onClick={skipStep}>Skip this section</button> : <button className="onboarding__skip" onClick={() => { setDecision('confirmed'); setStep(0) }}>Correct my answers or choose a different goal</button>}
-      </div>
+      </main>
     </div>
   )
 }

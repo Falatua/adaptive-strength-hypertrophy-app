@@ -1,8 +1,8 @@
-# ForgePath Private Alpha 0.33.0
+# ForgePath Private Alpha 0.34.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
-The private repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 330 requirements, traceability matrix, verified implementation status, exercise-library and recommendation specification, cloud-sync and backend specification, and pixel training-adventure specification. Obsidian remains the editable source of truth.
+The private repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 346 requirements, traceability matrix, verified implementation status, cross-device UX audit, exercise-library and recommendation specification, cloud-sync and backend specification, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
 ## Run locally
 
@@ -36,7 +36,7 @@ npm run test:e2e
 ## Current verification
 
 - 191 deterministic domain tests
-- forty-six desktop and phone browser journeys, including an original synthesized sound pack with persisted opt-in and quiet-mode precedence, an evidence-backed Training Field Guide, accessible route-note opening, clean post-onboarding focus handoff, auditable missed-opportunity rebuilding, source-backed records, linked calendar and exact exposure history, explainable athlete placement, athlete-reviewed exact-history evidence, plan-route and exact-movement criterion exits, equipment-aware route generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
+- forty-eight desktop and phone browser journeys, including predictable destination context, first-viewport phone task actions, active-workout hierarchy, an original synthesized sound pack with persisted opt-in and quiet-mode precedence, an evidence-backed Training Field Guide, accessible route-note opening, auditable missed-opportunity rebuilding, source-backed records, linked calendar and exact exposure history, explainable athlete placement, athlete-reviewed exact-history evidence, plan-route and exact-movement criterion exits, equipment-aware route generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
 - automated UI boundary QC for original game-inspired expression, the technique-video exclusion, readable typography, focus and reduced-motion support, compact mobile coverage, and required product-design context
 - lint clean
 - production PWA build clean

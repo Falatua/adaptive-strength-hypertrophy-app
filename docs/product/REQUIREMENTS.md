@@ -2109,7 +2109,108 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Record the sound-pack version and creation method, prohibit unreviewed downloaded audio from entering the shipped application, test duration, level, frequency, preference, and quiet-mode boundaries, and complete an originality and listening review before public release.
 - Detail: [[Adaptive Strength and Hypertrophy App Build Bible#71. Original Pocket-Console Sound System]]
 
+### R-331 User-Defined Mesocycle Length
+- Status: captured
+- Provenance: from-user
+- Requirement: Let the athlete define a mesocycle length in weeks while retaining criterion-based extension, recovery, completion, and pivot decisions. A week count is a planning bound, not proof that the work was completed.
+- Detail: [[Hypertrophy Double Progression and Upper Lower Templates]]
+
+### R-332 Week-Specific Training Opportunities
+- Status: implemented-first-slice
+- Provenance: from-user
+- Requirement: Let available training days vary by week inside a mesocycle. Preserve the current completed-exposure clock, missed-opportunity adaptation, and no-volume-debt rules when a week changes.
+- Detail: [[Hypertrophy Double Progression and Upper Lower Templates]]
+
+### R-333 Day-Level Exercise Assignment
+- Status: captured
+- Provenance: from-user
+- Requirement: Let the athlete inspect and deliberately assign, add, remove, reorder, or replace exercises for each training day before applying a mesocycle revision. Every future prescription must retain its plan-version reason and exact movement identity.
+- Detail: [[Hypertrophy Double Progression and Upper Lower Templates]]
+
+### R-334 Exact Historical Recall During Planning
+- Status: implemented
+- Provenance: from-user
+- Requirement: When selecting or reviewing an exercise, show its latest exact completed date, sets, repetitions, loads, effort evidence, and history quality without borrowing from a variation or family.
+- Detail: [[Hypertrophy Double Progression and Upper Lower Templates]]
+
+### R-335 Selectable Hypertrophy Double Progression
+- Status: captured
+- Provenance: from-user and product-decision
+- Requirement: Offer a selectable hypertrophy double-progression policy that can begin at five repetitions and progress toward ten repetitions at a configured effort target before increasing load. Do not make failure-based work the universal policy for strength, power, technical, return-to-training, or pain-aware work.
+- Detail: [[Hypertrophy Double Progression and Upper Lower Templates]]
+
+### R-336 Verified Top-of-Range Load Trigger
+- Status: captured
+- Provenance: from-user and product-decision
+- Requirement: Increase load only when the athlete reaches the configured top of the repetition range with usable technique, acceptable pain, and explicit effort evidence. Unknown RIR or skipped feedback cannot be silently relabeled as failure or qualification.
+- Detail: [[Hypertrophy Double Progression and Upper Lower Templates]]
+
+### R-337 Per-Exercise Load Increment
+- Status: captured
+- Provenance: from-user
+- Requirement: Let each canonical exercise override the location profile's default load increment. Support common five-to-ten-pound jumps for larger movements and smaller executable jumps such as 2.5 pounds for isolation work, while preserving equipment reality and units.
+- Detail: [[Hypertrophy Double Progression and Upper Lower Templates]]
+
+### R-338 Upper-Lower Program Templates
+- Status: captured
+- Provenance: from-user
+- Requirement: Provide an editable standard upper-lower template with two upper and two lower opportunities, a minimalist template with two upper and one lower opportunity, and custom variations. Templates seed a plan and never replace athlete review.
+- Detail: [[Hypertrophy Double Progression and Upper Lower Templates]]
+
+### R-339 Structured Hypertrophy Exercise Attributes
+- Status: captured
+- Provenance: from-user and product-decision
+- Requirement: Add structured, reviewable exercise attributes for lengthened challenge, shortened-position contraction, stability demand, target-muscle tension, equipment, joint response, and personal preference. These traits support discovery and ranking without claiming one exercise is universally best.
+- Detail: [[Hypertrophy Double Progression and Upper Lower Templates]]
+
+### R-340 Context-Aware Machine Preference
+- Status: captured
+- Provenance: from-user and product-decision
+- Requirement: Allow machine-based movements to rank highly when stability, target-muscle focus, equipment availability, joints, and the current hypertrophy goal support them. Do not encode machine superiority as a universal scientific fact or let it override safety, specificity, executable loading, or the athlete's response.
+- Detail: [[Hypertrophy Double Progression and Upper Lower Templates]]
+
+### R-341 Destination Context Reset
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Every primary-navigation change must open the destination at its top and move keyboard or assistive-technology context into the new main region. A screen must never inherit an unrelated scroll position.
+- Detail: [[UX Audit 2026-08-10]]
+
+### R-342 Non-Obstructive Transient Notices
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Notices must remain dismissible, screen-reader announced, temporary, and positioned so they do not hide the current mobile task or bottom navigation. No notice may be the only record of a state change.
+- Detail: [[UX Audit 2026-08-10]]
+
+### R-343 Above-Fold Today Action
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: On a 390 by 844 phone, Today must communicate the next session, primary anchor, immediate progression, and primary start action without requiring an initial scroll. Detailed rationale remains available on demand.
+- Detail: [[UX Audit 2026-08-10]]
+
+### R-344 Library Discovery Before Calibration Detail
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Library must prioritize find, filter, open, favorite, and add-movement tasks before advanced placement-history calibration. Phone category discovery may scroll horizontally, but search and filters must remain visible in the first working viewport.
+- Detail: [[UX Audit 2026-08-10]]
+
+### R-345 Workout Completion Hierarchy
+- Status: implemented
+- Provenance: product-decision
+- Requirement: During an active workout, set logging and any required warm-up response are the primary tasks. Finish remains available but visually secondary until every planned set is complete, and it must disclose completed-set progress.
+- Detail: [[UX Audit 2026-08-10]]
+
+### R-346 Onboarding Landmark and Progress Semantics
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Onboarding must provide a real main landmark at the skip-link destination and expose the four-step state as an accessible progress indicator with current position.
+- Detail: [[UX Audit 2026-08-10]]
+
 ## Thread Coverage Audit
+
+### 2026-08-10 Hypertrophy Requirements and Cross-Device UX Audit
+- Scope: User supplied `hypertrophy-app-requirements.md`, then requested a deep UX, UXD, and UI audit across mobile and desktop after reconciliation.
+- Result: Added R-331 through R-346. The new training source is preserved as a bounded hypertrophy policy and editable template specification. Private alpha 0.34.0 corrects destination scroll and focus, onboarding landmarks and progress semantics, transient mobile notice placement, Today task density, Library discovery order and compact phone categories, active-workout hierarchy, and progress-bar animation performance.
+- Status: The cross-device usability corrections are implemented and verified. Selectable double progression, per-exercise increment overrides, week-specific calendars, and upper-lower templates remain specified rather than falsely claimed as working.
 
 ### 2026-08-10 Original Pocket-Console Sound Expansion
 - Scope: User requested fun sounds inspired by the Machop, Machoke, Machamp, and Pokémon feeling of the desired game layer and authorized downloading sounds that match the vibe.
@@ -2345,6 +2446,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-10: Added R-331 through R-346 from JB's hypertrophy requirements source and the complete mobile-desktop UX audit. Private alpha 0.34.0 implements destination context reset, onboarding semantics, non-obstructive compact notices, an above-fold Today start path, Library discovery before placement calibration, and active-workout completion hierarchy. Selectable double progression, per-exercise increments, week-specific builder controls, and upper-lower templates remain specified but unimplemented.
 - 2026-08-10: Added R-325 through R-330 for an original pocket-console sound language, opt-in preview, quiet-mode precedence, semantic event mapping, nonessential low-interruption audio, and provenance gates. Private alpha 0.33.0 adds `field-guide-synth-v1`, 191 deterministic tests across twenty files, and persisted sound-plus-quiet browser verification inside the existing forty-six desktop and phone journeys.
 - 2026-08-10: Added R-321 through R-324 for context-grounded product judgment, original handheld-adventure craft, durable product and design registers, and automated-plus-visual UI QC. Private alpha 0.32.0 adds the Today Training Field Guide, post-onboarding focus handoff, design anti-pattern cleanup, a standard UI boundary check, 189 deterministic tests, and forty-six desktop and phone Playwright journeys.
 - 2026-08-10: Added R-320 to exclude athlete-facing technique videos, exercise-demo feeds, video uploads, and automated form-video analysis. Revised R-102 and R-121 so structured history and concise optional guidance remain possible without turning the app into an instructional-content product.

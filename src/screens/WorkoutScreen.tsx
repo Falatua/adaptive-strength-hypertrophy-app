@@ -153,7 +153,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
           <div><small>Time</small><strong>{minutes}:{seconds}</strong></div>
           <button className={`timer-button ${timerRunning ? 'active' : ''}`} onClick={() => setTimerRunning((current) => !current)}>{timerRunning ? <Pause size={17} /> : <Play size={17} />}{timerRunning ? 'Pause' : 'Start timer'}</button>
         </div>
-        <div className="workout-progress"><span style={{ width: `${progress}%` }} /></div>
+        <div className="workout-progress"><span style={{ transform: `scaleX(${progress / 100})` }} /></div>
       </header>
 
       <main className="workout-main">
@@ -254,8 +254,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
       </main>
 
       <footer className="workout-footer">
-        <div><TimerReset size={18} /><span><strong>Every set is already saved.</strong><small>Only completed work enters volume and progression.</small></span></div>
-        <button className="button button--primary" onClick={openFinishFlow}>Finish workout <CheckCircle2 size={18} /></button>
+        <div><TimerReset size={18} /><span><strong>{completedSets} of {totalSets} sets complete.</strong><small>Only completed work enters volume and progression.</small></span></div>
+        <button className={`button ${completedSets === totalSets && totalSets > 0 ? 'button--primary' : 'button--secondary'}`} onClick={openFinishFlow}>Finish workout <CheckCircle2 size={18} /></button>
       </footer>
 
       <Modal open={Boolean(swapTarget)} onClose={() => setSwapTarget(null)} title="Choose an educated replacement" description="Tell ForgePath why you are changing it. The ranking and prescription update without borrowing the original movement's load." wide>

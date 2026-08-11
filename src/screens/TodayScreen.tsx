@@ -100,6 +100,7 @@ export function TodayScreen() {
         ? `${progression.nextSets} sets`
         : progression.title
   const progressionEvidence = `${progression.confidence} confidence · ${primaryHistory.length} exact source set${primaryHistory.length === 1 ? '' : 's'}`
+  const heroObjective = `${primaryExercise?.name ?? 'The primary anchor'} leads today. ${progression.title}.`
   const whyReasons = nextSession?.generation
     ? [
         { title: `${routeLabel} route`, detail: nextSession.generation.strategy },
@@ -218,7 +219,7 @@ export function TodayScreen() {
           </div>
           <p className="eyebrow">Next best session · Exposure queue 01</p>
           <h2>{nextSession?.title}</h2>
-          <p className="hero-workout__objective">{nextSession?.objective}</p>
+          <p className="hero-workout__objective">{heroObjective}</p>
           {placementBlocked && <button className="placement-training-gate" onClick={() => setNav('you')}><AlertTriangle size={19} /><span><strong>Workout start paused for placement review</strong><small>{placementVerification.blocked ? 'A placement verification recorded pain that changed what could be trained.' : 'Your starting profile says pain or restriction changes what can be trained.'} Reassess the profile before starting. This is not medical clearance.</small></span><ChevronRight size={18} /></button>}
           {equipmentGaps.length > 0 && <button className="equipment-gate-callout" onClick={() => { setPendingStart(null); setEquipmentGateOpen(true) }}><AlertTriangle size={19} /><span><strong>{equipmentGaps.length} movement{equipmentGaps.length === 1 ? '' : 's'} need equipment review</strong><small>{activeEquipmentProfile.name} is missing required items. Unavailable sets cannot be logged until each movement is changed or the profile is corrected.</small></span><ChevronRight size={18} /></button>}
           <div className="anchor-prescription">
