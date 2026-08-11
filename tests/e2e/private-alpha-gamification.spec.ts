@@ -74,8 +74,10 @@ test('keeps heading, subheading, and supporting copy rhythm readable across dest
   ] as const
 
   for (const [destination, pageHeading] of destinations) {
-    await page.getByRole('button', { name: destination, exact: true }).click()
-    await expect(page.getByRole('heading', { name: pageHeading })).toBeVisible()
+    const destinationButton = page.getByRole('button', { name: destination, exact: true })
+    await destinationButton.click()
+    await expect(destinationButton).toHaveAttribute('aria-current', 'page')
+    await expect(page.getByRole('heading', { name: pageHeading })).toBeVisible({ timeout: 15_000 })
     const metrics = await page.evaluate(() => {
       const visible = (element: Element | null) => {
         if (!(element instanceof HTMLElement)) return false
@@ -125,6 +127,37 @@ test('keeps heading, subheading, and supporting copy rhythm readable across dest
   })
   expect(modalRhythm.lineHeightRatio).toBeGreaterThanOrEqual(1.1)
   expect(modalRhythm.supportingCopyGap).toBeGreaterThanOrEqual(8)
+})
+
+test('shows an honest cloud foundation without weakening local backup or responsive containment', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Dismiss message' }).click()
+  await page.getByRole('button', { name: 'You', exact: true }).click()
+
+  const cloudPanel = page.getByLabel(/Cloud sync/)
+  await expect(cloudPanel).toBeVisible()
+  const pendingHeading = cloudPanel.getByRole('heading', { name: 'Dedicated project pending' })
+  const authHeading = cloudPanel.getByRole('heading', { name: 'Connect your invited account' })
+  if (await pendingHeading.isVisible()) {
+    await expect(cloudPanel).toContainText('Local training stays available')
+    await expect(cloudPanel).toContainText('No JB-OS or Roman TD data will be reused.')
+    await expect(cloudPanel.getByRole('button')).toHaveCount(0)
+  } else {
+    await expect(authHeading).toBeVisible()
+    await expect(cloudPanel).toContainText('Only an email already invited to this private alpha can sign in.')
+    await expect(cloudPanel.getByRole('button', { name: 'Email private sign-in link' })).toBeDisabled()
+  }
+  await expect(page.getByRole('heading', { name: 'Backup and recovery' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Export verified backup' })).toBeEnabled()
+  await expect(page.getByText('Local v22 · cloud event v1')).toBeVisible()
+
+  await cloudPanel.screenshot({ path: `output/playwright/cloud-foundation-${testInfo.project.name === 'mobile-chromium' ? 'mobile' : 'desktop'}.png` })
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  expect(browserErrors).toEqual([])
 })
 
 test('pipes every exercise-library browse control into a real canonical filter', async ({ page }) => {

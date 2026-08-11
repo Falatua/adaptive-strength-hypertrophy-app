@@ -5,7 +5,7 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-10
 status: canonical-build-reference-and-active-implementation
-version: 1.43.0
+version: 1.44.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -6169,6 +6169,55 @@ Active work sets remain the lowest-decoration mode. Loading motion cannot cover 
 ### 77.6 Production Acceptance Gate
 
 Before any generated animation ships, verify provenance, originality, exact dimensions, duration, looping seam, alpha or background behavior, compressed size, decode, responsive crops, reduced-motion fallback, media failure, offline behavior, focus, console integrity, and mobile performance. Review the full sequence frame by frame for anatomy, visual artifacts, unintended text, brand drift, and protected-IP resemblance. A generated preview is not an approved app asset until this gate passes.
+
+## 78. Private Cloud Foundation and Activation Contract
+
+### 78.1 Dedicated Project Isolation
+
+ForgePath uses its own Supabase project. It cannot share athlete tables, Auth users, server functions, logs, backup policy, or credentials with JB-OS, Roman TD, or another product. A free-plan project limit is an operational blocker, not permission to pause, delete, or repurpose an existing system. Development is the first remote environment; staging and production become separate projects before wider private or public release.
+
+### 78.2 Local-First Bootstrap Boundary
+
+Private alpha 0.38.0 keeps the existing validated version 24 backup as a temporary cloud bootstrap projection. The snapshot is not the final relational training model and cannot erase the append-only event that produced it. Workout execution and deterministic coaching continue locally without Supabase. A failed cloud request retains one retryable outbox record and never rolls back the local workout.
+
+The subsequent backend slices replace snapshot-only mutation with transactional entity events and an IndexedDB operational repository. Completed sets, corrections, deletions, substitutions, surveys, plans, preferences, and catalog identity require their own stable events before automatic merge is enabled.
+
+### 78.3 Invite-Only Auth and Browser Credential Contract
+
+The public Pages artifact may request a magic link only for an email already invited to the private alpha. `shouldCreateUser` remains false in the browser flow, open signup is disabled remotely, and anonymous visitors receive no cloud data. The project URL and publishable key are browser-safe configuration. Database passwords, secret keys, service-role keys, provider credentials, and personal exports cannot enter Vite variables, source control, compiled Pages assets, logs, chat, or the Obsidian vault.
+
+### 78.4 Database Security and Append-Only Ledger
+
+The first migration creates private athlete profile, device, sync-event, current bootstrap snapshot, and conflict tables. Every exposed table enables and forces Row Level Security, revokes anonymous access, and uses `auth.uid() = user_id` ownership. The browser may manage its own profile and active device metadata and may read its own event, snapshot, and conflict evidence. It cannot directly insert, update, or delete the append-only ledger, bootstrap snapshot, or conflict record.
+
+The authenticated save function serializes requests per athlete, requires an active registered device, validates versions, payload form, payload size, checksum, timestamp context, app version, and rule version, and records the exact proposed payload. Exact event replay with the same checksum is a no-op. Reusing an event ID for changed content is rejected.
+
+### 78.5 Version Conflict and Restore Authority
+
+A save advances only when its expected base equals the current server version. A stale base creates a conflict event with expected and actual versions and both checksums, then leaves the current snapshot unchanged. No last-write-wins path is permitted.
+
+Checking the cloud copy validates its complete ForgePath backup shape, references, migration version, and integrity checksum. Review alone does not mark the local state as based on that server version. The athlete must explicitly restore. Restore accepts the reviewed server version, clears the stale local outbox, applies the validated state, and exposes the prior local state through the existing one-step undo path.
+
+### 78.6 Honest Interface States
+
+The You screen distinguishes a missing dedicated project, configured but signed-out project, checking session, signed-in account, cloud request, last confirmed server version, pending outbox, validated cloud copy, and conflict. It cannot label a device `Synced` solely from network reachability, a local write, or a successful read. Only an authenticated accepted save or explicit accepted restore updates the last-confirmed state.
+
+The interface describes explicit save and reviewed restore as the first slice. It names automatic synchronization, entity merging, new-device hydration, device revocation, and active-workout handoff as unavailable until implemented and verified.
+
+### 78.7 Activation and Acceptance
+
+Remote activation follows the version-controlled migration, not manual Table Editor recreation. Before enabling cloud configuration in Pages, verify invite-only Auth, anonymous denial, two-account Row Level Security isolation, unknown and revoked device denial, idempotent replay, changed-content rejection, stale-version conflict preservation, reviewed restore, local undo, offline retry, secret absence, and responsive phone and laptop UI.
+
+This gate supplements rather than replaces Chapter 68. Passing the first snapshot and Auth tests does not satisfy the full multi-device acceptance matrix.
+
+### Version 1.44.0 Change Entry
+
+- Added R-362 through R-367 and the private cloud foundation and activation contract.
+- Added a dedicated-project isolation rule and preserved JB-OS and Roman TD unchanged when Supabase reported the free-project limit.
+- Implemented the first invite-only Auth client, device registry, retry outbox, append-only sync ledger, bootstrap snapshot, conflict table, and idempotent authenticated save function.
+- Added explicit cloud save, integrity-validated review, athlete-confirmed restore, and truthful pending and conflict states to the You screen.
+- Added version-controlled migrations, Row Level Security checks, remote activation gates, GitHub Actions configuration hooks, and the backend runbook.
+- Advanced the working application to private alpha 0.38.0 while preserving backup schema 24 and local persistence 22.
 
 ### Version 1.43.0 Change Entry
 

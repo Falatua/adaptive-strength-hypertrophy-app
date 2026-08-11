@@ -38,7 +38,7 @@ The current responsive PWA remains the fastest first client because it already r
 
 Native mobile distribution can still follow when device features, reliability testing, or public distribution justify it. Cloud identity and sync contracts must remain client-independent so the responsive web client and any future native client use the same authoritative records.
 
-The current private alpha does not yet meet this multi-device requirement. It stores versioned data in each browser separately. Opening the app on a phone and laptop today creates independent local states unless the athlete manually exports and restores a backup. The cloud phase must replace that manual bridge with authenticated synchronization.
+Private alpha 0.38.0 implements the first cloud foundation but does not yet meet the full multi-device requirement. It includes invite-only authentication, device identity, a local retry outbox, idempotent snapshot events, a protected bootstrap snapshot, preserved version conflicts, and reviewed restore. Until a dedicated ForgePath project is provisioned and the remote acceptance gates pass, phone and laptop still create independent local states. Automatic entity-level synchronization and workout handoff remain later phases.
 
 ## Cross-Device Sync Contract
 
@@ -421,7 +421,19 @@ Add a separate analytics warehouse, streaming pipeline, read replica, or dedicat
 
 Use the responsive PWA as the first phone-and-laptop client, backed by a local operational store and Supabase as the leading private cloud system of record. Start schema and sync design now. Do not claim cross-device operation until authenticated synchronization and the multi-device acceptance gate pass. Keep the domain, storage, and sync contracts portable so a later native mobile client can use the same account and history.
 
-## Official Sources Checked, 2026-08-09
+## Implemented Foundation, Private Alpha 0.38.0
+
+The repository now contains a versioned Supabase migration and browser connection layer. The migration creates `forgepath_profiles`, `forgepath_devices`, `forgepath_sync_events`, `forgepath_state_snapshots`, and `forgepath_sync_conflicts`. Every table enables and forces Row Level Security, revokes anonymous access, and limits authenticated reads to `auth.uid() = user_id`. Append-only events, snapshots, and conflicts cannot be directly changed by the browser.
+
+The authenticated `push_forgepath_snapshot` function serializes writes per athlete, requires an active registered device, checks payload shape and size, treats exact event replay idempotently, rejects event-ID content reuse, advances only from the expected server version, and preserves stale writes as conflicts without replacing the current snapshot.
+
+The PWA stores a stable device ID, device sequence, acknowledged server version, last confirmed sync time, and one retryable snapshot in local storage. The You screen supports invite-only email link sign-in, explicit save to cloud, integrity-validated cloud review, and athlete-confirmed restore through the existing automatic local undo path. Reading a cloud copy alone does not authorize a local overwrite or advance the local base version.
+
+This is deliberately a bootstrap bridge, not the final relational training model. A whole-state snapshot supports safe private-alpha recovery while source-domain tables and transactional entity events are built. Automatic merging, background sync, active-workout leases, new-device staged hydration, revocation UI, and derived-view parity remain unimplemented and cannot be labeled ready.
+
+Remote activation is currently blocked because Falatua's Org has reached Supabase's two-active-free-project limit with JB-OS and Roman TD Global Leaderboard. Neither existing project will be reused, paused, or deleted without an explicit owner decision. See `SUPABASE_BACKEND_RUNBOOK.md`.
+
+## Official Sources Checked, 2026-08-10
 
 - [Supabase Database overview](https://supabase.com/docs/guides/database/overview)
 - [Supabase Auth](https://supabase.com/docs/guides/auth)
@@ -431,15 +443,18 @@ Use the responsive PWA as the first phone-and-laptop client, backed by a local o
 - [Supabase pgvector columns](https://supabase.com/docs/guides/ai/vector-columns)
 - [Supabase Storage](https://supabase.com/docs/guides/storage)
 - [Supabase database backups](https://supabase.com/docs/guides/platform/backups)
+- [Supabase React Auth quickstart](https://supabase.com/docs/guides/auth/quickstarts/react)
+- [Supabase local development workflow](https://supabase.com/docs/guides/local-development/cli-workflows)
+- [Supabase declarative schemas and migrations](https://supabase.com/docs/guides/local-development/declarative-database-schemas)
 
 ## Open Decisions
 
-- Exact durable browser database and migration path from the current local store.
+- Exact IndexedDB repository and transaction boundary that replaces the current local-storage bootstrap bridge.
 - Exact native-mobile trigger and whether later distribution uses Expo, a wrapped PWA, or both.
 - Sync debounce and batching interval during an active workout.
 - Session-edit lease duration, renewal cadence, and takeover grace period.
 - Which non-training preferences can use deterministic version ordering instead of athlete review.
-- Whether the personal prototype needs authentication.
+- Whether the dedicated project will live in an upgraded Falatua's Org or another owner-approved organization.
 - Exact retention windows for raw notes, survey details, AI interactions, and derived features.
 - Backup tier and recovery objectives for a public release.
 - Whether semantic retrieval adds enough value beyond full-text search.

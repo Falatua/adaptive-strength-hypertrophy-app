@@ -1,7 +1,7 @@
 {
   "name": "adaptive-strength-hypertrophy-app",
   "private": true,
-  "version": "0.37.0",
+  "version": "0.38.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,10 +14,12 @@
     "lint": "eslint .",
     "qc:ui": "node scripts/qc-ui-boundaries.mjs",
     "qc:pages": "node scripts/qc-pages-build.mjs",
+    "qc:backend": "node scripts/qc-supabase-schema.mjs",
     "check:pages": "npm run build:pages && npm run qc:pages",
-    "check": "npm run qc:ui && npm run lint && npm run test && npm run build"
+    "check": "npm run qc:ui && npm run qc:backend && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.2",
     "@vitejs/plugin-react": "latest",
     "date-fns": "latest",
     "lucide-react": "latest",

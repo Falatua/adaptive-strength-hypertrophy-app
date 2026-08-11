@@ -5,7 +5,7 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-10
 status: working-private-alpha
-app_version: 0.37.0
+app_version: 0.38.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
@@ -18,7 +18,22 @@ A working private, local-first application now exists at `/Users/redsky/Projects
 
 The code is preserved in the private GitHub repository `Falatua/adaptive-strength-hypertrophy-app`. Releases 0.1.0 through 0.34.0 remain in Git history. Private alpha 0.30.0 is commit `b204c54342a08366f8026e305171993ffb27aee7` and adds fresh readiness evidence without penalizing missing or stale answers. Private alpha 0.31.0 feature commit `06336129e7c2952e4645e088fbc0b4c8479208cf` adds source-backed relative priority-region dose as a bounded schedule tie-break. Private alpha 0.32.0 feature commit `035e175` adds context-grounded product and design registers, the evidence-backed Today Training Field Guide, post-onboarding focus handoff, and automated UI boundaries. Private alpha 0.33.0 adds the original `field-guide-synth-v1` runtime sound pack. Private alpha 0.34.0 feature commit `2f469b4ef237092ab5a8687d2fdd03626ab55194` adds the cross-device UX task-focus corrections recorded in [[UX Audit 2026-08-10]]. Private alpha 0.35.0 feature commit `900010570c60981b2b2beeb58cf31f66b754ee37` adds the functional UX corrections recorded in [[Functional UX Audit 2026-08-10]]. Private alpha 0.36.0 feature commits `8257a8b6b0e94eaf6a0eefb4cf78302fee8335dc` and `888b5d8669d8106455a76d4e96df5f4d34da9a30` add the automatic private-source-to-public-artifact Pages release, exact subpath PWA behavior, neutral visitor seed, and stable 390 by 844 mobile gate recorded in [[GitHub Pages Deployment 2026-08-10]]. Private alpha 0.37.0 standardizes readable vertical rhythm across headers, subheaders, supporting text, cards, and dialogs on phone and laptop. The first complete GitHub specification mirror is commit `20cf4298870a11608ddc69642c52c4a1c1b2867f`; later specification commits keep `docs/product/` aligned with implementation. The latest remote identity is recorded in [[Adaptive Strength and Hypertrophy App]] and [[Codex Session Log]].
 
-This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into a usable end-to-end browser and installable PWA experience. It is governed by the full requirement register but implements a bounded first slice. Deferred cloud, AI, social, and advanced longitudinal work must not be represented as complete.
+Private alpha 0.38.0 adds the first secure cloud foundation while leaving the remote project and full cross-device synchronization incomplete because the current Supabase organization is at its free-project limit.
+
+This build turns the [[Adaptive Strength and Hypertrophy App Build Bible]] into a usable end-to-end browser and installable PWA experience. It is governed by the full requirement register but implements a bounded first slice. Automatic entity-level cloud convergence, AI, social, and advanced longitudinal work must not be represented as complete.
+
+## Private Alpha 0.38.0 Release Delta
+
+- Reconciled the active implementation against Build Bible Chapters 19 through 24 and 68, then added R-362 through R-367 and Chapter 78 for the first backend slice.
+- Added a version-controlled Supabase foundation with five tables covering private profiles, devices, append-only sync events, the current bootstrap snapshot, and preserved conflicts.
+- Enabled and forced Row Level Security on every table, revoked anonymous access, limited athlete access through authenticated ownership, and denied direct browser mutation of events, snapshots, and conflicts.
+- Added an authenticated, per-athlete serialized save function with device registration, payload and checksum validation, exact-retry idempotency, event-ID tamper rejection, and stale-version conflict preservation.
+- Added invite-only email-link sign-in, a stable local device ID, device sequence, retry outbox, confirmed cloud version metadata, explicit save, validated cloud review, and athlete-confirmed restore through the existing local undo path.
+- Added truthful `Dedicated project pending` behavior when browser configuration is absent. Automatic merge, hydration, revocation UI, and workout handoff remain off.
+- Added `SUPABASE_BACKEND_RUNBOOK.md`, a browser-safe environment template, GitHub Actions configuration hooks, and a backend quality check in the standard release gate.
+- Confirmed in the signed-in Supabase dashboard that Falatua's Org is limited to two active free projects and currently contains JB-OS and Roman TD Global Leaderboard. Neither project was modified.
+- Advanced app, rules, README, backup application metadata, and documentation to 0.38.0 while preserving backup schema 24 and local persistence 22.
+- Verified 195 deterministic tests across twenty-one files, the five-table Row Level Security and sync-function static boundary, all fifty-six desktop and phone browser journeys, and the local Pages artifact. The private workflow and final live URL gates remain required before release confirmation.
 
 ## Private Alpha 0.37.0 Release Delta
 

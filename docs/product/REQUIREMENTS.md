@@ -2295,7 +2295,48 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Higgsfield is an approved external authoring tool for original loading animations, transitions, environment loops, celebration plates, and visual polish when available, with GPT Images or another approved tool used when better suited. Generated media must become an optimized, versioned local app asset with provenance and originality review rather than a runtime provider dependency. Motion may represent only a real wait or completed transition, may never delay task completion, must preserve the primary training action and safety information, and requires written status, responsive behavior, failure fallback, and a static reduced-motion alternative.
 - Detail: [[Adaptive Strength and Hypertrophy App Build Bible#77. External Visual Authoring and Loading Motion Contract]]
 
+### R-362 Dedicated ForgePath Cloud Isolation
+- Status: implemented-foundation-blocked-remote
+- Provenance: from-user and product-decision
+- Requirement: ForgePath must use a dedicated Supabase project and may not share the JB-OS or Roman TD database. Development, staging, and production remain separate as the release matures. Reaching a plan limit does not authorize pausing, deleting, or repurposing another project.
+- Detail: [[ForgePath Supabase Backend Runbook]]
+
+### R-363 Invite-Only Private Authentication
+- Status: implemented-foundation
+- Provenance: from-user and product-decision
+- Requirement: The private alpha must accept only previously invited accounts. The browser may request an email sign-in link with account creation disabled. Public Pages visitors cannot create an athlete account merely by entering an email, and local workout use remains available without an authenticated session.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#78. Private Cloud Foundation and Activation Contract]]
+
+### R-364 Supabase Row-Level and Credential Boundary
+- Status: implemented-foundation-unverified-remote
+- Provenance: product-decision
+- Requirement: Every exposed ForgePath table must enable and force Row Level Security, revoke anonymous data access, authorize rows through the authenticated user ID, and deny direct browser mutation of append-only events, snapshots, and conflicts. Only the project URL and browser-safe publishable key may enter the Vite bundle. Database passwords, secret keys, service-role keys, and provider credentials remain server-side and outside source, Pages, logs, chat, and Obsidian.
+- Detail: [[ForgePath Supabase Backend Runbook]]
+
+### R-365 Idempotent Local-First Cloud Event Foundation
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: A cloud save must retain a stable device ID, device sequence, event ID, expected server version, occurrence time, timezone, schema version, rule version, payload, and checksum. Failed delivery remains in a local retry outbox. Exact event replay is idempotent, event-ID reuse with changed content is rejected, and only an authenticated accepted server response advances the confirmed server version.
+- Detail: [[Data Backend Storage and Learning Architecture]]
+
+### R-366 Conflict-Preserving Cloud Review and Restore
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: A stale cloud save must create a preserved conflict and leave the current snapshot unchanged. Reading a cloud copy validates the complete ForgePath backup contract but does not authorize overwrite or change the local base version. Restoring requires an explicit athlete action, accepts that server version, clears the stale outbox, and creates the existing automatic local undo point.
+- Detail: [[Adaptive Strength and Hypertrophy App Build Bible#78. Private Cloud Foundation and Activation Contract]]
+
+### R-367 Honest Cloud Rollout Status
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: The interface and release documentation must distinguish a local save, pending dedicated project, signed-out configured project, active cloud request, confirmed cloud version, retrying outbox, validated cloud copy, and preserved conflict. The first snapshot bridge cannot be called automatic multi-device sync, entity merge, hydration, device revocation, or active-workout handoff until the Chapter 68 acceptance matrix passes against a live backend.
+- Detail: [[ForgePath Supabase Backend Runbook]]
+
 ## Thread Coverage Audit
+
+### 2026-08-10 Supabase Backend Foundation Expansion
+- Scope: User requested reconciliation with the original Build Bible and authorized beginning the Supabase backend while keeping the signed-in dashboard available.
+- Result: Added R-362 through R-367 and Build Bible Chapter 78. Private alpha 0.38.0 adds a dedicated-project boundary, invite-only auth client, five-table Row Level Security migration, device and event metadata, retry outbox, idempotent snapshot RPC, preserved conflicts, integrity-validated cloud review, and athlete-confirmed restore.
+- Status: The local code, migration, documentation, and static database security checks are implemented. Remote provisioning is blocked because Falatua's Org is at its two-project free-plan limit. The existing JB-OS and Roman TD projects were left unchanged. Automatic entity sync and workout handoff remain unimplemented.
 
 ### 2026-08-10 Higgsfield and Generated Visual Motion Expansion
 - Scope: User approved using the Higgsfield connector and its broader creative integrations for special loading animations and other visual improvements that make the app more fun.
@@ -2555,6 +2596,8 @@ This is the canonical traceability index for every durable requirement JB states
 - Exact boundary and default setting for focused-training or low-decoration mode.
 
 ## Change Log
+
+- 2026-08-10: Added R-362 through R-367 and Build Bible Chapter 78 for the first Supabase backend foundation. Private alpha 0.38.0 now includes dedicated-project isolation, invite-only Auth, a five-table Row Level Security migration, stable device and event metadata, a retry outbox, idempotent snapshot saves, preserved conflicts, integrity-validated cloud review, and athlete-confirmed restore. Remote provisioning remains blocked by the organization's two-project free-plan limit, and automatic entity sync and workout handoff are not claimed.
 
 - 2026-08-10: Added R-361 and Build Bible Chapter 77 for Higgsfield and other approved generated-visual workflows. Loading motion must represent real latency, never create delay, remain optional and accessible, preserve training clarity, and ship as an optimized local asset with provenance rather than a runtime provider dependency.
 - 2026-08-10: Added R-360 and Build Bible Chapter 76 for cross-device vertical rhythm. Private alpha 0.37.0 standardizes headline, label, supporting-copy, screen, card, and dialog spacing while preserving the phone start-action fold and existing desktop density. Verification expands to 54 desktop and phone browser journeys.

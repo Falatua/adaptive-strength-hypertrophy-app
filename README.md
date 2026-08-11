@@ -1,8 +1,8 @@
-# ForgePath Private Alpha 0.37.0
+# ForgePath Private Alpha 0.38.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 
-The private repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 361 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, and pixel training-adventure specification. Obsidian remains the editable source of truth.
+The private repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 367 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
 ## Run locally
 
@@ -15,13 +15,13 @@ Open the local address printed by Vite. The app can be installed as a PWA and pe
 
 The working interface name is ForgePath. It remains a private-alpha label until JB approves the final product name.
 
-The current PWA is responsive on phone and laptop, but each browser still has an independent local data store. Authentication, cloud synchronization, workout handoff, and conflict resolution are specified in [Build Bible Chapter 68](docs/product/BUILD_BIBLE.md#68-phone-laptop-and-cloud-synchronization) and are not yet implemented.
+The current PWA is responsive on phone and laptop and now contains the first authenticated cloud foundation. Until a dedicated ForgePath Supabase project is provisioned and the remote gates pass, each browser still has an independent local data store. Explicit cloud save, conflict preservation, and reviewed restore are implemented in code; automatic entity merging and workout handoff remain governed by [Build Bible Chapter 68](docs/product/BUILD_BIBLE.md#68-phone-laptop-and-cloud-synchronization) and [Chapter 78](docs/product/BUILD_BIBLE.md#78-private-cloud-foundation-and-activation-contract).
 
 ## Hosted preview
 
 Every push to the private source repository's `main` runs the deterministic checks, all desktop and mobile browser journeys, and a GitHub Pages-specific PWA build before publishing only the compiled artifact to the public `Falatua/adaptive-strength-hypertrophy-app-pages` repository. A failed gate blocks the release. The hosted preview lives at `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`.
 
-The Pages URL is a public preview, even though the source repository is private. Each browser keeps its own data in local storage and receives a neutral demo seed on first use. There is no account, cloud sync, shared workout database, or cross-device handoff yet. Do not enter information you would not want stored unencrypted in that browser, and export a backup before clearing site data.
+The Pages URL is a public preview, even though the source repository is private. Each browser keeps its own local data and receives a neutral demo seed on first use. With no dedicated Supabase project configured, the app clearly shows `Dedicated project pending` and no account or shared workout database is active. Once configured, only invited private-alpha accounts can request a sign-in link. Cross-device handoff is not yet enabled. Export a backup before clearing site data.
 
 ## Verify
 
@@ -36,14 +36,15 @@ npm run check:pages
 - React and TypeScript
 - Vite and PWA service worker
 - Zustand local persistence
+- Supabase Auth and Postgres client foundation with Row Level Security migrations
 - Deterministic domain engine separated from UI
 - Recharts for progress views
-- No Supabase or AI dependency in the private alpha
+- No AI dependency; training decisions remain deterministic and usable without Supabase
 
 ## Current verification
 
-- 191 deterministic domain tests
-- fifty-four desktop and phone browser journeys, including cross-destination vertical rhythm, modal typography, real Library category and filter piping, touch-safe workout reasoning, active-workout leave and resume with logged-set conservation, real next-session priority mutation, predictable destination context, first-viewport phone task actions, active-workout hierarchy, an original synthesized sound pack with persisted opt-in and quiet-mode precedence, an evidence-backed Training Field Guide, accessible route-note opening, auditable missed-opportunity rebuilding, source-backed records, linked calendar and exact exposure history, explainable athlete placement, athlete-reviewed exact-history evidence, plan-route and exact-movement criterion exits, equipment-aware route generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
+- 195 deterministic domain and cloud-boundary tests
+- fifty-six desktop and phone browser journeys, including truthful cloud-project status with intact local backup, cross-destination vertical rhythm, modal typography, real Library category and filter piping, touch-safe workout reasoning, active-workout leave and resume with logged-set conservation, real next-session priority mutation, predictable destination context, first-viewport phone task actions, active-workout hierarchy, an original synthesized sound pack with persisted opt-in and quiet-mode precedence, an evidence-backed Training Field Guide, accessible route-note opening, auditable missed-opportunity rebuilding, source-backed records, linked calendar and exact exposure history, explainable athlete placement, athlete-reviewed exact-history evidence, plan-route and exact-movement criterion exits, equipment-aware route generation, productive placement verification, pain-aware start gating, validated CSV history import, in-workout achievement feedback, quiet controls, equipment-aware substitutions, operational survey preferences, optional deferred feedback, quarterly analytics, planned-dose reconciliation, individual muscle-dose provenance, governed catalog edits, grouped duplicate cleanup, location persistence, console integrity, and horizontal containment
 - automated UI boundary QC for original game-inspired expression, the technique-video exclusion, readable typography, focus and reduced-motion support, compact mobile coverage, and required product-design context
 - lint clean
 - production PWA build clean

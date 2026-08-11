@@ -10,6 +10,8 @@ import { placementRouteLabels } from '../domain/placement-engine'
 import { placementVerificationVerdictLabels, summarizePlacementVerification } from '../domain/placement-verification-engine'
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from '../domain/placement-exit-engine'
 import { playForgeSound } from '../services/sound-engine'
+import { CloudSyncPanel } from '../components/CloudSyncPanel'
+import { cloudConfiguration } from '../services/cloud-sync'
 
 const surveyModeLabels: Record<SurveyMode, string> = { full: 'Full', quick: 'Quick', minimal: 'Minimal', off: 'Off', ask: 'Ask each time' }
 const placementExitLabels = {
@@ -225,6 +227,7 @@ export function YouScreen() {
         </div>
 
         <aside className="settings-aside">
+          <CloudSyncPanel />
           <section className="panel">
             <div className="panel__header"><div><p className="eyebrow">Local data</p><h3>Backup and recovery</h3></div><ShieldCheck size={19} /></div>
             <div className="privacy-status"><HardDrive size={28} /><strong>Stored on this device</strong><p>Workout execution and deterministic rules do not need Supabase or a language-model API.</p></div>
@@ -236,12 +239,12 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.37.0 private alpha</strong></li><li><span>Rules</span><strong>0.37.0 vertical-rhythm hardening</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Equipment v1 · Load increment v1 · Sound pack field-guide-synth-v1</strong></li><li><span>Backup schema</span><strong>Version 24</strong></li><li><span>Persistence</span><strong>Local v22</strong></li><li><span>Cloud sync</span><strong>Not connected</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.38.0 private alpha</strong></li><li><span>Rules</span><strong>0.38.0 cloud-foundation boundary</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Equipment v1 · Load increment v1 · Sound pack field-guide-synth-v1</strong></li><li><span>Backup schema</span><strong>Version 24</strong></li><li><span>Persistence</span><strong>Local v22 · cloud event v1</strong></li><li><span>Cloud sync</span><strong>{cloudConfiguration.status === 'ready' ? 'Ready for private sign-in' : 'Dedicated project pending'}</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Reset private alpha</button>
         </aside>
       </div>
-      <footer className="screen-footer"><Moon size={16} /> ForgePath Private Alpha · Built from the Obsidian Build Bible · Local state only</footer>
+      <footer className="screen-footer"><Moon size={16} /> ForgePath Private Alpha · Built from the Obsidian Build Bible · Local-first cloud foundation</footer>
 
       <Modal open={placementExitOpen} onClose={() => setPlacementExitOpen(false)} title="Review placement checkpoint" description="ForgePath has interpreted the source-linked productive checks for this exact placement version. It will not change your route until you choose what happens next." wide>
         <div className="placement-exit-review">
