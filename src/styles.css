@@ -175,6 +175,7 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .schedule-rebuild-proof__facts small, .schedule-rebuild-proof__facts strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .schedule-rebuild-proof__facts small { color: var(--muted); font-size: .54rem; }
 .schedule-rebuild-proof__facts strong { margin-top: 3px; color: var(--lime); font-size: .68rem; text-transform: capitalize; }
+.schedule-rebuild-proof__facts em { display: block; margin-top: 3px; color: var(--muted); font-size: .54rem; font-style: normal; line-height: 1.35; }
 .schedule-rebuild-proof details { margin-top: 10px; color: var(--muted); font-size: .65rem; }
 .schedule-rebuild-proof summary { cursor: pointer; color: var(--text); font-weight: 800; }
 .schedule-rebuild-proof details p { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px; margin: 7px 0 0; line-height: 1.4; }
@@ -203,6 +204,9 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .schedule-change-card__details p strong, .schedule-change-card__details p span { display: block; }
 .schedule-change-card__details p strong { font-size: .65rem; }
 .schedule-change-card__details p span { margin-top: 2px; color: var(--muted); font-size: .59rem; line-height: 1.4; }
+.schedule-change-card__eligibility { display: grid; gap: 3px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-deep); }
+.schedule-change-card__eligibility strong { color: var(--lime); text-transform: uppercase; font-family: var(--font-pixel); font-size: .62rem; letter-spacing: .06em; }
+.schedule-change-card__eligibility span { color: var(--muted); font-size: .62rem; line-height: 1.45; }
 .full-row-button { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 13px 0; border: 0; border-top: 1px solid var(--line); background: transparent; font-weight: 740; text-align: left; }
 .full-row-button--accent { padding: 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 

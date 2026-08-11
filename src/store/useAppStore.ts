@@ -12,7 +12,7 @@ import { buildDeferredFeedbackRequest, expireDeferredFeedbackRequests, summarize
 import { projectExerciseCatalogEdit, type ExerciseCatalogInput } from '../domain/catalog-engine'
 import { equipmentGenerationEvidence, equipmentProfileError, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad, normalizedEquipmentProfile } from '../domain/equipment-engine'
 import { legacyPlacementForAthlete, placementRouteLabels } from '../domain/placement-engine'
-import { beginPlacementVerification, cancelPlacementVerificationForPrimarySubstitution, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery, revisePlacementSessionEvidence } from '../domain/placement-verification-engine'
+import { beginPlacementVerification, cancelPlacementVerificationForPrimarySubstitution, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery, revisePlacementSessionEvidence, summarizePlacementVerification } from '../domain/placement-verification-engine'
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment, movementPlacementExitReviewRuleVersion, placementExitReviewRuleVersion } from '../domain/placement-exit-engine'
 import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION, routeSessionProfile } from '../domain/route-session-engine'
 import { buildMissedOpportunityReplan } from '../domain/schedule-adaptation-engine'
@@ -705,6 +705,9 @@ export const useAppStore = create<AppState>()(
       })),
       markMissed: (sessionId, context) => {
         const state = get()
+        const activeEquipmentProfile = state.equipmentProfiles.find((profile) => profile.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]
+        const verification = summarizePlacementVerification(state.placementVerifications, state.athlete.placement.createdAt)
+        const safetyGateActive = state.athlete.placement.selectedRoute === 'pain-aware-modified' || state.athlete.placement.inputs.painState === 'modifying' || verification.blocked
         const result = buildMissedOpportunityReplan({
           eventId: nanoid(),
           sessions: state.sessions,
@@ -713,7 +716,11 @@ export const useAppStore = create<AppState>()(
           missedSessionId: sessionId,
           input: context,
           continuity: state.athlete.continuity,
-          weeklyOpportunities: state.athlete.weeklyOpportunities
+          weeklyOpportunities: state.athlete.weeklyOpportunities,
+          exercises: state.exercises,
+          equipmentProfile: activeEquipmentProfile,
+          safetyGateActive,
+          safetyGateReason: safetyGateActive ? 'Automatic schedule rebuilding is paused because the current pain or restriction evidence changes what can be trained. Reassess the profile before rebuilding. This is not medical clearance.' : undefined
         })
         if (!result.ok) return result
         const removedSets = result.event.openSetCountBefore - result.event.openSetCountAfter
@@ -989,7 +996,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'forgepath-private-alpha-v1',
-      version: 19,
+      version: 20,
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,

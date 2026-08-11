@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { history as seedHistory, sessions as seedSessions } from './seed'
+import { equipmentProfiles, exercises, history as seedHistory, sessions as seedSessions } from './seed'
 import { buildMissedOpportunityReplan, missedOpportunityEventError } from './schedule-adaptation-engine'
 import type { CompletedSetRecord, MissedOpportunityInput, TrainingSession } from './types'
 
@@ -47,6 +47,9 @@ const run = (overrides: Partial<Parameters<typeof buildMissedOpportunityReplan>[
   input: input(),
   continuity: 'stable',
   weeklyOpportunities: 3,
+  exercises: structuredClone(exercises),
+  equipmentProfile: structuredClone(equipmentProfiles[0]),
+  safetyGateActive: false,
   recordedAt,
   ...overrides
 })
@@ -63,13 +66,14 @@ describe('missed-opportunity replanning', () => {
     expect(result.sessions.find((session) => session.id === 'session-bench')?.status).toBe('planned')
     expect(result.event.openSetCountAfter).toBeLessThanOrEqual(result.event.openSetCountBefore)
     expect(result.event.completedSetCountAfter).toBe(result.event.completedSetCountBefore)
+    expect(result.event.eligibility).toMatchObject({ ruleVersion: 'schedule-eligibility-v1', equipmentProfileId: 'equipment-commercial-gym' })
   })
 
   it('honors an athlete pin while retaining exact-exposure order for the remaining queue', () => {
     const result = run({ input: input({ preferredNextSessionId: 'session-bench' }) })
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    expect(result.event.ruleVersion).toBe('missed-opportunity-v2')
+    expect(result.event.ruleVersion).toBe('missed-opportunity-v3')
     expect(result.event.queueAfter).toEqual(['session-bench', 'session-squat', 'session-deadlift'])
     expect(result.event.nextSessionId).toBe('session-bench')
     expect(result.event.reasons[0]).toMatch(/athlete pinned/i)
@@ -83,6 +87,28 @@ describe('missed-opportunity replanning', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(missedOpportunityEventError({ ...result.event, nextSessionId: 'session-squat' }, result.sessions)).toMatch(/was not honored/i)
+  })
+
+  it('removes unavailable support while keeping an executable pinned primary', () => {
+    const result = run({ input: input({ preferredNextSessionId: 'session-bench' }), equipmentProfile: structuredClone(equipmentProfiles[1]) })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.event.nextSessionId).toBe('session-bench')
+    expect(result.event.eligibility?.equipmentProfileName).toBe('Home Gym')
+    expect(result.event.eligibility?.removedExerciseNames.length).toBeGreaterThan(0)
+    expect(result.event.reasons.join(' ')).toMatch(/impossible work/i)
+    const next = result.sessions.find((session) => session.id === 'session-bench')!
+    expect(next.exercises.every((planned) => {
+      const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)!
+      return exercise.equipment.every((item) => equipmentProfiles[1].equipment.includes(item)) && !['irritating', 'avoid'].includes(exercise.jointFeeling)
+    })).toBe(true)
+  })
+
+  it('rejects unavailable protected-primary pins and a global safety gate without mutation', () => {
+    const unavailable = run({ input: input({ preferredNextSessionId: 'session-bench' }), equipmentProfile: structuredClone(equipmentProfiles[2]) })
+    expect(unavailable).toMatchObject({ ok: false, error: expect.stringMatching(/cannot lead at Travel Setup/i) })
+    const blocked = run({ safetyGateActive: true, safetyGateReason: 'Reassess the current pain restriction before automatic schedule rebuilding.' })
+    expect(blocked).toMatchObject({ ok: false, error: expect.stringMatching(/pain restriction/i) })
   })
 
   it('preserves completed, partial, expired, and stopped session objects instead of deleting the ledger', () => {

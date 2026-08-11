@@ -1,6 +1,8 @@
 import type {
   CompletedSetRecord,
   ContinuityState,
+  EquipmentProfile,
+  Exercise,
   MissedOpportunityEvent,
   MissedOpportunityInput,
   ScheduleAdaptationChange,
@@ -8,10 +10,12 @@ import type {
   SessionStatus,
   TrainingSession
 } from './types'
+import { exerciseEquipmentFit } from './equipment-engine'
 import { compressSession } from './training-engine'
 
-export const MISSED_OPPORTUNITY_RULE_VERSION = 'missed-opportunity-v2' as const
-const SUPPORTED_MISSED_OPPORTUNITY_RULE_VERSIONS = ['missed-opportunity-v1', MISSED_OPPORTUNITY_RULE_VERSION] as const
+export const MISSED_OPPORTUNITY_RULE_VERSION = 'missed-opportunity-v3' as const
+export const SCHEDULE_ELIGIBILITY_RULE_VERSION = 'schedule-eligibility-v1' as const
+const SUPPORTED_MISSED_OPPORTUNITY_RULE_VERSIONS = ['missed-opportunity-v1', 'missed-opportunity-v2', MISSED_OPPORTUNITY_RULE_VERSION] as const
 
 interface ReplanRequest {
   eventId: string
@@ -22,6 +26,10 @@ interface ReplanRequest {
   input: MissedOpportunityInput
   continuity: ContinuityState
   weeklyOpportunities: number
+  exercises: Exercise[]
+  equipmentProfile: EquipmentProfile
+  safetyGateActive: boolean
+  safetyGateReason?: string
   recordedAt?: string
 }
 
@@ -71,8 +79,46 @@ const modeFor = (input: MissedOpportunityInput, consecutiveMisses: number): Sche
   return 'defer-one'
 }
 
+export function scheduleSessionEligibility(session: TrainingSession, exercises: Exercise[], equipmentProfile: EquipmentProfile) {
+  const primaryPlan = session.exercises.find((planned) => planned.role === 'primary')
+  const primary = primaryPlan ? exercises.find((exercise) => exercise.id === primaryPlan.exerciseId) : undefined
+  const primaryFit = primary ? exerciseEquipmentFit(primary, equipmentProfile) : null
+  const primaryJointResponse = primary?.jointFeeling ?? null
+  const primaryJointBlocked = primaryJointResponse === 'avoid' || primaryJointResponse === 'irritating'
+  const removableSupport = session.exercises.flatMap((planned) => {
+    if (planned.role === 'primary') return []
+    const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)
+    if (!exercise) return [{ plannedExerciseId: planned.id, exerciseName: planned.exerciseId, reason: 'unknown exercise identity' }]
+    const fit = exerciseEquipmentFit(exercise, equipmentProfile)
+    if (!fit.available) return [{ plannedExerciseId: planned.id, exerciseName: exercise.name, reason: `missing ${fit.missing.join(', ')}` }]
+    if (exercise.jointFeeling === 'avoid' || exercise.jointFeeling === 'irritating') return [{ plannedExerciseId: planned.id, exerciseName: exercise.name, reason: `${exercise.jointFeeling} joint response` }]
+    return []
+  })
+  const eligibleToLead = Boolean(primary && primaryFit?.available && !primaryJointBlocked)
+  const reasons = [
+    ...(!primary ? ['The protected primary has no known exercise identity.'] : []),
+    ...(primaryFit && !primaryFit.available ? [`The protected primary is missing ${primaryFit.missing.join(', ')} at ${equipmentProfile.name}.`] : []),
+    ...(primaryJointBlocked ? [`The protected primary is marked ${primaryJointResponse} for joint response and requires movement review.`] : []),
+    ...(eligibleToLead && removableSupport.length === 0 ? [`Every planned movement is executable at ${equipmentProfile.name}.`] : []),
+    ...(eligibleToLead && removableSupport.length > 0 ? [`The protected primary is executable at ${equipmentProfile.name}; ${removableSupport.length} support movement${removableSupport.length === 1 ? '' : 's'} must be removed or replaced.`] : [])
+  ]
+  return {
+    sessionId: session.id,
+    primaryExerciseId: primary?.id ?? null,
+    primaryExerciseName: primary?.name ?? null,
+    eligibleToLead,
+    fullyExecutable: eligibleToLead && removableSupport.length === 0,
+    primaryMissingEquipment: primaryFit?.missing ?? [],
+    primaryJointResponse,
+    supportReviewCount: removableSupport.length,
+    reasons,
+    removableSupport
+  }
+}
+
 export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOpportunityReplanResult {
   const recordedAt = request.recordedAt ?? new Date().toISOString()
+  if (request.safetyGateActive) return { ok: false, error: request.safetyGateReason ?? 'Automatic schedule rebuilding is paused until the active pain or restriction review is resolved.' }
   const missed = request.sessions.find((session) => session.id === request.missedSessionId)
   if (!missed) return { ok: false, error: 'That planned opportunity no longer exists.' }
   if (!OPEN_STATUSES.includes(missed.status)) return { ok: false, error: 'Only an unstarted planned or deferred opportunity can be marked missed.' }
@@ -84,6 +130,10 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
   const queueBeforeSessions = request.sessions.filter((session) => OPEN_STATUSES.includes(session.status))
   if (!queueBeforeSessions.length) return { ok: false, error: 'There is no open exposure queue to rebuild.' }
   if (request.input.preferredNextSessionId && !queueBeforeSessions.some((session) => session.id === request.input.preferredNextSessionId)) return { ok: false, error: 'The preferred next session is no longer in the open queue.' }
+  const eligibilityBySession = new Map(queueBeforeSessions.map((session) => [session.id, scheduleSessionEligibility(session, request.exercises, request.equipmentProfile)]))
+  const preferredEligibility = request.input.preferredNextSessionId ? eligibilityBySession.get(request.input.preferredNextSessionId) : null
+  if (preferredEligibility && !preferredEligibility.eligibleToLead) return { ok: false, error: `${preferredEligibility.primaryExerciseName ?? 'That session'} cannot lead at ${request.equipmentProfile.name}. ${preferredEligibility.reasons.join(' ')}` }
+  if (![...eligibilityBySession.values()].some((eligibility) => eligibility.eligibleToLead)) return { ok: false, error: `No open session has an executable protected primary at ${request.equipmentProfile.name}. Change the location or review substitutions before rebuilding.` }
   const lastCompletedAt = request.history.reduce<string | null>((latest, workSet) => !latest || new Date(workSet.completedAt) > new Date(latest) ? workSet.completedAt : latest, null)
   const relevantPriorMisses = request.priorEvents.filter((event) => (!lastCompletedAt || new Date(event.recordedAt) > new Date(lastCompletedAt)) && event.mesocycleId === (missed.mesocycleId ?? null))
   const consecutiveMisses = relevantPriorMisses.length + 1
@@ -94,13 +144,15 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
     const primaryExerciseId = session.exercises.find((exercise) => exercise.role === 'primary')?.exerciseId ?? null
     const lastExposureAt = primaryExerciseId ? latestExactExposure(request.history, primaryExerciseId) : null
     const daysSinceExposure = lastExposureAt ? calendarDaysBetween(lastExposureAt, recordedAt) : null
-    return { session, originalIndex, primaryExerciseId, lastExposureAt, daysSinceExposure }
+    return { session, originalIndex, primaryExerciseId, lastExposureAt, daysSinceExposure, eligibility: eligibilityBySession.get(session.id)! }
   }).sort((a, b) => {
     const aPinned = a.session.id === request.input.preferredNextSessionId ? 1 : 0
     const bPinned = b.session.id === request.input.preferredNextSessionId ? 1 : 0
     const aPriority = a.daysSinceExposure ?? 10_000
     const bPriority = b.daysSinceExposure ?? 10_000
     return bPinned - aPinned
+      || Number(b.eligibility.eligibleToLead) - Number(a.eligibility.eligibleToLead)
+      || Number(b.eligibility.fullyExecutable) - Number(a.eligibility.fullyExecutable)
       || bPriority - aPriority
       || new Date(a.session.plannedDate).getTime() - new Date(b.session.plannedDate).getTime()
       || a.originalIndex - b.originalIndex
@@ -108,6 +160,7 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
 
   const spacingDays = Math.max(1, Math.round(7 / Math.max(1, request.weeklyOpportunities)))
   const nextOpportunityAt = new Date(request.input.nextOpportunityAt).toISOString()
+  const selectedEligibility = ranked[0].eligibility
   const adaptedQueue = ranked.map((candidate, index) => {
     const isMissed = candidate.session.id === request.missedSessionId
     const plannedDate = withCalendarOffset(nextOpportunityAt, index * spacingDays)
@@ -116,6 +169,10 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
       plannedDate,
       status: isMissed ? 'planned' : candidate.session.status,
       dayLabel: index === 0 ? 'Next best session · rebuilt' : candidate.session.dayLabel
+    }
+    if (index === 0 && selectedEligibility.removableSupport.length) {
+      const removed = new Set(selectedEligibility.removableSupport.map((item) => item.plannedExerciseId))
+      adapted = { ...adapted, exercises: adapted.exercises.filter((exercise) => !removed.has(exercise.id)) }
     }
     if (index === 0) adapted = compressSession(adapted, request.input.nextMinutes)
     if (index === 0 && (mode !== 'defer-one' || request.input.constraintState !== 'ended')) adapted = trimOptionalFatigue(adapted)
@@ -144,6 +201,8 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
   const openSetCountAfter = adaptedQueue.reduce((total, session) => total + setCount(session), 0)
   const reasons = [
     ...(request.input.preferredNextSessionId ? [`The athlete pinned ${next.session.title} as the next session; exact-exposure recency still orders the remaining queue.`] : []),
+    `${next.session.title} has an executable protected primary at ${request.equipmentProfile.name}.`,
+    ...(selectedEligibility.removableSupport.length ? [`${selectedEligibility.removableSupport.length} unavailable or joint-flagged support movement${selectedEligibility.removableSupport.length === 1 ? ' was' : 's were'} removed from the first session instead of creating impossible work.`] : []),
     next.daysSinceExposure === null
       ? 'The next protected primary has no completed exact exposure, so its baseline remains unresolved.'
       : `The next protected primary has waited ${next.daysSinceExposure} calendar day${next.daysSinceExposure === 1 ? '' : 's'} since its latest completed exact exposure.`,
@@ -184,7 +243,30 @@ export function buildMissedOpportunityReplan(request: ReplanRequest): MissedOppo
     completedSetCountBefore: request.history.length,
     completedSetCountAfter: request.history.length,
     openSetCountBefore,
-    openSetCountAfter
+    openSetCountAfter,
+    eligibility: {
+      ruleVersion: SCHEDULE_ELIGIBILITY_RULE_VERSION,
+      equipmentProfileId: request.equipmentProfile.id,
+      equipmentProfileName: request.equipmentProfile.name,
+      equipmentProfileUpdatedAt: request.equipmentProfile.updatedAt,
+      safetyGateState: 'clear',
+      candidates: queueBeforeSessions.map((session) => {
+        const eligibility = eligibilityBySession.get(session.id)!
+        return {
+          sessionId: eligibility.sessionId,
+          primaryExerciseId: eligibility.primaryExerciseId,
+          primaryExerciseName: eligibility.primaryExerciseName,
+          eligibleToLead: eligibility.eligibleToLead,
+          fullyExecutable: eligibility.fullyExecutable,
+          primaryMissingEquipment: eligibility.primaryMissingEquipment,
+          primaryJointResponse: eligibility.primaryJointResponse,
+          supportReviewCount: eligibility.supportReviewCount,
+          reasons: eligibility.reasons
+        }
+      }),
+      removedPlannedExerciseIds: selectedEligibility.removableSupport.map((item) => item.plannedExerciseId),
+      removedExerciseNames: selectedEligibility.removableSupport.map((item) => item.exerciseName)
+    }
   }
 
   return { ok: true, sessions, event, continuity }
@@ -211,6 +293,15 @@ export function missedOpportunityEventError(value: unknown, sessions: TrainingSe
   if (![event.queueBefore, event.queueAfter, event.reasons, event.changes, event.preservedTerminalSessionIds].every(Array.isArray)) return 'Missed-opportunity replay evidence is incomplete.'
   if ([...(event.queueBefore ?? []), ...(event.queueAfter ?? []), ...(event.preservedTerminalSessionIds ?? [])].some((id) => typeof id !== 'string' || !sessionIds.has(id))) return 'Missed-opportunity queue references an unknown session.'
   if (event.input?.preferredNextSessionId && (!(event.queueBefore ?? []).includes(event.input.preferredNextSessionId) || event.nextSessionId !== event.input.preferredNextSessionId)) return 'Missed-opportunity preferred session was not honored.'
+  if (event.ruleVersion === MISSED_OPPORTUNITY_RULE_VERSION) {
+    const eligibility = event.eligibility
+    if (!eligibility || eligibility.ruleVersion !== SCHEDULE_ELIGIBILITY_RULE_VERSION || typeof eligibility.equipmentProfileId !== 'string' || !eligibility.equipmentProfileId || typeof eligibility.equipmentProfileName !== 'string' || !eligibility.equipmentProfileName || Number.isNaN(new Date(eligibility.equipmentProfileUpdatedAt).getTime()) || eligibility.safetyGateState !== 'clear') return 'Missed-opportunity eligibility evidence is invalid.'
+    if (!Array.isArray(eligibility.candidates) || !Array.isArray(eligibility.removedPlannedExerciseIds) || !Array.isArray(eligibility.removedExerciseNames)) return 'Missed-opportunity eligibility replay is incomplete.'
+    const candidateIds = eligibility.candidates.map((candidate) => candidate.sessionId)
+    if (eligibility.candidates.length !== event.queueBefore?.length || new Set(candidateIds).size !== eligibility.candidates.length || candidateIds.some((sessionId) => !(event.queueBefore ?? []).includes(sessionId)) || eligibility.candidates.some((candidate) => !sessionIds.has(candidate.sessionId) || typeof candidate.eligibleToLead !== 'boolean' || typeof candidate.fullyExecutable !== 'boolean' || (candidate.fullyExecutable && !candidate.eligibleToLead) || !Array.isArray(candidate.primaryMissingEquipment) || candidate.primaryMissingEquipment.some((item) => typeof item !== 'string') || !Array.isArray(candidate.reasons) || candidate.reasons.some((reason) => typeof reason !== 'string') || !['great', 'good', 'neutral', 'irritating', 'avoid', null].includes(candidate.primaryJointResponse) || !Number.isInteger(candidate.supportReviewCount) || candidate.supportReviewCount < 0)) return 'Missed-opportunity candidate eligibility is invalid.'
+    if (!eligibility.candidates.find((candidate) => candidate.sessionId === event.nextSessionId)?.eligibleToLead) return 'Missed-opportunity next session was not eligible to lead.'
+    if (eligibility.removedPlannedExerciseIds.length !== eligibility.removedExerciseNames.length || eligibility.removedPlannedExerciseIds.some((id) => typeof id !== 'string') || eligibility.removedExerciseNames.some((name) => typeof name !== 'string')) return 'Missed-opportunity removed-movement evidence is invalid.'
+  }
   if ((event.changes ?? []).some((change) => !change || typeof change !== 'object' || !sessionIds.has(change.sessionId) || Number.isNaN(new Date(change.fromPlannedAt).getTime()) || Number.isNaN(new Date(change.toPlannedAt).getTime()) || !Number.isFinite(change.fromSetCount) || !Number.isFinite(change.toSetCount))) return 'Missed-opportunity session changes are invalid.'
   if (event.completedSetCountBefore !== event.completedSetCountAfter) return 'Missed-opportunity evidence cannot create or remove completed sets.'
   if (!Number.isFinite(event.openSetCountBefore) || !Number.isFinite(event.openSetCountAfter) || Number(event.openSetCountAfter) > Number(event.openSetCountBefore)) return 'Missed-opportunity evidence contains catch-up volume.'

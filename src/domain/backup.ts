@@ -29,8 +29,8 @@ import { routeSessionGenerationError } from './route-session-engine'
 import { missedOpportunityEventError } from './schedule-adaptation-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 21
-export const BACKUP_APP_VERSION = '0.28.0'
+export const BACKUP_SCHEMA_VERSION = 22
+export const BACKUP_APP_VERSION = '0.29.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -505,6 +505,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   missedOpportunityEvents.forEach((event) => {
     const eventError = missedOpportunityEventError(event, sessions as TrainingSession[])
     if (eventError) errors.push(`A missed opportunity event is invalid: ${eventError}`)
+    if (isRecord(event) && isRecord(event.eligibility) && (typeof event.eligibility.equipmentProfileId !== 'string' || !equipmentProfileIds.has(event.eligibility.equipmentProfileId))) errors.push('A missed opportunity event references an unknown equipment profile.')
   })
 
   substitutionEvents.forEach((event) => {
@@ -876,6 +877,18 @@ function migrateV20(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV21(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  validateState(candidate.data, true)
+  return {
+    data: candidate.data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 21 backup migrated safely. Existing athlete priority decisions remain replayable; equipment and safety eligibility evidence begins with version 3 check-ins.'
+  }
+}
+
 export function parseBackup(raw: string): BackupPreview {
   let candidate: unknown
   try {
@@ -969,6 +982,10 @@ export function parseBackup(raw: string): BackupPreview {
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 20) {
     const migrated = migrateV20(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 21) {
+    const migrated = migrateV21(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {

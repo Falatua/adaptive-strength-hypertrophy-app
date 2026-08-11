@@ -13,6 +13,7 @@ import { pendingDeferredFeedback } from '../domain/survey-engine'
 import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '../domain/equipment-engine'
 import { summarizePlacementVerification } from '../domain/placement-verification-engine'
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from '../domain/placement-exit-engine'
+import { scheduleSessionEligibility } from '../domain/schedule-adaptation-engine'
 
 const timeOptions = [15, 30, 45, 60, 75]
 const dateInputFor = (offsetDays: number) => {
@@ -40,6 +41,7 @@ export function TodayScreen() {
   const primaryHistory = history.filter((set) => set.exerciseId === primaryExercise?.id)
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const equipmentGaps = nextSession ? sessionEquipmentGaps(nextSession, exercises, activeEquipmentProfile) : []
+  const openScheduleEligibility = useMemo(() => sessions.filter((session) => ['planned', 'deferred'].includes(session.status)).map((session) => ({ session, evidence: scheduleSessionEligibility(session, exercises, activeEquipmentProfile) })), [sessions, exercises, activeEquipmentProfile])
   const latestScheduleChange = missedOpportunityEvents.at(-1)
   const latestRebuiltSession = latestScheduleChange ? sessions.find((session) => session.id === latestScheduleChange.nextSessionId) : null
   const latestRebuiltPrimary = latestScheduleChange?.nextPrimaryExerciseId ? exercises.find((exercise) => exercise.id === latestScheduleChange.nextPrimaryExerciseId) : null
@@ -187,6 +189,7 @@ export function TodayScreen() {
             <span><small>Open planned sets</small><strong>{latestScheduleChange.openSetCountBefore} → {latestScheduleChange.openSetCountAfter}</strong></span>
             <span><small>Continuity</small><strong>{latestScheduleChange.continuityBefore} → {latestScheduleChange.continuityAfter}</strong></span>
             <span><small>Miss sequence</small><strong>{latestScheduleChange.consecutiveMisses}</strong></span>
+            {latestScheduleChange.eligibility && <span><small>Equipment eligibility</small><strong>{latestScheduleChange.eligibility.equipmentProfileName}</strong><em>{latestScheduleChange.eligibility.removedExerciseNames.length ? `${latestScheduleChange.eligibility.removedExerciseNames.length} support movement${latestScheduleChange.eligibility.removedExerciseNames.length === 1 ? '' : 's'} removed` : 'fully executable'}</em></span>}
           </div>
           <details><summary>Why this order?</summary>{latestScheduleChange.reasons.map((reason) => <p key={reason}><CheckCircle2 size={14} />{reason}</p>)}</details>
         </div>
@@ -306,7 +309,7 @@ export function TodayScreen() {
         </select></label>
         <label><span className="field-label">Next realistic opportunity</span><input type="date" min={dateInputFor(0)} value={missReason.nextOpportunityAt} onChange={(event) => setMissReason((current) => ({ ...current, nextOpportunityAt: event.target.value }))} /></label>
         <label><span className="field-label">Minutes likely available</span><select id="next-time" value={missReason.nextMinutes} onChange={(event) => setMissReason((current) => ({ ...current, nextMinutes: Number(event.target.value) }))}>{[15, 30, 45, 60, 75, 90].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}</select></label>
-        <label><span className="field-label">Which session should lead?</span><select value={missReason.preferredNextSessionId ?? ''} onChange={(event) => setMissReason((current) => ({ ...current, preferredNextSessionId: event.target.value || null }))}><option value="">Recommend from completed exposure</option>{sessions.filter((session) => ['planned', 'deferred'].includes(session.status)).map((session) => <option key={session.id} value={session.id}>Pin {session.title}</option>)}</select><small className="field-help">A pin overrides the first choice only. ForgePath still orders the remaining queue from exact completed work.</small></label>
+        <label><span className="field-label">Which session should lead?</span><select value={missReason.preferredNextSessionId ?? ''} onChange={(event) => setMissReason((current) => ({ ...current, preferredNextSessionId: event.target.value || null }))}><option value="">Recommend an executable session</option>{openScheduleEligibility.map(({ session, evidence }) => <option key={session.id} value={session.id} disabled={!evidence.eligibleToLead || placementBlocked}>Pin {session.title}{evidence.eligibleToLead ? evidence.fullyExecutable ? ' · ready here' : ` · ${evidence.supportReviewCount} support change${evidence.supportReviewCount === 1 ? '' : 's'}` : ` · unavailable: ${evidence.reasons[0]}`}</option>)}</select><small className="field-help">Checked against {activeEquipmentProfile.name} and current joint-response evidence. A valid pin controls only the first choice; exact exposure orders the remainder.</small></label>
         </div>
         <fieldset className="missed-checkin__state"><legend>What is the disruption doing now?</legend>{([
           ['ended', 'Ended', 'Return to the normal queue with the declared time.'],
@@ -318,6 +321,7 @@ export function TodayScreen() {
         {missError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Plan not rebuilt</strong>{missError}</span></div>}
         </div>
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setMissedOpen(false)}>Cancel</button><button className="button button--primary" onClick={() => {
+          if (placementBlocked) return setMissError('Automatic schedule rebuilding is paused because the current pain or restriction evidence changes what can be trained. Reassess the profile before rebuilding. This is not medical clearance.')
           if (!nextSession) return setMissError('There is no open session to rebuild.')
           const nextOpportunity = new Date(`${missReason.nextOpportunityAt}T12:00:00`)
           if (Number.isNaN(nextOpportunity.getTime())) return setMissError('Choose a valid next opportunity date.')

@@ -731,9 +731,32 @@ export interface ScheduleAdaptationChange {
   toSetCount: number
 }
 
+export interface ScheduleCandidateEligibility {
+  sessionId: string
+  primaryExerciseId: string | null
+  primaryExerciseName: string | null
+  eligibleToLead: boolean
+  fullyExecutable: boolean
+  primaryMissingEquipment: string[]
+  primaryJointResponse: JointFeeling | null
+  supportReviewCount: number
+  reasons: string[]
+}
+
+export interface ScheduleEligibilityEvidence {
+  ruleVersion: 'schedule-eligibility-v1'
+  equipmentProfileId: string
+  equipmentProfileName: string
+  equipmentProfileUpdatedAt: string
+  safetyGateState: 'clear'
+  candidates: ScheduleCandidateEligibility[]
+  removedPlannedExerciseIds: string[]
+  removedExerciseNames: string[]
+}
+
 export interface MissedOpportunityEvent {
   id: string
-  ruleVersion: 'missed-opportunity-v1' | 'missed-opportunity-v2'
+  ruleVersion: 'missed-opportunity-v1' | 'missed-opportunity-v2' | 'missed-opportunity-v3'
   sessionId: string
   mesocycleId: string | null
   planVersion: number | null
@@ -758,6 +781,7 @@ export interface MissedOpportunityEvent {
   completedSetCountAfter: number
   openSetCountBefore: number
   openSetCountAfter: number
+  eligibility?: ScheduleEligibilityEvidence
 }
 
 export interface WeeklyVolumePoint {
