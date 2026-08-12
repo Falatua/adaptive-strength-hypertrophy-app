@@ -20,13 +20,14 @@ import { PixelAvatar } from '../components/PixelAvatar'
 import { StatCard } from '../components/StatCard'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { filterMuscleDose, filterPlannedMuscleDose, muscleDoseFor, plannedMuscleDoseFor, type MuscleDoseLens } from '../domain/muscle-dose'
+import { decideMuscleVolume, summarizeMuscleFeedback, volumeZone } from '../domain/volume-progression-engine'
 import type { MuscleId, RecordCategory } from '../domain/types'
 import { buildCalendarMonth, buildExerciseExposureSequence, buildFixedEventCountdown, calendarDayKey } from '../domain/timeline-engine'
 
 type TimelineAxis = 'calendar' | 'exposure'
 
 export function ProgressScreen() {
-  const { history, records, athlete, settings, sessions, missedOpportunityEvents, exercises: exerciseCatalog } = useAppStore()
+  const { history, records, athlete, settings, sessions, surveys, mesocycles, missedOpportunityEvents, exercises: exerciseCatalog } = useAppStore()
   const [range, setRange] = useState<ProgressRange>('28d')
   const [bodyLens, setBodyLens] = useState<BodyLens>('region')
   const [muscleLens, setMuscleLens] = useState<MuscleDoseLens>('all')
@@ -70,6 +71,35 @@ export function ProgressScreen() {
   const visiblePlannedMuscles = useMemo(() => filterPlannedMuscleDose(plannedMuscleDose.points, muscleLens).filter((point) => point.plannedTotal > 0 || point.completedTotal > 0), [muscleLens, plannedMuscleDose.points])
   const muscleDetail = selectedMuscle ? visibleMuscles.find((point) => point.muscle === selectedMuscle) ?? null : null
   const maxMuscleDose = Math.max(1, ...visibleMuscles.map((point) => point.totalDose))
+
+  // Volume progression reads the feedback the athlete already gives and turns it into next week's set
+  // count, which is the whole point of collecting it. Decisions are proposals: nothing is applied
+  // without the athlete acting on it, and an unanswered round holds rather than guessing.
+  const volumePlan = useMemo(() => {
+    const activePlan = mesocycles.find((plan) => plan.status === 'active')
+    const now = new Date()
+    const currentWindowStart = new Date(now.getTime() - 7 * 86_400_000)
+    const priorWindowStart = new Date(now.getTime() - 14 * 86_400_000)
+    const weeklySets = new Map(muscleDoseFor(history.filter((workSet) => new Date(workSet.completedAt) >= currentWindowStart), exerciseCatalog).muscles.map((point) => [point.muscle, point.directDose]))
+    return filterMuscleDose(muscleDose.muscles, muscleLens)
+      .filter((point) => point.sourceSetCount > 0)
+      .map((point) => {
+        const currentSets = Math.round(weeklySets.get(point.muscle) ?? 0)
+        const feedback = summarizeMuscleFeedback({
+          muscle: point.muscle, history, surveys, exercises: exerciseCatalog, currentWindowStart, priorWindowStart, now
+        })
+        const decision = decideMuscleVolume({
+          muscle: point.muscle,
+          currentSets,
+          volumeTolerance: athlete.placement?.dimensions?.volumeTolerance ?? null,
+          feedback,
+          microcycleNumber: activePlan ? Math.max(1, sessions.filter((session) => session.mesocycleId === activePlan.id && session.status === 'completed').length) : 1,
+          targetMicrocycles: activePlan?.targetMicrocycles ?? 4
+        })
+        return { point, decision, zone: volumeZone(currentSets, decision.landmarks) }
+      })
+      .sort((a, b) => Math.abs(b.decision.setChange) - Math.abs(a.decision.setChange) || a.point.label.localeCompare(b.point.label))
+  }, [athlete.placement, exerciseCatalog, history, mesocycles, muscleDose.muscles, muscleLens, sessions, surveys])
   const calendarView = useMemo(() => buildCalendarMonth({ sessions, history, missedOpportunityEvents, month: calendarCursor }), [calendarCursor, history, missedOpportunityEvents, sessions])
   const selectedCalendarDay = calendarView.days.find((day) => day.key === selectedCalendarDayKey) ?? calendarView.days.find((day) => day.inSelectedMonth)!
   const exposureOptions = useMemo(() => {
@@ -236,6 +266,28 @@ export function ProgressScreen() {
           </aside>
         </div> : <div className="compact-empty"><Layers3 size={24} /><strong>No mapped muscle dose in this lens</strong><p>Choose another area or complete a built-in movement. Unknown mappings remain unknown.</p></div>}
         {muscleDose.unmappedSourceSetCount > 0 && <div className="muscle-unmapped" role="note"><strong>{muscleDose.unmappedSourceSetCount} unmapped source {muscleDose.unmappedSourceSetCount === 1 ? 'set' : 'sets'}</strong><span>{muscleDose.unmappedExerciseNames.join(', ')}. These sets remain in completed volume but receive no inferred muscle credit.</span></div>}
+        {volumePlan.length > 0 && (
+          <div className="volume-plan" aria-label="Weekly volume progression">
+            <div className="volume-plan__heading">
+              <div><p className="eyebrow">Volume progression v1</p><h4>What next week should look like</h4></div>
+              <small>Weekly direct sets against the volume you can grow on and still recover from. Proposals only. Nothing changes until you apply it.</small>
+            </div>
+            <div className="volume-plan__list">
+              {volumePlan.map(({ point, decision, zone }) => (
+                <article key={point.muscle} className={`volume-plan__row volume-plan__row--${decision.action}`}>
+                  <span><strong>{point.label}</strong><small>{decision.currentSets} weekly direct {decision.currentSets === 1 ? 'set' : 'sets'} · {zone.replace('-', ' ')}</small></span>
+                  <span className="volume-plan__scale" aria-hidden="true">
+                    <i style={{ width: `${Math.min(100, decision.currentSets / Math.max(1, decision.landmarks.mrv) * 100)}%` }} />
+                    <em style={{ left: `${Math.min(100, decision.landmarks.mev / Math.max(1, decision.landmarks.mrv) * 100)}%` }} />
+                  </span>
+                  <b>{decision.setChange > 0 ? `+${decision.setChange}` : decision.setChange === 0 ? 'hold' : decision.setChange}</b>
+                  <p>{decision.reasons[0]}{decision.unknownInputs.length > 0 && <small>Unanswered: {decision.unknownInputs.join(', ')}</small>}</p>
+                </article>
+              ))}
+            </div>
+            <p className="chart-note">Landmarks start from published weekly set ranges, scale with your own volume tolerance, and are corrected by how you actually respond. Pump, stimulus, and end fatigue are asked once per session, so they are attributed to the muscles that received direct work that day. That attribution is an approximation, not a measurement.</p>
+          </div>
+        )}
         <p className="chart-note">Muscle totals are non-additive across rows: one source set can credit several muscles. Direct means 1.0, secondary means 0.5, stabilizers receive no credit, and parent areas conserve each source set at its highest child credit. This is an unadjusted programming heuristic, not measured activation, recovery cost, or exact hypertrophy stimulus.</p>
       </section>
 
