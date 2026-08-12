@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { decideMuscleVolume, landmarksFor, summarizeMuscleFeedback, volumeZone, type MuscleFeedback } from './volume-progression-engine'
+import { muscleQuestionId } from './survey-engine'
 import { muscleIds } from './muscle-dose'
 import type { CompletedSetRecord, Exercise, MuscleId, SurveyRecord } from './types'
 import { exercises as seedExercises } from './seed'
@@ -187,5 +188,45 @@ describe('summarizeMuscleFeedback', () => {
       setFor('b', 's1', '2026-08-09T12:10:00.000Z', 200, { pain: 4 })
     ]
     expect(summarizeMuscleFeedback({ muscle: 'pectorals', exercises: seedExercises, history, surveys: [], ...windows }).pain).toBe(4)
+  })
+})
+
+
+describe('per-muscle feedback beats the session-level fallback', () => {
+  const bench = seedExercises.find((exercise) => exercise.id === 'competition-bench') as Exercise
+  const setFor = (id: string, sessionId: string, completedAt: string): CompletedSetRecord => ({
+    id, sessionId, exerciseId: bench.id, exerciseName: bench.name, family: bench.family,
+    primaryRegion: bench.primaryRegion, completedAt, reps: 8, load: 200, rir: 2, technique: 4, pain: 0, setIndex: 0
+  })
+  const survey = (sessionId: string, values: Record<string, number>): SurveyRecord => ({
+    id: `survey-${sessionId}`, sessionId, type: 'post', completedAt: '2026-08-10T12:00:00.000Z', skipped: false,
+    answers: Object.entries(values).map(([id, value]) => ({ id, value, status: 'answered' as const }))
+  })
+  const windows = {
+    currentWindowStart: new Date('2026-08-08T00:00:00.000Z'),
+    priorWindowStart: new Date('2026-08-01T00:00:00.000Z'),
+    now: new Date('2026-08-12T00:00:00.000Z')
+  }
+  const read = (values: Record<string, number>) => summarizeMuscleFeedback({
+    muscle: 'pectorals', exercises: seedExercises,
+    history: [setFor('a', 's1', '2026-08-09T12:00:00.000Z')],
+    surveys: [survey('s1', values)], ...windows
+  })
+
+  it('uses the answer recorded against that exact muscle', () => {
+    const result = read({ pump: 1, [muscleQuestionId('pump', 'pectorals')]: 5 })
+    expect(result.pump).toBe(5)
+    expect(result.attribution).toBe('exact')
+  })
+
+  it('falls back to the session answer when the muscle was not asked about', () => {
+    const result = read({ pump: 2, [muscleQuestionId('pump', 'quadriceps')]: 5 })
+    expect(result.pump).toBe(2)
+    expect(result.attribution).toBe('attributed')
+  })
+
+  it('does not borrow another muscle\'s exact answer', () => {
+    const result = read({ [muscleQuestionId('targetStimulus', 'triceps')]: 5 })
+    expect(result.targetStimulus).toBeNull()
   })
 })

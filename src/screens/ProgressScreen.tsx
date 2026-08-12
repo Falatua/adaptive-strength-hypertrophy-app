@@ -96,7 +96,7 @@ export function ProgressScreen() {
           microcycleNumber: activePlan ? Math.max(1, sessions.filter((session) => session.mesocycleId === activePlan.id && session.status === 'completed').length) : 1,
           targetMicrocycles: activePlan?.targetMicrocycles ?? 4
         })
-        return { point, decision, zone: volumeZone(currentSets, decision.landmarks) }
+        return { point, decision, zone: volumeZone(currentSets, decision.landmarks), attribution: feedback.attribution ?? 'attributed' }
       })
       .sort((a, b) => Math.abs(b.decision.setChange) - Math.abs(a.decision.setChange) || a.point.label.localeCompare(b.point.label))
   }, [athlete.placement, exerciseCatalog, history, mesocycles, muscleDose.muscles, muscleLens, sessions, surveys])
@@ -273,9 +273,9 @@ export function ProgressScreen() {
               <small>Weekly direct sets against the volume you can grow on and still recover from. Proposals only. Nothing changes until you apply it.</small>
             </div>
             <div className="volume-plan__list">
-              {volumePlan.map(({ point, decision, zone }) => (
+              {volumePlan.map(({ point, decision, zone, attribution }) => (
                 <article key={point.muscle} className={`volume-plan__row volume-plan__row--${decision.action}`}>
-                  <span><strong>{point.label}</strong><small>{decision.currentSets} weekly direct {decision.currentSets === 1 ? 'set' : 'sets'} · {zone.replace('-', ' ')}</small></span>
+                  <span><strong>{point.label}</strong><small>{decision.currentSets} weekly direct {decision.currentSets === 1 ? 'set' : 'sets'} · {zone.replace('-', ' ')} · {attribution}</small></span>
                   <span className="volume-plan__scale" aria-hidden="true">
                     <i style={{ width: `${Math.min(100, decision.currentSets / Math.max(1, decision.landmarks.mrv) * 100)}%` }} />
                     <em style={{ left: `${Math.min(100, decision.landmarks.mev / Math.max(1, decision.landmarks.mrv) * 100)}%` }} />
@@ -285,7 +285,7 @@ export function ProgressScreen() {
                 </article>
               ))}
             </div>
-            <p className="chart-note">Landmarks start from published weekly set ranges, scale with your own volume tolerance, and are corrected by how you actually respond. Pump, stimulus, and end fatigue are asked once per session, so they are attributed to the muscles that received direct work that day. That attribution is an approximation, not a measurement.</p>
+            <p className="chart-note">Landmarks start from published weekly set ranges and scale with your own volume tolerance. Pump and stimulus are asked per trained muscle, so rows marked exact were answered about that muscle directly. Rows marked attributed inherited a whole-session answer, either because the session predates per-muscle questions or the muscle fell outside the four asked about, and those are an approximation rather than a measurement.</p>
           </div>
         )}
         <p className="chart-note">Muscle totals are non-additive across rows: one source set can credit several muscles. Direct means 1.0, secondary means 0.5, stabilizers receive no credit, and parent areas conserve each source set at its highest child credit. This is an unadjusted programming heuristic, not measured activation, recovery cost, or exact hypertrophy stimulus.</p>

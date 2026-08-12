@@ -1,4 +1,5 @@
 import { muscleCreditsFor } from './muscle-dose'
+import { muscleQuestionId } from './survey-engine'
 import { isComparableExposure } from './set-structure-engine'
 import type { CompletedSetRecord, Exercise, MuscleId, SurveyRecord } from './types'
 
@@ -73,6 +74,8 @@ export interface MuscleFeedback {
   pain: number | null
   /** Whether comparable exposures improved, held, or declined across the round. */
   performance: 'improved' | 'held' | 'declined' | 'unknown'
+  /** Whether stimulus was answered for this exact muscle or inherited from the session answer. */
+  attribution?: 'exact' | 'attributed'
 }
 
 /**
@@ -196,10 +199,10 @@ const mean = (values: number[]): number | null => values.length ? values.reduce(
 /**
  * Reads the per-muscle feedback the volume decision needs out of what the app already stores.
  *
- * Attribution caveat worth stating plainly: pump, target stimulus, and end fatigue are asked once per
- * session, while volume is judged per muscle. This attributes a session's answers to the muscles that
- * received direct work in that session, which is an approximation, not a measurement. Asking those
- * questions per trained muscle group would make it exact.
+ * Pump and target stimulus are asked per trained muscle, so those answers are exact for the muscle
+ * being judged. When a session predates per-muscle questions, or the muscle fell outside the asked
+ * cap, the session-level answer is used instead and reported as an attributed rather than exact
+ * reading. End fatigue remains a whole-session measure by nature.
  */
 export function summarizeMuscleFeedback(input: {
   muscle: MuscleId
@@ -227,6 +230,15 @@ export function summarizeMuscleFeedback(input: {
     return value === null ? [] : [value]
   })
 
+  // An answer recorded against this exact muscle always beats the whole-session answer.
+  const perMuscle = (base: 'pump' | 'targetStimulus') => {
+    const exact = postSurveys.flatMap((survey) => {
+      const value = answerValue(survey, muscleQuestionId(base, input.muscle))
+      return value === null ? [] : [value]
+    })
+    return exact.length ? { value: mean(exact), exact: true } : { value: mean(perSurvey(base)), exact: false }
+  }
+
   // Only comparable exposures decide whether performance moved. Drops and mini sets are real work but
   // are performed at reduced load, so including them would read a technique week as a decline.
   const comparableLoad = (sets: CompletedSetRecord[]) => mean(sets.filter((set) => isComparableExposure(set.grouping)).map((set) => set.load * set.reps))
@@ -238,11 +250,14 @@ export function summarizeMuscleFeedback(input: {
       : currentLoad < priorLoad * 0.98 ? 'declined' : 'held'
 
   const painValues = currentSets.map((set) => set.pain).filter((value) => Number.isFinite(value))
+  const pump = perMuscle('pump')
+  const targetStimulus = perMuscle('targetStimulus')
   return {
-    pump: mean(perSurvey('pump')),
-    targetStimulus: mean(perSurvey('targetStimulus')),
+    pump: pump.value,
+    targetStimulus: targetStimulus.value,
     endFatigue: mean(perSurvey('endFatigue')),
     pain: painValues.length ? Math.max(...painValues) : null,
-    performance
+    performance,
+    attribution: pump.exact || targetStimulus.exact ? 'exact' : 'attributed'
   }
 }

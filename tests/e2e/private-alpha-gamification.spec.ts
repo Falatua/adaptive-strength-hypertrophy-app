@@ -1507,9 +1507,13 @@ test('turns session feedback into next week volume rather than storing it unused
   }
   await page.getByRole('button', { name: 'Finish workout' }).click()
   await page.getByRole('button', { name: /Full.*10 questions/ }).click()
-  // The answers the volume decision actually reads.
-  await page.getByRole('button', { name: 'How strong was the target-muscle pump?: 1' }).click()
-  await page.getByRole('button', { name: 'How well did the target muscles or skill get trained?: 2' }).click()
+  // Pump and stimulus are asked per trained muscle, which is what the volume decision reads.
+  const perMuscle = page.getByRole('button', { name: /How strong was the pump in your/ })
+  await expect(perMuscle.first()).toBeVisible()
+  const firstMuscleQuestion = String(await perMuscle.first().getAttribute('aria-label'))
+  const muscleName = firstMuscleQuestion.replace(/^How strong was the pump in your /, '').replace(/\?.*$/, '')
+  await page.getByRole('button', { name: `How strong was the pump in your ${muscleName}?: 1` }).click()
+  await page.getByRole('button', { name: `How well did your ${muscleName} actually get trained?: 2` }).click()
   await page.getByRole('button', { name: 'How fatigued were you at the end?: 2' }).click()
   await page.getByRole('button', { name: 'Did any movement create joint pain or irritation?: 0' }).click()
   await page.getByRole('button', { name: /Save feedback/ }).click()
@@ -1518,10 +1522,12 @@ test('turns session feedback into next week volume rather than storing it unused
   const volumePlan = page.getByLabel('Weekly volume progression')
   await expect(volumePlan).toBeVisible()
   await expect(volumePlan).toContainText('What next week should look like')
-  // Low stimulus with manageable fatigue is the clearest case for more work.
-  await expect(volumePlan).toContainText('clearest case for more work')
+  // Every row states the rule that produced it rather than showing a bare number.
   await expect(volumePlan.locator('.volume-plan__row').first()).toContainText('weekly direct')
-  // The attribution limit is stated rather than hidden.
-  await expect(volumePlan).toContainText('approximation, not a measurement')
+  await expect(volumePlan.locator('.volume-plan__row').first().locator('p')).not.toBeEmpty()
+  // The muscle answered about directly is marked exact rather than inherited from the session.
+  await expect(volumePlan.locator('.volume-plan__row').filter({ hasText: new RegExp(muscleName, 'i') }).first()).toContainText('exact')
+  // Rows that inherited a session answer still say so.
+  await expect(volumePlan).toContainText('an approximation rather than a measurement')
   expect(browserErrors).toEqual([])
 })

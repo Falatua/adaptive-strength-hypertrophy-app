@@ -39,7 +39,8 @@ export const postSurveyQuestions: SurveyQuestionDefinition[] = [
   { id: 'endFatigue', label: 'How fatigued were you at the end?', type: 'scale', min: 1, max: 5, defaultValue: 3, lowLabel: 'Still fresh', highLabel: 'Completely spent' },
   { id: 'timeFit', label: 'How well did the session fit the time you had?', type: 'scale', min: 1, max: 5, defaultValue: 4, lowLabel: 'Ran far over', highLabel: 'Fit the time well' },
   { id: 'productive', label: 'How productive did the session feel?', type: 'scale', min: 1, max: 5, defaultValue: 4, lowLabel: 'Unproductive', highLabel: 'Highly productive' },
-  { id: 'enjoyment', label: 'How much did you enjoy today’s training?', type: 'scale', min: 1, max: 5, defaultValue: 4, lowLabel: 'Did not enjoy it', highLabel: 'Really enjoyed it' }
+  { id: 'enjoyment', label: 'How much did you enjoy today’s training?', type: 'scale', min: 1, max: 5, defaultValue: 4, lowLabel: 'Did not enjoy it', highLabel: 'Really enjoyed it' },
+  { id: 'actualMinutes', label: 'How many minutes did this actually take?', type: 'number', min: 5, max: 240, defaultValue: 60 }
 ]
 
 const idsByMode: Record<SurveyCadence, Record<EffectiveSurveyMode, string[]>> = {
@@ -51,7 +52,7 @@ const idsByMode: Record<SurveyCadence, Record<EffectiveSurveyMode, string[]>> = 
   },
   post: {
     full: postSurveyQuestions.map((question) => question.id),
-    quick: ['difficulty', 'targetStimulus', 'technique', 'pain', 'timeFit'],
+    quick: ['difficulty', 'targetStimulus', 'technique', 'pain', 'timeFit', 'actualMinutes'],
     minimal: ['difficulty', 'technique', 'pain'],
     off: []
   }
@@ -61,6 +62,42 @@ export function questionsForSurvey(cadence: SurveyCadence, mode: EffectiveSurvey
   const source = cadence === 'pre' ? preSurveyQuestions : postSurveyQuestions
   const ids = new Set(idsByMode[cadence][mode])
   return source.filter((question) => ids.has(question.id))
+}
+
+/** Answer ids for per-muscle feedback. Kept parseable so a stored answer stays readable on its own. */
+export const muscleQuestionId = (base: 'pump' | 'targetStimulus', muscle: string) => `${base}:${muscle}`
+export const parseMuscleQuestionId = (id: string): { base: string; muscle: string } | null => {
+  const [base, muscle] = id.split(':')
+  return base && muscle ? { base, muscle } : null
+}
+
+/**
+ * Volume is judged per muscle, so the questions that drive it are asked per muscle rather than once for
+ * the whole session. Only muscles that received direct work are asked about, and the list is capped so
+ * a long session does not turn into a questionnaire. Anything beyond the cap keeps the session-level
+ * question as its fallback, which is the previous behaviour rather than a gap.
+ */
+export const MAXIMUM_MUSCLE_QUESTIONS = 4
+
+export function muscleFeedbackQuestions(muscles: { id: string; label: string }[], mode: EffectiveSurveyMode): SurveyQuestionDefinition[] {
+  if (mode === 'off' || mode === 'minimal' || !muscles.length) return []
+  const asked = muscles.slice(0, MAXIMUM_MUSCLE_QUESTIONS)
+  const bases: { base: 'pump' | 'targetStimulus'; label: (name: string) => string; min: number; max: number; defaultValue: number; low: string; high: string }[] = [
+    { base: 'pump', label: (name) => `How strong was the pump in your ${name.toLowerCase()}?`, min: 0, max: 5, defaultValue: 3, low: 'None', high: 'Very strong' },
+    { base: 'targetStimulus', label: (name) => `How well did your ${name.toLowerCase()} actually get trained?`, min: 1, max: 5, defaultValue: 4, low: 'Barely trained', high: 'Trained as intended' }
+  ]
+  // Quick mode asks only about stimulus, which is the stronger of the two signals for volume.
+  const usable = mode === 'quick' ? bases.filter((entry) => entry.base === 'targetStimulus') : bases
+  return asked.flatMap((muscle) => usable.map((entry) => ({
+    id: muscleQuestionId(entry.base, muscle.id),
+    label: entry.label(muscle.label),
+    type: 'scale' as const,
+    min: entry.min,
+    max: entry.max,
+    defaultValue: entry.defaultValue,
+    lowLabel: entry.low,
+    highLabel: entry.high
+  })))
 }
 
 export function summarizeSurveyEvidence(answers: SurveyAnswer[], skipped: boolean): {

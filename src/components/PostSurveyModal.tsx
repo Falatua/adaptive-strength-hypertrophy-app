@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { questionsForSurvey, surveyModeLabel } from '../domain/survey-engine'
+import { muscleFeedbackQuestions, questionsForSurvey, surveyModeLabel } from '../domain/survey-engine'
 import type { EffectiveSurveyMode, SurveyAnswer } from '../domain/types'
 import { Modal } from './Modal'
 
@@ -11,6 +11,7 @@ export function PostSurveyModal({
   volume,
   estimatedStrength,
   followUp = false,
+  trainedMuscles,
   onClose,
   onSubmit,
   onSkip,
@@ -23,12 +24,14 @@ export function PostSurveyModal({
   volume: number
   estimatedStrength: number
   followUp?: boolean
+  trainedMuscles?: { id: string; label: string }[]
   onClose: () => void
   onSubmit: (answers: SurveyAnswer[], note: string) => void
   onSkip: () => void
   onDefer?: () => void
 }) {
-  const questions = useMemo(() => questionsForSurvey('post', mode), [mode])
+  // Per-muscle questions come first: they are the ones that decide next week's volume.
+  const questions = useMemo(() => [...muscleFeedbackQuestions(trainedMuscles ?? [], mode), ...questionsForSurvey('post', mode)], [mode, trainedMuscles])
   const [values, setValues] = useState<Record<string, number>>(() => Object.fromEntries(questions.map((question) => [question.id, question.defaultValue])))
   const [statuses, setStatuses] = useState<Record<string, SurveyAnswer['status']>>(() => Object.fromEntries(questions.map((question) => [question.id, 'not-answered'])))
   const [note, setNote] = useState('')

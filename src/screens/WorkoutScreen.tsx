@@ -12,6 +12,7 @@ import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '..
 import { placementRouteLabels } from '../domain/placement-engine'
 import { effortDisplayFor, routeSessionProfile, rpeToRir } from '../domain/route-session-engine'
 import { canPairForSuperset, progressSetStructure, setStructureLabels, structureAllowedForRole, summarizeSetGroups } from '../domain/set-structure-engine'
+import { muscleCreditsFor, muscleDefinitions } from '../domain/muscle-dose'
 import { playForgeSound } from '../services/sound-engine'
 import { MOVEMENT_NOTE_MAX_LENGTH, movementNotesForExercise } from '../domain/movement-note-engine'
 import { sessionExtensionGate } from '../domain/session-extension-engine'
@@ -61,6 +62,24 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     return deriveAchievementEvents([...history, ...activeSetRecords]).filter((event) => event.sourceSetIds.some((id) => activeIds.has(id)))
   }, [activeSetRecords, history])
   const priorAchievementCount = useRef(activeAchievementPreview.length)
+
+  // Only muscles that actually received direct work are asked about, most-trained first.
+  const trainedMuscles = useMemo(() => {
+    const totals = new Map<string, number>()
+    for (const planned of session?.exercises ?? []) {
+      const credits = muscleCreditsFor(planned.exerciseId, exercises) ?? {}
+      const completed = planned.sets.filter((workSet) => workSet.completed).length
+      if (!completed) continue
+      for (const [muscle, credit] of Object.entries(credits)) {
+        if (credit !== 1) continue
+        totals.set(muscle, (totals.get(muscle) ?? 0) + completed)
+      }
+    }
+    return [...totals.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([id]) => ({ id, label: muscleDefinitions.find((definition) => definition.id === id)?.label ?? id }))
+  }, [exercises, session])
+
 
   useEffect(() => {
     if (activeAchievementPreview.length > priorAchievementCount.current && settings.sessionAchievements && settings.celebrationLevel !== 'off') {
@@ -494,6 +513,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         totalSets={totalSets}
         volume={currentVolume}
         estimatedStrength={bestEstimatedStrength}
+        trainedMuscles={trainedMuscles}
         onClose={() => setFinishOpen(false)}
         onSkip={() => finishWithoutSurvey(activePostMode)}
         onDefer={finishWithDeferredFeedback}
