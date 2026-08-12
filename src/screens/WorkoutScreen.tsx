@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Layers, Pause, Play, Plus, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, Trophy } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Layers, Pause, Play, Plus, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, TrendingUp, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
@@ -11,7 +11,7 @@ import { SurveyModeChooser } from '../components/SurveyModeChooser'
 import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '../domain/equipment-engine'
 import { placementRouteLabels } from '../domain/placement-engine'
 import { effortDisplayFor, routeSessionProfile, rpeToRir } from '../domain/route-session-engine'
-import { canPairForSuperset, setStructureLabels, structureAllowedForRole } from '../domain/set-structure-engine'
+import { canPairForSuperset, progressSetStructure, setStructureLabels, structureAllowedForRole, summarizeSetGroups } from '../domain/set-structure-engine'
 import { playForgeSound } from '../services/sound-engine'
 import { MOVEMENT_NOTE_MAX_LENGTH, movementNotesForExercise } from '../domain/movement-note-engine'
 import { sessionExtensionGate } from '../domain/session-extension-engine'
@@ -324,6 +324,15 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   </label>
                   <div className="movement-note-editor__meta"><small>Autosaved as you type. Notes provide context and never change progression by themselves.</small><small>{currentMovementNote?.body.length ?? 0}/{MOVEMENT_NOTE_MAX_LENGTH}</small></div>
                 </section>
+                {(() => {
+                  const structureProgress = progressSetStructure({
+                    groups: summarizeSetGroups(exactHistory, exercise.id),
+                    increment: loadIncrementFor(exercise, activeEquipmentProfile).value
+                  })
+                  return structureProgress && structureProgress.prior ? (
+                    <p className="structure-progress"><TrendingUp size={15} /> <span><strong>{structureProgress.axis === 'load' ? 'Add load next time.' : structureProgress.axis === 'reps' ? 'Chase reps across the block.' : structureProgress.axis === 'sets' ? 'Add one more to the block.' : 'Repeat this block.'}</strong> {structureProgress.reasons[0]}</span></p>
+                  ) : null
+                })()}
                 {planned.sets.find((workSet) => workSet.grouping) && (
                   <p className="structure-note"><Layers size={15} /> {setStructureLabels[planned.sets.find((workSet) => workSet.grouping)!.grouping!.groupKind]}. {planned.sets.find((workSet) => workSet.grouping)!.grouping!.groupKind === 'drop-set' ? 'Strip the load and keep going with no rest. The top set is what sets your next target.' : planned.sets.find((workSet) => workSet.grouping)!.grouping!.groupKind === 'myo-reps' ? 'Take the first set close to failure, then rest three to five deep breaths between the short sets. The first set is what sets your next target.' : 'Alternate with its pair, resting only between rounds.'}</p>
                 )}

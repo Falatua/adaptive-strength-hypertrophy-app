@@ -1090,6 +1090,10 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .volume-plan__scale { grid-column: 1 / -1; }
 }
 
+.structure-progress { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0 9px; padding: 10px 12px; border: 1px solid rgb(231 255 88 / 26%); border-radius: 9px; background: rgb(231 255 88 / 5%); color: var(--muted); font-size: .81rem; line-height: 1.45; }
+.structure-progress svg { flex-shrink: 0; margin-top: 1px; color: var(--lime); }
+.structure-progress strong { color: var(--text); }
+
 .structure-note { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0 9px; padding: 10px 12px; border: 1px solid rgb(231 255 88 / 30%); border-radius: 9px; background: rgb(231 255 88 / 6%); color: var(--muted); font-size: .81rem; line-height: 1.45; }
 .structure-note svg { flex-shrink: 0; margin-top: 1px; color: var(--lime); }
 .set-group { margin-left: 4px; color: var(--lime); font-size: .82rem; }

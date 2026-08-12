@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { buildDropSet, buildMyoReps, canPairForSuperset, isComparableExposure, structureAllowedForRole, structureTimeSaved } from './set-structure-engine'
-import type { Exercise, SetPrescription } from './types'
+import { buildDropSet, buildMyoReps, canPairForSuperset, isComparableExposure, progressSetStructure, structureAllowedForRole, structureTimeSaved, summarizeSetGroups } from './set-structure-engine'
+import type { CompletedSetRecord, Exercise, SetPrescription } from './types'
 
 const movement = (id: string, primaryRegion: Exercise['primaryRegion'], pattern: Exercise['pattern']): Exercise => ({
   id, name: id, family: 'Test', aliases: [], pattern, regions: [primaryRegion], primaryRegion,
@@ -140,5 +140,76 @@ describe('structureTimeSaved', () => {
   it('credits drops and minis for the rest they skip between them', () => {
     expect(structureTimeSaved('drop-set', 3, 60)).toBe(90)
     expect(structureTimeSaved('myo-reps', 1, 60)).toBe(0)
+  })
+})
+
+describe('structure-level progression', () => {
+  const completed = (groupId: string, role: 'top' | 'drop', load: number, reps: number, at: string, position: number): CompletedSetRecord => ({
+    id: `${groupId}-${position}`, sessionId: `session-${groupId}`, exerciseId: 'cable-row', exerciseName: 'Cable Row',
+    family: 'Row', primaryRegion: 'back', completedAt: at, reps, load, rir: 0, technique: 4, pain: 0, setIndex: position - 1,
+    grouping: { groupId, groupKind: 'drop-set', groupRole: role, groupPosition: position }
+  })
+
+  const block = (groupId: string, at: string, topLoad: number, reps: number[]) => [
+    completed(groupId, 'top', topLoad, reps[0], at, 1),
+    ...reps.slice(1).map((rep, index) => completed(groupId, 'drop', Math.round(topLoad * 0.8 ** (index + 1)), rep, at, index + 2))
+  ]
+
+  it('treats a drop set as one block of work rather than loose sets', () => {
+    const groups = summarizeSetGroups(block('g1', '2026-08-01T12:00:00.000Z', 100, [10, 8, 6]))
+    expect(groups).toHaveLength(1)
+    expect(groups[0]).toMatchObject({ setCount: 3, totalReps: 24, topLoad: 100, topReps: 10 })
+    expect(groups[0].totalVolume).toBe(100 * 10 + 80 * 8 + 64 * 6)
+  })
+
+  it('excludes supersets, which are paired straight sets rather than one block', () => {
+    const paired: CompletedSetRecord = { ...completed('g9', 'top', 100, 10, '2026-08-01T12:00:00.000Z', 1), grouping: { groupId: 'g9', groupKind: 'superset', groupRole: 'paired', groupPosition: 1 } }
+    expect(summarizeSetGroups([paired])).toHaveLength(0)
+  })
+
+  it('calls the first block a baseline rather than inventing progress', () => {
+    const decision = progressSetStructure({ groups: summarizeSetGroups(block('g1', '2026-08-01T12:00:00.000Z', 100, [10, 8, 6])) })
+    expect(decision?.axis).toBe('baseline')
+    expect(decision?.prior).toBeNull()
+    expect(decision?.confidence).toBe('low')
+  })
+
+  it('progresses load when total work rose at the same top load', () => {
+    const history = [...block('g1', '2026-08-01T12:00:00.000Z', 100, [10, 8, 6]), ...block('g2', '2026-08-08T12:00:00.000Z', 100, [11, 9, 7])]
+    const decision = progressSetStructure({ groups: summarizeSetGroups(history), increment: 5 })
+    expect(decision?.axis).toBe('load')
+    expect(decision?.nextTopLoad).toBe(105)
+    expect(decision?.totalVolumeChange).toBeGreaterThan(0)
+  })
+
+  it('progresses reps when reps rose but the volume gain came only from reps', () => {
+    const history = [...block('g1', '2026-08-01T12:00:00.000Z', 100, [10, 8, 6]), ...block('g2', '2026-08-08T12:00:00.000Z', 90, [12, 10, 8])]
+    const decision = progressSetStructure({ groups: summarizeSetGroups(history) })
+    expect(decision?.axis).toBe('reps')
+    expect(decision?.totalRepChange).toBe(6)
+  })
+
+  it('adds a drop when the block simply repeated', () => {
+    const history = [...block('g1', '2026-08-01T12:00:00.000Z', 100, [10, 8, 6]), ...block('g2', '2026-08-08T12:00:00.000Z', 100, [10, 8, 6])]
+    const decision = progressSetStructure({ groups: summarizeSetGroups(history) })
+    expect(decision?.axis).toBe('sets')
+    expect(decision?.nextSetCount).toBe(4)
+  })
+
+  it('holds when total work fell', () => {
+    const history = [...block('g1', '2026-08-01T12:00:00.000Z', 100, [10, 8, 6]), ...block('g2', '2026-08-08T12:00:00.000Z', 100, [8, 6, 4])]
+    const decision = progressSetStructure({ groups: summarizeSetGroups(history) })
+    expect(decision?.axis).toBe('hold')
+    expect(decision?.totalVolumeChange).toBeLessThan(0)
+  })
+
+  it('stops adding sets once the block is already long', () => {
+    const long = (id: string, at: string) => block(id, at, 100, [10, 8, 6, 5])
+    const decision = progressSetStructure({ groups: summarizeSetGroups([...long('g1', '2026-08-01T12:00:00.000Z'), ...long('g2', '2026-08-08T12:00:00.000Z')]), maximumSets: 4 })
+    expect(decision?.axis).toBe('hold')
+  })
+
+  it('returns nothing when no structured work exists', () => {
+    expect(progressSetStructure({ groups: [] })).toBeNull()
   })
 })
