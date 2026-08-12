@@ -2,6 +2,7 @@ import type {
   CompletedSetRecord,
   ContinuityState,
   Exercise,
+  ExerciseRole,
   PlannedExercise,
   ProgressionDecision,
   ReadinessOutcome,
@@ -170,12 +171,28 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
   }
 }
 
+// Secondary work drives the primary, accessories drive the secondary, and tertiary work is extra
+// hypertrophy. Compression sheds from the bottom up, so tertiary goes before accessory work.
 const rolePriority: Record<PlannedExercise['role'], number> = {
   primary: 0,
   secondary: 1,
-  priority: 2,
-  maintenance: 3,
-  optional: 4
+  accessory: 2,
+  tertiary: 3
+}
+
+const legacyRoleMap: Record<string, ExerciseRole> = {
+  primary: 'primary',
+  secondary: 'secondary',
+  priority: 'accessory',
+  maintenance: 'tertiary',
+  optional: 'tertiary',
+  accessory: 'accessory',
+  tertiary: 'tertiary'
+}
+
+/** Maps any stored role, current or legacy, onto the current vocabulary. Unknown values become tertiary. */
+export function normalizeExerciseRole(role: string): ExerciseRole {
+  return legacyRoleMap[role] ?? 'tertiary'
 }
 
 export function compressSession(session: TrainingSession, availableMinutes: number): TrainingSession {

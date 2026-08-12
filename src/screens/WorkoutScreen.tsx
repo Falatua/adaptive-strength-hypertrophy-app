@@ -10,6 +10,7 @@ import { PostSurveyModal } from '../components/PostSurveyModal'
 import { SurveyModeChooser } from '../components/SurveyModeChooser'
 import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '../domain/equipment-engine'
 import { placementRouteLabels } from '../domain/placement-engine'
+import { effortDisplayFor, routeSessionProfile, rpeToRir } from '../domain/route-session-engine'
 import { playForgeSound } from '../services/sound-engine'
 import { MOVEMENT_NOTE_MAX_LENGTH, movementNotesForExercise } from '../domain/movement-note-engine'
 import { sessionExtensionGate } from '../domain/session-extension-engine'
@@ -17,9 +18,8 @@ import { sessionExtensionGate } from '../domain/session-extension-engine'
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary anchor',
   secondary: 'Secondary builder',
-  priority: 'Priority accessory',
-  maintenance: 'Maintenance',
-  optional: 'Optional'
+  accessory: 'Accessory',
+  tertiary: 'Optional tertiary'
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
@@ -78,6 +78,9 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
 
   const placementVerification = placementVerifications.find((event) => event.sessionId === session.id && event.status === 'active')
 
+  // Powerlifting-style routes read effort as RPE, hypertrophy and calibration routes as RIR.
+  // Only RIR is stored, so this changes the dial the athlete reads, never the recorded evidence.
+  const effortMetric = routeSessionProfile(session.generation?.route ?? placementVerifications.find((event) => event.sessionId === session.id)?.placementRoute ?? 'hypertrophy').effortMetric
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const equipmentGaps = sessionEquipmentGaps(session, exercises, activeEquipmentProfile)
 
@@ -292,17 +295,26 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   </label>
                   <div className="movement-note-editor__meta"><small>Autosaved as you type. Notes provide context and never change progression by themselves.</small><small>{currentMovementNote?.body.length ?? 0}/{MOVEMENT_NOTE_MAX_LENGTH}</small></div>
                 </section>
+                {!exactHistory.length && (
+                  <p className="load-unknown-note"><Info size={15} /> No logged {exercise.name} yet, so there is no honest load to hand you. Work to the {effortDisplayFor(0, effortMetric).label} target and enter what you actually lifted. Once it is logged, the next session starts from your real number.</p>
+                )}
                 <div className="set-table" role="table" aria-label={`${exercise.name} sets`}>
-                  <div className="set-table__head" role="row"><span>Set</span><span>Load</span><span>Reps</span><span>RIR</span><span>Status</span></div>
-                  {planned.sets.map((workSet, index) => (
+                  <div className="set-table__head" role="row"><span>Set</span><span>Load</span><span>Reps</span><span title={effortDisplayFor(0, effortMetric).hint}>{effortDisplayFor(0, effortMetric).label}</span><span>Status</span></div>
+                  {planned.sets.map((workSet, index) => {
+                    const effort = effortDisplayFor(workSet.actualRir ?? workSet.targetRir, effortMetric)
+                    // Until this exact movement has logged history there is nothing to base a load on,
+                    // so the target stays blank and the effort dial carries the prescription instead.
+                    const loadUnknown = !exactHistory.length && workSet.completedLoad === undefined
+                    return (
                     <div className={`set-row ${workSet.completed ? 'completed' : ''}`} role="row" key={workSet.id}>
                       <span className="set-number">{index + 1}{workSet.athleteAdded && <em title="Added by you today">+</em>}</span>
-                      <label><span className="sr-only">Set {index + 1} load</span><input disabled={!equipmentFit.available} type="number" inputMode="decimal" step={loadIncrementFor(exercise, activeEquipmentProfile).value} value={workSet.completedLoad ?? workSet.targetLoad} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { load: Number(event.target.value) })} /><small>{settings.units}</small></label>
+                      <label><span className="sr-only">Set {index + 1} load</span><input disabled={!equipmentFit.available} type="number" inputMode="decimal" step={loadIncrementFor(exercise, activeEquipmentProfile).value} placeholder={loadUnknown ? 'Your call' : undefined} value={loadUnknown ? '' : workSet.completedLoad ?? workSet.targetLoad} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { load: Number(event.target.value) })} /><small>{settings.units}</small></label>
                       <label><span className="sr-only">Set {index + 1} repetitions</span><input disabled={!equipmentFit.available} type="number" inputMode="numeric" value={workSet.completedReps ?? workSet.targetReps} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { reps: Number(event.target.value) })} /></label>
-                      <label><span className="sr-only">Set {index + 1} repetitions in reserve</span><select disabled={!equipmentFit.available} value={workSet.actualRir ?? workSet.targetRir} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { rir: Number(event.target.value) })}><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></label>
+                      <label><span className="sr-only">Set {index + 1} {effort.label === 'RPE' ? 'rate of perceived exertion' : 'repetitions in reserve'}</span><select disabled={!equipmentFit.available} value={effort.value} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { rir: effort.metric === 'rpe' ? rpeToRir(Number(event.target.value)) : Number(event.target.value) })}>{effort.options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
                       <button className="complete-set" disabled={!equipmentFit.available && !workSet.completed} onClick={() => logSet(planned.id, workSet.id, workSet.completed)} aria-pressed={workSet.completed}>{workSet.completed ? <><Check size={18} /> Done</> : equipmentFit.available ? 'Log set' : 'Blocked'}</button>
                     </div>
-                  ))}
+                    )
+                  })}
                   {extensionGate.allowed && equipmentFit.available && (
                     <button type="button" className="add-set-button" onClick={() => addSet(planned.id)}>
                       <Plus size={16} /> Add a set to {exercise.name}

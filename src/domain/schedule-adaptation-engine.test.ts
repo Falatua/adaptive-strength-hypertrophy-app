@@ -138,7 +138,7 @@ describe('missed-opportunity replanning', () => {
     if (!protective.ok) return
     expect(protective.event.readiness).toMatchObject({ freshness: 'current', sourceOutcome: 'protect', effectiveOutcome: 'protect', action: 'trim-optional', ageHours: 1 })
     expect(protective.event.reasons.join(' ')).toMatch(/protective/i)
-    expect(protective.sessions.find((session) => session.id === protective.event.nextSessionId)?.exercises.some((exercise) => exercise.role === 'optional')).toBe(false)
+    expect(protective.sessions.find((session) => session.id === protective.event.nextSessionId)?.exercises.some((exercise) => exercise.role === 'tertiary')).toBe(false)
 
     const stale = run({
       input: input({ constraintState: 'ended' }),
@@ -194,7 +194,7 @@ describe('missed-opportunity replanning', () => {
     expect(second.event.consecutiveMisses).toBe(2)
     expect(second.event.mode).toBe('rebuild-sequence')
     const next = second.sessions.find((session) => session.id === second.event.nextSessionId)!
-    expect(next.exercises.some((exercise) => exercise.role === 'optional')).toBe(false)
+    expect(next.exercises.some((exercise) => exercise.role === 'tertiary')).toBe(false)
     expect(second.continuity).toBe('interrupted')
   })
 

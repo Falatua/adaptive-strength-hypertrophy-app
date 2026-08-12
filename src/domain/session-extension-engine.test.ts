@@ -69,7 +69,7 @@ describe('buildAddedMovement', () => {
 
   it('never takes the primary role, so it cannot become placement evidence', () => {
     const planned = buildAddedMovement({ ...base, history: [] })
-    expect(planned.role).toBe('optional')
+    expect(planned.role).toBe('tertiary')
     expect(planned.optional).toBe(true)
     expect(planned.athleteAdded).toBe(true)
   })

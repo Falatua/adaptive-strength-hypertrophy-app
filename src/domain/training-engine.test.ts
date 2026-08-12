@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compressSession, duplicateCandidates, readinessFromSurvey, recommendProgression, sessionCompletionStatus, volumeLoad } from './training-engine'
+import { compressSession, duplicateCandidates, normalizeExerciseRole, readinessFromSurvey, recommendProgression, sessionCompletionStatus, volumeLoad } from './training-engine'
 import { exercises, sessions } from './seed'
 import type { CompletedSetRecord, SurveyAnswer } from './types'
 
@@ -76,7 +76,28 @@ describe('time-aware session compression', () => {
     const primary = compressed.exercises.find((exercise) => exercise.role === 'primary')
     expect(primary).toBeDefined()
     expect(primary?.sets.length).toBeGreaterThanOrEqual(2)
-    expect(compressed.exercises.some((exercise) => exercise.role === 'optional')).toBe(false)
+    expect(compressed.exercises.some((exercise) => exercise.role === 'tertiary')).toBe(false)
+  })
+})
+
+describe('exercise role vocabulary', () => {
+  it('maps the retired five-role vocabulary forward so stored sessions survive the upgrade', () => {
+    expect(normalizeExerciseRole('primary')).toBe('primary')
+    expect(normalizeExerciseRole('secondary')).toBe('secondary')
+    // Priority accessories served a prioritised region, which is what accessory work now means.
+    expect(normalizeExerciseRole('priority')).toBe('accessory')
+    // Maintenance and optional both collapse into optional tertiary work.
+    expect(normalizeExerciseRole('maintenance')).toBe('tertiary')
+    expect(normalizeExerciseRole('optional')).toBe('tertiary')
+  })
+
+  it('passes current roles through unchanged', () => {
+    expect(normalizeExerciseRole('accessory')).toBe('accessory')
+    expect(normalizeExerciseRole('tertiary')).toBe('tertiary')
+  })
+
+  it('degrades an unrecognised stored role to tertiary rather than throwing', () => {
+    expect(normalizeExerciseRole('nonsense')).toBe('tertiary')
   })
 })
 

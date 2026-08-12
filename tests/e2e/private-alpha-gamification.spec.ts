@@ -1330,7 +1330,7 @@ test('lets the athlete add sets and movements on a good day without rewriting th
   const addedMovementName = String(await option.locator('strong').textContent())
   await option.click()
   const addedCard = page.locator('.exercise-card').filter({ hasText: addedMovementName })
-  await expect(addedCard).toHaveClass(/exercise-card--optional/)
+  await expect(addedCard).toHaveClass(/exercise-card--tertiary/)
   await expect(addedCard).toContainText('Athlete-added extra work')
   await expect(page.locator('.exercise-card--primary').first()).not.toContainText(addedMovementName)
   await expect(footer).toContainText('0 of 13 sets complete.')
@@ -1367,5 +1367,36 @@ test('lets the athlete add sets and movements on a good day without rewriting th
   const firstSet = persisted.state.placementVerifications[0].firstSet
   expect(String(firstSet.sourceSetId)).toBeTruthy()
   expect(history.find((record) => (record as { id: string }).id === firstSet.sourceSetId)?.athleteAdded).toBeUndefined()
+  expect(browserErrors).toEqual([])
+})
+
+test('withholds a load target until the exact movement has logged history', async ({ page }) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Today', exact: true }).click()
+  await page.getByRole('button', { name: 'Start without check-in' }).click()
+
+  // A movement added mid-session has no exact history, so it cannot honestly be given a load.
+  await page.getByLabel('Add extra work').getByRole('button', { name: 'Add a movement' }).click()
+  // The picker reports which movements have exact history, so pick one that genuinely has none.
+  const option = page.locator('.add-movement-option').filter({ hasText: 'No exact history' }).first()
+  const freshName = String(await option.locator('strong').textContent())
+  await option.click()
+
+  const freshCard = page.locator('.exercise-card').filter({ hasText: freshName })
+  await expect(freshCard).toContainText(`No logged ${freshName} yet`)
+  await expect(freshCard.locator('.set-row input[type="number"]').first()).toHaveValue('')
+  await expect(freshCard.locator('.set-row input[type="number"]').first()).toHaveAttribute('placeholder', 'Your call')
+  // The effort target still carries the prescription.
+  await expect(freshCard.locator('.set-table__head')).toContainText('RIR')
+
+  // A movement with seeded exact history still shows its real target.
+  const anchorCard = page.locator('.exercise-card--primary').first()
+  await expect(anchorCard).not.toContainText('yet, so there is no honest load')
+  const anchorLoad = await anchorCard.locator('.set-row input[type="number"]').first().inputValue()
+  expect(Number(anchorLoad)).toBeGreaterThan(0)
+
   expect(browserErrors).toEqual([])
 })

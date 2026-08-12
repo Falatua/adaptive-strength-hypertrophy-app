@@ -1,4 +1,4 @@
-# ForgePath Private Alpha 0.41.0
+# ForgePath Private Alpha 0.42.0
 
 ForgePath is a local-first adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed.
 

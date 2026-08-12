@@ -42,7 +42,7 @@ describe('criterion-driven mesocycle planning', () => {
       planVersion: 2
     })
     next.priorityRegions.forEach((region) => expect(preview.regionSets[region] ?? 0).toBeGreaterThan(0))
-    expect(preview.sessions.some((session) => session.exercises.some((item) => item.role === 'maintenance'))).toBe(true)
+    expect(preview.sessions.some((session) => session.exercises.some((item) => item.role === 'tertiary'))).toBe(true)
   })
 
   it('starts reacclimation conservatively without adding catch-up volume', () => {

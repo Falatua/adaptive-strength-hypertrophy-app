@@ -1,6 +1,9 @@
 export type NavKey = 'today' | 'plan' | 'progress' | 'library' | 'you'
 
-export type ExerciseRole = 'primary' | 'secondary' | 'priority' | 'maintenance' | 'optional'
+export type ExerciseRole = 'primary' | 'secondary' | 'accessory' | 'tertiary'
+// Sessions and substitution events stored before 0.42.0 carry the older five-role vocabulary.
+// They remain historical truth, so they are accepted on read and mapped forward, never rejected.
+export type LegacyExerciseRole = 'primary' | 'secondary' | 'priority' | 'maintenance' | 'optional'
 export type MovementPattern = 'squat' | 'hinge' | 'horizontal-push' | 'vertical-push' | 'horizontal-pull' | 'vertical-pull' | 'isolation' | 'carry'
 export type BodyRegion = 'chest' | 'back' | 'shoulders' | 'quadriceps' | 'hamstrings' | 'glutes' | 'biceps' | 'triceps' | 'forearms' | 'calves' | 'trunk'
 export type MuscleId = 'pectorals' | 'anterior-deltoids' | 'lateral-deltoids' | 'posterior-deltoids' | 'triceps' | 'biceps' | 'forearms' | 'latissimus' | 'upper-back' | 'spinal-erectors' | 'quadriceps' | 'hamstrings' | 'gluteals' | 'adductors' | 'calves' | 'abdominals' | 'obliques'

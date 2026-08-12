@@ -1069,6 +1069,9 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .scale-anchors small { color: var(--muted); font-size: .72rem; line-height: 1.3; }
 .scale-anchors small:last-child { text-align: right; }
 
+.load-unknown-note { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0 9px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); color: var(--muted); font-size: .81rem; line-height: 1.45; }
+.load-unknown-note svg { flex-shrink: 0; margin-top: 1px; color: var(--lime); }
+
 .add-set-button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; margin-top: 7px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 9px; background: transparent; color: var(--muted); font-weight: 700; }
 .add-set-button:hover { border-color: rgb(231 255 88 / 42%); border-style: solid; background: rgb(231 255 88 / 6%); color: var(--text); }
 .set-number em { margin-left: 3px; color: var(--lime); font-style: normal; font-weight: 800; }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildMesocyclePreview, draftFromPlan } from './mesocycle-engine'
-import { routeSessionGenerationError, routeSessionProfile, routeSessionProfiles } from './route-session-engine'
+import { effortDisplayFor, rirToRpe, routeSessionGenerationError, routeSessionProfile, routeSessionProfiles, rpeToRir } from './route-session-engine'
 import { exerciseEquipmentFit } from './equipment-engine'
 import { equipmentProfiles, exercises, history, mesocycles, sessions } from './seed'
 import { buildPlacementAssessment } from './placement-engine'
@@ -149,5 +149,32 @@ describe('route-specific session generation', () => {
     expect(byPrimary.get('conventional-deadlift')?.exercises[0].sets).toHaveLength(3)
     expect(byPrimary.get('conventional-deadlift')?.generation).toMatchObject({ ruleVersion: 'route-session-v3', planRoute: 'strength', route: 'bridge-calibration', movementPlacement: { exerciseId: 'conventional-deadlift', selectedRoute: 'bridge-calibration' } })
     expect(preview.sessions.every((session) => routeSessionGenerationError(session.generation) === null)).toBe(true)
+  })
+})
+
+describe('effort metric by route', () => {
+  it('speaks RPE on strength-expression routes and RIR on building routes', () => {
+    for (const route of ['strength', 'powerbuilding', 'power', 'event-specific'] as const) {
+      expect(routeSessionProfile(route).effortMetric).toBe('rpe')
+    }
+    for (const route of ['hypertrophy', 'base-building', 'bridge-calibration', 'introductory-skill', 'reacclimation', 'pain-aware-modified'] as const) {
+      expect(routeSessionProfile(route).effortMetric).toBe('rir')
+    }
+  })
+
+  it('treats RPE and RIR as the same evidence read from opposite ends', () => {
+    expect(rirToRpe(0)).toBe(10)
+    expect(rirToRpe(2)).toBe(8)
+    expect(rpeToRir(8)).toBe(2)
+    expect(rpeToRir(10)).toBe(0)
+    // Round-tripping must not drift, or a strength block and a hypertrophy block stop being comparable.
+    for (const rir of [0, 1, 2, 3, 4]) expect(rpeToRir(rirToRpe(rir))).toBe(rir)
+  })
+
+  it('clamps rather than emitting an impossible effort value', () => {
+    expect(rirToRpe(12)).toBe(1)
+    expect(rpeToRir(1)).toBe(9)
+    expect(effortDisplayFor(2, 'rpe')).toMatchObject({ label: 'RPE', value: 8 })
+    expect(effortDisplayFor(2, 'rir')).toMatchObject({ label: 'RIR', value: 2 })
   })
 })

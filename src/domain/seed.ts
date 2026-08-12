@@ -211,9 +211,9 @@ export const sessions: TrainingSession[] = [
     exercises: [
       { id: 'plan-bench', exerciseId: 'competition-bench', role: 'primary', purpose: 'Strength anchor', sets: makeSets(4, 6, 175, 2), restSeconds: 180, estimatedMinutes: 22, optional: false },
       { id: 'plan-board', exerciseId: 'two-board-press', role: 'secondary', purpose: 'Build bench lockout and triceps strength', sets: makeSets(3, 8, 165, 2), restSeconds: 150, estimatedMinutes: 15, optional: false },
-      { id: 'plan-row', exerciseId: 'chest-supported-row', role: 'priority', purpose: 'Upper-back dose with low systemic fatigue', sets: makeSets(3, 10, 130, 2), restSeconds: 90, estimatedMinutes: 10, optional: false },
-      { id: 'plan-triceps', exerciseId: 'triceps-extension', role: 'priority', purpose: 'Direct triceps hypertrophy', sets: makeSets(3, 12, 55, 2), restSeconds: 75, estimatedMinutes: 8, optional: false },
-      { id: 'plan-lateral', exerciseId: 'lateral-raise', role: 'optional', purpose: 'Shoulder maintenance', sets: makeSets(2, 15, 20, 2), restSeconds: 60, estimatedMinutes: 5, optional: true }
+      { id: 'plan-row', exerciseId: 'chest-supported-row', role: 'accessory', purpose: 'Upper-back dose with low systemic fatigue', sets: makeSets(3, 10, 130, 2), restSeconds: 90, estimatedMinutes: 10, optional: false },
+      { id: 'plan-triceps', exerciseId: 'triceps-extension', role: 'accessory', purpose: 'Direct triceps hypertrophy', sets: makeSets(3, 12, 55, 2), restSeconds: 75, estimatedMinutes: 8, optional: false },
+      { id: 'plan-lateral', exerciseId: 'lateral-raise', role: 'tertiary', purpose: 'Shoulder maintenance', sets: makeSets(2, 15, 20, 2), restSeconds: 60, estimatedMinutes: 5, optional: true }
     ]
   },
   {
@@ -229,9 +229,9 @@ export const sessions: TrainingSession[] = [
     exercises: [
       { id: 'plan-squat', exerciseId: 'competition-squat', role: 'primary', purpose: 'Strength anchor', sets: makeSets(4, 5, 245, 2), restSeconds: 210, estimatedMinutes: 25, optional: false },
       { id: 'plan-ssb', exerciseId: 'ssb-squat', role: 'secondary', purpose: 'Build quads and upper-back position', sets: makeSets(3, 8, 185, 2), restSeconds: 150, estimatedMinutes: 16, optional: false },
-      { id: 'plan-hack', exerciseId: 'hack-squat', role: 'priority', purpose: 'Direct quadriceps dose', sets: makeSets(3, 10, 180, 2), restSeconds: 100, estimatedMinutes: 12, optional: false },
-      { id: 'plan-curl', exerciseId: 'leg-curl', role: 'maintenance', purpose: 'Hamstring maintenance', sets: makeSets(3, 12, 90, 2), restSeconds: 75, estimatedMinutes: 8, optional: false },
-      { id: 'plan-core', exerciseId: 'ab-wheel', role: 'optional', purpose: 'Trunk capacity', sets: makeSets(2, 10, 0, 3), restSeconds: 60, estimatedMinutes: 4, optional: true }
+      { id: 'plan-hack', exerciseId: 'hack-squat', role: 'accessory', purpose: 'Direct quadriceps dose', sets: makeSets(3, 10, 180, 2), restSeconds: 100, estimatedMinutes: 12, optional: false },
+      { id: 'plan-curl', exerciseId: 'leg-curl', role: 'tertiary', purpose: 'Hamstring maintenance', sets: makeSets(3, 12, 90, 2), restSeconds: 75, estimatedMinutes: 8, optional: false },
+      { id: 'plan-core', exerciseId: 'ab-wheel', role: 'tertiary', purpose: 'Trunk capacity', sets: makeSets(2, 10, 0, 3), restSeconds: 60, estimatedMinutes: 4, optional: true }
     ]
   },
   {
@@ -247,9 +247,9 @@ export const sessions: TrainingSession[] = [
     exercises: [
       { id: 'plan-deadlift', exerciseId: 'conventional-deadlift', role: 'primary', purpose: 'Strength anchor', sets: makeSets(4, 4, 315, 2), restSeconds: 210, estimatedMinutes: 24, optional: false },
       { id: 'plan-deficit', exerciseId: 'deficit-conventional', role: 'secondary', purpose: 'Build low-back and off-floor strength for the deadlift', sets: makeSets(3, 6, 235, 2), restSeconds: 180, estimatedMinutes: 16, optional: false },
-      { id: 'plan-cambered-row', exerciseId: 'cambered-row', role: 'priority', purpose: 'Upper-back and lat hypertrophy', sets: makeSets(3, 10, 115, 2), restSeconds: 90, estimatedMinutes: 10, optional: false },
-      { id: 'plan-pulldown', exerciseId: 'lat-pulldown', role: 'priority', purpose: 'Lat dose with stable technique', sets: makeSets(3, 10, 120, 2), restSeconds: 80, estimatedMinutes: 8, optional: false },
-      { id: 'plan-hammer', exerciseId: 'hammer-curl', role: 'optional', purpose: 'Arm and grip maintenance', sets: makeSets(2, 12, 30, 2), restSeconds: 60, estimatedMinutes: 5, optional: true }
+      { id: 'plan-cambered-row', exerciseId: 'cambered-row', role: 'accessory', purpose: 'Upper-back and lat hypertrophy', sets: makeSets(3, 10, 115, 2), restSeconds: 90, estimatedMinutes: 10, optional: false },
+      { id: 'plan-pulldown', exerciseId: 'lat-pulldown', role: 'accessory', purpose: 'Lat dose with stable technique', sets: makeSets(3, 10, 120, 2), restSeconds: 80, estimatedMinutes: 8, optional: false },
+      { id: 'plan-hammer', exerciseId: 'hammer-curl', role: 'tertiary', purpose: 'Arm and grip maintenance', sets: makeSets(2, 12, 30, 2), restSeconds: 60, estimatedMinutes: 5, optional: true }
     ]
   }
 ]

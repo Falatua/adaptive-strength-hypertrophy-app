@@ -2,7 +2,7 @@ import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { athlete as seedAthlete, equipmentProfiles as seedEquipmentProfiles, exercises as seedExercises, history as seedHistory, mesocycles as seedMesocycles, sessions as seedSessions } from '../domain/seed'
-import { compressSession, readinessFromSurvey, sessionCompletionStatus } from '../domain/training-engine'
+import { compressSession, normalizeExerciseRole, readinessFromSurvey, sessionCompletionStatus } from '../domain/training-engine'
 import { backupStateFrom, type RestorableAppState } from '../domain/backup'
 import { buildMesocyclePreview, createMesocyclePlan, draftFromPlan, replaceFuturePlan } from '../domain/mesocycle-engine'
 import { derivePersonalRecords, historyVolume, projectExerciseMerge } from '../domain/history-engine'
@@ -1166,6 +1166,12 @@ export const useAppStore = create<AppState>()(
           ?? equipmentProfiles[0]
         return {
           ...persisted,
+          // Sessions stored before 0.42.0 carry the retired five-role vocabulary. They are mapped
+          // forward rather than dropped, so an in-progress workout survives the upgrade intact.
+          sessions: (persisted.sessions ?? []).map((session) => ({
+            ...session,
+            exercises: (session.exercises ?? []).map((exercise) => ({ ...exercise, role: normalizeExerciseRole(String(exercise.role)) }))
+          })),
           exercises: mergeSystemExerciseCatalog(persisted.exercises, seedExercises),
           settings: { ...structuredClone(initialSettings), ...(persisted.settings ?? {}), activeEquipmentProfileId: legacyProfile.id, equipmentLocation: legacyProfile.name },
           equipmentProfiles,

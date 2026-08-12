@@ -76,7 +76,7 @@ const latestExactExposure = (history: CompletedSetRecord[], exerciseId: string) 
 
 const trimOptionalFatigue = (session: TrainingSession) => ({
   ...session,
-  exercises: session.exercises.filter((exercise) => exercise.role !== 'optional')
+  exercises: session.exercises.filter((exercise) => exercise.role !== 'tertiary')
 })
 
 const readinessAction = (outcome: ReadinessOutcome): ScheduleReadinessAction => {

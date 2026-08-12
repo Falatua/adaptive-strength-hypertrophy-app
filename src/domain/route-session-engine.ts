@@ -14,6 +14,8 @@ export interface RouteRolePrescription {
   restSeconds: number
 }
 
+export type EffortMetric = 'rpe' | 'rir'
+
 export interface RouteSessionProfile {
   ruleVersion: typeof ROUTE_SESSION_RULE_VERSION
   route: PlacementRoute
@@ -23,6 +25,10 @@ export interface RouteSessionProfile {
   secondary: RouteRolePrescription
   accessory: RouteRolePrescription
   maximumAccessories: number
+  // RPE and RIR carry the same information: RPE = 10 - RIR. Only one value is ever stored, so this
+  // selects the dial the athlete reads and edits. Strength-expression routes speak RPE the way a
+  // powerlifter does; hypertrophy and calibration routes speak RIR.
+  effortMetric: EffortMetric
   warmupGuidance: string
   progressionPolicy: string
   reasons: string[]
@@ -36,7 +42,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     strategy: 'Technique-first practice with repeatable submaximal work and a small exercise menu.',
     primary: { sets: 2, reps: 8, rir: 4, intensity: 0.60, restSeconds: 150 },
     secondary: { sets: 2, reps: 10, rir: 4, intensity: 0.56, restSeconds: 105 },
-    accessory: { sets: 2, reps: 12, rir: 4, intensity: 0.52, restSeconds: 60 }, maximumAccessories: 1,
+    accessory: { sets: 2, reps: 12, rir: 4, intensity: 0.52, restSeconds: 60 }, effortMetric: 'rir', maximumAccessories: 1,
     warmupGuidance: 'Use simple rehearsal sets. Add load only while setup, range, and tempo remain repeatable.',
     progressionPolicy: sharedProgression,
     reasons: ['Skill practice takes priority over load expression.', 'Low set count leaves room to learn without manufacturing fatigue.']
@@ -46,7 +52,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     strategy: 'Restore tolerance through familiar movements, conservative loading, and no catch-up volume.',
     primary: { sets: 2, reps: 6, rir: 4, intensity: 0.65, restSeconds: 165 },
     secondary: { sets: 2, reps: 8, rir: 3, intensity: 0.60, restSeconds: 120 },
-    accessory: { sets: 2, reps: 12, rir: 3, intensity: 0.55, restSeconds: 60 }, maximumAccessories: 2,
+    accessory: { sets: 2, reps: 12, rir: 3, intensity: 0.55, restSeconds: 60 }, effortMetric: 'rir', maximumAccessories: 2,
     warmupGuidance: 'Use familiar setup and several gradual submaximal jumps. Stop adding load when speed or coordination changes.',
     progressionPolicy: sharedProgression,
     reasons: ['Past skill is preserved while current tolerance is re-established.', 'Volume is intentionally below a normal development route.']
@@ -56,7 +62,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     strategy: 'Collect representative non-maximal performance while every exact movement establishes its own baseline.',
     primary: { sets: 3, reps: 6, rir: 3, intensity: 0.70, restSeconds: 180 },
     secondary: { sets: 2, reps: 8, rir: 3, intensity: 0.62, restSeconds: 120 },
-    accessory: { sets: 2, reps: 10, rir: 3, intensity: 0.58, restSeconds: 75 }, maximumAccessories: 2,
+    accessory: { sets: 2, reps: 10, rir: 3, intensity: 0.58, restSeconds: 75 }, effortMetric: 'rir', maximumAccessories: 2,
     warmupGuidance: 'Build to a repeatable reference set, not a maximum. The first work set should clarify load, effort, and technique.',
     progressionPolicy: sharedProgression,
     reasons: ['The session produces useful work and placement evidence at the same time.', 'Unknown exact movements keep zero-load calibration instead of borrowing another variation.']
@@ -66,7 +72,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     strategy: 'Build repeatable work capacity through moderate repetitions, controlled effort, and stable exercise exposure.',
     primary: { sets: 3, reps: 8, rir: 3, intensity: 0.67, restSeconds: 165 },
     secondary: { sets: 3, reps: 10, rir: 3, intensity: 0.60, restSeconds: 105 },
-    accessory: { sets: 2, reps: 12, rir: 3, intensity: 0.55, restSeconds: 60 }, maximumAccessories: 2,
+    accessory: { sets: 2, reps: 12, rir: 3, intensity: 0.55, restSeconds: 60 }, effortMetric: 'rir', maximumAccessories: 2,
     warmupGuidance: 'Use enough rehearsal to make the first work set representative without turning warm-up into extra volume.',
     progressionPolicy: sharedProgression,
     reasons: ['Moderate work builds tolerance before more specific loading.', 'The queue protects anchors while keeping fatigue recoverable.']
@@ -76,7 +82,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     strategy: 'Keep strength anchors practiced while allocating more recoverable sets to priority regions.',
     primary: { sets: 3, reps: 8, rir: 3, intensity: 0.67, restSeconds: 150 },
     secondary: { sets: 3, reps: 10, rir: 2, intensity: 0.62, restSeconds: 105 },
-    accessory: { sets: 3, reps: 12, rir: 2, intensity: 0.57, restSeconds: 75 }, maximumAccessories: 3,
+    accessory: { sets: 3, reps: 12, rir: 2, intensity: 0.57, restSeconds: 75 }, effortMetric: 'rir', maximumAccessories: 3,
     warmupGuidance: 'Warm up to stable range and target-muscle execution. Do not spend productive repetitions before working sets.',
     progressionPolicy: sharedProgression,
     reasons: ['Priority accessories receive the largest route-specific dose.', 'Anchor work stays present without consuming the whole fatigue budget.']
@@ -86,7 +92,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     strategy: 'Protect specific strength practice first, then use secondary and accessory work to build the anchor and priority muscles.',
     primary: { sets: 4, reps: 5, rir: 2, intensity: 0.77, restSeconds: 180 },
     secondary: { sets: 3, reps: 8, rir: 2, intensity: 0.67, restSeconds: 135 },
-    accessory: { sets: 3, reps: 12, rir: 2, intensity: 0.57, restSeconds: 75 }, maximumAccessories: 3,
+    accessory: { sets: 3, reps: 12, rir: 2, intensity: 0.57, restSeconds: 75 }, effortMetric: 'rpe', maximumAccessories: 3,
     warmupGuidance: 'Use progressive jumps to a crisp first work set. Keep warm-ups specific to the anchor and avoid fatigue.',
     progressionPolicy: sharedProgression,
     reasons: ['Primary work protects strength specificity.', 'Secondary builders and priority accessories retain meaningful hypertrophy dose.']
@@ -96,7 +102,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     strategy: 'Emphasize high-quality lower-repetition anchor work while limiting nonessential fatigue.',
     primary: { sets: 4, reps: 4, rir: 2, intensity: 0.82, restSeconds: 210 },
     secondary: { sets: 3, reps: 6, rir: 3, intensity: 0.72, restSeconds: 150 },
-    accessory: { sets: 2, reps: 10, rir: 3, intensity: 0.58, restSeconds: 75 }, maximumAccessories: 2,
+    accessory: { sets: 2, reps: 10, rir: 3, intensity: 0.58, restSeconds: 75 }, effortMetric: 'rpe', maximumAccessories: 2,
     warmupGuidance: 'Take specific progressive jumps with full rest. The last warm-up confirms readiness but is not a test set.',
     progressionPolicy: sharedProgression,
     reasons: ['Lower-repetition anchor work receives the largest time and recovery budget.', 'Accessory work remains sufficient to support the anchor without obscuring performance.']
@@ -106,7 +112,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     strategy: 'Practice fast, technically repeatable repetitions with conservative fatigue and full intent.',
     primary: { sets: 5, reps: 3, rir: 4, intensity: 0.60, restSeconds: 180 },
     secondary: { sets: 3, reps: 5, rir: 3, intensity: 0.65, restSeconds: 135 },
-    accessory: { sets: 2, reps: 8, rir: 3, intensity: 0.58, restSeconds: 75 }, maximumAccessories: 2,
+    accessory: { sets: 2, reps: 8, rir: 3, intensity: 0.58, restSeconds: 75 }, effortMetric: 'rpe', maximumAccessories: 2,
     warmupGuidance: 'Increase speed and intent gradually. End the loading climb when repetition speed or coordination declines.',
     progressionPolicy: 'Progress execution quality and then load only when repetitions remain fast and repeatable. Repetitions or sets do not increase merely to create fatigue.',
     reasons: ['Submaximal loading preserves movement speed and intent.', 'Longer rest and lower accessory dose protect power quality.']
@@ -116,7 +122,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     strategy: 'Prioritize the declared strength anchors and event-relevant execution while retaining only useful support work.',
     primary: { sets: 4, reps: 3, rir: 2, intensity: 0.82, restSeconds: 210 },
     secondary: { sets: 3, reps: 5, rir: 3, intensity: 0.72, restSeconds: 150 },
-    accessory: { sets: 2, reps: 8, rir: 3, intensity: 0.60, restSeconds: 75 }, maximumAccessories: 2,
+    accessory: { sets: 2, reps: 8, rir: 3, intensity: 0.60, restSeconds: 75 }, effortMetric: 'rpe', maximumAccessories: 2,
     warmupGuidance: 'Use event-specific setup and commands where known. Do not infer unrecorded event rules or peak from a date alone.',
     progressionPolicy: sharedProgression,
     reasons: ['Specific anchor practice receives priority.', 'The route does not claim a complete peak without a validated event and taper plan.']
@@ -126,10 +132,47 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     strategy: 'Pause automatic generation until restrictions and movement choices are reviewed.',
     primary: { sets: 0, reps: 0, rir: 4, intensity: 0, restSeconds: 0 },
     secondary: { sets: 0, reps: 0, rir: 4, intensity: 0, restSeconds: 0 },
-    accessory: { sets: 0, reps: 0, rir: 4, intensity: 0, restSeconds: 0 }, maximumAccessories: 0,
+    accessory: { sets: 0, reps: 0, rir: 4, intensity: 0, restSeconds: 0 }, effortMetric: 'rir', maximumAccessories: 0,
     warmupGuidance: 'Do not treat this route as medical clearance. Review movement choices before automatic training resumes.',
     progressionPolicy: 'No overload decision is generated while the placement restriction gate is active.',
     reasons: ['Pain or restriction changes what can be trained.', 'The app cannot diagnose, treat, or clear an injury.']
+  }
+}
+
+/**
+ * RIR is the single stored value. RPE is the same evidence read from the other end of the scale, so
+ * this converts for display and input only. Nothing in history, progression, or comparability changes
+ * with the athlete's chosen dial, which is what keeps a strength block and a hypertrophy block
+ * comparable on the same movement.
+ */
+export const rirToRpe = (rir: number) => Math.max(1, Math.min(10, 10 - rir))
+export const rpeToRir = (rpe: number) => Math.max(0, Math.min(9, 10 - rpe))
+
+export interface EffortDisplay {
+  metric: EffortMetric
+  label: string
+  value: number
+  /** Selectable values in display units, ordered as the athlete reads them. */
+  options: number[]
+  hint: string
+}
+
+export function effortDisplayFor(rir: number, metric: EffortMetric): EffortDisplay {
+  if (metric === 'rpe') {
+    return {
+      metric,
+      label: 'RPE',
+      value: rirToRpe(rir),
+      options: [6, 7, 8, 9, 10],
+      hint: 'Rate of perceived exertion. 10 means nothing left, 8 means about two solid reps in the tank.'
+    }
+  }
+  return {
+    metric,
+    label: 'RIR',
+    value: Math.max(0, Math.min(9, rir)),
+    options: [0, 1, 2, 3, 4],
+    hint: 'Reps in reserve. 0 means you could not do another rep, 3 means three good reps were left.'
   }
 }
 

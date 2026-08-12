@@ -136,7 +136,7 @@ function plannedExercise(
       .map((workSet, index) => ({ ...workSet, id: `${sessionKey}-${exercise.id}-set-${index + 1}` })),
     restSeconds,
     estimatedMinutes: Math.round(estimatedMinutes),
-    optional: role === 'optional',
+    optional: role === 'tertiary',
     warmupGuidance: routeProfile ? routeProfile.warmupGuidance : undefined
   }
 }
@@ -239,7 +239,7 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
       ...(secondary ? [plannedExercise(secondary, 'secondary', `Build transfer to ${anchor.name}.`, sessionKey, context, draft.dominantAdaptation, routeProfile)] : []),
       ...accessories.map((exercise) => plannedExercise(
         exercise,
-        draft.priorityRegions.includes(exercise.primaryRegion) ? 'priority' : 'maintenance',
+        draft.priorityRegions.includes(exercise.primaryRegion) ? 'accessory' : 'tertiary',
         draft.priorityRegions.includes(exercise.primaryRegion) ? `Develop ${exercise.primaryRegion} for the active mesocycle.` : `Maintain ${exercise.primaryRegion} with a recoverable dose.`,
         sessionKey,
         context,

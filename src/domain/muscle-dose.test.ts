@@ -101,8 +101,8 @@ describe('muscle-dose-v1', () => {
           { id: 'bench-target-1', targetReps: 5, targetLoad: 100, targetRir: 2, completed: true },
           { id: 'bench-target-2', targetReps: 5, targetLoad: 100, targetRir: 2, completed: false }
         ] },
-        { id: 'planned-custom', exerciseId: custom.id, role: 'priority', purpose: 'Test', restSeconds: 60, estimatedMinutes: 5, optional: false, sets: [{ id: 'bench-target-1', targetReps: 10, targetLoad: 20, targetRir: 2, completed: true }] },
-        { id: 'planned-unmapped', exerciseId: unmapped.id, role: 'optional', purpose: 'Test', restSeconds: 60, estimatedMinutes: 5, optional: true, sets: [{ id: 'bench-target-1', targetReps: 10, targetLoad: 20, targetRir: 2, completed: false }] }
+        { id: 'planned-custom', exerciseId: custom.id, role: 'accessory', purpose: 'Test', restSeconds: 60, estimatedMinutes: 5, optional: false, sets: [{ id: 'bench-target-1', targetReps: 10, targetLoad: 20, targetRir: 2, completed: true }] },
+        { id: 'planned-unmapped', exerciseId: unmapped.id, role: 'tertiary', purpose: 'Test', restSeconds: 60, estimatedMinutes: 5, optional: true, sets: [{ id: 'bench-target-1', targetReps: 10, targetLoad: 20, targetRir: 2, completed: false }] }
       ]
     }
     const linkedBench = { ...setFor('linked-bench', bench.id, bench.name), sessionId: session.id, plannedExerciseId: 'planned-bench' }

@@ -111,7 +111,7 @@ describe('multi-horizon source-set analytics', () => {
     }
     const makeSession = (id: string, plannedDate: Date): TrainingSession => ({
       id, title: 'Plan', objective: 'Test', dayLabel: 'Plan', plannedDate: plannedDate.toISOString(), status: 'planned', durationMinutes: 10,
-      exercises: [{ id: `${id}-exercise`, exerciseId: exercise.id, role: 'optional', purpose: 'Test', restSeconds: 60, estimatedMinutes: 5, optional: true,
+      exercises: [{ id: `${id}-exercise`, exerciseId: exercise.id, role: 'tertiary', purpose: 'Test', restSeconds: 60, estimatedMinutes: 5, optional: true,
         sets: [{ id: `${id}-set`, targetReps: 10, targetLoad: 0, targetRir: 3, completed: false }] }]
     })
     const dose = plannedVsCompletedDoseFor({ sessions: [makeSession('today-plan', now), makeSession('future-plan', daysAgo(-1))], history: [], exercises: [exercise], range: 'today', now })
