@@ -45,7 +45,7 @@ export const exercises: Exercise[] = [
   {
     id: 'deficit-conventional', name: 'Conventional Deficit Deadlift', family: 'Deadlift', aliases: ['Deficit Conventional'], pattern: 'hinge',
     regions: ['hamstrings', 'glutes', 'back', 'trunk'], primaryRegion: 'hamstrings', equipment: ['barbell', 'plates', 'deficit platform'],
-    description: 'Longer-range conventional pull intended to build low-back and off-floor strength for the sumo pull.', roleTags: ['secondary builder', 'low back', 'off floor'], favorite: true, jointFeeling: 'good'
+    description: 'Longer-range pull from a deficit intended to build low-back and off-floor strength for the conventional deadlift.', roleTags: ['secondary builder', 'low back', 'off floor'], favorite: true, jointFeeling: 'good'
   },
   {
     id: 'paused-sumo', name: 'Paused Sumo Deadlift', family: 'Deadlift', aliases: [], pattern: 'hinge',
@@ -144,7 +144,7 @@ export const mesocycles: MesocyclePlan[] = [{
   id: 'mesocycle-powerbuilding-1',
   version: 1,
   title: 'Powerbuilding Foundation',
-  objective: 'Restore training rhythm while progressing squat, bench, and sumo strength and growing chest, back, and triceps.',
+  objective: 'Restore training rhythm while progressing squat, bench, and deadlift strength and growing chest, back, and triceps.',
   dominantAdaptation: 'powerbuilding',
   status: 'active',
   createdAt: iso(subDays(today, 3)),
@@ -159,7 +159,7 @@ export const mesocycles: MesocyclePlan[] = [{
   exitPlan: 'Review anchor performance and recovery. Continue, recover, pivot, or enter a more specific strength phase.',
   weeklyOpportunities: 3,
   defaultMinutes: 60,
-  strengthAnchors: ['competition-squat', 'competition-bench', 'sumo-deadlift'],
+  strengthAnchors: ['competition-squat', 'competition-bench', 'conventional-deadlift'],
   priorityRegions: ['chest', 'back', 'triceps'],
   maintenanceRegions: ['hamstrings', 'shoulders', 'biceps'],
   sessionIds: ['session-bench', 'session-squat', 'session-deadlift']
@@ -168,9 +168,9 @@ export const mesocycles: MesocyclePlan[] = [{
 export const athlete: AthleteProfile = {
   name: 'Demo Athlete',
   trainingAge: 8,
-  goal: 'Powerbuilding: improve squat, bench, and sumo while growing chest, back, and arms',
+  goal: 'Powerbuilding: improve squat, bench, and deadlift while growing chest, back, and arms',
   entryRoute: 'Base-Building Cycle',
-  strengthAnchors: ['competition-squat', 'competition-bench', 'sumo-deadlift'],
+  strengthAnchors: ['competition-squat', 'competition-bench', 'conventional-deadlift'],
   priorityRegions: ['chest', 'back', 'triceps'],
   weeklyOpportunities: 3,
   defaultMinutes: 60,
@@ -183,7 +183,7 @@ export const athlete: AthleteProfile = {
     movementProfiles: [
       { exerciseId: 'competition-squat', exerciseName: 'Competition Back Squat', family: 'Squat', movementSkill: 5, strengthTolerance: 4, dataConfidence: 3 },
       { exerciseId: 'competition-bench', exerciseName: 'Competition Bench Press', family: 'Bench Press', movementSkill: 5, strengthTolerance: 4, dataConfidence: 3 },
-      { exerciseId: 'sumo-deadlift', exerciseName: 'Sumo Deadlift', family: 'Deadlift', movementSkill: 5, strengthTolerance: 4, dataConfidence: 3 }
+      { exerciseId: 'conventional-deadlift', exerciseName: 'Conventional Deadlift', family: 'Deadlift', movementSkill: 5, strengthTolerance: 4, dataConfidence: 3 }
     ]
   }, '2026-08-10T00:00:00.000Z'),
   level: {
@@ -236,8 +236,8 @@ export const sessions: TrainingSession[] = [
   },
   {
     id: 'session-deadlift',
-    title: 'Sumo Strength + Back',
-    objective: 'Progress the sumo anchor and build off-floor, low-back, and lat strength.',
+    title: 'Deadlift Strength + Back',
+    objective: 'Progress the deadlift anchor and build off-floor, low-back, and lat strength.',
     dayLabel: 'Queued · 3',
     plannedDate: iso(subDays(today, -4)),
     status: 'planned',
@@ -245,8 +245,8 @@ export const sessions: TrainingSession[] = [
     mesocycleId: 'mesocycle-powerbuilding-1',
     planVersion: 1,
     exercises: [
-      { id: 'plan-sumo', exerciseId: 'sumo-deadlift', role: 'primary', purpose: 'Strength anchor', sets: makeSets(4, 4, 315, 2), restSeconds: 210, estimatedMinutes: 24, optional: false },
-      { id: 'plan-deficit', exerciseId: 'deficit-conventional', role: 'secondary', purpose: 'Build low-back and off-floor strength for sumo', sets: makeSets(3, 6, 235, 2), restSeconds: 180, estimatedMinutes: 16, optional: false },
+      { id: 'plan-deadlift', exerciseId: 'conventional-deadlift', role: 'primary', purpose: 'Strength anchor', sets: makeSets(4, 4, 315, 2), restSeconds: 210, estimatedMinutes: 24, optional: false },
+      { id: 'plan-deficit', exerciseId: 'deficit-conventional', role: 'secondary', purpose: 'Build low-back and off-floor strength for the deadlift', sets: makeSets(3, 6, 235, 2), restSeconds: 180, estimatedMinutes: 16, optional: false },
       { id: 'plan-cambered-row', exerciseId: 'cambered-row', role: 'priority', purpose: 'Upper-back and lat hypertrophy', sets: makeSets(3, 10, 115, 2), restSeconds: 90, estimatedMinutes: 10, optional: false },
       { id: 'plan-pulldown', exerciseId: 'lat-pulldown', role: 'priority', purpose: 'Lat dose with stable technique', sets: makeSets(3, 10, 120, 2), restSeconds: 80, estimatedMinutes: 8, optional: false },
       { id: 'plan-hammer', exerciseId: 'hammer-curl', role: 'optional', purpose: 'Arm and grip maintenance', sets: makeSets(2, 12, 30, 2), restSeconds: 60, estimatedMinutes: 5, optional: true }
@@ -260,7 +260,7 @@ const historyTemplate = [
   { exerciseId: 'chest-supported-row', name: 'Chest-Supported Row', family: 'Row', region: 'back' as const, load: 120, reps: 10 },
   { exerciseId: 'competition-squat', name: 'Competition Back Squat', family: 'Squat', region: 'quadriceps' as const, load: 235, reps: 5 },
   { exerciseId: 'ssb-squat', name: 'Safety Squat Bar Squat', family: 'Squat', region: 'quadriceps' as const, load: 175, reps: 8 },
-  { exerciseId: 'sumo-deadlift', name: 'Sumo Deadlift', family: 'Deadlift', region: 'glutes' as const, load: 305, reps: 4 },
+  { exerciseId: 'conventional-deadlift', name: 'Conventional Deadlift', family: 'Deadlift', region: 'hamstrings' as const, load: 305, reps: 4 },
   { exerciseId: 'deficit-conventional', name: 'Conventional Deficit Deadlift', family: 'Deadlift', region: 'hamstrings' as const, load: 225, reps: 6 },
   { exerciseId: 'lat-pulldown', name: 'Neutral-Grip Lat Pulldown', family: 'Vertical Pull', region: 'back' as const, load: 110, reps: 10 },
   { exerciseId: 'triceps-extension', name: 'Overhead Cable Triceps Extension', family: 'Triceps Extension', region: 'triceps' as const, load: 50, reps: 12 },

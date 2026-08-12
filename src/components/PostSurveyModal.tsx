@@ -54,12 +54,15 @@ export function PostSurveyModal({
             <legend><span>{String(index + 1).padStart(2, '0')}</span>{question.label}</legend>
             <div className="scale-row">
               {Array.from({ length: question.max - question.min + 1 }, (_, offset) => question.min + offset).map((value) => (
-                <button key={value} type="button" aria-label={`${question.label}: ${value}`} className={values[question.id] === value && statuses[question.id] === 'answered' ? 'selected' : ''} onClick={() => {
+                <button key={value} type="button" aria-label={`${question.label}: ${value}${value === question.min && question.lowLabel ? `, ${question.lowLabel}` : value === question.max && question.highLabel ? `, ${question.highLabel}` : ''}`} className={values[question.id] === value && statuses[question.id] === 'answered' ? 'selected' : ''} onClick={() => {
                   setValues((current) => ({ ...current, [question.id]: value }))
                   setStatus(question.id, 'answered')
                 }}>{value}</button>
               ))}
             </div>
+            {question.lowLabel && question.highLabel && (
+              <div className="scale-anchors" aria-hidden="true"><small>{question.min} · {question.lowLabel}</small><small>{question.highLabel} · {question.max}</small></div>
+            )}
             <div className="question-unknown-actions"><button type="button" className={statuses[question.id] === 'skipped' ? 'selected' : ''} onClick={() => setStatus(question.id, 'skipped')}>Skip</button><button type="button" className={statuses[question.id] === 'not-sure' ? 'selected' : ''} onClick={() => setStatus(question.id, 'not-sure')}>Not sure</button><button type="button" className={statuses[question.id] === 'prefer-not' ? 'selected' : ''} onClick={() => setStatus(question.id, 'prefer-not')}>Prefer not</button></div>
           </fieldset>
         ))}

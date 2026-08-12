@@ -653,7 +653,7 @@ describe('versioned backup and restore', () => {
       movementProfiles: [
         { exerciseId: 'competition-squat', exerciseName: 'Competition Back Squat', family: 'Squat', movementSkill: 1, strengthTolerance: 2, dataConfidence: 2 },
         { exerciseId: 'competition-bench', exerciseName: 'Competition Bench Press', family: 'Bench Press', movementSkill: 5, strengthTolerance: 5, dataConfidence: 5 },
-        { exerciseId: 'sumo-deadlift', exerciseName: 'Sumo Deadlift', family: 'Deadlift', movementSkill: 3, strengthTolerance: 3, dataConfidence: 1 }
+        { exerciseId: 'conventional-deadlift', exerciseName: 'Conventional Deadlift', family: 'Deadlift', movementSkill: 3, strengthTolerance: 3, dataConfidence: 1 }
       ]
     }, '2026-08-10T16:00:00.000Z')
     current.athlete.placement = placement

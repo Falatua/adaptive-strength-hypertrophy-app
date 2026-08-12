@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
-import { AlertTriangle, BookOpen, BrainCircuit, ChevronRight, Clock3, Download, Dumbbell, FileCheck2, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Star, Target, Trash2, Undo2, Upload } from 'lucide-react'
+import { AlertTriangle, Anchor, ArrowDownToLine, ArrowLeftToLine, ArrowRightFromLine, ArrowUpFromLine, BookOpen, BrainCircuit, Briefcase, ChevronRight, ChevronsDown, Clock3, Download, Dumbbell, FileCheck2, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Star, Target, Trash2, Undo2, Upload } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { duplicateCandidates, volumeLoad } from '../domain/training-engine'
 import { findExerciseDuplicateGroups } from '../domain/catalog-engine'
@@ -23,6 +23,41 @@ const patternFilters: { id: MovementPattern | 'all'; label: string }[] = [
 ]
 const roleFilters = ['all', 'strength anchor', 'secondary builder', 'hypertrophy', 'accessory', 'custom'] as const
 type BrowseDimension = 'body' | 'pattern' | 'role' | 'goal' | 'equipment' | 'favorites'
+
+// The emblem used to show the first letter of the movement name, which just repeated text already on
+// screen. The movement pattern is the useful signal, so each pattern gets its own icon and a readable
+// label. The icon is never the only carrier of meaning.
+const patternIcons: Record<MovementPattern, typeof Target> = {
+  squat: ChevronsDown,
+  hinge: Anchor,
+  'horizontal-push': ArrowRightFromLine,
+  'vertical-push': ArrowUpFromLine,
+  'horizontal-pull': ArrowLeftToLine,
+  'vertical-pull': ArrowDownToLine,
+  isolation: Target,
+  carry: Briefcase
+}
+
+const patternLabels: Record<MovementPattern, string> = {
+  squat: 'Squat pattern',
+  hinge: 'Hinge pattern',
+  'horizontal-push': 'Horizontal push',
+  'vertical-push': 'Vertical push',
+  'horizontal-pull': 'Horizontal pull',
+  'vertical-pull': 'Vertical pull',
+  isolation: 'Isolation',
+  carry: 'Carry'
+}
+
+function PatternEmblem({ pattern, large }: { pattern: MovementPattern; large?: boolean }) {
+  const Icon = patternIcons[pattern]
+  return (
+    <span className={`movement-emblem ${large ? 'movement-emblem--large ' : ''}movement-emblem--${pattern}`} title={patternLabels[pattern]}>
+      <Icon size={large ? 30 : 18} aria-hidden="true" />
+      <span className="sr-only">{patternLabels[pattern]}</span>
+    </span>
+  )
+}
 
 export function LibraryScreen() {
   const { athlete, activeSessionId, exercises, equipmentProfiles, history, movementNotes, historyMutations, substitutionEvents, settings, toggleFavorite, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, undoLatestHistoryMutation, restartOnboarding, setNotice } = useAppStore()
@@ -317,11 +352,11 @@ export function LibraryScreen() {
               const equipmentFit = exerciseEquipmentFit(exercise, activeEquipmentProfile)
               return (
                 <article className={`library-card ${equipmentFit.available ? 'is-available' : 'is-unavailable'}`} key={exercise.id}>
-                  <div className="library-card__top"><span className={`movement-emblem movement-emblem--${exercise.pattern}`}>{exercise.name.slice(0, 1)}</span><button className={exercise.favorite ? 'favorite active' : 'favorite'} onClick={() => toggleFavorite(exercise.id)} aria-label={`${exercise.favorite ? 'Remove' : 'Add'} ${exercise.name} ${exercise.favorite ? 'from' : 'to'} favorites`}><Star size={17} fill={exercise.favorite ? 'currentColor' : 'none'} /></button></div>
+                  <div className="library-card__top"><PatternEmblem pattern={exercise.pattern} /><button className={exercise.favorite ? 'favorite active' : 'favorite'} onClick={() => toggleFavorite(exercise.id)} aria-label={`${exercise.favorite ? 'Remove' : 'Add'} ${exercise.name} ${exercise.favorite ? 'from' : 'to'} favorites`}><Star size={17} fill={exercise.favorite ? 'currentColor' : 'none'} /></button></div>
                   <p className="eyebrow">{exercise.family} · {exercise.pattern.replace('-', ' ')}</p>
                   <h3>{exercise.name}</h3>
                   <p>{exercise.description}</p>
-                  <div className="library-card__tags"><span>{exercise.primaryRegion}</span><span className={`joint joint--${exercise.jointFeeling}`}>{exercise.jointFeeling}</span>{exercise.custom && <span>custom</span>}<span className={equipmentFit.available ? 'equipment-available' : 'equipment-missing'}>{equipmentFit.available ? 'available here' : `missing ${equipmentFit.missing.length}`}</span></div>
+                  <div className="library-card__tags"><span>{patternLabels[exercise.pattern].toLowerCase()}</span><span>{exercise.primaryRegion}</span><span className={`joint joint--${exercise.jointFeeling}`}>{exercise.jointFeeling}</span>{exercise.custom && <span>custom</span>}<span className={equipmentFit.available ? 'equipment-available' : 'equipment-missing'}>{equipmentFit.available ? 'available here' : `missing ${equipmentFit.missing.length}`}</span></div>
                   <div className="library-card__history"><History size={15} /><span>{latest ? <>Last: <strong>{latest.load} × {latest.reps}</strong> · {new Date(latest.completedAt).toLocaleDateString()}</> : 'No exact history yet'}</span></div>
                   <button className="library-card__open" onClick={() => setSelected(exercise)}>Open movement <ChevronRight size={16} /></button>
                 </article>
@@ -342,7 +377,7 @@ export function LibraryScreen() {
         {selected && (
           <div className="exercise-detail">
             <div className="exercise-detail__summary">
-              <div className={`movement-emblem movement-emblem--large movement-emblem--${selected.pattern}`}>{selected.name.slice(0, 1)}</div>
+              <PatternEmblem pattern={selected.pattern} large />
               <div><p className="eyebrow">Canonical ID · {selected.id}</p><h3>{selected.family}</h3><p>{selected.regions.join(' · ')} · {selected.equipment.join(' · ')}</p><div className="library-card__tags">{selected.roleTags.map((tag) => <span key={tag}>{tag}</span>)}</div></div>
             </div>
             <div className="detail-stats">
@@ -461,7 +496,7 @@ export function LibraryScreen() {
       </Modal>
 
       <Modal open={Boolean(mergeGroup)} onClose={() => setMergeGroup(null)} title="Merge duplicate movements" description="Choose one identity to keep. Every other identity in this connected group will retire into it in one audited, undoable event.">
-        {mergeGroup && <><div className="merge-choice" role="radiogroup" aria-label="Movement identity to keep">{mergeGroup.map((exercise) => <button key={exercise.id} role="radio" aria-checked={mergeTargetId === exercise.id} className={mergeTargetId === exercise.id ? 'selected' : ''} onClick={() => setMergeTargetId(exercise.id)}><span className={`movement-emblem movement-emblem--${exercise.pattern}`}>{exercise.name.slice(0, 1)}</span><span><strong>Keep {exercise.name}</strong><small>{history.filter((workSet) => workSet.exerciseId === exercise.id).length} completed sets · {exercise.aliases.length} aliases</small></span></button>)}</div><div className="merge-consequence"><GitMerge size={19} /><span><strong>{history.filter((workSet) => mergeGroup.some((exercise) => exercise.id === workSet.exerciseId)).length} completed sets will share one progression history.</strong><p>{mergeGroup.length - 1} duplicate identit{mergeGroup.length - 1 === 1 ? 'y retires' : 'ies retire'} into the selected identity. Future planned references move to it. Completed sessions and prior mesocycle versions remain historical truth.</p></span></div><label><span className="field-label">Reason for merge</span><input value={mergeReason} onChange={(event) => setMergeReason(event.target.value)} /></label>{formError && <p className="form-error" role="alert">{formError}</p>}<div className="modal__actions"><button className="button button--ghost" onClick={() => setMergeGroup(null)}>Cancel</button><button className="button button--primary" onClick={submitMerge}><GitMerge size={17} /> Merge {mergeGroup.length} identities</button></div></>}
+        {mergeGroup && <><div className="merge-choice" role="radiogroup" aria-label="Movement identity to keep">{mergeGroup.map((exercise) => <button key={exercise.id} role="radio" aria-checked={mergeTargetId === exercise.id} className={mergeTargetId === exercise.id ? 'selected' : ''} onClick={() => setMergeTargetId(exercise.id)}><PatternEmblem pattern={exercise.pattern} /><span><strong>Keep {exercise.name}</strong><small>{history.filter((workSet) => workSet.exerciseId === exercise.id).length} completed sets · {exercise.aliases.length} aliases</small></span></button>)}</div><div className="merge-consequence"><GitMerge size={19} /><span><strong>{history.filter((workSet) => mergeGroup.some((exercise) => exercise.id === workSet.exerciseId)).length} completed sets will share one progression history.</strong><p>{mergeGroup.length - 1} duplicate identit{mergeGroup.length - 1 === 1 ? 'y retires' : 'ies retire'} into the selected identity. Future planned references move to it. Completed sessions and prior mesocycle versions remain historical truth.</p></span></div><label><span className="field-label">Reason for merge</span><input value={mergeReason} onChange={(event) => setMergeReason(event.target.value)} /></label>{formError && <p className="form-error" role="alert">{formError}</p>}<div className="modal__actions"><button className="button button--ghost" onClick={() => setMergeGroup(null)}>Cancel</button><button className="button button--primary" onClick={submitMerge}><GitMerge size={17} /> Merge {mergeGroup.length} identities</button></div></>}
       </Modal>
     </div>
   )

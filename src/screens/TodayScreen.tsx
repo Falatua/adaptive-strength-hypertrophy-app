@@ -105,15 +105,15 @@ export function TodayScreen() {
   const whyReasons = nextSession?.generation
     ? [
         { title: `${routeLabel} route`, detail: nextSession.generation.strategy },
-        ...(nextSession.generation.movementPlacement ? [{ title: `${nextSession.generation.movementPlacement.exerciseName} has its own starting lane`, detail: `${nextSession.generation.movementPlacement.reasons[0]} Skill ${nextSession.generation.movementPlacement.movementSkill}/5, heavy-work tolerance ${nextSession.generation.movementPlacement.strengthTolerance}/5, evidence ${nextSession.generation.movementPlacement.dataConfidence}/5.${nextSession.generation.movementPlacement.historyReview ? ` You accepted exact-history support for ${nextSession.generation.movementPlacement.historyReview.acceptedFields.map((field) => field === 'dataConfidence' ? 'evidence' : 'tolerance').join(' and ')} from ${nextSession.generation.movementPlacement.historyReview.evidence.recentSetCount} recent source sets.` : ''}` }] : []),
-        ...(nextSession.generation.equipment ? [{ title: `Generated for ${nextSession.generation.equipment.profileName}`, detail: `Secondary and accessory choices matched the stored equipment snapshot. Loads used its ${nextSession.generation.equipment.incrementUnit} increments.` }] : []),
+        ...(nextSession.generation.movementPlacement ? [{ title: `${nextSession.generation.movementPlacement.exerciseName} has its own starting lane`, detail: `${nextSession.generation.movementPlacement.reasons[0]} Technique ${nextSession.generation.movementPlacement.movementSkill}/5, heavy-work tolerance ${nextSession.generation.movementPlacement.strengthTolerance}/5. Evidence sits at ${nextSession.generation.movementPlacement.dataConfidence}/5, counted from your logged sets rather than guessed.${nextSession.generation.movementPlacement.historyReview?.acceptedFields.includes('strengthTolerance') ? ` You accepted the heavy-work tolerance your ${nextSession.generation.movementPlacement.historyReview.evidence.recentSetCount} recent exact sets support.` : ''}` }] : []),
+        ...(nextSession.generation.equipment ? [{ title: `Built for ${nextSession.generation.equipment.profileName}`, detail: `Every movement here is one you can actually load today. Jumps use this location's ${nextSession.generation.equipment.incrementUnit} increments, so the target is a weight you can really make.` }] : []),
         ...nextSession.generation.reasons.map((reason) => ({ title: 'Route evidence', detail: reason })),
         { title: progression.title, detail: progression.explanation }
       ]
     : [
-        { title: `${primaryExercise?.name ?? 'The primary movement'} is the protected anchor.`, detail: 'Its latest qualified exact exposure remains the progression reference.' },
-        { title: 'The session protects the next useful exposure.', detail: 'Missed calendar dates do not create catch-up debt or automatic progression.' },
-        { title: 'The session fits the current time budget.', detail: `At ${settings.availableMinutes} minutes, primary work stays ahead of optional accessory dose.` },
+        { title: `${primaryExercise?.name ?? 'The primary movement'} is the lift that matters today`, detail: 'Everything else is built around it. Its last qualified exact exposure is the number you have to beat, and no similar-looking variation gets to stand in for it.' },
+        { title: 'Missing a day costs you nothing but the day', detail: 'There is no catch-up debt here and nothing gets added to punish you. You pick up at the next useful exposure, not at an invented deficit.' },
+        { title: `Built to finish inside ${settings.availableMinutes} minutes`, detail: 'The anchor gets your best effort first. Accessory work is what gets trimmed when time runs short, because that is the part you can afford to lose.' },
         { title: progression.title, detail: progression.explanation }
       ]
 
@@ -306,7 +306,7 @@ export function TodayScreen() {
         }}
       />}
 
-      <Modal open={whyOpen} onClose={() => setWhyOpen(false)} title="Why this session is next" description="ForgePath shows the rule inputs instead of hiding them in an AI score.">
+      <Modal open={whyOpen} onClose={() => setWhyOpen(false)} title="Why this session is next" description="No black box. These are the exact inputs that picked today's work, and you can argue with any of them.">
         <div className="reason-stack">
           {whyReasons.map((reason, index) => <div key={`${reason.title}-${index}`}><span>{String(index + 1).padStart(2, '0')}</span><p><strong>{reason.title}.</strong> {reason.detail}</p></div>)}
         </div>

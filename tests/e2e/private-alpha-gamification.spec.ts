@@ -831,10 +831,12 @@ test('turns imported exact history into athlete-reviewed placement evidence with
 
   await page.getByRole('button', { name: 'Review in placement' }).click()
   await expect(page.getByRole('heading', { name: 'Past experience is not current tolerance.' })).toBeVisible()
-  await page.getByRole('button', { name: 'Competition Bench Press Recent evidence: 1' }).click()
-  await page.getByRole('button', { name: 'Use evidence 4/5' }).click()
+  const benchReview = page.locator('.movement-placement-inputs article').filter({ hasText: 'Competition Bench Press' }).locator('.placement-history-review')
+  // Evidence is counted from logged sets, so it is reported rather than offered for acceptance.
+  await expect(benchReview).toContainText('Evidence 4/5, counted from these sets')
+  await expect(page.getByRole('button', { name: 'Use evidence 4/5' })).toHaveCount(0)
+  // Heavy-work tolerance stays an athlete judgement, so it still requires an explicit accept.
   await page.getByRole('button', { name: 'Use tolerance 3/5' }).click()
-  await expect(page.getByRole('button', { name: 'Using evidence 4/5' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Using tolerance 3/5' })).toBeVisible()
   if (testInfo.project.name === 'mobile-chromium') {
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
@@ -981,12 +983,11 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
   await page.getByRole('button', { name: 'Powerlifting', exact: true }).click()
   await page.getByLabel('Years of structured training').fill('8')
   await page.getByRole('button', { name: /Continue/ }).click()
-  await page.getByRole('button', { name: 'Movement skill: 5' }).click()
-  await page.getByRole('button', { name: 'Intensity tolerance: 4' }).click()
-  await page.getByRole('button', { name: 'Volume tolerance: 4' }).click()
-  await page.getByRole('button', { name: 'Current evidence quality: 4' }).click()
-  await page.getByRole('button', { name: 'Competition Back Squat Skill: 1' }).click()
-  await page.getByRole('button', { name: 'Sumo Deadlift Recent evidence: 1' }).click()
+  await page.getByRole('button', { name: 'Technique consistency: 5', exact: true }).click()
+  await page.getByRole('button', { name: 'Heavy-work tolerance: 4', exact: true }).click()
+  await page.getByRole('button', { name: 'Volume tolerance: 4', exact: true }).click()
+  await page.getByRole('button', { name: 'Competition Back Squat Technique consistency: 1' }).click()
+  await page.getByRole('button', { name: 'Conventional Deadlift Heavy-work tolerance: 1' }).click()
   if (testInfo.project.name === 'mobile-chromium') {
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
     await page.locator('.skip-link').evaluate((element) => { (element as HTMLElement).style.display = 'none' })
@@ -1006,7 +1007,7 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
   await expect(page.locator('.movement-placement-preview')).toContainText('Introductory Skill Cycle')
   await expect(page.locator('.movement-placement-preview')).toContainText('Competition Bench Press')
   await expect(page.locator('.movement-placement-preview')).toContainText('Direct Strength Development')
-  await expect(page.locator('.movement-placement-preview')).toContainText('Sumo Deadlift')
+  await expect(page.locator('.movement-placement-preview')).toContainText('Conventional Deadlift')
   await expect(page.locator('.movement-placement-preview')).toContainText('Bridge and Calibration Cycle')
   await page.getByText('Why not lower or higher?').click()
   await expect(page.getByText('Current experience and skill do not support resetting', { exact: false })).toBeVisible()
@@ -1027,7 +1028,7 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
   await expect(page.locator('.profile-movement-lanes')).toContainText('Introductory Skill Cycle')
   await expect(page.locator('.profile-movement-lanes')).toContainText('Competition Bench Press')
   await expect(page.locator('.profile-movement-lanes')).toContainText('Base-Building Cycle')
-  await expect(page.locator('.profile-movement-lanes')).toContainText('Sumo Deadlift')
+  await expect(page.locator('.profile-movement-lanes')).toContainText('Conventional Deadlift')
   await expect(page.locator('.profile-movement-lanes')).toContainText('Reacclimation and Productive Work')
   await page.getByText('Why and how this will be verified').click()
   await expect(page.getByText(/first work sets/i)).toBeVisible()
@@ -1036,7 +1037,7 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
   expect(persisted.version).toBe(24)
   expect(persisted.state.athlete.placement).toMatchObject({ ruleVersion: 'placement-v3', recommendedRoute: 'strength', selectedRoute: 'base-building', confidence: 'high', decision: 'conservative' })
   expect(persisted.state.athlete.placement.movementPlacements.map((movement: { exerciseId: string; selectedRoute: string }) => [movement.exerciseId, movement.selectedRoute])).toEqual([
-    ['competition-squat', 'introductory-skill'], ['competition-bench', 'base-building'], ['sumo-deadlift', 'reacclimation']
+    ['competition-squat', 'introductory-skill'], ['competition-bench', 'base-building'], ['conventional-deadlift', 'reacclimation']
   ])
   expect(persisted.state.athlete.level.movementSkill).toBe(5)
   expect(persisted.state.mesocycles.find((plan: { id: string }) => plan.id === persisted.state.activeMesocycleId)).toMatchObject({ dominantAdaptation: 'reacclimation', title: 'Base-Building Cycle · Starting Cycle', entryRoute: 'base-building', generationRuleVersion: 'route-session-v3', generationEquipment: { profileId: 'equipment-commercial-gym' } })

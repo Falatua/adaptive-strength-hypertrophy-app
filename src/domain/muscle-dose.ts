@@ -61,6 +61,7 @@ export const builtInMuscleCredits: Readonly<Record<string, ExerciseCreditMap>> =
   'incline-db-press': { pectorals: 1, 'anterior-deltoids': 0.5, triceps: 0.5 },
   'cable-fly': { pectorals: 1 },
   'sumo-deadlift': { gluteals: 1, quadriceps: 0.5, hamstrings: 0.5, adductors: 0.5, 'spinal-erectors': 0.5 },
+  'conventional-deadlift': { hamstrings: 1, gluteals: 0.5, 'spinal-erectors': 0.5, 'upper-back': 0.5 },
   'deficit-conventional': { hamstrings: 1, gluteals: 0.5, 'spinal-erectors': 0.5, 'upper-back': 0.5 },
   'paused-sumo': { gluteals: 1, quadriceps: 0.5, hamstrings: 0.5, adductors: 0.5, 'spinal-erectors': 0.5 },
   'competition-squat': { quadriceps: 1, gluteals: 0.5, adductors: 0.5, 'spinal-erectors': 0.5 },

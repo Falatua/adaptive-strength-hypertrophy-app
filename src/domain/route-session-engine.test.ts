@@ -133,7 +133,7 @@ describe('route-specific session generation', () => {
       movementProfiles: [
         { exerciseId: 'competition-squat', exerciseName: 'Competition Back Squat', family: 'Squat', movementSkill: 1, strengthTolerance: 2, dataConfidence: 2 },
         { exerciseId: 'competition-bench', exerciseName: 'Competition Bench Press', family: 'Bench Press', movementSkill: 5, strengthTolerance: 5, dataConfidence: 5 },
-        { exerciseId: 'sumo-deadlift', exerciseName: 'Sumo Deadlift', family: 'Deadlift', movementSkill: 3, strengthTolerance: 3, dataConfidence: 1 }
+        { exerciseId: 'conventional-deadlift', exerciseName: 'Conventional Deadlift', family: 'Deadlift', movementSkill: 3, strengthTolerance: 3, dataConfidence: 1 }
       ]
     }, '2026-08-10T16:00:00.000Z')
     const draft = {
@@ -146,8 +146,8 @@ describe('route-specific session generation', () => {
     expect(byPrimary.get('competition-squat')?.exercises[0].sets[0]).toMatchObject({ targetReps: 8, targetRir: 4 })
     expect(byPrimary.get('competition-bench')?.exercises[0].sets).toHaveLength(4)
     expect(byPrimary.get('competition-bench')?.exercises[0].sets[0]).toMatchObject({ targetReps: 4, targetRir: 2 })
-    expect(byPrimary.get('sumo-deadlift')?.exercises[0].sets).toHaveLength(3)
-    expect(byPrimary.get('sumo-deadlift')?.generation).toMatchObject({ ruleVersion: 'route-session-v3', planRoute: 'strength', route: 'bridge-calibration', movementPlacement: { exerciseId: 'sumo-deadlift', selectedRoute: 'bridge-calibration' } })
+    expect(byPrimary.get('conventional-deadlift')?.exercises[0].sets).toHaveLength(3)
+    expect(byPrimary.get('conventional-deadlift')?.generation).toMatchObject({ ruleVersion: 'route-session-v3', planRoute: 'strength', route: 'bridge-calibration', movementPlacement: { exerciseId: 'conventional-deadlift', selectedRoute: 'bridge-calibration' } })
     expect(preview.sessions.every((session) => routeSessionGenerationError(session.generation) === null)).toBe(true)
   })
 })

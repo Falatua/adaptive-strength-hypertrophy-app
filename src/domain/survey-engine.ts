@@ -9,32 +9,37 @@ export interface SurveyQuestionDefinition {
   min: number
   max: number
   defaultValue: number
+  // Scale endpoints are described, not graded. Difficulty, expected comparison, end fatigue, and pump
+  // are magnitude scales where a high answer is evidence rather than a bad result, so labelling them
+  // good or bad would bias the answer the engine reads.
+  lowLabel?: string
+  highLabel?: string
 }
 
 export const preSurveyQuestions: SurveyQuestionDefinition[] = [
   { id: 'sleepHours', label: 'How many hours did you sleep?', type: 'number', min: 0, max: 14, defaultValue: 7 },
-  { id: 'sleepQuality', label: 'How well did you sleep?', type: 'scale', min: 1, max: 5, defaultValue: 3 },
-  { id: 'nutrition', label: 'How well fueled are you?', type: 'scale', min: 1, max: 5, defaultValue: 3 },
-  { id: 'hydration', label: 'How hydrated do you feel?', type: 'scale', min: 1, max: 5, defaultValue: 3 },
-  { id: 'energy', label: 'How much physical energy do you have?', type: 'scale', min: 1, max: 5, defaultValue: 3 },
-  { id: 'stress', label: 'How high is life stress today?', type: 'scale', min: 1, max: 5, defaultValue: 2 },
-  { id: 'motivation', label: 'How motivated are you to train?', type: 'scale', min: 1, max: 5, defaultValue: 4 },
-  { id: 'fatigue', label: 'How physically fatigued do you feel?', type: 'scale', min: 1, max: 5, defaultValue: 2 },
-  { id: 'pain', label: 'Any soreness, aches, or pain affecting movement?', type: 'scale', min: 0, max: 5, defaultValue: 0 },
+  { id: 'sleepQuality', label: 'How well did you sleep?', type: 'scale', min: 1, max: 5, defaultValue: 3, lowLabel: 'Slept poorly', highLabel: 'Slept very well' },
+  { id: 'nutrition', label: 'How well fueled are you?', type: 'scale', min: 1, max: 5, defaultValue: 3, lowLabel: 'Underfueled', highLabel: 'Well fueled' },
+  { id: 'hydration', label: 'How hydrated do you feel?', type: 'scale', min: 1, max: 5, defaultValue: 3, lowLabel: 'Dehydrated', highLabel: 'Well hydrated' },
+  { id: 'energy', label: 'How much physical energy do you have?', type: 'scale', min: 1, max: 5, defaultValue: 3, lowLabel: 'Drained', highLabel: 'Full of energy' },
+  { id: 'stress', label: 'How high is life stress today?', type: 'scale', min: 1, max: 5, defaultValue: 2, lowLabel: 'Calm', highLabel: 'Very stressed' },
+  { id: 'motivation', label: 'How motivated are you to train?', type: 'scale', min: 1, max: 5, defaultValue: 4, lowLabel: 'Not motivated', highLabel: 'Highly motivated' },
+  { id: 'fatigue', label: 'How physically fatigued do you feel?', type: 'scale', min: 1, max: 5, defaultValue: 2, lowLabel: 'Fresh', highLabel: 'Very fatigued' },
+  { id: 'pain', label: 'Any soreness, aches, or pain affecting movement?', type: 'scale', min: 0, max: 5, defaultValue: 0, lowLabel: 'No pain', highLabel: 'Severe pain' },
   { id: 'time', label: 'How many minutes do you actually have?', type: 'number', min: 10, max: 180, defaultValue: 60 }
 ]
 
 export const postSurveyQuestions: SurveyQuestionDefinition[] = [
-  { id: 'difficulty', label: 'How difficult was the session overall?', type: 'scale', min: 1, max: 10, defaultValue: 7 },
-  { id: 'expectedComparison', label: 'Compared with the plan, how hard was it?', type: 'scale', min: 1, max: 5, defaultValue: 3 },
-  { id: 'targetStimulus', label: 'How well did the target muscles or skill get trained?', type: 'scale', min: 1, max: 5, defaultValue: 4 },
-  { id: 'pump', label: 'How strong was the target-muscle pump?', type: 'scale', min: 0, max: 5, defaultValue: 3 },
-  { id: 'technique', label: 'How consistent was your technique?', type: 'scale', min: 1, max: 5, defaultValue: 4 },
-  { id: 'pain', label: 'Did any movement create joint pain or irritation?', type: 'scale', min: 0, max: 5, defaultValue: 0 },
-  { id: 'endFatigue', label: 'How fatigued were you at the end?', type: 'scale', min: 1, max: 5, defaultValue: 3 },
-  { id: 'timeFit', label: 'How well did the session fit the time you had?', type: 'scale', min: 1, max: 5, defaultValue: 4 },
-  { id: 'productive', label: 'How productive did the session feel?', type: 'scale', min: 1, max: 5, defaultValue: 4 },
-  { id: 'enjoyment', label: 'How much did you enjoy today’s training?', type: 'scale', min: 1, max: 5, defaultValue: 4 }
+  { id: 'difficulty', label: 'How difficult was the session overall?', type: 'scale', min: 1, max: 10, defaultValue: 7, lowLabel: 'Very easy', highLabel: 'Maximal effort' },
+  { id: 'expectedComparison', label: 'Compared with the plan, how hard was it?', type: 'scale', min: 1, max: 5, defaultValue: 3, lowLabel: 'Much easier than planned', highLabel: 'Much harder than planned' },
+  { id: 'targetStimulus', label: 'How well did the target muscles or skill get trained?', type: 'scale', min: 1, max: 5, defaultValue: 4, lowLabel: 'Barely trained', highLabel: 'Trained as intended' },
+  { id: 'pump', label: 'How strong was the target-muscle pump?', type: 'scale', min: 0, max: 5, defaultValue: 3, lowLabel: 'None', highLabel: 'Very strong' },
+  { id: 'technique', label: 'How consistent was your technique?', type: 'scale', min: 1, max: 5, defaultValue: 4, lowLabel: 'Broke down', highLabel: 'Consistent throughout' },
+  { id: 'pain', label: 'Did any movement create joint pain or irritation?', type: 'scale', min: 0, max: 5, defaultValue: 0, lowLabel: 'No pain', highLabel: 'Severe pain' },
+  { id: 'endFatigue', label: 'How fatigued were you at the end?', type: 'scale', min: 1, max: 5, defaultValue: 3, lowLabel: 'Still fresh', highLabel: 'Completely spent' },
+  { id: 'timeFit', label: 'How well did the session fit the time you had?', type: 'scale', min: 1, max: 5, defaultValue: 4, lowLabel: 'Ran far over', highLabel: 'Fit the time well' },
+  { id: 'productive', label: 'How productive did the session feel?', type: 'scale', min: 1, max: 5, defaultValue: 4, lowLabel: 'Unproductive', highLabel: 'Highly productive' },
+  { id: 'enjoyment', label: 'How much did you enjoy today’s training?', type: 'scale', min: 1, max: 5, defaultValue: 4, lowLabel: 'Did not enjoy it', highLabel: 'Really enjoyed it' }
 ]
 
 const idsByMode: Record<SurveyCadence, Record<EffectiveSurveyMode, string[]>> = {

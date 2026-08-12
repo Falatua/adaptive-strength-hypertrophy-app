@@ -53,7 +53,7 @@ const run = (overrides: Partial<Parameters<typeof buildMissedOpportunityReplan>[
   history: [
     completedSet('competition-bench', '2026-08-09T12:00:00.000Z'),
     completedSet('competition-squat', '2026-07-25T12:00:00.000Z'),
-    completedSet('sumo-deadlift', '2026-08-04T12:00:00.000Z')
+    completedSet('conventional-deadlift', '2026-08-04T12:00:00.000Z')
   ],
   priorEvents: [],
   missedSessionId: 'session-bench',
@@ -221,7 +221,7 @@ describe('missed-opportunity replanning', () => {
     const equalPrimaryHistory = [
       { ...completedSet('competition-bench', '2026-08-08T12:00:00.000Z', 'equal-bench'), primaryRegion: 'chest' as const },
       { ...completedSet('competition-squat', '2026-08-08T12:00:00.000Z', 'equal-squat'), primaryRegion: 'quadriceps' as const },
-      { ...completedSet('sumo-deadlift', '2026-08-08T12:00:00.000Z', 'equal-deadlift'), primaryRegion: 'glutes' as const },
+      { ...completedSet('conventional-deadlift', '2026-08-08T12:00:00.000Z', 'equal-deadlift'), primaryRegion: 'glutes' as const },
       { ...completedSet('coffin-press', '2026-08-02T12:00:00.000Z', 'chest-dose-1'), primaryRegion: 'chest' as const },
       { ...completedSet('coffin-press', '2026-08-02T12:05:00.000Z', 'chest-dose-2'), primaryRegion: 'chest' as const }
     ]
@@ -248,7 +248,7 @@ describe('missed-opportunity replanning', () => {
     const history = [
       { ...completedSet('competition-bench', '2026-08-08T12:00:00.000Z', 'pin-bench'), primaryRegion: 'chest' as const },
       { ...completedSet('competition-squat', '2026-08-08T12:00:00.000Z', 'pin-squat'), primaryRegion: 'quadriceps' as const },
-      { ...completedSet('sumo-deadlift', '2026-08-08T12:00:00.000Z', 'pin-deadlift'), primaryRegion: 'glutes' as const },
+      { ...completedSet('conventional-deadlift', '2026-08-08T12:00:00.000Z', 'pin-deadlift'), primaryRegion: 'glutes' as const },
       { ...completedSet('coffin-press', '2026-08-02T12:00:00.000Z', 'pin-chest-dose'), primaryRegion: 'chest' as const }
     ]
     const result = run({ sessions, history, priorityRegions: ['chest', 'back'], input: input({ preferredNextSessionId: 'session-bench' }) })
