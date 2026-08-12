@@ -301,7 +301,7 @@ export function LibraryScreen() {
 
       <section className="library-browser" ref={filterPanelRef}>
         <div className="library-toolbar">
-          <label className="search-box"><Search size={18} /><span className="sr-only">Search exercises</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search names, aliases, roles, equipment..." /></label>
+          <label className="search-box"><Search size={18} /><span className="sr-only">Search exercises</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search a movement or its other names..." /></label>
           <button className="filter-button" aria-expanded={filtersOpen} aria-controls="library-filter-panel" onClick={() => setFiltersOpen((current) => !current)}><Filter size={17} /> {filtersOpen ? 'Hide filters' : 'Show filters'}</button>
           <span>{filtered.length} movements</span>
         </div>

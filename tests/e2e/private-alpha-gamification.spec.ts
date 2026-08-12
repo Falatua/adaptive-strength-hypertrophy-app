@@ -59,7 +59,7 @@ test('keeps destination context and primary mobile actions in view', async ({ pa
   await page.getByRole('button', { name: 'Library', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'One movement. One history.' })).toBeVisible()
   expect(await page.evaluate(() => window.scrollY)).toBe(0)
-  if (testInfo.project.name === 'mobile-chromium') await expect(page.getByPlaceholder('Search names, aliases, roles, equipment...')).toBeInViewport()
+  if (testInfo.project.name === 'mobile-chromium') await expect(page.getByPlaceholder('Search a movement or its other names...')).toBeInViewport()
 
   await page.getByRole('button', { name: 'Today', exact: true }).click()
   await page.getByRole('button', { name: 'Start without check-in' }).click()

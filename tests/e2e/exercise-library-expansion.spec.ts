@@ -15,7 +15,7 @@ test('finds leg press in the expanded library and replaces a squat through full-
   await enterCleanProfile(page)
 
   await page.getByRole('button', { name: 'Library', exact: true }).click()
-  const librarySearch = page.getByPlaceholder('Search names, aliases, roles, equipment...')
+  const librarySearch = page.getByPlaceholder('Search a movement or its other names...')
   await librarySearch.fill('leg press')
   await expect(page.getByRole('heading', { name: '45-Degree Leg Press' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Horizontal Leg Press' })).toBeVisible()
