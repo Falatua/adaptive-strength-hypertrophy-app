@@ -1,4 +1,25 @@
+import { useEffect, useState } from 'react'
 import type { AthleteForm } from '../domain/athlete-level-engine'
+
+interface SpritePack { name: string; stages: { stage: AthleteForm; file: string }[] }
+
+/**
+ * An optional sprite pack installed locally by the athlete. The folder is gitignored, so a pack never
+ * enters the repository or the published site: it is personal art for the machine it was installed on.
+ * When no pack is present, and on every public build, the original drawn forms are used instead.
+ */
+function useSpritePack(): SpritePack | null {
+  const [pack, setPack] = useState<SpritePack | null>(null)
+  useEffect(() => {
+    let active = true
+    fetch(`${import.meta.env.BASE_URL}sprite-pack/manifest.json`)
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => { if (active && data?.stages?.length) setPack(data as SpritePack) })
+      .catch(() => undefined)
+    return () => { active = false }
+  }, [])
+  return pack
+}
 
 interface PixelAvatarProps {
   mood?: 'ready' | 'strong' | 'rest' | 'celebrate'
@@ -15,6 +36,17 @@ interface PixelAvatarProps {
  * navigation size. Nothing here references another product's characters.
  */
 export function PixelAvatar({ mood = 'ready', size = 'medium', form = 'apprentice', level }: PixelAvatarProps) {
+  const pack = useSpritePack()
+  const packStage = pack?.stages.find((entry) => entry.stage === form)
+  if (packStage) {
+    return (
+      <div className={`pixel-avatar pixel-avatar--${size} pixel-avatar--${form} pixel-avatar--packed`} aria-label={`Athlete avatar, ${form} form${typeof level === 'number' ? `, level ${level}` : ''}`} role="img">
+        <img src={`${import.meta.env.BASE_URL}sprite-pack/${packStage.file}`} alt="" />
+        {typeof level === 'number' && <span className="pixel-avatar__level" aria-hidden="true">{level}</span>}
+      </div>
+    )
+  }
+
   const build = {
     apprentice: { torso: { x: 48, width: 64 }, arm: { width: 16, y: 88, height: 32 }, shoulder: 0, legX: 40 },
     forged: { torso: { x: 44, width: 72 }, arm: { width: 20, y: 86, height: 36 }, shoulder: 6, legX: 38 },

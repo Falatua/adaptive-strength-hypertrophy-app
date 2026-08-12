@@ -56,7 +56,7 @@ export function buildAddedSet(input: { sets: SetPrescription[]; id: string }): S
 }
 
 /**
- * An added movement enters as optional tertiary work and never takes the primary role. The primary anchor is where placement verification
+ * An added movement enters as optional tertiary work and never takes the primary role. The primary movement is where placement verification
  * reads its first completed set, so athlete-added work must not be able to become the evidence a
  * route decision rests on. Prescription repeats the latest exact exposure when one exists and stays
  * an explicit unloaded calibration when it does not.

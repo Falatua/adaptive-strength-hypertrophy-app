@@ -18,7 +18,7 @@ import { MOVEMENT_NOTE_MAX_LENGTH, movementNotesForExercise } from '../domain/mo
 import { sessionExtensionGate } from '../domain/session-extension-engine'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
-  primary: 'Primary anchor',
+  primary: 'Primary movement',
   secondary: 'Secondary builder',
   accessory: 'Accessory',
   tertiary: 'Optional tertiary'
@@ -443,7 +443,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         </div>
       </Modal>
 
-      <Modal open={addMovementOpen} onClose={() => { setAddMovementOpen(false); setAddSearch('') }} title="Add a movement to today" description="Extra work you choose because you feel good. It is added as optional accessory work, never as the session's primary anchor, so it cannot become the evidence a route decision rests on." wide>
+      <Modal open={addMovementOpen} onClose={() => { setAddMovementOpen(false); setAddSearch('') }} title="Add a movement to today" description="Extra work you choose because you feel good. It is added as optional accessory work, never as the session's primary movement, so it cannot become the evidence a route decision rests on." wide>
         <label className="add-movement-search">
           <span className="field-label">Search every movement available at {activeEquipmentProfile.name}</span>
           <input className="swap-library-search" type="search" value={addSearch} onChange={(event) => setAddSearch(event.target.value)} placeholder="Name, muscle, pattern, or equipment" aria-label="Search movements to add" />

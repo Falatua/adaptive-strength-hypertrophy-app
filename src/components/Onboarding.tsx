@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, ArrowRight, BrainCircuit, CalendarClock, Check, Dumbbell, Gauge, ShieldCheck, Sparkles } from 'lucide-react'
+import { AlertTriangle, ArrowRight, BrainCircuit, CalendarClock, Check, Dumbbell, Gauge, Layers, ShieldCheck, Sparkles } from 'lucide-react'
 import { applyPlacementDecision, buildPlacementAssessment, placementRouteLabels } from '../domain/placement-engine'
 import { routeSessionProfile } from '../domain/route-session-engine'
 import { exerciseEquipmentFit } from '../domain/equipment-engine'
 import { buildPlacementHistoryEvidence } from '../domain/placement-history-engine'
 import type { MovementPlacementInput, PlacementDecision, PlacementGoal, PlacementHistoryAcceptedField, PlacementInputs, PlacementPainState } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
+import { trainingSplitFor } from '../domain/split-engine'
 import { PixelAvatar } from './PixelAvatar'
 
 const goals: Array<{ id: PlacementGoal; label: string }> = [
@@ -190,7 +191,8 @@ export function Onboarding() {
 
         {step === 2 && <section>
           <p className="eyebrow">03 · Real-life capacity and constraints</p><h2>What can training support now?</h2><p className="muted">The plan uses realistic opportunities, available equipment, and known restrictions.</p>
-          <label className="field-label">Training opportunities each week</label><div className="choice-row">{[2, 3, 4, 5].map((item) => <button key={item} className={opportunities === item ? 'selected' : ''} onClick={() => setOpportunities(item)}>{item}×</button>)}</div>
+          <label className="field-label">Training opportunities each week</label><div className="choice-row">{[2, 3, 4, 5, 6].map((item) => <button key={item} className={opportunities === item ? 'selected' : ''} onClick={() => setOpportunities(item)}>{item}×</button>)}</div>
+          <p className="split-preview"><Layers size={15} /> <span><strong>{trainingSplitFor(opportunities).label}.</strong> {trainingSplitFor(opportunities).reasons[0]}</span></p>
           <label className="field-label">Usual time per session</label><div className="choice-row">{times.map((item) => <button key={item} className={minutes === item ? 'selected' : ''} onClick={() => setMinutes(item)}>{item}m</button>)}</div>
           <label className="field-label">Usual training location</label><div className="choice-row onboarding-equipment">{equipmentProfiles.map((profile) => <button key={profile.id} className={equipmentProfileId === profile.id ? 'selected' : ''} onClick={() => setEquipmentProfileId(profile.id)}>{profile.name}<small>{profile.equipment.length} items</small></button>)}</div>
           <label className="field-label">Recent training continuity</label><div className="stacked-choices">{([

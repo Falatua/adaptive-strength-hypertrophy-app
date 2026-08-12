@@ -14,14 +14,14 @@ export const setStructureLabels: Record<SetGroupKind, string> = {
 }
 
 /**
- * None of these techniques belong on the primary anchor. The anchor is where placement verification
+ * None of these techniques belong on the primary movement. The primary movement is where placement verification
  * reads its first completed set and where the exact progression clock lives, so its exposures have to
  * stay clean and comparable. The literature also positions all three as secondary strategies for
  * accumulating volume efficiently, not as ways to perform the main strength lift.
  */
 export function structureAllowedForRole(role: ExerciseRole, kind: SetGroupKind): StructureGate {
   if (role === 'primary') {
-    return { allowed: false, reason: `${setStructureLabels[kind]}s are not used on the primary anchor. Its exposures stay clean so progression and route evidence remain comparable.` }
+    return { allowed: false, reason: `${setStructureLabels[kind]}s are not used on the primary movement. Its exposures stay clean so progression and route evidence remain comparable.` }
   }
   if (role === 'secondary' && kind !== 'superset') {
     return { allowed: false, reason: `${setStructureLabels[kind]}s are an accessory and tertiary tool. Secondary work still drives the primary, so it keeps straight sets.` }

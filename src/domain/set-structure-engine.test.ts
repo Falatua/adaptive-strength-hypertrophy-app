@@ -10,11 +10,11 @@ const movement = (id: string, primaryRegion: Exercise['primaryRegion'], pattern:
 const topSet: SetPrescription = { id: 'set-1', targetLoad: 100, targetReps: 10, targetRir: 2, completed: false }
 
 describe('structureAllowedForRole', () => {
-  it('never allows a technique on the primary anchor', () => {
+  it('never allows a technique on the primary movement', () => {
     for (const kind of ['superset', 'drop-set', 'myo-reps'] as const) {
       const gate = structureAllowedForRole('primary', kind)
       expect(gate.allowed).toBe(false)
-      expect(gate.reason).toContain('primary anchor')
+      expect(gate.reason).toContain('primary movement')
     }
   })
 

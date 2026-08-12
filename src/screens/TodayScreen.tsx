@@ -103,7 +103,7 @@ export function TodayScreen() {
         ? `${progression.nextSets} sets`
         : progression.title
   const progressionEvidence = `${progression.confidence} confidence · ${primaryHistory.length} exact source set${primaryHistory.length === 1 ? '' : 's'}`
-  const heroObjective = `${primaryExercise?.name ?? 'The primary anchor'} leads today. ${progression.title}.`
+  const heroObjective = `${primaryExercise?.name ?? 'The primary movement'} leads today. ${progression.title}.`
   const whyReasons = nextSession?.generation
     ? [
         { title: `${routeLabel} route`, detail: nextSession.generation.strategy },
@@ -227,7 +227,7 @@ export function TodayScreen() {
           {equipmentGaps.length > 0 && <button className="equipment-gate-callout" onClick={() => { setPendingStart(null); setEquipmentGateOpen(true) }}><AlertTriangle size={19} /><span><strong>{equipmentGaps.length} movement{equipmentGaps.length === 1 ? '' : 's'} need equipment review</strong><small>{activeEquipmentProfile.name} is missing required items. Unavailable sets cannot be logged until each movement is changed or the profile is corrected.</small></span><ChevronRight size={18} /></button>}
           <div className="anchor-prescription">
             <div className="anchor-prescription__icon"><Dumbbell size={24} /></div>
-            <div><span>Primary anchor</span><strong>{primaryExercise?.name}</strong><small>{primaryPlan?.sets.length} sets × {primaryPlan?.sets[0]?.targetReps} reps · {primaryPlan?.sets[0]?.targetLoad} {settings.units} · {primaryPlan?.sets[0]?.targetRir} RIR</small></div>
+            <div><span>Primary movement</span><strong>{primaryExercise?.name}</strong><small>{primaryPlan?.sets.length} sets × {primaryPlan?.sets[0]?.targetReps} reps · {primaryPlan?.sets[0]?.targetLoad} {settings.units} · {primaryPlan?.sets[0]?.targetRir} RIR</small></div>
             <div className="anchor-prescription__decision"><span>{progression.action}</span><strong>{progression.title}</strong></div>
           </div>
           <div className="hero-workout__actions">

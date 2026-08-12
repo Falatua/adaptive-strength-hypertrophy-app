@@ -1323,7 +1323,7 @@ test('lets the athlete add sets and movements on a good day without rewriting th
   await expect(addedRow.locator('.set-number')).toContainText('+')
   await expect(addedRow.locator('input[type="number"]').first()).toHaveValue(lastLoad)
 
-  // A movement added mid-session is optional accessory work, never the primary anchor.
+  // A movement added mid-session is optional accessory work, never the primary movement.
   await extraWork.getByRole('button', { name: 'Add a movement' }).click()
   await page.getByLabel('Search movements to add').fill('curl')
   const option = page.locator('.add-movement-option').first()
@@ -1409,7 +1409,7 @@ test('performs accessory volume as drop sets and supersets while protecting the 
   await page.getByRole('button', { name: 'Today', exact: true }).click()
   await page.getByRole('button', { name: 'Start without check-in' }).click()
 
-  // The primary anchor never offers a technique, because its exposures carry route evidence.
+  // The primary movement never offers a technique, because its exposures carry route evidence.
   const anchorCard = page.locator('.exercise-card--primary').first()
   await expect(anchorCard.getByRole('button', { name: 'Technique' })).toHaveCount(0)
 
