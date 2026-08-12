@@ -171,8 +171,8 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .pixel-avatar__level { position: absolute; top: 2%; right: 0; display: grid; place-items: center; min-width: 26%; aspect-ratio: 1; padding: 0 4px; border: 2px solid var(--surface); border-radius: 999px; background: var(--lime); color: #1b2016; font: 800 clamp(.58rem, 2.6vw, .9rem)/1 ui-monospace, monospace; box-shadow: 0 2px 0 rgb(0 0 0 / 30%); }
 .pixel-avatar--small .pixel-avatar__level { top: -6px; right: -6px; min-width: 18px; border-width: 2px; font-size: .56rem; }
 .pixel-aura rect { fill: var(--lime); opacity: .55; }
-.pixel-avatar--packed { display: grid; place-items: center; }
-.pixel-avatar--packed img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.pixel-avatar img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; display: block; }
+.pixel-avatar--celebrate img { filter: drop-shadow(0 0 6px rgb(231 255 88 / 55%)); }
 .pixel-avatar--champion .pixel-shirt { fill: #3c4a2e; }
 .pixel-avatar--apex .pixel-shirt { fill: #47301f; }
 .pixel-avatar--apex .pixel-accent { fill: var(--lime); }
