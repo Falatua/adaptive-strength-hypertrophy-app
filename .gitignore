@@ -9,5 +9,3 @@ output/
 test-results/
 playwright-report/
 
-# Personal sprite packs stay local. This repository and its site are public.
-public/sprite-pack/
