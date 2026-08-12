@@ -20,7 +20,7 @@ import { PixelAvatar } from '../components/PixelAvatar'
 import { StatCard } from '../components/StatCard'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { filterMuscleDose, filterPlannedMuscleDose, muscleDoseFor, plannedMuscleDoseFor, type MuscleDoseLens } from '../domain/muscle-dose'
-import { decideMuscleVolume, summarizeMuscleFeedback, volumeZone } from '../domain/volume-progression-engine'
+import { decideMuscleVolume, forecastDeload, summarizeMuscleFeedback, volumeZone } from '../domain/volume-progression-engine'
 import type { MuscleId, RecordCategory } from '../domain/types'
 import { buildCalendarMonth, buildExerciseExposureSequence, buildFixedEventCountdown, calendarDayKey } from '../domain/timeline-engine'
 
@@ -31,6 +31,8 @@ export function ProgressScreen() {
   const [range, setRange] = useState<ProgressRange>('28d')
   const [bodyLens, setBodyLens] = useState<BodyLens>('region')
   const [muscleLens, setMuscleLens] = useState<MuscleDoseLens>('all')
+  // Captured once so render stays pure and every derived window agrees on the same instant.
+  const [nowMs] = useState(() => Date.now())
   const [selectedMuscle, setSelectedMuscle] = useState<MuscleId | null>(null)
   const [recordCategory, setRecordCategory] = useState<RecordCategory | 'all'>('all')
   const [timelineAxis, setTimelineAxis] = useState<TimelineAxis>('calendar')
@@ -77,9 +79,9 @@ export function ProgressScreen() {
   // without the athlete acting on it, and an unanswered round holds rather than guessing.
   const volumePlan = useMemo(() => {
     const activePlan = mesocycles.find((plan) => plan.status === 'active')
-    const now = new Date()
-    const currentWindowStart = new Date(now.getTime() - 7 * 86_400_000)
-    const priorWindowStart = new Date(now.getTime() - 14 * 86_400_000)
+    const now = new Date(nowMs)
+    const currentWindowStart = new Date(nowMs - 7 * 86_400_000)
+    const priorWindowStart = new Date(nowMs - 14 * 86_400_000)
     const weeklySets = new Map(muscleDoseFor(history.filter((workSet) => new Date(workSet.completedAt) >= currentWindowStart), exerciseCatalog).muscles.map((point) => [point.muscle, point.directDose]))
     return filterMuscleDose(muscleDose.muscles, muscleLens)
       .filter((point) => point.sourceSetCount > 0)
@@ -99,7 +101,31 @@ export function ProgressScreen() {
         return { point, decision, zone: volumeZone(currentSets, decision.landmarks), attribution: feedback.attribution ?? 'attributed' }
       })
       .sort((a, b) => Math.abs(b.decision.setChange) - Math.abs(a.decision.setChange) || a.point.label.localeCompare(b.point.label))
-  }, [athlete.placement, exerciseCatalog, history, mesocycles, muscleDose.muscles, muscleLens, sessions, surveys])
+  }, [athlete.placement, exerciseCatalog, history, mesocycles, muscleDose.muscles, muscleLens, nowMs, sessions, surveys])
+
+  // A deload is worth most when taken just before performance slides, so the forecast is offered
+  // rather than imposed. Weeks with no training built no fatigue and push the timing back.
+  const deload = useMemo(() => {
+    const activePlan = mesocycles.find((plan) => plan.status === 'active')
+    if (!activePlan) return null
+    const planSessions = sessions.filter((session) => session.mesocycleId === activePlan.id)
+    const weeksElapsed = Math.max(1, Math.ceil((nowMs - new Date(activePlan.effectiveAt).getTime()) / (7 * 86_400_000)))
+    const trainedWeeks = new Set(planSessions.filter((session) => session.status === 'completed').map((session) => Math.floor((new Date(session.plannedDate).getTime() - new Date(activePlan.effectiveAt).getTime()) / (7 * 86_400_000))))
+    const postAnswers = (id: string) => surveys.filter((survey) => survey.type === 'post').flatMap((survey) => {
+      const answer = survey.answers.find((candidate) => candidate.id === id && candidate.status === 'answered')
+      return typeof answer?.value === 'number' ? [answer.value] : []
+    })
+    const average = (values: number[]) => values.length ? values.reduce((total, value) => total + value, 0) / values.length : null
+    return forecastDeload({
+      weeksSinceLastDeload: weeksElapsed,
+      missedWeeks: Math.max(0, weeksElapsed - trainedWeeks.size),
+      blockLength: activePlan.targetMicrocycles,
+      musclesAtCeiling: volumePlan.filter((entry) => entry.zone === 'over-ceiling' || entry.zone === 'near-ceiling').length,
+      musclesLosingPerformance: volumePlan.filter((entry) => entry.decision.action === 'reduce-sets' || entry.decision.reasons[0]?.includes('performance dropped')).length,
+      averageEndFatigue: average(postAnswers('endFatigue')),
+      motivation: average(postAnswers('motivation'))
+    })
+  }, [mesocycles, nowMs, sessions, surveys, volumePlan])
   const calendarView = useMemo(() => buildCalendarMonth({ sessions, history, missedOpportunityEvents, month: calendarCursor }), [calendarCursor, history, missedOpportunityEvents, sessions])
   const selectedCalendarDay = calendarView.days.find((day) => day.key === selectedCalendarDayKey) ?? calendarView.days.find((day) => day.inSelectedMonth)!
   const exposureOptions = useMemo(() => {
@@ -266,6 +292,13 @@ export function ProgressScreen() {
           </aside>
         </div> : <div className="compact-empty"><Layers3 size={24} /><strong>No mapped muscle dose in this lens</strong><p>Choose another area or complete a built-in movement. Unknown mappings remain unknown.</p></div>}
         {muscleDose.unmappedSourceSetCount > 0 && <div className="muscle-unmapped" role="note"><strong>{muscleDose.unmappedSourceSetCount} unmapped source {muscleDose.unmappedSourceSetCount === 1 ? 'set' : 'sets'}</strong><span>{muscleDose.unmappedExerciseNames.join(', ')}. These sets remain in completed volume but receive no inferred muscle credit.</span></div>}
+        {deload && (
+          <div className={`deload-forecast deload-forecast--${deload.urgency}`} aria-label="Deload forecast">
+            <div><p className="eyebrow">Deload v1</p><h4>{deload.urgency === 'not-yet' ? 'No deload needed yet' : deload.urgency === 'approaching' ? 'A deload is close' : deload.urgency === 'due' ? 'This is the week to deload' : 'Deload is past due'}</h4></div>
+            <ul>{deload.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+            <small>{deload.athleteChoice ? 'You choose when to take it. Sets drop to the least that holds the adaptation, reps roughly halve, and load holds before halving for the back half of the week.' : 'The evidence says this one should not wait any longer.'}</small>
+          </div>
+        )}
         {volumePlan.length > 0 && (
           <div className="volume-plan" aria-label="Weekly volume progression">
             <div className="volume-plan__heading">

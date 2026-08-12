@@ -261,3 +261,160 @@ export function summarizeMuscleFeedback(input: {
     attribution: pump.exact || targetStimulus.exact ? 'exact' : 'attributed'
   }
 }
+
+export const DELOAD_RULE = 'deload-v1'
+
+export interface DeloadPrescription {
+  ruleVersion: typeof DELOAD_RULE
+  sets: number
+  firstHalfLoad: number
+  secondHalfLoad: number
+  reps: number
+  minimumRir: number
+  notes: string[]
+}
+
+/**
+ * A deload is not simply less volume. Following the Renaissance Periodization prescription, sets drop
+ * to the minimum effective volume, repetitions fall to roughly half of the block's opening week, and
+ * load holds at the opening week's weight for the first half of the week before halving for the
+ * second. Effort stays far from failure, because hard training does not remove fatigue.
+ */
+export function deloadPrescription(input: {
+  muscle: MuscleId
+  volumeTolerance: number | null
+  openingWeekLoad: number
+  openingWeekReps: number
+}): DeloadPrescription {
+  const landmarks = landmarksFor(input.muscle, input.volumeTolerance)
+  const round = (value: number) => Math.max(0, Math.round(value))
+  return {
+    ruleVersion: DELOAD_RULE,
+    sets: landmarks.mev,
+    firstHalfLoad: round(input.openingWeekLoad),
+    secondHalfLoad: round(input.openingWeekLoad / 2),
+    reps: Math.max(1, round(input.openingWeekReps / 2)),
+    minimumRir: 4,
+    notes: [
+      `Sets drop to ${landmarks.mev} for the week, which is the least that still holds the adaptation.`,
+      'Reps are about half of the block\'s first week, and load holds at that first week\'s weight before halving for the back half.',
+      'Stay at least four reps short of failure. Hard training does not remove fatigue, and the point is to arrive at the next block wanting to train.'
+    ]
+  }
+}
+
+export type DeloadUrgency = 'not-yet' | 'approaching' | 'due' | 'overdue'
+
+export interface DeloadForecast {
+  ruleVersion: typeof DELOAD_RULE
+  urgency: DeloadUrgency
+  weeksTrained: number
+  weeksUntilDue: number
+  missedWeeks: number
+  reasons: string[]
+  athleteChoice: boolean
+}
+
+/**
+ * Deloads are best taken just before the athlete hits the wall rather than after. Blocks typically run
+ * five to six weeks, so the forecast starts there and then corrects for what actually happened: weeks
+ * with no training accumulated no fatigue, so they push the deload later rather than counting toward
+ * it, and evidence of not recovering pulls it earlier.
+ *
+ * The result is an offer, not an instruction. The athlete chooses when to take it unless the evidence
+ * says they are already past due.
+ */
+export function forecastDeload(input: {
+  weeksSinceLastDeload: number
+  missedWeeks: number
+  blockLength?: number
+  musclesAtCeiling: number
+  musclesLosingPerformance: number
+  averageEndFatigue: number | null
+  motivation: number | null
+}): DeloadForecast {
+  const blockLength = Math.max(3, Math.min(8, input.blockLength ?? 6))
+  // Weeks with no training built no fatigue, so they do not count toward the block.
+  const weeksTrained = Math.max(0, input.weeksSinceLastDeload - input.missedWeeks)
+  const reasons: string[] = []
+  if (input.missedWeeks > 0) {
+    reasons.push(`${input.missedWeeks} week${input.missedWeeks === 1 ? '' : 's'} without training built no fatigue, so the deload moves back rather than arriving on the calendar.`)
+  }
+
+  let pull = 0
+  if (input.musclesLosingPerformance >= 2) {
+    pull += 1
+    reasons.push(`${input.musclesLosingPerformance} muscles are losing performance, which usually shows up a week before everything else does.`)
+  }
+  if (input.musclesAtCeiling >= 2) {
+    pull += 1
+    reasons.push(`${input.musclesAtCeiling} muscles are already at the volume you can recover from.`)
+  }
+  if (input.averageEndFatigue !== null && input.averageEndFatigue >= 4) {
+    pull += 1
+    reasons.push('End-of-session fatigue has been running high across recent sessions.')
+  }
+  if (input.motivation !== null && input.motivation <= 2) {
+    pull += 1
+    reasons.push('Motivation to train has dropped, which is a fatigue signal as much as a mood one.')
+  }
+
+  // Evidence can pull a deload forward, but only so far. Letting it collapse the block would take the
+  // timing decision away from the athlete, and choosing when to deload is most of what makes them take
+  // it at all. The floor keeps the offer an offer.
+  const effectiveLength = Math.max(4, blockLength - Math.min(2, pull))
+  const weeksUntilDue = effectiveLength - weeksTrained
+  const urgency: DeloadUrgency = weeksUntilDue <= -1 ? 'overdue' : weeksUntilDue <= 0 ? 'due' : weeksUntilDue === 1 ? 'approaching' : 'not-yet'
+
+  if (urgency === 'not-yet') reasons.push(`Week ${weeksTrained} of about ${effectiveLength}. Keep training.`)
+  if (urgency === 'approaching') reasons.push('One more hard week looks right, then take the deload before performance starts sliding.')
+  if (urgency === 'due') reasons.push('This is the week to deload. Taking it now costs one easy week instead of three bad ones.')
+  if (urgency === 'overdue') reasons.push('The deload is past due on the evidence recorded so far.')
+
+  return {
+    ruleVersion: DELOAD_RULE,
+    urgency,
+    weeksTrained,
+    weeksUntilDue,
+    missedWeeks: input.missedWeeks,
+    reasons,
+    athleteChoice: urgency !== 'overdue'
+  }
+}
+
+/**
+ * Landmarks are a starting reference until the athlete's own response corrects them. Recovering well at
+ * the ceiling across two consecutive blocks raises it, because one good week is noise. A genuine
+ * failure to recover lowers it after a single occurrence, because the cost of carrying a ceiling that
+ * is too high is far greater than the cost of one conservative block.
+ */
+export function learnedCeiling(input: {
+  muscle: MuscleId
+  volumeTolerance: number | null
+  storedAdjustment: number
+  consecutiveRecoveredAtCeiling: number
+  failedToRecover: boolean
+}): { mrv: number; adjustment: number; reason: string | null } {
+  const base = landmarksFor(input.muscle, input.volumeTolerance)
+  const bounded = (value: number) => Math.max(-6, Math.min(6, value))
+  if (input.failedToRecover) {
+    const adjustment = bounded(input.storedAdjustment - 2)
+    return { mrv: Math.max(base.mev, base.mrv + adjustment), adjustment, reason: 'Volume at the ceiling was not recovered from, so the ceiling comes down now rather than after another bad block.' }
+  }
+  if (input.consecutiveRecoveredAtCeiling >= 2) {
+    const adjustment = bounded(input.storedAdjustment + 1)
+    return { mrv: base.mrv + adjustment, adjustment, reason: 'Two consecutive blocks recovered well at the ceiling, so it rises by one set.' }
+  }
+  return { mrv: base.mrv + input.storedAdjustment, adjustment: input.storedAdjustment, reason: null }
+}
+
+/**
+ * Weekly totals are only comparable when the same amount of training happened. A week with missed
+ * sessions produced less volume for reasons that have nothing to do with the athlete's response, so
+ * sets are compared per completed session rather than raw.
+ */
+export function scaleForCompletedSessions(sets: number, completedSessions: number, plannedSessions: number): number {
+  if (completedSessions <= 0 || plannedSessions <= 0) return sets
+  if (completedSessions >= plannedSessions) return sets
+  return Math.round(sets * (plannedSessions / completedSessions))
+}

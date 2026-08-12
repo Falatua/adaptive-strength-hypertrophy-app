@@ -54,7 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar__footer">
           <Sparkles size={16} />
-          <span>Rules v0.45.0<br /><small>Local-first training</small></span>
+          <span>Rules v0.46.0<br /><small>Local-first training</small></span>
         </div>
       </aside>
       <main ref={mainRef} id="main-content" className="main-content" tabIndex={-1}>{children}</main>

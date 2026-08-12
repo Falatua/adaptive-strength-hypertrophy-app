@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decideMuscleVolume, landmarksFor, summarizeMuscleFeedback, volumeZone, type MuscleFeedback } from './volume-progression-engine'
+import { decideMuscleVolume, deloadPrescription, forecastDeload, landmarksFor, learnedCeiling, scaleForCompletedSessions, summarizeMuscleFeedback, volumeZone, type MuscleFeedback } from './volume-progression-engine'
 import { muscleQuestionId } from './survey-engine'
 import { muscleIds } from './muscle-dose'
 import type { CompletedSetRecord, Exercise, MuscleId, SurveyRecord } from './types'
@@ -228,5 +228,106 @@ describe('per-muscle feedback beats the session-level fallback', () => {
   it('does not borrow another muscle\'s exact answer', () => {
     const result = read({ [muscleQuestionId('targetStimulus', 'triceps')]: 5 })
     expect(result.targetStimulus).toBeNull()
+  })
+})
+
+describe('deloadPrescription', () => {
+  const prescribed = deloadPrescription({ muscle: 'pectorals', volumeTolerance: 3, openingWeekLoad: 200, openingWeekReps: 10 })
+
+  it('drops sets to the minimum effective volume', () => {
+    expect(prescribed.sets).toBe(landmarksFor('pectorals', 3).mev)
+  })
+
+  it('halves reps and holds load before halving it for the back half of the week', () => {
+    expect(prescribed.reps).toBe(5)
+    expect(prescribed.firstHalfLoad).toBe(200)
+    expect(prescribed.secondHalfLoad).toBe(100)
+  })
+
+  it('keeps effort far from failure, because hard training does not remove fatigue', () => {
+    expect(prescribed.minimumRir).toBeGreaterThanOrEqual(4)
+    expect(prescribed.notes.join(' ')).toContain('does not remove fatigue')
+  })
+
+  it('never prescribes a rep target below one', () => {
+    expect(deloadPrescription({ muscle: 'pectorals', volumeTolerance: 3, openingWeekLoad: 100, openingWeekReps: 1 }).reps).toBe(1)
+  })
+})
+
+describe('forecastDeload', () => {
+  const base = { weeksSinceLastDeload: 3, missedWeeks: 0, musclesAtCeiling: 0, musclesLosingPerformance: 0, averageEndFatigue: 2, motivation: 4 }
+
+  it('holds early in a block', () => {
+    expect(forecastDeload(base).urgency).toBe('not-yet')
+  })
+
+  it('flags the week before the wall rather than after it', () => {
+    expect(forecastDeload({ ...base, weeksSinceLastDeload: 5 }).urgency).toBe('approaching')
+    expect(forecastDeload({ ...base, weeksSinceLastDeload: 6 }).urgency).toBe('due')
+  })
+
+  it('pushes the deload back for weeks that built no fatigue', () => {
+    const missed = forecastDeload({ ...base, weeksSinceLastDeload: 6, missedWeeks: 1 })
+    expect(missed.urgency).toBe('approaching')
+    expect(missed.weeksTrained).toBe(5)
+    expect(missed.reasons[0]).toContain('built no fatigue')
+  })
+
+  it('pulls the deload earlier when fatigue evidence stacks up', () => {
+    const early = forecastDeload({ ...base, weeksSinceLastDeload: 4, musclesLosingPerformance: 3, musclesAtCeiling: 2, averageEndFatigue: 5 })
+    expect(early.urgency).toBe('due')
+    expect(early.reasons.some((reason) => reason.includes('losing performance'))).toBe(true)
+  })
+
+  it('reads dropped motivation as a fatigue signal', () => {
+    expect(forecastDeload({ ...base, motivation: 1 }).reasons.some((reason) => reason.includes('Motivation'))).toBe(true)
+  })
+
+  it('leaves the timing to the athlete until it is genuinely past due', () => {
+    expect(forecastDeload({ ...base, weeksSinceLastDeload: 6 }).athleteChoice).toBe(true)
+    expect(forecastDeload({ ...base, weeksSinceLastDeload: 9 }).athleteChoice).toBe(false)
+  })
+})
+
+describe('learnedCeiling', () => {
+  const base = { muscle: 'pectorals' as const, volumeTolerance: 3, storedAdjustment: 0 }
+
+  it('holds the reference ceiling on a single good block', () => {
+    const result = learnedCeiling({ ...base, consecutiveRecoveredAtCeiling: 1, failedToRecover: false })
+    expect(result.adjustment).toBe(0)
+    expect(result.reason).toBeNull()
+  })
+
+  it('raises the ceiling after two consecutive blocks recovered at it', () => {
+    const result = learnedCeiling({ ...base, consecutiveRecoveredAtCeiling: 2, failedToRecover: false })
+    expect(result.adjustment).toBe(1)
+    expect(result.mrv).toBe(landmarksFor('pectorals', 3).mrv + 1)
+  })
+
+  it('lowers the ceiling immediately on a genuine failure to recover', () => {
+    const result = learnedCeiling({ ...base, consecutiveRecoveredAtCeiling: 5, failedToRecover: true })
+    expect(result.adjustment).toBe(-2)
+    expect(result.reason).toContain('comes down now')
+  })
+
+  it('never learns its way past a sane bound or below the minimum effective volume', () => {
+    expect(learnedCeiling({ ...base, storedAdjustment: 6, consecutiveRecoveredAtCeiling: 2, failedToRecover: false }).adjustment).toBe(6)
+    const floored = learnedCeiling({ ...base, storedAdjustment: -6, consecutiveRecoveredAtCeiling: 0, failedToRecover: true })
+    expect(floored.mrv).toBeGreaterThanOrEqual(landmarksFor('pectorals', 3).mev)
+  })
+})
+
+describe('scaleForCompletedSessions', () => {
+  it('scales a partial week up so it compares against a full one', () => {
+    expect(scaleForCompletedSessions(6, 2, 3)).toBe(9)
+  })
+
+  it('leaves a complete week untouched', () => {
+    expect(scaleForCompletedSessions(9, 3, 3)).toBe(9)
+    expect(scaleForCompletedSessions(9, 4, 3)).toBe(9)
+  })
+
+  it('does not invent volume from a week with no completed sessions', () => {
+    expect(scaleForCompletedSessions(0, 0, 3)).toBe(0)
   })
 })
