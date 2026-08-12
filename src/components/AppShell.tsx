@@ -1,5 +1,6 @@
 import { BarChart3, CalendarRange, Dumbbell, LibraryBig, Sparkles, UserRound } from 'lucide-react'
 import { useEffect, useRef, type ReactNode } from 'react'
+import { BACKUP_APP_VERSION } from '../domain/backup'
 import type { NavKey } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { athleteLevel } from '../domain/athlete-level-engine'
@@ -56,7 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar__footer">
           <Sparkles size={16} />
-          <span>ForgePath 0.50<br /><small>Saved on this device</small></span>
+          <span>ForgePath {BACKUP_APP_VERSION}<br /><small>Saved on this device</small></span>
         </div>
       </aside>
       <main ref={mainRef} id="main-content" className="main-content" tabIndex={-1}>{children}</main>
