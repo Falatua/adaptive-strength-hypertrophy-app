@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Pause, Play, Plus, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, Trophy } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Layers, Pause, Play, Plus, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
@@ -11,6 +11,7 @@ import { SurveyModeChooser } from '../components/SurveyModeChooser'
 import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '../domain/equipment-engine'
 import { placementRouteLabels } from '../domain/placement-engine'
 import { effortDisplayFor, routeSessionProfile, rpeToRir } from '../domain/route-session-engine'
+import { canPairForSuperset, setStructureLabels, structureAllowedForRole } from '../domain/set-structure-engine'
 import { playForgeSound } from '../services/sound-engine'
 import { MOVEMENT_NOTE_MAX_LENGTH, movementNotesForExercise } from '../domain/movement-note-engine'
 import { sessionExtensionGate } from '../domain/session-extension-engine'
@@ -23,7 +24,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, equipmentProfiles, history, movementNotes, settings, placementVerifications, updateSet, updateMovementNote, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, addSetToExercise, addMovementToSession, finishSession, leaveActiveSession, setNotice } = useAppStore()
+  const { sessions, exercises, equipmentProfiles, history, movementNotes, settings, placementVerifications, updateSet, updateMovementNote, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession, setNotice } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
@@ -42,6 +43,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const [addMovementOpen, setAddMovementOpen] = useState(false)
   const [addSearch, setAddSearch] = useState('')
   const [extensionError, setExtensionError] = useState<string | null>(null)
+  const [structureTarget, setStructureTarget] = useState<PlannedExercise | null>(null)
+  const [structureError, setStructureError] = useState<string | null>(null)
   const activeSetRecords = useMemo<CompletedSetRecord[]>(() => session?.exercises.flatMap((plannedExercise) => {
     const exercise = exercises.find((candidate) => candidate.id === plannedExercise.exerciseId)
     if (!exercise) return []
@@ -186,6 +189,30 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     setAddSearch('')
   }
 
+  const applyStructure = (plannedExerciseId: string, setId: string, kind: 'drop-set' | 'myo-reps') => {
+    const result = applySetStructure(session.id, plannedExerciseId, setId, kind)
+    setStructureError(result.ok ? null : result.error ?? 'That technique could not be applied.')
+    if (result.ok) setStructureTarget(null)
+  }
+
+  const pairSuperset = (partnerId: string) => {
+    if (!structureTarget) return
+    const result = applySuperset(session.id, structureTarget.id, partnerId)
+    if (!result.ok) return setStructureError(result.error ?? 'Those movements could not be paired.')
+    setStructureError(null)
+    setStructureTarget(null)
+  }
+
+  const supersetPartners = structureTarget ? session.exercises.flatMap((candidate) => {
+    if (candidate.id === structureTarget.id) return []
+    if (!structureAllowedForRole(candidate.role, 'superset').allowed) return []
+    const a = exercises.find((item) => item.id === structureTarget.exerciseId)
+    const b = exercises.find((item) => item.id === candidate.exerciseId)
+    if (!a || !b) return []
+    const pairing = canPairForSuperset(a, b)
+    return [{ planned: candidate, exercise: b, pairing, blocked: candidate.sets.some((workSet) => workSet.grouping) }]
+  }) : []
+
   const normalizedAddSearch = addSearch.trim().toLowerCase()
   const sessionExerciseIds = new Set(session.exercises.map((planned) => planned.exerciseId))
   const addableExercises = exercises
@@ -275,6 +302,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   <div className="exercise-actions">
                     <button onClick={() => openSwap(planned)}><RefreshCcw size={16} /> Change</button>
                     {planned.role !== 'primary' && <button onClick={() => skipExercise(session.id, planned.id)}><SkipForward size={16} /> Skip</button>}
+                    {structureAllowedForRole(planned.role, 'drop-set').allowed && !planned.sets.some((workSet) => workSet.grouping) && !planned.sets.every((workSet) => workSet.completed) && <button onClick={() => { setStructureTarget(planned); setStructureError(null) }}><Layers size={16} /> Technique</button>}
+                    {planned.sets.some((workSet) => workSet.grouping) && <button onClick={() => { const groupId = planned.sets.find((workSet) => workSet.grouping)?.grouping?.groupId; if (groupId) { const result = clearSetStructure(session.id, groupId); setStructureError(result.ok ? null : result.error ?? null) } }}><RefreshCcw size={16} /> Clear technique</button>}
                   </div>
                 </div>
                 {!equipmentFit.available && <div className="equipment-block"><AlertTriangle size={18} /><span><strong>Unavailable at {activeEquipmentProfile.name}</strong><small>Missing {equipmentFit.missing.join(', ')}. Change this movement before logging a set. ForgePath will show only alternatives available in the active profile.</small></span><button onClick={() => openSwap(planned)}>Resolve</button></div>}
@@ -295,6 +324,9 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   </label>
                   <div className="movement-note-editor__meta"><small>Autosaved as you type. Notes provide context and never change progression by themselves.</small><small>{currentMovementNote?.body.length ?? 0}/{MOVEMENT_NOTE_MAX_LENGTH}</small></div>
                 </section>
+                {planned.sets.find((workSet) => workSet.grouping) && (
+                  <p className="structure-note"><Layers size={15} /> {setStructureLabels[planned.sets.find((workSet) => workSet.grouping)!.grouping!.groupKind]}. {planned.sets.find((workSet) => workSet.grouping)!.grouping!.groupKind === 'drop-set' ? 'Strip the load and keep going with no rest. The top set is what sets your next target.' : planned.sets.find((workSet) => workSet.grouping)!.grouping!.groupKind === 'myo-reps' ? 'Take the first set close to failure, then rest three to five deep breaths between the short sets. The first set is what sets your next target.' : 'Alternate with its pair, resting only between rounds.'}</p>
+                )}
                 {!exactHistory.length && (
                   <p className="load-unknown-note"><Info size={15} /> No logged {exercise.name} yet, so there is no honest load to hand you. Work to the {effortDisplayFor(0, effortMetric).label} target and enter what you actually lifted. Once it is logged, the next session starts from your real number.</p>
                 )}
@@ -307,7 +339,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                     const loadUnknown = !exactHistory.length && workSet.completedLoad === undefined
                     return (
                     <div className={`set-row ${workSet.completed ? 'completed' : ''}`} role="row" key={workSet.id}>
-                      <span className="set-number">{index + 1}{workSet.athleteAdded && <em title="Added by you today">+</em>}</span>
+                      <span className="set-number">{index + 1}{workSet.athleteAdded && <em title="Added by you today">+</em>}{workSet.grouping && <b className={`set-group set-group--${workSet.grouping.groupRole}`} title={`${setStructureLabels[workSet.grouping.groupKind]}: ${workSet.grouping.groupRole}`}>{workSet.grouping.groupRole === 'drop' ? '↓' : workSet.grouping.groupRole === 'mini' ? '·' : workSet.grouping.groupRole === 'paired' ? '⇄' : '★'}</b>}</span>
                       <label><span className="sr-only">Set {index + 1} load</span><input disabled={!equipmentFit.available} type="number" inputMode="decimal" step={loadIncrementFor(exercise, activeEquipmentProfile).value} placeholder={loadUnknown ? 'Your call' : undefined} value={loadUnknown ? '' : workSet.completedLoad ?? workSet.targetLoad} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { load: Number(event.target.value) })} /><small>{settings.units}</small></label>
                       <label><span className="sr-only">Set {index + 1} repetitions</span><input disabled={!equipmentFit.available} type="number" inputMode="numeric" value={workSet.completedReps ?? workSet.targetReps} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { reps: Number(event.target.value) })} /></label>
                       <label><span className="sr-only">Set {index + 1} {effort.label === 'RPE' ? 'rate of perceived exertion' : 'repetitions in reserve'}</span><select disabled={!equipmentFit.available} value={effort.value} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { rir: effort.metric === 'rpe' ? rpeToRir(Number(event.target.value)) : Number(event.target.value) })}>{effort.options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
@@ -361,6 +393,27 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         <div><TimerReset size={18} /><span><strong>{completedSets} of {totalSets} sets complete.</strong><small>Only completed work enters volume and progression.</small></span></div>
         <button className={`button ${completedSets === totalSets && totalSets > 0 ? 'button--primary' : 'button--secondary'}`} onClick={openFinishFlow}>Finish workout <CheckCircle2 size={18} /></button>
       </footer>
+
+      <Modal open={Boolean(structureTarget)} onClose={() => { setStructureTarget(null); setStructureError(null) }} title={structureTarget ? `Change how you perform ${exercises.find((item) => item.id === structureTarget.exerciseId)?.name ?? 'this movement'}` : 'Choose a technique'} description="Same work, less clock. These accumulate volume efficiently, so they belong on accessory and tertiary work rather than the lift your progression is measured on." wide>
+        {structureError && <p className="form-error" role="alert">{structureError}</p>}
+        <div className="structure-options">
+          <button type="button" onClick={() => { const first = structureTarget?.sets.find((workSet) => !workSet.completed); if (structureTarget && first) applyStructure(structureTarget.id, first.id, 'drop-set') }}>
+            <span><strong>Drop set</strong><small>Take the set, strip roughly a fifth of the load, and keep going with no rest. Two drops are added. Equal growth to straight sets in a fraction of the time.</small></span>
+          </button>
+          <button type="button" onClick={() => { const first = structureTarget?.sets.find((workSet) => !workSet.completed); if (structureTarget && first) applyStructure(structureTarget.id, first.id, 'myo-reps') }}>
+            <span><strong>Myo-reps</strong><small>One activation set close to failure, then three short sets of three after three to five deep breaths. Most of the growth stimulus lives in those last hard reps.</small></span>
+          </button>
+        </div>
+        <div className="structure-pairing">
+          <p className="field-label">Or superset it with</p>
+          {supersetPartners.length === 0 && <p className="modal-note">No other movement in this session can pair with it yet.</p>}
+          {supersetPartners.map(({ planned: partner, exercise: partnerExercise, pairing, blocked }) => (
+            <button type="button" key={partner.id} disabled={!pairing.allowed || blocked} onClick={() => pairSuperset(partner.id)} className={pairing.allowed && !blocked ? '' : 'is-refused'}>
+              <span><strong>{partnerExercise.name}</strong><small>{blocked ? 'Already uses a technique. Clear it first.' : pairing.reason}</small></span>
+            </button>
+          ))}
+        </div>
+      </Modal>
 
       <Modal open={addMovementOpen} onClose={() => { setAddMovementOpen(false); setAddSearch('') }} title="Add a movement to today" description="Extra work you choose because you feel good. It is added as optional accessory work, never as the session's primary anchor, so it cannot become the evidence a route decision rests on." wide>
         <label className="add-movement-search">

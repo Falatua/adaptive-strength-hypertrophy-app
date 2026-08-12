@@ -1,3 +1,4 @@
+import { isComparableExposure } from './set-structure-engine'
 import type {
   CompletedSetRecord,
   ContinuityState,
@@ -58,7 +59,11 @@ interface ProgressionInput {
 }
 
 export function recommendProgression(input: ProgressionInput): ProgressionDecision {
-  const { history, targetLoad, targetReps, targetSets, repRange, increment, continuity, readiness } = input
+  const { targetLoad, targetReps, targetSets, repRange, increment, continuity, readiness } = input
+  // Drops and myo-rep mini sets are real completed work, but they are performed at a reduced load or a
+  // truncated rep target. Comparing them as ordinary exposures would read a productive technique week
+  // as a regression, so the progression signal comes only from comparable sets.
+  const history = input.history.filter((workSet) => isComparableExposure(workSet.grouping))
   const reasons: string[] = []
   if (history.length === 0) {
     return {

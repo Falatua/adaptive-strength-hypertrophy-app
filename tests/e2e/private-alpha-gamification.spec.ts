@@ -1400,3 +1400,94 @@ test('withholds a load target until the exact movement has logged history', asyn
 
   expect(browserErrors).toEqual([])
 })
+
+test('performs accessory volume as drop sets and supersets while protecting the anchor', async ({ page }) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Today', exact: true }).click()
+  await page.getByRole('button', { name: 'Start without check-in' }).click()
+
+  // The primary anchor never offers a technique, because its exposures carry route evidence.
+  const anchorCard = page.locator('.exercise-card--primary').first()
+  await expect(anchorCard.getByRole('button', { name: 'Technique' })).toHaveCount(0)
+
+  const accessoryCard = page.locator('.exercise-card--accessory, .exercise-card--tertiary').first()
+  const accessoryName = String(await accessoryCard.locator('.exercise-title h2').textContent())
+  // count() does not auto-wait, so the rows have to be on screen before they are counted.
+  await expect(accessoryCard.locator('.set-row').first()).toBeVisible()
+  const setsBefore = await accessoryCard.locator('.set-row').count()
+  await accessoryCard.getByRole('button', { name: 'Technique' }).click()
+  await page.getByRole('button', { name: /Drop set/ }).click()
+
+  // Two drops are added below the top set, each lighter than the last.
+  await expect(accessoryCard.locator('.set-row')).toHaveCount(setsBefore + 2)
+  await expect(accessoryCard).toContainText('The top set is what sets your next target')
+  // Each row holds a load input and a reps input, so read only the first per row.
+  const loads = await accessoryCard.locator('.set-row').evaluateAll((rows) => rows.map((row) => Number((row.querySelector('input[type="number"]') as HTMLInputElement).value)))
+  // A movement with a real target strips load on each drop. One with no target yet stays unloaded
+  // rather than inventing a number, matching the rule that unknown loads stay unknown.
+  if (loads[0] > 0) {
+    expect(loads[1]).toBeLessThan(loads[0])
+    expect(loads[2]).toBeLessThan(loads[1])
+  } else {
+    expect(loads.slice(0, 3).every((load) => load === 0)).toBe(true)
+  }
+
+  await page.getByRole('button', { name: 'Log set' }).first().click()
+  const logSets = page.getByRole('button', { name: 'Log set' })
+  for (let remaining = await logSets.count(); remaining > 0; remaining = await logSets.count()) {
+    await logSets.first().click()
+  }
+  await page.getByRole('button', { name: 'Finish workout' }).click()
+  await page.getByRole('button', { name: 'Finish workout without survey' }).click()
+
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
+  const history = persisted.state.history as Array<{ exerciseName: string; grouping?: { groupKind: string; groupRole: string; groupId: string } }>
+  const grouped = history.filter((record) => record.grouping)
+  // History records how the volume was actually performed, not just that it happened.
+  expect(grouped.length).toBe(3)
+  expect(grouped.every((record) => record.grouping!.groupKind === 'drop-set')).toBe(true)
+  expect(grouped.filter((record) => record.grouping!.groupRole === 'top')).toHaveLength(1)
+  expect(grouped.filter((record) => record.grouping!.groupRole === 'drop')).toHaveLength(2)
+  expect(new Set(grouped.map((record) => record.grouping!.groupId)).size).toBe(1)
+  expect(grouped.every((record) => record.exerciseName === accessoryName)).toBe(true)
+  // The anchor's own sets stay ungrouped so its progression stays comparable.
+  expect(history.some((record) => !record.grouping)).toBe(true)
+  expect(browserErrors).toEqual([])
+})
+
+test('runs myo-reps on accessory work and refuses a superset that would cut volume load', async ({ page }) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Today', exact: true }).click()
+  await page.getByRole('button', { name: 'Start without check-in' }).click()
+
+  const accessoryCard = page.locator('.exercise-card--accessory, .exercise-card--tertiary').first()
+  // count() does not auto-wait, so the rows have to be on screen before they are counted.
+  await expect(accessoryCard.locator('.set-row').first()).toBeVisible()
+  const setsBefore = await accessoryCard.locator('.set-row').count()
+  await accessoryCard.getByRole('button', { name: 'Technique' }).click()
+
+  // Pairing options state plainly why a pair is or is not allowed.
+  const pairing = page.locator('.structure-pairing')
+  await expect(pairing).toBeVisible()
+  const refused = pairing.locator('button.is-refused')
+  if (await refused.count()) await expect(refused.first()).toContainText(/cuts the volume load|already uses a technique/)
+
+  await page.getByRole('button', { name: /Myo-reps/ }).click()
+  // One activation set plus three short sets replaces the single set it was applied to.
+  await expect(accessoryCard.locator('.set-row')).toHaveCount(setsBefore + 3)
+  await expect(accessoryCard).toContainText('three to five deep breaths')
+  await expect(accessoryCard).toContainText('The first set is what sets your next target')
+
+  // Clearing the technique restores the original set list.
+  await accessoryCard.getByRole('button', { name: 'Clear technique' }).click()
+  await expect(accessoryCard.locator('.set-row')).toHaveCount(setsBefore)
+  await expect(accessoryCard).not.toContainText('three to five deep breaths')
+
+  expect(browserErrors).toEqual([])
+})

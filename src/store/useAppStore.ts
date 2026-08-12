@@ -18,6 +18,7 @@ import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION, route
 import { buildMissedOpportunityReplan } from '../domain/schedule-adaptation-engine'
 import { projectMovementNoteMerge, upsertMovementNote } from '../domain/movement-note-engine'
 import { buildAddedMovement, buildAddedSet, sessionExtensionGate } from '../domain/session-extension-engine'
+import { buildDropSet, buildMyoReps, canPairForSuperset, structureAllowedForRole } from '../domain/set-structure-engine'
 import type {
   AppSettings,
   AthleteProfile,
@@ -105,6 +106,9 @@ interface AppState {
   skipExercise: (sessionId: string, plannedExerciseId: string) => void
   addSetToExercise: (sessionId: string, plannedExerciseId: string) => { ok: boolean; error?: string }
   addMovementToSession: (sessionId: string, exerciseId: string) => { ok: boolean; error?: string }
+  applySetStructure: (sessionId: string, plannedExerciseId: string, setId: string, kind: 'drop-set' | 'myo-reps') => { ok: boolean; error?: string }
+  applySuperset: (sessionId: string, plannedExerciseId: string, partnerPlannedExerciseId: string) => { ok: boolean; error?: string }
+  clearSetStructure: (sessionId: string, groupId: string) => { ok: boolean; error?: string }
   markMissed: (sessionId: string, context: MissedOpportunityInput) => { ok: boolean; error?: string; event?: MissedOpportunityEvent }
   toggleFavorite: (exerciseId: string) => void
   setJointFeeling: (exerciseId: string, jointFeeling: Exercise['jointFeeling']) => void
@@ -591,6 +595,7 @@ export const useAppStore = create<AppState>()(
             load: workSet.completedLoad ?? workSet.targetLoad, rir: workSet.actualRir ?? workSet.targetRir,
             technique, pain, qualityConfirmed, setIndex, plannedExerciseId: plannedExercise.id,
             athleteAdded: workSet.athleteAdded || plannedExercise.athleteAdded ? true : undefined,
+            grouping: workSet.grouping,
             originalExerciseId: original?.id, originalExerciseName: original?.name, originalFamily: original?.family,
             originalPrimaryRegion: original?.primaryRegion
           }] : [])
@@ -796,6 +801,88 @@ export const useAppStore = create<AppState>()(
           sessions: state.sessions.map((candidate) => candidate.id !== sessionId ? candidate : {
             ...candidate,
             exercises: candidate.exercises.map((item) => item.id !== plannedExerciseId ? item : { ...item, sets: [...item.sets, addedSet] })
+          })
+        })
+        return { ok: true }
+      },
+      applySetStructure: (sessionId, plannedExerciseId, setId, kind) => {
+        const state = get()
+        const session = state.sessions.find((candidate) => candidate.id === sessionId)
+        if (!session) return { ok: false, error: 'That workout is no longer open.' }
+        const planned = session.exercises.find((exercise) => exercise.id === plannedExerciseId)
+        if (!planned) return { ok: false, error: 'That movement is no longer part of this workout.' }
+        const gate = structureAllowedForRole(planned.role, kind)
+        if (!gate.allowed) return { ok: false, error: gate.reason }
+        const target = planned.sets.find((workSet) => workSet.id === setId)
+        if (!target) return { ok: false, error: 'That set is no longer part of this movement.' }
+        if (target.completed) return { ok: false, error: 'That set is already logged. Apply the technique before you log the work.' }
+        if (target.grouping) return { ok: false, error: 'That set already uses a technique. Clear it first.' }
+        const exercise = state.exercises.find((candidate) => candidate.id === planned.exerciseId)
+        const activeEquipmentProfile = state.equipmentProfiles.find((profile) => profile.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]
+        const groupId = `group-${nanoid(8)}`
+        const built = kind === 'drop-set'
+          ? buildDropSet({ topSet: target, groupId, increment: exercise && activeEquipmentProfile ? loadIncrementFor(exercise, activeEquipmentProfile).value : 5 })
+          : buildMyoReps({ activationSet: target, groupId })
+        set({
+          sessions: state.sessions.map((candidate) => candidate.id !== sessionId ? candidate : {
+            ...candidate,
+            exercises: candidate.exercises.map((item) => item.id !== plannedExerciseId ? item : {
+              ...item,
+              sets: item.sets.flatMap((workSet) => workSet.id === setId ? built : [workSet])
+            })
+          })
+        })
+        return { ok: true }
+      },
+      applySuperset: (sessionId, plannedExerciseId, partnerPlannedExerciseId) => {
+        const state = get()
+        const session = state.sessions.find((candidate) => candidate.id === sessionId)
+        if (!session) return { ok: false, error: 'That workout is no longer open.' }
+        const planned = session.exercises.find((exercise) => exercise.id === plannedExerciseId)
+        const partner = session.exercises.find((exercise) => exercise.id === partnerPlannedExerciseId)
+        if (!planned || !partner) return { ok: false, error: 'Both movements must still be part of this workout.' }
+        for (const item of [planned, partner]) {
+          const gate = structureAllowedForRole(item.role, 'superset')
+          if (!gate.allowed) return { ok: false, error: gate.reason }
+        }
+        const exercise = state.exercises.find((candidate) => candidate.id === planned.exerciseId)
+        const partnerExercise = state.exercises.find((candidate) => candidate.id === partner.exerciseId)
+        if (!exercise || !partnerExercise) return { ok: false, error: 'One of those movements is no longer in the catalog.' }
+        const pairing = canPairForSuperset(exercise, partnerExercise)
+        if (!pairing.allowed) return { ok: false, error: pairing.reason }
+        if (planned.sets.some((workSet) => workSet.grouping) || partner.sets.some((workSet) => workSet.grouping)) {
+          return { ok: false, error: 'One of those movements already uses a technique. Clear it first.' }
+        }
+        const groupId = `group-${nanoid(8)}`
+        const pair = (item: typeof planned) => ({
+          ...item,
+          sets: item.sets.map((workSet, index) => ({ ...workSet, grouping: { groupId, groupKind: 'superset' as const, groupRole: 'paired' as const, groupPosition: index + 1 } }))
+        })
+        set({
+          sessions: state.sessions.map((candidate) => candidate.id !== sessionId ? candidate : {
+            ...candidate,
+            exercises: candidate.exercises.map((item) => item.id === plannedExerciseId ? pair(planned) : item.id === partnerPlannedExerciseId ? pair(partner) : item)
+          })
+        })
+        return { ok: true }
+      },
+      clearSetStructure: (sessionId, groupId) => {
+        const state = get()
+        const session = state.sessions.find((candidate) => candidate.id === sessionId)
+        if (!session) return { ok: false, error: 'That workout is no longer open.' }
+        const grouped = session.exercises.flatMap((item) => item.sets.filter((workSet) => workSet.grouping?.groupId === groupId))
+        if (grouped.some((workSet) => workSet.completed)) {
+          return { ok: false, error: 'Some of that work is already logged. Completed sets keep the structure they were performed in.' }
+        }
+        set({
+          sessions: state.sessions.map((candidate) => candidate.id !== sessionId ? candidate : {
+            ...candidate,
+            exercises: candidate.exercises.map((item) => ({
+              ...item,
+              // Added drops and mini sets disappear; the set that carried the prescription stays.
+              sets: item.sets.filter((workSet) => workSet.grouping?.groupId !== groupId || ['top', 'activation', 'paired'].includes(workSet.grouping.groupRole))
+                .map((workSet) => workSet.grouping?.groupId === groupId ? { ...workSet, grouping: undefined } : workSet)
+            }))
           })
         })
         return { ok: true }

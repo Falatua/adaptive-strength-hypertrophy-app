@@ -1,6 +1,21 @@
 export type NavKey = 'today' | 'plan' | 'progress' | 'library' | 'you'
 
 export type ExerciseRole = 'primary' | 'secondary' | 'accessory' | 'tertiary'
+
+// How a block of volume was actually performed. Supersets group across two movements, drop sets and
+// myo-reps group within one. History stores the structure because a drop-set exposure is not
+// comparable to a straight-set exposure of the same movement, and progression must not confuse them.
+export type SetGroupKind = 'superset' | 'drop-set' | 'myo-reps'
+// `paired` is a normal set performed inside a superset. `top` and `activation` carry the progression
+// signal for their structure. `drop` and `mini` are real work that does not set the next target.
+export type SetGroupRole = 'paired' | 'top' | 'drop' | 'activation' | 'mini'
+
+export interface SetGrouping {
+  groupId: string
+  groupKind: SetGroupKind
+  groupRole: SetGroupRole
+  groupPosition: number
+}
 // Sessions and substitution events stored before 0.42.0 carry the older five-role vocabulary.
 // They remain historical truth, so they are accepted on read and mapped forward, never rejected.
 export type LegacyExerciseRole = 'primary' | 'secondary' | 'priority' | 'maintenance' | 'optional'
@@ -328,6 +343,7 @@ export interface SetPrescription {
   actualRir?: number
   completed: boolean
   athleteAdded?: boolean
+  grouping?: SetGrouping
 }
 
 export interface PlannedExercise {
@@ -497,6 +513,7 @@ export interface CompletedSetRecord {
   qualityConfirmed?: boolean
   setIndex: number
   athleteAdded?: boolean
+  grouping?: SetGrouping
   plannedExerciseId?: string
   originalExerciseId?: string
   originalExerciseName?: string
