@@ -5,7 +5,7 @@ import { useAppStore } from '../store/useAppStore'
 import type { CelebrationLevel, EquipmentProfile, EquipmentProfileKind, MovementPlacementExitAssessment, PlacementExitDecision, SurveyMode } from '../domain/types'
 import { Modal } from '../components/Modal'
 import { athleteLevel } from '../domain/athlete-level-engine'
-import { earnedBadgeCount, evaluateBadges } from '../domain/badge-engine'
+import { LocationArt } from '../components/LocationArt'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { createBackup, parseBackup, type BackupPreview } from '../domain/backup'
 import { placementRouteLabels } from '../domain/placement-engine'
@@ -38,8 +38,6 @@ export function YouScreen() {
     restartOnboarding, resetForTesting, setNotice
   } = useAppStore()
   const athleteProgress = athleteLevel({ history, records, sessions })
-  const badges = evaluateBadges({ history, records, sessions, exercises })
-  const badgesEarned = earnedBadgeCount(badges)
   const [resetOpen, setResetOpen] = useState(false)
   const [importPreview, setImportPreview] = useState<BackupPreview | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
@@ -152,7 +150,7 @@ export function YouScreen() {
 
   return (
     <div className="screen">
-      <header className="screen-header"><div><p className="eyebrow">Athlete model and control</p><h1>The app learns. You stay in charge.</h1><p>Correct assumptions, adjust question burden, and export every meaningful part of your private history.</p></div></header>
+      <header className="screen-header"><div><p className="eyebrow">Your profile</p><h1>The app learns. You stay in charge.</h1><p>Fix anything it assumed, choose how many questions you answer, and export your own history whenever you want.</p></div></header>
       <section className="profile-hero">
         <PixelAvatar size="large" mood="ready" form={athleteProgress.form} level={athleteProgress.level} />
         <div className="profile-hero__copy"><span className="status-chip status-chip--lime">{athlete.entryRoute}</span><h2>{athlete.name}'s current path</h2><p>{athlete.goal}</p><div><span><Dumbbell size={15} /> {athlete.trainingAge} years training</span><span><MapPin size={15} /> {settings.equipmentLocation}</span><span><Sparkles size={15} /> {athlete.continuity} continuity</span></div></div>
@@ -160,7 +158,7 @@ export function YouScreen() {
 
       <section className="panel athlete-level" aria-label="Athlete level and form">
         <div className="panel__header">
-          <div><p className="eyebrow">Athlete level v1 · Badge v1 · Training split v1</p><h3>Level {athleteProgress.level} · {athleteProgress.formName}</h3></div>
+          <div><p className="eyebrow">Your level</p><h3>Level {athleteProgress.level} · {athleteProgress.formName}</h3></div>
           <span className="status-chip status-chip--lime">{athleteProgress.points.toLocaleString()} pts</span>
         </div>
         <p className="athlete-level__blurb">{athleteProgress.formBlurb}</p>
@@ -171,72 +169,47 @@ export function YouScreen() {
             {athleteProgress.sources.map((source) => <li key={source.label}><span><strong>{source.label}</strong><small>{source.detail}</small></span><b>+{source.points.toLocaleString()}</b></li>)}
           </ul>
         )}
-        <div className="badge-case">
-          <div className="badge-case__heading">
-            <div><p className="eyebrow">Badge v1</p><h4>{badgesEarned} of {badges.length} badges</h4></div>
-            <small>Earned for the things a record book misses: showing up, coming back, and covering everything.</small>
-          </div>
-          <div className="badge-case__grid">
-            {badges.map((badge) => (
-              <article key={badge.definition.id} className={`badge-chip badge-chip--${badge.definition.tier} ${badge.earned ? 'is-earned' : ''}`} title={badge.definition.requirement}>
-                <span className="badge-chip__medal" aria-hidden="true">
-                  <svg viewBox="0 0 32 32" shapeRendering="crispEdges">
-                    <rect x="12" y="2" width="8" height="8" />
-                    <rect x="6" y="10" width="20" height="6" />
-                    <rect x="2" y="16" width="28" height="8" />
-                    <rect x="6" y="24" width="20" height="6" />
-                    <rect x="14" y="12" width="4" height="4" className="badge-chip__pip" />
-                  </svg>
-                </span>
-                <span>
-                  <strong>{badge.definition.name}</strong>
-                  <small>{badge.progressLabel}</small>
-                </span>
-                {!badge.earned && <i className="badge-chip__track" aria-hidden="true"><b style={{ width: `${Math.round(badge.progress * 100)}%` }} /></i>}
-              </article>
-            ))}
-          </div>
-        </div>
         <p className="modal-note">Levels come only from work that actually happened, so they never fall and cannot be bought. Every point above traces to completed sessions, confirmed records, volume moved, or movements you have trained enough to have a real history with.</p>
       </section>
 
       <div className="settings-layout">
         <div className="settings-main">
           <section className="panel">
-            <div className="panel__header"><div><p className="eyebrow">Multi-dimensional placement</p><h3>Current training profile</h3></div><UserRound size={19} /></div>
+            <div className="panel__header"><div><p className="eyebrow">Where you were placed</p><h3>Current training profile</h3></div><UserRound size={19} /></div>
             <div className="level-list">{Object.entries(athlete.level).map(([key, value]) => <div key={key}><span>{key.replace(/([A-Z])/g, ' $1')}</span><div>{Array.from({ length: 5 }, (_, index) => <i key={index} className={index < value ? 'filled' : ''} />)}</div><strong>{value}/5</strong></div>)}</div>
             <p className="chart-note">Experience and current preparedness stay separate. An interrupted schedule does not turn an experienced athlete into a beginner.</p>
-            <div className="placement-profile-evidence"><span><Sparkles size={17} /><span><strong>{athlete.entryRoute}</strong><small>{athlete.placement.confidence} confidence · {athlete.placement.ruleVersion} · {athlete.placement.decision}</small>{athlete.placement.selectedRoute !== athlete.placement.recommendedRoute && <small>Engine recommendation: {placementRouteLabels[athlete.placement.recommendedRoute]}</small>}</span></span><details><summary>Why and how this will be verified</summary><p>{athlete.placement.reasons.join(' ')}</p>{athlete.placement.uncertainInputs.length > 0 && <p><strong>Still uncertain:</strong> {athlete.placement.uncertainInputs.join(', ')}.</p>}<ul>{athlete.placement.verificationPlan.map((item) => <li key={item}>{item}</li>)}</ul><p><strong>Exit criteria:</strong> {athlete.placement.exitCriteria.join('; ')}.</p></details>
-              {athlete.placement.movementPlacements && athlete.placement.movementPlacements.length > 0 && <div className="profile-movement-lanes"><p className="eyebrow">{athlete.placement.movementPlacements[0]?.ruleVersion} · exact lane checkpoints</p>{athlete.placement.movementPlacements.map((movement) => {
+            <div className="placement-profile-evidence"><span><Sparkles size={17} /><span><strong>{athlete.entryRoute}</strong><small>{athlete.placement.confidence} confidence · {athlete.placement.decision}</small>{athlete.placement.selectedRoute !== athlete.placement.recommendedRoute && <small>We suggested: {placementRouteLabels[athlete.placement.recommendedRoute]}</small>}</span></span><details><summary>Why and how this will be verified</summary><p>{athlete.placement.reasons.join(' ')}</p>{athlete.placement.uncertainInputs.length > 0 && <p><strong>Still uncertain:</strong> {athlete.placement.uncertainInputs.join(', ')}.</p>}<ul>{athlete.placement.verificationPlan.map((item) => <li key={item}>{item}</li>)}</ul><p><strong>Exit criteria:</strong> {athlete.placement.exitCriteria.join('; ')}.</p></details>
+              {athlete.placement.movementPlacements && athlete.placement.movementPlacements.length > 0 && <div className="profile-movement-lanes"><p className="eyebrow">Checkpoints for each movement</p>{athlete.placement.movementPlacements.map((movement) => {
                 const assessment = movementExitAssessments.find((candidate) => candidate.exerciseId === movement.exerciseId)
                 const reviewed = assessment ? movementExitReviewed(assessment) : false
                 const latestReview = movementPlacementExitReviews.filter((review) => review.placementCreatedAt === athlete.placement.createdAt && review.exerciseId === movement.exerciseId).at(-1)
-                return <details key={movement.exerciseId} className="movement-lane-card"><summary><span><strong>{movement.exerciseName}</strong><small>{movement.family} · {movement.confidence} confidence</small></span><b>{placementRouteLabels[movement.selectedRoute]}</b></summary><p>{movement.reasons.join(' ')}</p><small>Skill {movement.movementSkill}/5 · heavy-work tolerance {movement.strengthTolerance}/5 · evidence {movement.dataConfidence}/5</small>{movement.historyReview && <small><BrainCircuit size={13} /> History reviewed {new Date(movement.historyReview.reviewedAt).toLocaleDateString()} · {movement.historyReview.evidence.recentSetCount} recent exact sets · accepted for {movement.historyReview.acceptedFields.map((field) => field === 'dataConfidence' ? 'evidence' : 'tolerance').join(' + ')}</small>}{movement.uncertainInputs.length > 0 && <small>Unknown: {movement.uncertainInputs.join(', ')}</small>}{assessment && <div className={`movement-exit-summary movement-exit-summary--${assessment.recommendation}`}><span><FileCheck2 size={15} /><span><small>{assessment.ruleVersion}</small><strong>{placementExitLabels[assessment.recommendation]}</strong></span></span><b>{assessment.resolved}/3 exact checks</b><p>{assessment.reasons[0]}</p>{assessment.suggestedRoute && <small>{assessment.suggestedRoute === assessment.currentRoute ? `Supported lane: ${placementRouteLabels[assessment.currentRoute]}` : `${placementRouteLabels[assessment.currentRoute]} → ${placementRouteLabels[assessment.suggestedRoute]}`}</small>}{latestReview && <small>Athlete decision: {latestReview.decision.replaceAll('-', ' ')} · {latestReview.reason}</small>}<button type="button" className="button button--small button--secondary" disabled={Boolean(activeSessionId) || assessment.collected === 0 || reviewed} onClick={(event) => { event.preventDefault(); openMovementExitReview(movement.exerciseId) }}>{reviewed ? 'Current lane evidence reviewed' : 'Review movement lane'}</button></div>}</details>
+                return <details key={movement.exerciseId} className="movement-lane-card"><summary><span><strong>{movement.exerciseName}</strong><small>{movement.family} · {movement.confidence} confidence</small></span><b>{placementRouteLabels[movement.selectedRoute]}</b></summary><p>{movement.reasons.join(' ')}</p><small>Skill {movement.movementSkill}/5 · heavy-work tolerance {movement.strengthTolerance}/5 · evidence {movement.dataConfidence}/5</small>{movement.historyReview && <small><BrainCircuit size={13} /> History reviewed {new Date(movement.historyReview.reviewedAt).toLocaleDateString()} · {movement.historyReview.evidence.recentSetCount} recent exact sets · accepted for {movement.historyReview.acceptedFields.map((field) => field === 'dataConfidence' ? 'evidence' : 'tolerance').join(' + ')}</small>}{movement.uncertainInputs.length > 0 && <small>Unknown: {movement.uncertainInputs.join(', ')}</small>}{assessment && <div className={`movement-exit-summary movement-exit-summary--${assessment.recommendation}`}><span><FileCheck2 size={15} /><strong>{placementExitLabels[assessment.recommendation]}</strong></span><b>{assessment.resolved}/3 exact checks</b><p>{assessment.reasons[0]}</p>{assessment.suggestedRoute && <small>{assessment.suggestedRoute === assessment.currentRoute ? `Supported lane: ${placementRouteLabels[assessment.currentRoute]}` : `${placementRouteLabels[assessment.currentRoute]} → ${placementRouteLabels[assessment.suggestedRoute]}`}</small>}{latestReview && <small>Athlete decision: {latestReview.decision.replaceAll('-', ' ')} · {latestReview.reason}</small>}<button type="button" className="button button--small button--secondary" disabled={Boolean(activeSessionId) || assessment.collected === 0 || reviewed} onClick={(event) => { event.preventDefault(); openMovementExitReview(movement.exerciseId) }}>{reviewed ? 'Current lane evidence reviewed' : 'Review movement lane'}</button>{activeSessionId ? <small className="control-reason">Finish or leave your open workout to review this.</small> : assessment.collected === 0 && !reviewed ? <small className="control-reason">Nothing to review until this movement collects checkpoint evidence.</small> : null}</div>}</details>
               })}</div>}
               <div className={`placement-verification-summary placement-verification-summary--${placementVerification.state}`}>
                 <ShieldCheck size={18} /><span><strong>{placementVerification.state.replaceAll('-', ' ')}</strong><small>{placementVerification.resolved} resolved · {placementVerification.collected} productive checks across {placementLaneCount} exact lane{placementLaneCount === 1 ? '' : 's'} · {placementVerification.supports} support · {placementVerification.reviews} review</small></span>
               </div>
               {placementVerification.events.length > 0 && <div className="placement-verification-list">{placementVerification.events.map((event) => <details key={event.id}><summary><span>{event.movementPlacement?.exerciseName ?? 'Plan route'} · Check {event.sequence}</span><strong>{placementVerificationVerdictLabels[event.verdict]}</strong></summary><p>{sessions.find((session) => session.id === event.sessionId)?.title ?? event.sessionId}</p><small>Warm-up: {event.warmupResponse.replace('-', ' ')} · Recovery: {event.recoveryResponse.replace('-', ' ')}</small>{event.firstSet && <small>First set: {event.firstSet.exerciseName} · {event.firstSet.actualLoad} × {event.firstSet.actualReps} · {event.firstSet.actualRir} RIR</small>}<ul>{event.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></details>)}</div>}
               <section className={`placement-exit-panel placement-exit-panel--${placementExit.recommendation}`} aria-label="Placement checkpoint">
-                <div className="placement-exit-panel__headline"><span><FileCheck2 size={18} /><span><small>{placementExit.ruleVersion}</small><strong>Placement checkpoint</strong></span></span><b>{placementExitLabels[placementExit.recommendation]}</b></div>
+                <div className="placement-exit-panel__headline"><span><FileCheck2 size={18} /><strong>Placement checkpoint</strong></span><b>{placementExitLabels[placementExit.recommendation]}</b></div>
                 <p>{placementExit.reasons[0]}</p>
                 {placementExit.suggestedRoute && <div className="placement-exit-route"><span>{placementExit.suggestedRoute === placementExit.currentRoute ? 'Supported current route' : 'Route for athlete review'}</span><strong>{placementExit.suggestedRoute === placementExit.currentRoute ? placementRouteLabels[placementExit.currentRoute] : `${placementRouteLabels[placementExit.currentRoute]} → ${placementRouteLabels[placementExit.suggestedRoute]}`}</strong></div>}
                 <div className="placement-exit-criteria">{placementExit.criteria.map((item) => <article key={item.id} className={`placement-exit-criterion placement-exit-criterion--${item.state}`}><span>{item.state === 'met' ? '✓' : item.state === 'not-met' ? '!' : '?'}</span><div><strong>{item.label}</strong><small>{item.detail}</small></div></article>)}</div>
                 <details><summary>Evidence boundaries and declared route criteria</summary><p><strong>Source:</strong> {placementExit.resolved} resolved plan-route checks, {placementExit.supports} supportive, {placementExit.reviews} review-suggested.</p>{placementExit.excludedDifferentRouteChecks > 0 && <p><strong>Excluded:</strong> {placementExit.excludedDifferentRouteChecks} movement-lane check{placementExit.excludedDifferentRouteChecks === 1 ? '' : 's'} used a different effective route and cannot confirm this plan route.</p>}<ul>{placementExit.declaredExitCriteria.map((item) => <li key={item}>{item}</li>)}</ul>{placementExit.limitations.map((item) => <p key={item}>{item}</p>)}</details>
                 {currentPlacementExitReviews.length > 0 && <div className="placement-exit-history"><span>Saved athlete review</span><strong>{currentPlacementExitReviews.at(-1)?.decision.replaceAll('-', ' ')}</strong><small>{currentPlacementExitReviews.at(-1)?.reason}</small></div>}
                 <button className="button button--small button--primary" disabled={Boolean(activeSessionId) || placementExit.collected === 0 || placementExitReviewed} onClick={openPlacementExitReview}>{placementExitReviewed ? 'Current evidence reviewed' : 'Review criterion outcome'}</button>
+                {activeSessionId ? <small className="control-reason">Finish or leave your open workout to review this.</small> : placementExit.collected === 0 && !placementExitReviewed ? <small className="control-reason">There is nothing to review until a checkpoint collects evidence.</small> : null}
               </section>
-              <button className="button button--small button--secondary" disabled={Boolean(activeSessionId)} onClick={() => restartOnboarding()}>Reassess starting placement</button></div>
+              <button className="button button--small button--secondary" disabled={Boolean(activeSessionId)} onClick={() => restartOnboarding()}>Reassess starting placement</button>{activeSessionId && <small className="control-reason">Finish or leave your open workout first.</small>}</div>
           </section>
 
           <section className="panel equipment-profile-panel">
-            <div className="panel__header"><div><p className="eyebrow">Equipment-profile-v1</p><h3>Training locations</h3></div><button className="button button--small button--secondary" onClick={() => openEquipmentEditor()}><Plus size={15} /> Add</button></div>
+            <div className="panel__header"><div><p className="eyebrow">Where you train</p><h3>Training locations</h3></div><button className="button button--small button--secondary" onClick={() => openEquipmentEditor()}><Plus size={15} /> Add</button></div>
             <p className="callout-copy">The active location controls movement availability and executable load jumps. A location name alone never implies equipment.</p>
             <div className="equipment-profile-list">{equipmentProfiles.map((profile) => {
               const active = profile.id === activeEquipmentProfile?.id
               return <article key={profile.id} className={active ? 'active' : ''}>
                 <button className="equipment-profile-select" onClick={() => setActiveEquipmentProfile(profile.id)} aria-pressed={active}>
-                  <span className="equipment-profile-icon"><MapPin size={18} /></span>
+                  <LocationArt kind={profile.kind} />
                   <span><strong>{profile.name}</strong><small>{profile.kind.replace('-', ' ')} · {profile.equipment.length} items · {profile.incrementUnit}</small></span>
                   <b>{active ? 'Active' : 'Use here'}</b>
                 </button>
@@ -247,7 +220,7 @@ export function YouScreen() {
           </section>
 
           <section className="panel">
-            <div className="panel__header"><div><p className="eyebrow">Question burden</p><h3>Survey preferences</h3></div><BrainCircuit size={19} /></div>
+            <div className="panel__header"><div><p className="eyebrow">How much we ask you</p><h3>Survey preferences</h3></div><BrainCircuit size={19} /></div>
             <label className="setting-row"><span><strong>Pre-session check-in</strong><small>Full 10, quick 5, minimal 3, off, or choose each workout.</small></span><select aria-label="Pre-session check-in mode" value={settings.preSurveyMode} onChange={(event) => updateSettings({ preSurveyMode: event.target.value as SurveyMode })}>{surveyModes.map((mode) => <option key={mode} value={mode}>{surveyModeLabels[mode]}</option>)}</select></label>
             <label className="setting-row"><span><strong>Post-session feedback</strong><small>Full 10, quick 5, minimal 3, off, or choose each workout.</small></span><select aria-label="Post-session feedback mode" value={settings.postSurveyMode} onChange={(event) => updateSettings({ postSurveyMode: event.target.value as SurveyMode })}>{surveyModes.map((mode) => <option key={mode} value={mode}>{surveyModeLabels[mode]}</option>)}</select></label>
             <p className="chart-note">Every question and whole survey remains skippable. Missing means unknown and never lowers adherence or readiness.</p>
@@ -260,7 +233,7 @@ export function YouScreen() {
           </section>
 
           <section className="panel">
-            <div className="panel__header"><div><p className="eyebrow">Optional game layer</p><h3>Achievement controls</h3></div><Sparkles size={19} /></div>
+            <div className="panel__header"><div><p className="eyebrow">Extras</p><h3>Achievement controls</h3></div><Sparkles size={19} /></div>
             <label className="setting-row"><span><strong>Celebration level</strong><small>Off, restrained, standard, or high-energy visual feedback.</small></span><select value={settings.celebrationLevel} onChange={(event) => updateSettings({ celebrationLevel: event.target.value as CelebrationLevel })}>{(['off', 'subtle', 'normal', 'high-energy'] as const).map((level) => <option key={level} value={level}>{level}</option>)}</select></label>
             <label className="toggle-row"><span><strong>Quiet mode</strong><small>Hide live prompts and celebrations without changing training or records.</small></span><input type="checkbox" checked={settings.quietMode} onChange={(event) => updateSettings({ quietMode: event.target.checked })} /></label>
             <label className="toggle-row"><span><strong>Planned opportunities</strong><small>Show only records already available inside the prescribed work.</small></span><input type="checkbox" checked={settings.opportunityPrompts} onChange={(event) => updateSettings({ opportunityPrompts: event.target.checked })} /></label>
@@ -269,7 +242,7 @@ export function YouScreen() {
             <label className="toggle-row"><span><strong>Pocket-console sounds</strong><small>Original set, achievement, workout, and warning cues. Quiet mode always wins.</small></span><input aria-label="Pocket-console sounds" type="checkbox" checked={settings.sounds} onChange={(event) => { const sounds = event.target.checked; updateSettings({ sounds }); if (sounds) playForgeSound('menu-confirm', { sounds: true, quietMode: settings.quietMode }) }} /></label>
             <div className="sound-preview-row"><span><strong>Field Guide sound pack</strong><small>Hear the original workout-start cue before you opt in.</small></span><button type="button" className="button button--small button--secondary" disabled={settings.quietMode} onClick={() => playForgeSound('workout-start', { sounds: true, quietMode: settings.quietMode })}><Volume2 size={15} /> Preview sounds</button></div>
             <label className="toggle-row"><span><strong>Haptics</strong><small>Subtle set-completion feedback on supported devices.</small></span><input type="checkbox" checked={settings.haptics} onChange={(event) => updateSettings({ haptics: event.target.checked })} /></label>
-            <p className="chart-note">Quiet mode and celebration controls never affect logging, progression, or the underlying record ledger.</p>
+            <p className="chart-note">Quiet mode and celebration settings never change what gets logged, how you progress, or your records.</p>
           </section>
         </div>
 
@@ -277,7 +250,7 @@ export function YouScreen() {
           <CloudSyncPanel />
           <section className="panel">
             <div className="panel__header"><div><p className="eyebrow">Local data</p><h3>Backup and recovery</h3></div><ShieldCheck size={19} /></div>
-            <div className="privacy-status"><HardDrive size={28} /><strong>Stored on this device</strong><p>Workout execution and deterministic rules do not need Supabase or a language-model API.</p></div>
+            <div className="privacy-status"><HardDrive size={28} /><strong>Stored on this device</strong><p>Training and the rules behind it work with no account and no AI service.</p></div>
             <div className="data-actions">
               <button className="full-row-button" onClick={exportData}><Download size={17} /> Export verified backup</button>
               <button className="full-row-button" onClick={() => fileInput.current?.click()}><Upload size={17} /> Preview and restore</button>
@@ -286,16 +259,16 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.50.0 private alpha</strong></li><li><span>Rules</span><strong>0.50.0 illustrated athlete forms</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Effort metric v1 · Set structure v1 · Volume progression v1 · Deload v1 · Athlete level v1 · Badge v1 · Training split v1 · Structure progression v1 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Movement notes v1 · Session extension v1 · Equipment v1 · Load increment v1 · Catalog merge v1 · Sound pack field-guide-synth-v1</strong></li><li><span>Backup schema</span><strong>Version 25</strong></li><li><span>Persistence</span><strong>Local v24 · cloud event v1</strong></li><li><span>Cloud sync</span><strong>{cloudConfiguration.status === 'ready' ? 'Manual private checkpoint ready' : 'Private release gate closed'}</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.50.0 private alpha</strong></li><li><span>Rules</span><strong>0.50.0 illustrated athlete forms</strong></li><li className="diagnostic-list__wide"><span>Calculations</span><details><summary>Rule versions behind the numbers</summary><p>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Effort metric v1 · Set structure v1 · Volume progression v1 · Deload v1 · Athlete level v1 · Training split v1 · Structure progression v1 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Movement notes v1 · Session extension v1 · Equipment v1 · Load increment v1 · Catalog merge v1 · Sound pack field-guide-synth-v1</p></details></li><li><span>Backup schema</span><strong>Version 25</strong></li><li><span>Persistence</span><strong>Local v24 · cloud event v1</strong></li><li><span>Cloud sync</span><strong>{cloudConfiguration.status === 'ready' ? 'Manual private checkpoint ready' : 'Private release gate closed'}</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Clear local training data</button>
         </aside>
       </div>
-      <footer className="screen-footer"><Moon size={16} /> ForgePath Private Alpha · Built from the Obsidian Build Bible · Local-first cloud foundation</footer>
+      <footer className="screen-footer"><Moon size={16} /> ForgePath Private Alpha · Your training is saved on this device</footer>
 
       <Modal open={placementExitOpen} onClose={() => setPlacementExitOpen(false)} title="Review placement checkpoint" description="ForgePath has interpreted the source-linked productive checks for this exact placement version. It will not change your route until you choose what happens next." wide>
         <div className="placement-exit-review">
-          <div className="placement-exit-review__summary"><FileCheck2 size={22} /><span><small>Deterministic recommendation</small><strong>{placementExitLabels[placementExit.recommendation]}</strong><p>{placementExit.reasons.join(' ')}</p></span></div>
+          <div className="placement-exit-review__summary"><FileCheck2 size={22} /><span><small>What the rules suggest</small><strong>{placementExitLabels[placementExit.recommendation]}</strong><p>{placementExit.reasons.join(' ')}</p></span></div>
           <fieldset className="placement-exit-choice-list"><legend>Choose the athlete-reviewed outcome</legend>{placementExitChoices.map((choice) => {
             const blocked = choice.id === 'continue-current' && placementExit.reassessmentRequired
             return <button type="button" key={choice.id} aria-pressed={placementExitDecision === choice.id} className={placementExitDecision === choice.id ? 'selected' : ''} disabled={blocked} onClick={() => setPlacementExitDecision(choice.id)}><span>{placementExitDecision === choice.id ? '✓' : '○'}</span><span><strong>{choice.title}</strong><small>{choice.detail}</small>{blocked && <em>Unavailable because a productive check recorded pain that changed training.</em>}</span></button>
@@ -309,7 +282,7 @@ export function YouScreen() {
 
       <Modal open={Boolean(selectedMovementExit)} onClose={() => setMovementExitOpen(null)} title={selectedMovementExit ? `Review ${selectedMovementExit.exerciseName} lane` : 'Review movement lane'} description="This checkpoint uses only productive checks from this exact movement identity. Other exercises, neighboring variations, and the overall plan route lend no confirmation evidence." wide>
         {selectedMovementExit && <div className="placement-exit-review movement-exit-review">
-          <div className="placement-exit-review__summary"><Dumbbell size={22} /><span><small>{selectedMovementExit.ruleVersion} · deterministic recommendation</small><strong>{placementExitLabels[selectedMovementExit.recommendation]}</strong><p>{selectedMovementExit.reasons.join(' ')}</p></span></div>
+          <div className="placement-exit-review__summary"><Dumbbell size={22} /><span><small>Recommendation</small><strong>{placementExitLabels[selectedMovementExit.recommendation]}</strong><p>{selectedMovementExit.reasons.join(' ')}</p></span></div>
           {selectedMovementExit.suggestedRoute && <div className="placement-exit-route"><span>{selectedMovementExit.suggestedRoute === selectedMovementExit.currentRoute ? 'Supported current lane' : 'Lane for athlete review'}</span><strong>{selectedMovementExit.suggestedRoute === selectedMovementExit.currentRoute ? placementRouteLabels[selectedMovementExit.currentRoute] : `${placementRouteLabels[selectedMovementExit.currentRoute]} → ${placementRouteLabels[selectedMovementExit.suggestedRoute]}`}</strong></div>}
           <div className="placement-exit-criteria">{selectedMovementExit.criteria.map((item) => <article key={item.id} className={`placement-exit-criterion placement-exit-criterion--${item.state}`}><span>{item.state === 'met' ? '✓' : item.state === 'not-met' ? '!' : '?'}</span><div><strong>{item.label}</strong><small>{item.detail}</small></div></article>)}</div>
           <fieldset className="placement-exit-choice-list"><legend>Choose the athlete-reviewed lane outcome</legend>{placementExitChoices.map((choice) => {

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
-import { AlertTriangle, Anchor, ArrowDownToLine, ArrowLeftToLine, ArrowRightFromLine, ArrowUpFromLine, BookOpen, BrainCircuit, Briefcase, ChevronRight, ChevronsDown, Clock3, Download, Dumbbell, FileCheck2, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Star, Target, Trash2, Undo2, Upload } from 'lucide-react'
+import { AlertTriangle, BookOpen, BrainCircuit, ChevronRight, Clock3, Download, Dumbbell, FileCheck2, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Star, Target, Trash2, Undo2, Upload } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { duplicateCandidates, volumeLoad } from '../domain/training-engine'
 import { findExerciseDuplicateGroups } from '../domain/catalog-engine'
@@ -10,6 +10,7 @@ import { exerciseEquipmentFit } from '../domain/equipment-engine'
 import { buildPlacementHistoryEvidence } from '../domain/placement-history-engine'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
+import { MovementArt } from '../components/MovementArt'
 import { movementNotesForExercise } from '../domain/movement-note-engine'
 
 const regionFilters: { id: BodyRegion | 'all'; label: string }[] = [
@@ -21,22 +22,7 @@ const patternFilters: { id: MovementPattern | 'all'; label: string }[] = [
   { id: 'all', label: 'All patterns' }, { id: 'squat', label: 'Squat' }, { id: 'hinge', label: 'Hinge' }, { id: 'horizontal-push', label: 'Horizontal push' },
   { id: 'vertical-push', label: 'Vertical push' }, { id: 'horizontal-pull', label: 'Horizontal pull' }, { id: 'vertical-pull', label: 'Vertical pull' }, { id: 'isolation', label: 'Isolation' }, { id: 'carry', label: 'Carry' }
 ]
-const roleFilters = ['all', 'strength anchor', 'secondary builder', 'hypertrophy', 'accessory', 'custom'] as const
-type BrowseDimension = 'body' | 'pattern' | 'role' | 'goal' | 'equipment' | 'favorites'
-
-// The emblem used to show the first letter of the movement name, which just repeated text already on
-// screen. The movement pattern is the useful signal, so each pattern gets its own icon and a readable
-// label. The icon is never the only carrier of meaning.
-const patternIcons: Record<MovementPattern, typeof Target> = {
-  squat: ChevronsDown,
-  hinge: Anchor,
-  'horizontal-push': ArrowRightFromLine,
-  'vertical-push': ArrowUpFromLine,
-  'horizontal-pull': ArrowLeftToLine,
-  'vertical-pull': ArrowDownToLine,
-  isolation: Target,
-  carry: Briefcase
-}
+type BrowseDimension = 'body' | 'pattern' | 'favorites'
 
 const patternLabels: Record<MovementPattern, string> = {
   squat: 'Squat pattern',
@@ -49,24 +35,13 @@ const patternLabels: Record<MovementPattern, string> = {
   carry: 'Carry'
 }
 
-function PatternEmblem({ pattern, large }: { pattern: MovementPattern; large?: boolean }) {
-  const Icon = patternIcons[pattern]
-  return (
-    <span className={`movement-emblem ${large ? 'movement-emblem--large ' : ''}movement-emblem--${pattern}`} title={patternLabels[pattern]}>
-      <Icon size={large ? 30 : 18} aria-hidden="true" />
-      <span className="sr-only">{patternLabels[pattern]}</span>
-    </span>
-  )
-}
 
 export function LibraryScreen() {
   const { athlete, activeSessionId, exercises, equipmentProfiles, history, movementNotes, historyMutations, substitutionEvents, settings, toggleFavorite, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, undoLatestHistoryMutation, restartOnboarding, setNotice } = useAppStore()
   const [placementEvidenceAssessedAt] = useState(() => new Date().toISOString())
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState<BodyRegion | 'all'>('all')
-  const [availability, setAvailability] = useState<'all' | 'available' | 'unavailable'>('all')
   const [pattern, setPattern] = useState<MovementPattern | 'all'>('all')
-  const [role, setRole] = useState<(typeof roleFilters)[number]>('all')
   const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(true)
   const [browseDimension, setBrowseDimension] = useState<BrowseDimension | null>(null)
@@ -105,12 +80,9 @@ export function LibraryScreen() {
     const matchesSearch = !needle || [exercise.name, exercise.family, ...exercise.aliases, ...exercise.roleTags].join(' ').toLowerCase().includes(needle)
     const matchesRegion = region === 'all' || exercise.regions.includes(region)
     const matchesPattern = pattern === 'all' || exercise.pattern === pattern
-    const matchesRole = role === 'all' || exercise.roleTags.includes(role)
     const matchesFavorite = !favoritesOnly || exercise.favorite
-    const fit = exerciseEquipmentFit(exercise, activeEquipmentProfile)
-    const matchesAvailability = availability === 'all' || (availability === 'available' ? fit.available : !fit.available)
-    return matchesSearch && matchesRegion && matchesPattern && matchesRole && matchesFavorite && matchesAvailability
-  }), [activeEquipmentProfile, availability, exercises, favoritesOnly, pattern, role, search, region])
+    return matchesSearch && matchesRegion && matchesPattern && matchesFavorite
+  }), [exercises, favoritesOnly, pattern, search, region])
 
   const activeExercises = useMemo(() => exercises.filter((exercise) => !exercise.retired), [exercises])
   const placementEvidence = useMemo(() => athlete.strengthAnchors.flatMap((exerciseId) => {
@@ -300,11 +272,7 @@ export function LibraryScreen() {
     setSearch('')
     setRegion('all')
     setPattern('all')
-    setRole('all')
-    setAvailability('all')
-    setFavoritesOnly(false)
-    if (dimension === 'equipment') setAvailability('available')
-    if (dimension === 'favorites') setFavoritesOnly(true)
+    setFavoritesOnly(dimension === 'favorites')
     window.requestAnimationFrame(() => filterPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
@@ -312,8 +280,6 @@ export function LibraryScreen() {
     setSearch('')
     setRegion('all')
     setPattern('all')
-    setRole('all')
-    setAvailability('all')
     setFavoritesOnly(false)
     setBrowseDimension(null)
   }
@@ -321,15 +287,16 @@ export function LibraryScreen() {
   return (
     <div className="screen">
       <header className="screen-header">
-        <div><p className="eyebrow">Canonical exercise knowledge</p><h1>One movement. One history.</h1><p>Browse by body part, movement type, role, goal, equipment, and personal response without fragmenting progression.</p></div>
+        <div><p className="eyebrow">Movement library</p><h1>One movement. One history.</h1><p>Browse by body part or movement type, save the ones you like, and every set you log stays with the same movement.</p></div>
         <div className="screen-header__actions"><button className="button button--secondary" onClick={openImport}><Upload size={17} /> Import history</button><button className="button button--secondary" onClick={() => setQualityOpen(true)}><ListChecks size={17} /> Data quality {duplicateGroups.length ? `(${duplicateGroups.length})` : ''}</button><button className="button button--primary" onClick={() => { setFormError(null); setAddOpen(true) }}><Plus size={17} /> Add movement</button></div>
       </header>
 
       <section className="library-categories">
         {([
-          ['body', 'Body part', '11 regions', 'chest'], ['pattern', 'Movement type', '8 patterns', 'squat'], ['role', 'Training role', 'Anchor to accessory', 'primary'],
-          ['goal', 'Goal / weak point', 'Target body regions', 'target'], ['equipment', 'Equipment', activeEquipmentProfile.name, 'equipment'], ['favorites', 'My movements', `${activeExercises.filter((exercise) => exercise.favorite).length} preferred`, 'heart']
-        ] as [BrowseDimension, string, string, string][]).map(([id, title, detail, icon]) => <button key={id} aria-pressed={browseDimension === id} onClick={() => openBrowseDimension(id)}><span className={`category-pixel category-pixel--${icon}`}><Dumbbell size={19} /></span><strong>{title}</strong><small>{detail}</small><ChevronRight size={16} /></button>)}
+          ['body', 'Body part', '11 areas', 'chest'], ['pattern', 'Movement type', '8 types', 'squat'],
+          ['favorites', 'My movements', `${activeExercises.filter((exercise) => exercise.favorite).length} saved`, 'heart']
+        ] as [BrowseDimension, string, string, string][]).map(([id, title, detail, icon]) => <button key={id} aria-pressed={browseDimension === id} onClick={() => openBrowseDimension(id)}><span className={`category-pixel category-pixel--${icon}`}><Dumbbell size={19} /></span><strong>{title}</strong><small>{detail}</small></button>)}
+        <button className="library-view-all" aria-pressed={browseDimension === null && region === 'all' && pattern === 'all' && !favoritesOnly && !search} onClick={clearFilters}><span className="category-pixel category-pixel--target"><ListChecks size={19} /></span><strong>View all</strong><small>{activeExercises.length} movements</small></button>
       </section>
 
       <section className="library-browser" ref={filterPanelRef}>
@@ -341,8 +308,7 @@ export function LibraryScreen() {
         {filtersOpen && <div className="filter-stack" id="library-filter-panel">
           <div className="filter-chips" aria-label="Body part and weak point filter"><span>Body part</span>{regionFilters.map((item) => <button key={item.id} className={region === item.id ? 'selected' : ''} aria-pressed={region === item.id} onClick={() => setRegion(item.id)}>{item.label}</button>)}</div>
           <div className="filter-chips" aria-label="Movement pattern filter"><span>Pattern</span>{patternFilters.map((item) => <button key={item.id} className={pattern === item.id ? 'selected' : ''} aria-pressed={pattern === item.id} onClick={() => setPattern(item.id)}>{item.label}</button>)}</div>
-          <div className="filter-chips" aria-label="Training role filter"><span>Role</span>{roleFilters.map((item) => <button key={item} className={role === item ? 'selected' : ''} aria-pressed={role === item} onClick={() => setRole(item)}>{item === 'all' ? 'All roles' : item}</button>)}</div>
-          <div className="filter-chips filter-chips--availability" aria-label="Equipment availability and preference filter"><span>{activeEquipmentProfile.name}</span>{(['all', 'available', 'unavailable'] as const).map((item) => <button key={item} className={availability === item ? 'selected' : ''} aria-pressed={availability === item} onClick={() => setAvailability(item)}>{item === 'all' ? 'All equipment' : item === 'available' ? 'Available here' : 'Missing equipment'}</button>)}<button className={favoritesOnly ? 'selected' : ''} aria-pressed={favoritesOnly} onClick={() => setFavoritesOnly((current) => !current)}><Star size={14} /> Preferred only</button><button onClick={clearFilters}>Clear all</button></div>
+          <div className="filter-chips filter-chips--availability" aria-label="Saved movements filter"><span>Show</span><button className={!favoritesOnly ? 'selected' : ''} aria-pressed={!favoritesOnly} onClick={() => setFavoritesOnly(false)}>All movements</button><button className={favoritesOnly ? 'selected' : ''} aria-pressed={favoritesOnly} onClick={() => setFavoritesOnly(true)}><Star size={14} /> Saved only</button><button onClick={clearFilters}>Reset</button></div>
         </div>}
         {filtered.length ? (
           <div className="exercise-grid">
@@ -352,22 +318,22 @@ export function LibraryScreen() {
               const equipmentFit = exerciseEquipmentFit(exercise, activeEquipmentProfile)
               return (
                 <article className={`library-card ${equipmentFit.available ? 'is-available' : 'is-unavailable'}`} key={exercise.id}>
-                  <div className="library-card__top"><PatternEmblem pattern={exercise.pattern} /><button className={exercise.favorite ? 'favorite active' : 'favorite'} onClick={() => toggleFavorite(exercise.id)} aria-label={`${exercise.favorite ? 'Remove' : 'Add'} ${exercise.name} ${exercise.favorite ? 'from' : 'to'} favorites`}><Star size={17} fill={exercise.favorite ? 'currentColor' : 'none'} /></button></div>
+                  <div className="library-card__top"><MovementArt exercise={exercise} /><button className={exercise.favorite ? 'favorite active' : 'favorite'} onClick={() => toggleFavorite(exercise.id)} aria-label={`${exercise.favorite ? 'Remove' : 'Add'} ${exercise.name} ${exercise.favorite ? 'from' : 'to'} favorites`}><Star size={17} fill={exercise.favorite ? 'currentColor' : 'none'} /></button></div>
                   <p className="eyebrow">{exercise.family} · {exercise.pattern.replace('-', ' ')}</p>
                   <h3>{exercise.name}</h3>
                   <p>{exercise.description}</p>
                   <div className="library-card__tags"><span>{patternLabels[exercise.pattern].toLowerCase()}</span><span>{exercise.primaryRegion}</span><span className={`joint joint--${exercise.jointFeeling}`}>{exercise.jointFeeling}</span>{exercise.custom && <span>custom</span>}<span className={equipmentFit.available ? 'equipment-available' : 'equipment-missing'}>{equipmentFit.available ? 'available here' : `missing ${equipmentFit.missing.length}`}</span></div>
                   <div className="library-card__history"><History size={15} /><span>{latest ? <>Last: <strong>{latest.load} × {latest.reps}</strong> · {new Date(latest.completedAt).toLocaleDateString()}</> : 'No exact history yet'}</span></div>
-                  <button className="library-card__open" onClick={() => setSelected(exercise)}>Open movement <ChevronRight size={16} /></button>
+                  <button className="library-card__open" onClick={() => setSelected(exercise)}>Open movement</button>
                 </article>
               )
             })}
           </div>
-        ) : <div className="empty-state"><Search size={32} /><h3>No movements match this exact filter.</h3><p>{availability === 'available' ? `No movement meets every selected constraint at ${activeEquipmentProfile.name}. Review the profile or relax only the visible filter.` : 'Remove a filter or create a distinct custom movement. ForgePath will warn about likely duplicates first.'}</p><button className="button button--secondary" onClick={() => { setSearch(''); setRegion('all'); setAvailability('all') }}>Clear filters</button></div>}
+        ) : <div className="empty-state"><Search size={32} /><h3>Nothing matches this search yet.</h3><p>Try a different body part or movement type, or add your own movement. We will flag likely duplicates before saving it.</p><button className="button button--secondary" onClick={clearFilters}>View all movements</button></div>}
       </section>
 
       <section className="panel placement-history-panel">
-        <div className="panel__header"><div><p className="eyebrow">Placement-history-v1</p><h3>Use exact history without guessing</h3></div><BrainCircuit size={20} /></div>
+        <div className="panel__header"><div><p className="eyebrow">Your exact history</p><h3>Start from what you have actually lifted</h3></div><BrainCircuit size={20} /></div>
         <p className="chart-note">ForgePath can summarize exact recent work and suggest evidence confidence or heavy-work tolerance. You must review and accept each suggestion. Skill, pain, recovery, and neighboring variations are never inferred.</p>
         <div className="placement-history-grid">{placementEvidence.map((evidence) => <article key={evidence.exerciseId} className={evidence.totalSetCount ? 'has-evidence' : ''}><span><strong>{evidence.exerciseName}</strong><small>{evidence.basis === 'recent-window' ? `${evidence.recentSetCount} sets · ${evidence.recentExposureDateCount} dates in ${evidence.windowDays} days` : evidence.basis === 'latest-stale' ? 'Exact history exists, but it is stale' : 'No exact history'}</small></span><div><b>Evidence {evidence.suggestedDataConfidence}/5</b><b>{evidence.suggestedStrengthTolerance === null ? 'Tolerance not inferred' : `Tolerance ${evidence.suggestedStrengthTolerance}/5`}</b></div>{evidence.recentImportedSetCount > 0 && <small>{evidence.recentImportedSetCount} recent imported set{evidence.recentImportedSetCount === 1 ? '' : 's'} remain numeric-only.</small>}</article>)}</div>
         <div className="placement-history-action"><span><ShieldCheck size={17} /><small>Reviewing creates a new placement version and future plan. Completed history is never rewritten.</small></span><button className="button button--secondary" disabled={Boolean(activeSessionId) || !placementEvidence.some((evidence) => evidence.totalSetCount > 0)} onClick={() => restartOnboarding(1)}>Review in placement</button></div>
@@ -377,7 +343,7 @@ export function LibraryScreen() {
         {selected && (
           <div className="exercise-detail">
             <div className="exercise-detail__summary">
-              <PatternEmblem pattern={selected.pattern} large />
+              <MovementArt exercise={selected} large />
               <div><p className="eyebrow">Canonical ID · {selected.id}</p><h3>{selected.family}</h3><p>{selected.regions.join(' · ')} · {selected.equipment.join(' · ')}</p><div className="library-card__tags">{selected.roleTags.map((tag) => <span key={tag}>{tag}</span>)}</div></div>
             </div>
             <div className="detail-stats">
@@ -388,7 +354,7 @@ export function LibraryScreen() {
               <div><small>Saved notes</small><strong>{selectedMovementNotes.length}</strong></div>
             </div>
             <div className={`exercise-muscle-map ${selectedMuscleCredits ? '' : 'is-unmapped'}`}>
-              <span><Target size={18} /><span><strong>{selected.custom ? selected.muscleMapping ? 'Athlete-reviewed muscle dose' : 'Muscle dose unmapped' : 'Built-in muscle-dose-v1 mapping'}</strong><small>{selected.custom && selected.muscleMapping ? `Reviewed ${new Date(selected.muscleMapping.reviewedAt).toLocaleDateString()} · editable and undoable` : selected.custom ? 'Completed and planned sets receive no muscle credit until you review a mapping.' : 'Protected product heuristic · editable mappings are limited to custom movements.'}</small></span></span>
+              <span><Target size={18} /><span><strong>{selected.custom ? selected.muscleMapping ? 'Muscles you mapped' : 'No muscles mapped yet' : 'Built-in muscle mapping'}</strong><small>{selected.custom && selected.muscleMapping ? `Reviewed ${new Date(selected.muscleMapping.reviewedAt).toLocaleDateString()} · editable and undoable` : selected.custom ? 'Completed and planned sets receive no muscle credit until you review a mapping.' : 'Built in and fixed. You can edit the mapping on movements you create yourself.'}</small></span></span>
               {selectedMuscleCredits ? <span className="exercise-muscle-map__credits"><b>Direct · {muscleLabel.get(Object.entries(selectedMuscleCredits).find(([, credit]) => credit === 1)?.[0] as MuscleId) ?? 'Unknown'}</b><small>Secondary · {Object.entries(selectedMuscleCredits).filter(([, credit]) => credit === 0.5).map(([muscle]) => muscleLabel.get(muscle as MuscleId)).join(', ') || 'None'}</small></span> : <b>No inferred credit</b>}
             </div>
             {selectedEquipmentFit && <div className={`exercise-equipment-fit ${selectedEquipmentFit.available ? 'is-available' : 'is-unavailable'}`}><Dumbbell size={18} /><span><strong>{selectedEquipmentFit.available ? `Available at ${activeEquipmentProfile.name}` : `Unavailable at ${activeEquipmentProfile.name}`}</strong><small>{selectedEquipmentFit.available ? `All required items are present: ${selectedEquipmentFit.required.join(', ')}.` : `Missing: ${selectedEquipmentFit.missing.join(', ')}. Other history and analytics remain available.`}</small></span></div>}
@@ -400,7 +366,7 @@ export function LibraryScreen() {
             <section><div className="panel__header"><div><p className="eyebrow">Exact movement only</p><h3>Exposure history</h3></div><History size={18} /></div>
               <div className="history-table history-table--editable">{Object.entries(groupedDates).slice(0, 8).map(([date, sets]) => <div className="history-day" key={date}><span><Clock3 size={14} />{new Date(`${date}T12:00:00`).toLocaleDateString()} · {volumeLoad(sets).toLocaleString()} volume</span>{sets.map((workSet) => <div className="history-set-row" key={workSet.id}><span><strong>{workSet.load} × {workSet.reps}</strong><small>Set {workSet.setIndex + 1} · {workSet.rirKnown === false ? 'RIR unknown' : `${workSet.rir} RIR`} · {workSet.qualityConfirmed ? `technique ${workSet.technique} · pain ${workSet.pain}` : 'quality not confirmed'}</small>{workSet.originalExerciseName && <small>Originally logged as {workSet.originalExerciseName}{workSet.importSourceName ? ` · ${workSet.importSourceName} row ${workSet.importRow}` : ''}</small>}</span><span><button aria-label={`Correct ${workSet.load} by ${workSet.reps} set`} onClick={() => openCorrection(workSet)}><Pencil size={15} /> Correct</button><button className="danger-link" aria-label={`Delete ${workSet.load} by ${workSet.reps} set`} onClick={() => { setSelected(null); setDeleteOpen(workSet); setDeleteReason(''); setFormError(null) }}><Trash2 size={15} /> Delete</button></span></div>)}</div>)}</div>
             </section>
-            <div className="builder-callout"><Target size={21} /><div><strong>Builder relationship</strong><p>{selected.roleTags.includes('secondary builder') ? 'This movement is currently linked to a protected strength anchor. Transfer remains a personal hypothesis until repeated outcomes support it.' : 'No protected builder relationship has been assigned yet.'}</p></div></div>
+            <div className="builder-callout"><Target size={21} /><div><strong>Builder relationship</strong><p>{selected.roleTags.includes('secondary builder') ? 'This movement is currently linked to a protected strength anchor. Transfer remains a personal a starting guess until your results back it up.' : 'No protected builder relationship has been assigned yet.'}</p></div></div>
           </div>
         )}
       </Modal>
@@ -417,9 +383,9 @@ export function LibraryScreen() {
           const selectedExercise = exercises.find((exercise) => exercise.id === event.selectedExerciseId)
           return <article key={event.id}>
             <span className={`substitution-outcome substitution-outcome--${event.outcome}`}>{event.outcome.replace('-', ' ')}</span>
-            <div><strong>{original?.name ?? 'Unknown movement'} <ChevronRight size={14} /> {selectedExercise?.name ?? 'Unknown movement'}</strong><small>{event.role} · reason: {event.reason === 'none' ? 'not provided' : event.reason.replace('-', ' ')} · {new Date(event.createdAt).toLocaleString()}</small><p>{event.prescriptionNote}</p><small>{event.sourceSetIds.length} completed source set{event.sourceSetIds.length === 1 ? '' : 's'} · {event.prescriptionMethod.replace('-', ' ')}{event.postFeedback && !event.postFeedback.skipped ? ` · stimulus ${event.postFeedback.targetStimulus ?? 'unknown'} · pain ${event.postFeedback.pain ?? 'unknown'} · enjoyment ${event.postFeedback.enjoyment ?? 'unknown'}` : ' · feedback unknown'}</small></div>
+            <div><strong>{original?.name ?? 'Unknown movement'} <ChevronRight size={14} /> {selectedExercise?.name ?? 'Unknown movement'}</strong><small>{event.role} · reason: {event.reason === 'none' ? 'not provided' : event.reason.replace('-', ' ')} · {new Date(event.createdAt).toLocaleString()}</small><p>{event.prescriptionNote}</p><small>{event.sourceSetIds.length} completed set{event.sourceSetIds.length === 1 ? '' : 's'} · {event.prescriptionMethod.replace('-', ' ')}{event.postFeedback && !event.postFeedback.skipped ? ` · stimulus ${event.postFeedback.targetStimulus ?? 'unknown'} · pain ${event.postFeedback.pain ?? 'unknown'} · enjoyment ${event.postFeedback.enjoyment ?? 'unknown'}` : ' · feedback unknown'}</small></div>
           </article>
-        })}</div> : <div className="compact-empty"><RefreshCcw size={25} /><strong>No substitutions yet</strong><p>Movement changes will appear here with the reason, ranked alternatives, recalculated prescription, completed source sets, and available feedback.</p></div>}
+        })}</div> : <div className="compact-empty"><RefreshCcw size={25} /><strong>No substitutions yet</strong><p>Movement changes will appear here with the reason, the alternatives we ranked, the recalculated targets, the sets you completed, and any feedback you gave.</p></div>}
       </section>
 
       <Modal open={importOpen} onClose={() => setImportOpen(false)} title="Import completed history" description="Preview every row and map source names to one canonical movement before anything changes." wide>
@@ -442,7 +408,7 @@ export function LibraryScreen() {
           <section className="import-mapping-section"><div className="panel__header"><div><p className="eyebrow">Canonical identity review</p><h3>Map each source movement</h3></div><ShieldCheck size={19} /></div>
             <div className="import-mapping-list">{importPreview.mappings.map((mapping) => {
               const suggestion = activeExercises.find((exercise) => exercise.id === mapping.suggestedExerciseId)
-              return <label key={mapping.sourceExerciseName} className={`import-mapping import-mapping--${mapping.status}`}><span><strong>{mapping.sourceExerciseName}</strong><small>{mapping.rowCount} set{mapping.rowCount === 1 ? '' : 's'} · {mapping.status === 'exact' ? 'exact canonical or alias match' : mapping.status === 'review' ? `${Math.round((mapping.suggestedScore ?? 0) * 100)}% possible match${suggestion ? ` to ${suggestion.name}` : ''}` : 'no deterministic match'}</small></span><select aria-label={`Map ${mapping.sourceExerciseName}`} value={importMappings[mapping.sourceExerciseName] ?? ''} onChange={(event) => setImportMappings({ ...importMappings, [mapping.sourceExerciseName]: event.target.value })}><option value="">Choose canonical movement</option>{[...activeExercises].sort((a, b) => a.name.localeCompare(b.name)).map((exercise) => <option key={exercise.id} value={exercise.id}>{exercise.name}</option>)}</select></label>
+              return <label key={mapping.sourceExerciseName} className={`import-mapping import-mapping--${mapping.status}`}><span><strong>{mapping.sourceExerciseName}</strong><small>{mapping.rowCount} set{mapping.rowCount === 1 ? '' : 's'} · {mapping.status === 'exact' ? 'exact canonical or alias match' : mapping.status === 'review' ? `${Math.round((mapping.suggestedScore ?? 0) * 100)}% possible match${suggestion ? ` to ${suggestion.name}` : ''}` : 'no clear match'}</small></span><select aria-label={`Map ${mapping.sourceExerciseName}`} value={importMappings[mapping.sourceExerciseName] ?? ''} onChange={(event) => setImportMappings({ ...importMappings, [mapping.sourceExerciseName]: event.target.value })}><option value="">Choose canonical movement</option>{[...activeExercises].sort((a, b) => a.name.localeCompare(b.name)).map((exercise) => <option key={exercise.id} value={exercise.id}>{exercise.name}</option>)}</select></label>
             })}</div>
           </section>
           <div className="import-boundary"><AlertTriangle size={18} /><span><strong>Nothing is inferred silently.</strong><p>Uncertain names require your choice. Re-imported row fingerprints are skipped. Imported sets keep their original name, source file, row number, date, and unit, but they do not count as stored-plan completion.</p></span></div>
@@ -496,7 +462,7 @@ export function LibraryScreen() {
       </Modal>
 
       <Modal open={Boolean(mergeGroup)} onClose={() => setMergeGroup(null)} title="Merge duplicate movements" description="Choose one identity to keep. Every other identity in this connected group will retire into it in one audited, undoable event.">
-        {mergeGroup && <><div className="merge-choice" role="radiogroup" aria-label="Movement identity to keep">{mergeGroup.map((exercise) => <button key={exercise.id} role="radio" aria-checked={mergeTargetId === exercise.id} className={mergeTargetId === exercise.id ? 'selected' : ''} onClick={() => setMergeTargetId(exercise.id)}><PatternEmblem pattern={exercise.pattern} /><span><strong>Keep {exercise.name}</strong><small>{history.filter((workSet) => workSet.exerciseId === exercise.id).length} completed sets · {exercise.aliases.length} aliases</small></span></button>)}</div><div className="merge-consequence"><GitMerge size={19} /><span><strong>{history.filter((workSet) => mergeGroup.some((exercise) => exercise.id === workSet.exerciseId)).length} completed sets will share one progression history.</strong><p>{mergeGroup.length - 1} duplicate identit{mergeGroup.length - 1 === 1 ? 'y retires' : 'ies retire'} into the selected identity. Future planned references move to it. Completed sessions and prior mesocycle versions remain historical truth.</p></span></div><label><span className="field-label">Reason for merge</span><input value={mergeReason} onChange={(event) => setMergeReason(event.target.value)} /></label>{formError && <p className="form-error" role="alert">{formError}</p>}<div className="modal__actions"><button className="button button--ghost" onClick={() => setMergeGroup(null)}>Cancel</button><button className="button button--primary" onClick={submitMerge}><GitMerge size={17} /> Merge {mergeGroup.length} identities</button></div></>}
+        {mergeGroup && <><div className="merge-choice" role="radiogroup" aria-label="Movement identity to keep">{mergeGroup.map((exercise) => <button key={exercise.id} role="radio" aria-checked={mergeTargetId === exercise.id} className={mergeTargetId === exercise.id ? 'selected' : ''} onClick={() => setMergeTargetId(exercise.id)}><MovementArt exercise={exercise} /><span><strong>Keep {exercise.name}</strong><small>{history.filter((workSet) => workSet.exerciseId === exercise.id).length} completed sets · {exercise.aliases.length} aliases</small></span></button>)}</div><div className="merge-consequence"><GitMerge size={19} /><span><strong>{history.filter((workSet) => mergeGroup.some((exercise) => exercise.id === workSet.exerciseId)).length} completed sets will share one progression history.</strong><p>{mergeGroup.length - 1} duplicate identit{mergeGroup.length - 1 === 1 ? 'y retires' : 'ies retire'} into the selected identity. Future planned references move to it. Completed sessions and prior mesocycle versions remain historical truth.</p></span></div><label><span className="field-label">Reason for merge</span><input value={mergeReason} onChange={(event) => setMergeReason(event.target.value)} /></label>{formError && <p className="form-error" role="alert">{formError}</p>}<div className="modal__actions"><button className="button button--ghost" onClick={() => setMergeGroup(null)}>Cancel</button><button className="button button--primary" onClick={submitMerge}><GitMerge size={17} /> Merge {mergeGroup.length} identities</button></div></>}
       </Modal>
     </div>
   )

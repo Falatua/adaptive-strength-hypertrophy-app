@@ -23,6 +23,6 @@ export function SurveyModeChooser({
       {choices.map(({ mode, title, detail, icon: Icon }) => <button key={mode} onClick={() => onChoose(mode)}><Icon size={19} /><span><strong>{title}</strong><small>{detail}</small></span><CheckCircle2 size={17} /></button>)}
     </div>
     <button className="survey-mode-skip" onClick={onSkip}><Play size={17} /> {starting ? 'Start workout without check-in' : 'Finish workout without survey'}</button>
-    <p className="modal-note">Unanswered, skipped, not-sure, and private responses remain unknown. ForgePath will use completed training and the existing deterministic plan without inventing readiness evidence.</p>
+    <p className="modal-note">Unanswered, skipped, not-sure, and private responses remain unknown. ForgeYour plan stays as it is, and the app will learn from the work you finish instead of guessing how you feel.</p>
   </Modal>
 }

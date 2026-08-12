@@ -129,9 +129,9 @@ export function CloudSyncPanel() {
 
   if (cloudConfiguration.status !== 'ready') {
     return <section className="panel cloud-panel cloud-panel--pending" aria-label="Cloud sync setup">
-      <div className="panel__header"><div><p className="eyebrow">Private cloud</p><h3>Release gate closed</h3></div><CloudOff size={19} /></div>
-      <div className="cloud-boundary"><ShieldCheck size={23} /><div><strong>Local training stays available</strong><p>{cloudConfiguration.reason} No JB-OS or Roman TD data will be reused.</p></div></div>
-      <p className="chart-note">This build contains no cloud endpoint or publishable key. Service-role keys and database passwords never belong in the app.</p>
+      <div className="panel__header"><div><p className="eyebrow">Private cloud</p><h3>Cloud sync is off</h3></div><CloudOff size={19} /></div>
+      <div className="cloud-boundary"><ShieldCheck size={23} /><div><strong>Local training stays available</strong><p>{cloudConfiguration.reason} Everything you log stays on this device.</p></div></div>
+      <p className="chart-note">There is no server to sync with yet, and the app stores no keys or passwords.</p>
     </section>
   }
 

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Layers, Pause, Play, Plus, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, TrendingUp, Trophy } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Layers, Plus, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, TrendingUp, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
 import type { CompletedSetRecord, EffectiveSurveyMode, PlannedExercise, SubstitutionReason } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
+import { NumberField } from '../components/NumberField'
 import { PostSurveyModal } from '../components/PostSurveyModal'
 import { SurveyModeChooser } from '../components/SurveyModeChooser'
 import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '../domain/equipment-engine'
@@ -38,8 +39,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const [finishChooserOpen, setFinishChooserOpen] = useState(false)
   const [activePostMode, setActivePostMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
   const [warmupConfirmed, setWarmupConfirmed] = useState(false)
-  const [timerRunning, setTimerRunning] = useState(false)
-  const [elapsed, setElapsed] = useState(0)
+  const [clockNow, setClockNow] = useState(() => Date.now())
   const [decisionInfo, setDecisionInfo] = useState<{ name: string; title: string; action: string; confidence: string; explanation: string } | null>(null)
   const [addMovementOpen, setAddMovementOpen] = useState(false)
   const [addSearch, setAddSearch] = useState('')
@@ -88,13 +88,12 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     priorAchievementCount.current = activeAchievementPreview.length
   }, [activeAchievementPreview.length, settings])
 
+  // The session clock reads from the moment the workout started, which is the same stamp
+  // the finished session records its real duration from. Nothing to start, nothing to forget.
   useEffect(() => {
-    if (!timerRunning) return
-    const interval = window.setInterval(() => {
-      setElapsed((current) => current + 1)
-    }, 1000)
+    const interval = window.setInterval(() => setClockNow(Date.now()), 1000)
     return () => window.clearInterval(interval)
-  }, [timerRunning])
+  }, [])
 
   if (!session) return null
 
@@ -121,6 +120,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const placementCheckUnlocked = placementVerification?.warmupResponse !== 'not-answered' || (placementCheckMovement
     ? placementCheckMovement.sets.length > 0 && placementCheckMovement.sets.every((workSet) => workSet.completed)
     : totalSets > 0 && completedSets === totalSets)
+  const sessionStart = session.startedAt ? new Date(session.startedAt).getTime() : clockNow
+  const elapsed = Math.max(0, Math.floor((clockNow - sessionStart) / 1000))
   const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0')
   const seconds = String(elapsed % 60).padStart(2, '0')
 
@@ -257,8 +258,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         <div className="workout-header__stats">
           <div><small>Sets</small><strong>{completedSets}/{totalSets}</strong></div>
           <div><small>Volume</small><strong>{currentVolume.toLocaleString()}</strong></div>
-          <div><small>Time</small><strong>{minutes}:{seconds}</strong></div>
-          <button className={`timer-button ${timerRunning ? 'active' : ''}`} onClick={() => setTimerRunning((current) => !current)}>{timerRunning ? <Pause size={17} /> : <Play size={17} />}{timerRunning ? 'Pause' : 'Start timer'}</button>
+          <div className="workout-clock" role="timer" aria-label="Time elapsed in this workout"><Clock3 size={16} /><span><small>Elapsed</small><strong>{minutes}:{seconds}</strong></span></div>
         </div>
         <div className="workout-progress"><span style={{ transform: `scaleX(${progress / 100})` }} /></div>
       </header>
@@ -271,7 +271,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         )}
         {placementVerification && placementCheckUnlocked && (
           <section className={`warmup-check placement-session-check ${placementVerification.warmupResponse !== 'not-answered' ? 'is-captured' : ''}`} aria-label="Placement verification warm-up">
-            <div><Sparkles size={20} /><span><strong>{placementVerification.movementPlacement ? `${placementVerification.movementPlacement.exerciseName} check` : 'Placement check'} {placementVerification.sequence} of 3</strong><small>{placementCheckMovement ? `Every ${placementVerification.movementPlacement!.exerciseName} set is logged.` : 'Every planned set is logged.'} {placementRouteLabels[placementVerification.placementRoute]} is a hypothesis. How did the warm-up compare? Answer only if useful.</small></span></div>
+            <div><Sparkles size={20} /><span><strong>{placementVerification.movementPlacement ? `${placementVerification.movementPlacement.exerciseName} check` : 'Placement check'} {placementVerification.sequence} of 3</strong><small>{placementCheckMovement ? `Every ${placementVerification.movementPlacement!.exerciseName} set is logged.` : 'Every planned set is logged.'} {placementRouteLabels[placementVerification.placementRoute]} is our best guess so far. How did the warm-up feel? Answer only if it helps.</small></span></div>
             {placementVerification.warmupResponse === 'not-answered' ? <div>
               <button onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'better') }}>Better</button>
               <button onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'as-expected') }}>As expected</button>
@@ -368,8 +368,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                     return (
                     <div className={`set-row ${workSet.completed ? 'completed' : ''}`} role="row" key={workSet.id}>
                       <span className="set-number">{index + 1}{workSet.athleteAdded && <em title="Added by you today">+</em>}{workSet.grouping && <b className={`set-group set-group--${workSet.grouping.groupRole}`} title={`${setStructureLabels[workSet.grouping.groupKind]}: ${workSet.grouping.groupRole}`}>{workSet.grouping.groupRole === 'drop' ? '↓' : workSet.grouping.groupRole === 'mini' ? '·' : workSet.grouping.groupRole === 'paired' ? '⇄' : '★'}</b>}</span>
-                      <label><span className="sr-only">Set {index + 1} load</span><input disabled={!equipmentFit.available} type="number" inputMode="decimal" step={loadIncrementFor(exercise, activeEquipmentProfile).value} placeholder={loadUnknown ? 'Your call' : undefined} value={loadUnknown ? '' : workSet.completedLoad ?? workSet.targetLoad} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { load: Number(event.target.value) })} /><small>{settings.units}</small></label>
-                      <label><span className="sr-only">Set {index + 1} repetitions</span><input disabled={!equipmentFit.available} type="number" inputMode="numeric" value={workSet.completedReps ?? workSet.targetReps} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { reps: Number(event.target.value) })} /></label>
+                      <label><span className="sr-only">Set {index + 1} load</span><NumberField disabled={!equipmentFit.available} inputMode="decimal" step={loadIncrementFor(exercise, activeEquipmentProfile).value} placeholder={loadUnknown ? 'Your call' : undefined} value={loadUnknown ? null : workSet.completedLoad ?? workSet.targetLoad} onCommit={(load) => updateSet(session.id, planned.id, workSet.id, { load })} /><small>{settings.units}</small></label>
+                      <label><span className="sr-only">Set {index + 1} repetitions</span><NumberField disabled={!equipmentFit.available} inputMode="numeric" value={workSet.completedReps ?? workSet.targetReps} onCommit={(reps) => updateSet(session.id, planned.id, workSet.id, { reps })} /></label>
                       <label><span className="sr-only">Set {index + 1} {effort.label === 'RPE' ? 'rate of perceived exertion' : 'repetitions in reserve'}</span><select disabled={!equipmentFit.available} value={effort.value} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { rir: effort.metric === 'rpe' ? rpeToRir(Number(event.target.value)) : Number(event.target.value) })}>{effort.options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
                       <button className="complete-set" disabled={!equipmentFit.available && !workSet.completed} onClick={() => logSet(planned.id, workSet.id, workSet.completed)} aria-pressed={workSet.completed}>{workSet.completed ? <><Check size={18} /> Done</> : equipmentFit.available ? 'Log set' : 'Blocked'}</button>
                     </div>
@@ -496,7 +496,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         <p className="modal-note">Candidates satisfy every equipment item in {activeEquipmentProfile.name}. The selected movement receives a prescription from its own exact history or a conservative calibration, using the profile's executable load increment. The original exact-movement progression clock remains frozen.</p>
       </Modal>
 
-      <Modal open={Boolean(decisionInfo)} onClose={() => setDecisionInfo(null)} title={decisionInfo ? `${decisionInfo.name} progression decision` : 'Progression decision'} description="The recommendation is deterministic and uses this exact movement's completed history.">
+      <Modal open={Boolean(decisionInfo)} onClose={() => setDecisionInfo(null)} title={decisionInfo ? `${decisionInfo.name} progression decision` : 'Progression decision'} description="The recommendation follows fixed rules and uses this exact movement's completed history.">
         {decisionInfo && <div className="decision-info">
           <div><small>Decision</small><strong>{decisionInfo.title}</strong></div>
           <div><small>Progression action</small><strong>{decisionInfo.action}</strong></div>

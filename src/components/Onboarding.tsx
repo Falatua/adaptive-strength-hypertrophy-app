@@ -7,6 +7,7 @@ import { buildPlacementHistoryEvidence } from '../domain/placement-history-engin
 import type { MovementPlacementInput, PlacementDecision, PlacementGoal, PlacementHistoryAcceptedField, PlacementInputs, PlacementPainState } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { trainingSplitFor } from '../domain/split-engine'
+import { LocationArt } from './LocationArt'
 import { PixelAvatar } from './PixelAvatar'
 
 const goals: Array<{ id: PlacementGoal; label: string }> = [
@@ -161,7 +162,7 @@ export function Onboarding() {
       <div className="onboarding__art">
         <div className="pixel-sun" /><div className="pixel-mountain pixel-mountain--one" /><div className="pixel-mountain pixel-mountain--two" />
         <PixelAvatar size="large" mood={step === 3 ? 'celebrate' : 'strong'} />
-        <div className="onboarding__art-copy"><span className="eyebrow">Private Alpha · Local first</span><h1>Build the athlete.<br />Adapt the path.</h1><p>Experience, current readiness, and real-life capacity stay separate. The app starts with a hypothesis, then learns from completed work.</p></div>
+        <div className="onboarding__art-copy"><span className="eyebrow">Private Alpha · Local first</span><h1>Build the athlete.<br />Adapt the path.</h1><p>What you have done before, how you feel today, and what your week actually allows are three different things. The app makes its best guess to start, then learns from the work you finish.</p></div>
       </div>
       <main id="main-content" className="onboarding__panel" tabIndex={-1}>
         <div className="onboarding__brand"><span className="brand__mark">F</span><strong>ForgePath</strong></div>
@@ -169,14 +170,14 @@ export function Onboarding() {
 
         {step === 0 && <section>
           <p className="eyebrow">01 · Direction and training history</p><h2>Build my starting profile</h2>
-          <p className="muted">Answer what you know. Every question can be skipped, and missing evidence lowers confidence instead of becoming a fake answer.</p>
+          <p className="muted">Answer what you know. Skip anything you are not sure about. Skipping just means the app is less certain to start with, and it will never make up an answer for you.</p>
           <div className="onboarding-fast-routes"><button onClick={() => persistPlacement('quick-start', 'today', true)}><Sparkles size={18} /><span><strong>Quick Start</strong><small>Enter now with a low-confidence calibration route.</small></span></button></div>
           <label className="field-label">Primary goal</label><div className="choice-grid placement-goals">{goals.map((item) => <button key={item.id} className={goal === item.id ? 'selected' : ''} onClick={() => setGoal(item.id)}>{goal === item.id && <Check size={16} />}{item.label}</button>)}<button className={goal === null ? 'selected' : ''} onClick={() => setGoal(null)}>Not sure yet</button></div>
           <label><span className="field-label">Years of structured training</span><input aria-label="Years of structured training" type="number" min="0" max="60" value={experience ?? ''} onChange={(event) => setExperience(event.target.value === '' ? null : Number(event.target.value))} placeholder="Skip if uncertain" /></label>
         </section>}
 
         {step === 1 && <section>
-          <p className="eyebrow">02 · Current training capacity</p><h2>Past experience is not current tolerance.</h2><p className="muted">Score the work you can perform now, not your all-time best. Every answer can be skipped, and skipping lowers confidence instead of inventing a number.</p>
+          <p className="eyebrow">02 · Current training capacity</p><h2>Past experience is not current tolerance.</h2><p className="muted">Score what you can do now, not your best ever. Every answer can be skipped, and skipping lowers confidence instead of inventing a number.</p>
           <div className="placement-picker-stack">
             <DimensionPicker label="Technique consistency" hint="How repeatable your form is across sets on the main barbell lifts. Not how strong you are." value={movementSkill} onChange={setMovementSkill} low="Varies set to set" high="Same every rep" />
             <DimensionPicker label="Heavy-work tolerance" hint="How well you currently handle near-limit loads, not how much you once lifted." value={strengthTolerance} onChange={setStrengthTolerance} low="Needs calibration" high="Heavy work is familiar" />
@@ -194,7 +195,7 @@ export function Onboarding() {
           <label className="field-label">Training opportunities each week</label><div className="choice-row">{[2, 3, 4, 5, 6].map((item) => <button key={item} className={opportunities === item ? 'selected' : ''} onClick={() => setOpportunities(item)}>{item}×</button>)}</div>
           <p className="split-preview"><Layers size={15} /> <span><strong>{trainingSplitFor(opportunities).label}.</strong> {trainingSplitFor(opportunities).reasons[0]}</span></p>
           <label className="field-label">Usual time per session</label><div className="choice-row">{times.map((item) => <button key={item} className={minutes === item ? 'selected' : ''} onClick={() => setMinutes(item)}>{item}m</button>)}</div>
-          <label className="field-label">Usual training location</label><div className="choice-row onboarding-equipment">{equipmentProfiles.map((profile) => <button key={profile.id} className={equipmentProfileId === profile.id ? 'selected' : ''} onClick={() => setEquipmentProfileId(profile.id)}>{profile.name}<small>{profile.equipment.length} items</small></button>)}</div>
+          <label className="field-label">Usual training location</label><div className="choice-row onboarding-equipment">{equipmentProfiles.map((profile) => <button key={profile.id} className={equipmentProfileId === profile.id ? 'selected' : ''} onClick={() => setEquipmentProfileId(profile.id)}><LocationArt kind={profile.kind} /><span>{profile.name}<small>{profile.equipment.length} items</small></span></button>)}</div>
           <label className="field-label">Recent training continuity</label><div className="stacked-choices">{([
             ['stable', 'Stable', 'Consistent useful training during the last month.'], ['interrupted', 'Interrupted', 'Some recent work, but life disrupted the pattern.'],
             ['returning', 'Returning', 'A meaningful gap makes current tolerance uncertain.']
@@ -208,7 +209,7 @@ export function Onboarding() {
 
         {step === 3 && <section className="placement-result">
           <p className="eyebrow">04 · Explainable starting placement</p><h2>{placementRouteLabels[selectedAssessment.selectedRoute]}</h2>
-          <div className={`placement-confidence placement-confidence--${selectedAssessment.confidence}`}><Gauge size={19} /><span><strong>{selectedAssessment.confidence} confidence</strong><small>Placement is a hypothesis, not a permanent level.</small></span></div>
+          <div className={`placement-confidence placement-confidence--${selectedAssessment.confidence}`}><Gauge size={19} /><span><strong>{selectedAssessment.confidence} confidence</strong><small>This is a starting point, not a label. It changes as you train.</small></span></div>
           {selectedAssessment.selectedRoute !== selectedAssessment.recommendedRoute && <p className="placement-decision-note"><ShieldCheck size={15} /> Engine recommendation: {placementRouteLabels[selectedAssessment.recommendedRoute]}. Your conservative choice is stored separately.</p>}
           {selectedAssessment.selectedRoute === 'pain-aware-modified' && <div className="placement-safety"><AlertTriangle size={19} /><span><strong>Plan review required</strong><small>This is not medical clearance. Review movement restrictions before training and seek qualified care for new, severe, or unexplained pain.</small></span></div>}
           <div className="placement-dimensions">{Object.entries(selectedAssessment.dimensions).map(([key, value]) => <div key={key}><span>{key.replace(/([A-Z])/g, ' $1')}</span><div>{Array.from({ length: 5 }, (_, index) => <i key={index} className={index < value ? 'filled' : ''} />)}</div><strong>{value}/5</strong></div>)}</div>
@@ -218,11 +219,11 @@ export function Onboarding() {
           <details><summary>Why not lower or higher?</summary><p><strong>Lower:</strong> {selectedAssessment.whyNotLower}</p><p><strong>Higher:</strong> {selectedAssessment.whyNotHigher}</p></details>
           <details open><summary>First-session verification plan</summary><ul>{selectedAssessment.verificationPlan.map((item) => <li key={item}>{item}</li>)}</ul></details>
           <div className="route-session-preview">
-            <div><Sparkles size={18} /><span><strong>Your starting sessions will actually change</strong><small>{selectedRouteProfile.ruleVersion} · {selectedRouteProfile.label}</small></span></div>
+            <div><Sparkles size={18} /><span><strong>Your starting sessions will actually change</strong><small>{selectedRouteProfile.label}</small></span></div>
             {selectedAssessment.selectedRoute === 'pain-aware-modified' ? <p>Automatic session generation stays paused until you reassess movement restrictions. Existing completed work remains untouched.</p> : <><p>{selectedRouteProfile.strategy}</p><div className="route-session-preview__grid"><span><small>Primary</small><strong>{selectedRouteProfile.primary.sets} × {selectedRouteProfile.primary.reps}</strong><em>{selectedRouteProfile.primary.rir} RIR · {selectedRouteProfile.primary.restSeconds}s rest</em></span><span><small>Secondary</small><strong>{selectedRouteProfile.secondary.sets} × {selectedRouteProfile.secondary.reps}</strong><em>{selectedRouteProfile.secondary.rir} RIR · {selectedRouteProfile.secondary.restSeconds}s rest</em></span><span><small>Accessories</small><strong>{selectedRouteProfile.accessory.sets} × {selectedRouteProfile.accessory.reps}</strong><em>up to {selectedRouteProfile.maximumAccessories} · {selectedRouteProfile.accessory.rir} RIR</em></span></div><small>{selectedRouteProfile.warmupGuidance}</small></>}
             {selectedAssessment.selectedRoute !== 'pain-aware-modified' && <div className={`route-equipment-preview ${protectedAnchorConflicts.length ? 'route-equipment-preview--warning' : ''}`}><Dumbbell size={17} /><span><strong>Generated for {selectedEquipmentProfile.name}</strong><small>Support work must match {selectedEquipmentProfile.equipment.length} available items. Loads use its {selectedEquipmentProfile.incrementUnit} increments.</small>{protectedAnchorConflicts.length > 0 && <em>{protectedAnchorConflicts.map(({ exercise, missing }) => `${exercise.name}: ${missing.join(', ')}`).join(' · ')}. Protected anchors stay visible and require your review.</em>}</span></div>}
           </div>
-          <div className="placement-controls"><button className={decision === 'conservative' ? 'selected' : ''} onClick={() => setDecision(decision === 'conservative' ? 'confirmed' : 'conservative')}><ShieldCheck size={17} /><span><strong>Start more conservatively</strong><small>Use {placementRouteLabels[applyPlacementDecision(assessment, 'conservative').selectedRoute]}.</small></span></button><button className={decision === 'aggressive-test' ? 'selected' : ''} onClick={() => setDecision(decision === 'aggressive-test' ? 'confirmed' : 'aggressive-test')}><Sparkles size={17} /><span><strong>I am ready for more</strong><small>Keep this route, but request faster productive verification.</small></span></button><button className="placement-controls__wide" onClick={() => persistPlacement(decision, 'library')}><BrainCircuit size={17} /><span><strong>Correct or import my training history</strong><small>Save this hypothesis, then improve its evidence in Library.</small></span></button></div>
+          <div className="placement-controls"><button className={decision === 'conservative' ? 'selected' : ''} onClick={() => setDecision(decision === 'conservative' ? 'confirmed' : 'conservative')}><ShieldCheck size={17} /><span><strong>Start more conservatively</strong><small>Use {placementRouteLabels[applyPlacementDecision(assessment, 'conservative').selectedRoute]}.</small></span></button><button className={decision === 'aggressive-test' ? 'selected' : ''} onClick={() => setDecision(decision === 'aggressive-test' ? 'confirmed' : 'aggressive-test')}><Sparkles size={17} /><span><strong>I am ready for more</strong><small>Keep this route, but request faster productive verification.</small></span></button><button className="placement-controls__wide" onClick={() => persistPlacement(decision, 'library')}><BrainCircuit size={17} /><span><strong>Correct or import my training history</strong><small>Save this starting point, then add your past training in Library to sharpen it.</small></span></button></div>
           <ul className="check-list"><li><Check size={16} /> Surveys remain optional</li><li><Check size={16} /> Missed sessions create no volume debt</li><li><CalendarClock size={16} /> Exit depends on criteria, not an arbitrary date</li><li><ShieldCheck size={16} /> Data stays on this device for now</li></ul>
         </section>}
 

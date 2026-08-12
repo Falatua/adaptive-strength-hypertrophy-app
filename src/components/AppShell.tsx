@@ -56,7 +56,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar__footer">
           <Sparkles size={16} />
-          <span>Rules v0.50.0<br /><small>Local-first training</small></span>
+          <span>ForgePath 0.50<br /><small>Saved on this device</small></span>
         </div>
       </aside>
       <main ref={mainRef} id="main-content" className="main-content" tabIndex={-1}>{children}</main>

@@ -17,7 +17,7 @@ export function SurveyModal({ open, mode, onClose, onSubmit, onSkip }: { open: b
   const setStatus = (id: string, status: SurveyAnswer['status']) => setStatuses((current) => ({ ...current, [id]: status }))
 
   return (
-    <Modal open={open} onClose={onClose} title={`${surveyModeLabel[mode]} readiness check`} description={`${questions.length} optional questions. This forms a hypothesis; warm-up performance remains the ground truth.`} wide>
+    <Modal open={open} onClose={onClose} title={`${surveyModeLabel[mode]} readiness check`} description={`${questions.length} optional questions. This forms a best guess. How the warm-up actually goes matters more.`} wide>
       <div className="survey-grid">
         {questions.map((question, index) => (
           <fieldset className={`survey-question ${statuses[question.id] !== 'answered' ? 'is-unanswered' : ''}`} key={question.id}>
@@ -34,7 +34,7 @@ export function SurveyModal({ open, mode, onClose, onSubmit, onSkip }: { open: b
               )}
               </>
             ) : (
-              <input aria-label={question.label} type="number" min={question.min} max={question.max} placeholder={String(question.defaultValue)} value={statuses[question.id] === 'answered' ? values[question.id] : ''} onChange={(event) => { setValues((current) => ({ ...current, [question.id]: Number(event.target.value) })); setStatus(question.id, 'answered') }} />
+              <input aria-label={question.label} type="number" min={question.min} max={question.max} placeholder={String(question.defaultValue)} value={statuses[question.id] === 'answered' ? values[question.id] : ''} onChange={(event) => { const raw = event.target.value; if (raw.trim() === '') { setStatus(question.id, 'not-answered'); return } setValues((current) => ({ ...current, [question.id]: Number(raw) })); setStatus(question.id, 'answered') }} />
             )}
             <div className="question-unknown-actions"><button type="button" className={statuses[question.id] === 'skipped' ? 'selected' : ''} onClick={() => setStatus(question.id, 'skipped')}>Skip</button><button type="button" className={statuses[question.id] === 'not-sure' ? 'selected' : ''} onClick={() => setStatus(question.id, 'not-sure')}>Not sure</button><button type="button" className={statuses[question.id] === 'prefer-not' ? 'selected' : ''} onClick={() => setStatus(question.id, 'prefer-not')}>Prefer not</button></div>
           </fieldset>

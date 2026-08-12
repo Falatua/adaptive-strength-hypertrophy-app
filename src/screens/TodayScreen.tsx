@@ -102,7 +102,7 @@ export function TodayScreen() {
       : progression.action === 'sets'
         ? `${progression.nextSets} sets`
         : progression.title
-  const progressionEvidence = `${progression.confidence} confidence · ${primaryHistory.length} exact source set${primaryHistory.length === 1 ? '' : 's'}`
+  const progressionEvidence = `${progression.confidence} confidence · ${primaryHistory.length} exact completed set${primaryHistory.length === 1 ? '' : 's'}`
   const heroObjective = `${primaryExercise?.name ?? 'The primary movement'} leads today. ${progression.title}.`
   const whyReasons = nextSession?.generation
     ? [
@@ -186,21 +186,21 @@ export function TodayScreen() {
       </section>}
 
       {placementExitActionable && <button className={`placement-exit-callout placement-exit-callout--${placementExit.recommendation}`} onClick={() => setNav('you')}>
-        <FileCheck2 size={20} /><span><small>{placementExit.ruleVersion} · athlete review required</small><strong>{placementExit.recommendation === 'confirm-current' ? 'Your current route has earned confirmation.' : placementExit.recommendation === 'hold-current' ? 'The current route should be reviewed and held.' : placementExit.recommendation === 'reassessment-required' ? 'Placement reassessment is required.' : 'Your placement route is ready for review.'}</strong><p>{placementExit.reasons[0]}</p></span><ChevronRight size={18} />
+        <FileCheck2 size={20} /><span><small>Needs your review</small><strong>{placementExit.recommendation === 'confirm-current' ? 'Your current route has earned confirmation.' : placementExit.recommendation === 'hold-current' ? 'The current route should be reviewed and held.' : placementExit.recommendation === 'reassessment-required' ? 'Placement reassessment is required.' : 'Your placement route is ready for review.'}</strong><p>{placementExit.reasons[0]}</p></span><ChevronRight size={18} />
       </button>}
 
       {movementExit && <button className={`placement-exit-callout movement-exit-callout placement-exit-callout--${movementExit.recommendation}`} onClick={() => setNav('you')}>
-        <Dumbbell size={20} /><span><small>{movementExit.ruleVersion} · exact movement review</small><strong>{movementExit.exerciseName} has an independent lane checkpoint.</strong><p>{movementExit.reasons[0]}</p></span><ChevronRight size={18} />
+        <Dumbbell size={20} /><span><small>Movement review</small><strong>{movementExit.exerciseName} has an independent lane checkpoint.</strong><p>{movementExit.reasons[0]}</p></span><ChevronRight size={18} />
       </button>}
 
       {latestScheduleChange && latestRebuiltSession && <section className={`schedule-rebuild-proof schedule-rebuild-proof--${latestScheduleChange.mode}`} aria-label="Latest schedule adaptation">
         <div className="schedule-rebuild-proof__icon"><RotateCcw size={22} /></div>
         <div className="schedule-rebuild-proof__body">
-          <p className="eyebrow">{latestScheduleChange.ruleVersion} · {latestScheduleChange.mode.replaceAll('-', ' ')}</p>
+          <p className="eyebrow">{latestScheduleChange.mode.replaceAll('-', ' ')}</p>
           <h2>Queue rebuilt from completed work.</h2>
           <p><strong>{latestRebuiltSession.title}</strong> is next on {new Date(latestRebuiltSession.plannedDate).toLocaleDateString()} for {latestRebuiltSession.durationMinutes} minutes. {latestRebuiltPrimary?.name ?? 'Its protected primary'} has {latestScheduleChange.nextPrimaryDaysSinceExposure === null ? 'no completed exact baseline yet' : `${latestScheduleChange.nextPrimaryDaysSinceExposure} calendar days since its latest exact exposure`}.</p>
           <div className="schedule-rebuild-proof__facts">
-            <span><small>Completed source sets</small><strong>{latestScheduleChange.completedSetCountBefore} → {latestScheduleChange.completedSetCountAfter}</strong></span>
+            <span><small>Completed sets</small><strong>{latestScheduleChange.completedSetCountBefore} → {latestScheduleChange.completedSetCountAfter}</strong></span>
             <span><small>Open planned sets</small><strong>{latestScheduleChange.openSetCountBefore} → {latestScheduleChange.openSetCountAfter}</strong></span>
             <span><small>Continuity</small><strong>{latestScheduleChange.continuityBefore} → {latestScheduleChange.continuityAfter}</strong></span>
             <span><small>Miss sequence</small><strong>{latestScheduleChange.consecutiveMisses}</strong></span>
@@ -336,7 +336,7 @@ export function TodayScreen() {
           ['uncertain', 'Uncertain', 'Protect flexibility until the schedule is clearer.']
         ] as const).map(([value, title, detail]) => <button type="button" key={value} aria-pressed={missReason.constraintState === value} onClick={() => setMissReason((current) => ({ ...current, constraintState: value }))}><strong>{title}</strong><small>{detail}</small></button>)}</fieldset>
         <label><span className="field-label">Optional context</span><textarea maxLength={500} value={missReason.note} onChange={(event) => setMissReason((current) => ({ ...current, note: event.target.value }))} placeholder="Example: Kids were up most of the night. Friday morning should be realistic, but I only have 30 minutes." /></label>
-        <div className="missed-checkin__guardrail"><ShieldCheck size={18} /><span><strong>What the rebuild can do</strong><small>Move open sessions, rank executable exact primaries, use answered readiness evidence from the last 24 hours, and use rolling 28-day relative dose across your declared priority regions only when stronger queue factors are tied. It can reduce optional fatigue and fit the next time window, but it never prescribes catch-up volume. Skipped, missing, or stale readiness stays unknown. Completed sessions and source sets remain untouched.</small></span></div>
+        <div className="missed-checkin__guardrail"><ShieldCheck size={18} /><span><strong>What the rebuild can do</strong><small>Move open sessions, rank executable exact primaries, use answered readiness evidence from the last 24 hours, and use rolling 28-day relative dose across your declared priority regions only when stronger queue factors are tied. It can reduce optional fatigue and fit the next time window, but it never prescribes catch-up volume. Skipped, missing, or stale readiness stays unknown. Completed sessions and completed sets are never changed.</small></span></div>
         {missError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Plan not rebuilt</strong>{missError}</span></div>}
         </div>
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setMissedOpen(false)}>Cancel</button><button className="button button--primary" onClick={() => {

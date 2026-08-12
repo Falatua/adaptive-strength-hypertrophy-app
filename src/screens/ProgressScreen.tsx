@@ -166,20 +166,20 @@ export function ProgressScreen() {
   return (
     <div className="screen">
       <header className="screen-header">
-        <div><p className="eyebrow">Completed work only</p><h1>Your training, made legible.</h1><p>Daily, weekly, rolling, monthly, quarterly, yearly, and all-time views reconcile to the exact completed source sets beneath them.</p></div>
+        <div><p className="eyebrow">Completed work only</p><h1>Your training, made legible.</h1><p>Pick any period. Every number is built from the sets you actually finished, never from what was planned.</p></div>
         <div className="segmented-control progress-range" aria-label="Progress range">{progressRanges.map((item) => <button key={item.id} title={item.label} aria-pressed={range === item.id} className={range === item.id ? 'selected' : ''} onClick={() => setRange(item.id)}>{item.shortLabel}</button>)}</div>
       </header>
 
       <section className="progress-banner">
         <div className="progress-banner__avatar"><PixelAvatar mood={summary.setCount ? 'celebrate' : 'ready'} size="medium" form={athleteProgress.form} level={athleteProgress.level} /></div>
-        <div className="progress-banner__copy"><p className="eyebrow">Micro-win ledger · {summary.label}</p><h2>{bannerTitle}</h2><p>{summary.setCount ? `${summary.setCount} completed source sets across ${summary.activeDays} active ${summary.activeDays === 1 ? 'day' : 'days'}, producing ${validatedAchievements.length} validated ${validatedAchievements.length === 1 ? 'win' : 'wins'}${numericOnlyAchievements.length ? ` and ${numericOnlyAchievements.length} numeric-only ${numericOnlyAchievements.length === 1 ? 'best' : 'bests'}` : ''}. Planned or missed work never counts.` : 'Choose another period or complete a workout. Zero is shown honestly rather than replaced by all-time history.'}</p></div>
+        <div className="progress-banner__copy"><p className="eyebrow">Your wins · {summary.label}</p><h2>{bannerTitle}</h2><p>{summary.setCount ? `${summary.setCount} completed sets across ${summary.activeDays} active ${summary.activeDays === 1 ? 'day' : 'days'}, producing ${validatedAchievements.length} confirmed ${validatedAchievements.length === 1 ? 'win' : 'wins'}${numericOnlyAchievements.length ? ` and ${numericOnlyAchievements.length} numbers-only ${numericOnlyAchievements.length === 1 ? 'best' : 'bests'}` : ''}. Planned or missed work never counts.` : 'Choose another period or complete a workout. Zero is shown honestly rather than replaced by all-time history.'}</p></div>
         <div className="progress-banner__badge"><Sparkles size={18} /><strong>{validatedAchievements.length} validated {validatedAchievements.length === 1 ? 'win' : 'wins'}</strong><span>{numericOnlyAchievements.length ? `${numericOnlyAchievements.length} numeric-only · ` : ''}{rangeDates}</span></div>
       </section>
 
       <section className="stats-grid">
         <StatCard label="Volume load" value={summary.totalVolume.toLocaleString()} detail={`${settings.units} · actual reps × actual load`} icon={<BarChart3 size={18} />} />
         <StatCard label="Completed sets" value={summary.setCount.toString()} detail={`Latest ${latestDate?.toLocaleDateString() ?? 'none in this period'}`} icon={<Dumbbell size={18} />} tone="orange" />
-        <StatCard label="Most trained" value={topExercise?.name ?? 'No movement'} detail={topExercise ? `${topExercise.volume.toLocaleString()} exact volume load` : 'No completed source sets'} icon={<Target size={18} />} tone="blue" />
+        <StatCard label="Most trained" value={topExercise?.name ?? 'No movement'} detail={topExercise ? `${topExercise.volume.toLocaleString()} exact volume load` : 'No completed sets yet'} icon={<Target size={18} />} tone="blue" />
         <StatCard label="Validated wins" value={validatedAchievements.length.toString()} detail={`${validatedAchievements.filter((event) => event.kind === 'personal-record').length} PRs · ${validatedAchievements.filter((event) => event.kind === 'micro-win').length} micro wins${numericOnlyAchievements.length ? ` · ${numericOnlyAchievements.length} numeric-only` : ''}`} icon={<Trophy size={18} />} tone="purple" />
       </section>
 
@@ -192,7 +192,7 @@ export function ProgressScreen() {
 
       <section className="panel training-timeline" aria-label="Calendar and completed exposure history">
         <div className="panel__header training-timeline__header">
-          <div><p className="eyebrow">Two linked clocks · {calendarView.ruleVersion}</p><h3>When training happened versus what progressed</h3></div>
+          <div><p className="eyebrow">Two clocks</p><h3>When you trained versus what moved forward</h3></div>
           <div className="mini-toggle" aria-label="Timeline axis"><button aria-pressed={timelineAxis === 'calendar'} className={timelineAxis === 'calendar' ? 'selected' : ''} onClick={() => setTimelineAxis('calendar')}><CalendarDays size={15} /> Calendar</button><button aria-pressed={timelineAxis === 'exposure'} className={timelineAxis === 'exposure' ? 'selected' : ''} onClick={() => setTimelineAxis('exposure')}><ListOrdered size={15} /> Exposure order</button></div>
         </div>
 
@@ -227,13 +227,13 @@ export function ProgressScreen() {
               {selectedCalendarDay.plans.length === 0 && selectedCalendarDay.completions.length === 0 && <div className="calendar-day-empty"><CalendarDays size={22} /><strong>No stored training event</strong><p>An empty date creates no missed-work debt and says nothing about readiness.</p></div>}
             </aside>
           </div>
-          <div className="calendar-legend"><span><i className="calendar-dot calendar-dot--plan" /> Planned opportunity</span><span><i className="calendar-dot calendar-dot--complete" /> Completed source sets</span><span><i className="calendar-dot calendar-dot--moved" /> Moved, expired, or stopped</span></div>
+          <div className="calendar-legend"><span><i className="calendar-dot calendar-dot--plan" /> Planned opportunity</span><span><i className="calendar-dot calendar-dot--complete" /> Completed sets</span><span><i className="calendar-dot calendar-dot--moved" /> Moved, expired, or stopped</span></div>
         </div> : <div className="exposure-explorer">
           <div className="exposure-picker" aria-label="Exact movement exposure history">{exposureOptions.map((option) => <button key={option.exerciseId} aria-pressed={selectedExposureExerciseId === option.exerciseId} className={selectedExposureExerciseId === option.exerciseId ? 'selected' : ''} onClick={() => setSelectedExposureExerciseId(option.exerciseId)}>{option.name}</button>)}</div>
-          <div className="exposure-summary"><ListOrdered size={20} /><span><strong>{exposureSequence.length} exact completed {exposureSequence.length === 1 ? 'exposure' : 'exposures'}</strong><small>{exposureSequence.length ? `${new Date(exposureSequence[0].completedAt).toLocaleDateString()} through ${new Date(exposureSequence.at(-1)!.completedAt).toLocaleDateString()}` : 'No completed source sets for this exact movement'}</small></span><b>{exposureSequence.length ? `#${exposureSequence.at(-1)!.sequence}` : 'EMPTY'}</b></div>
+          <div className="exposure-summary"><ListOrdered size={20} /><span><strong>{exposureSequence.length} exact completed {exposureSequence.length === 1 ? 'exposure' : 'exposures'}</strong><small>{exposureSequence.length ? `${new Date(exposureSequence[0].completedAt).toLocaleDateString()} through ${new Date(exposureSequence.at(-1)!.completedAt).toLocaleDateString()}` : 'No completed sets for this exact movement'}</small></span><b>{exposureSequence.length ? `#${exposureSequence.at(-1)!.sequence}` : 'EMPTY'}</b></div>
           {exposureSequence.length ? <ol className="exposure-sequence">{[...exposureSequence].reverse().map((point) => {
             const session = sessions.find((candidate) => candidate.id === point.sessionId)
-            return <li key={`${point.sessionId}:${point.sequence}`} className={`exposure-point exposure-point--${point.changeKind}`}><span className="exposure-point__sequence">{String(point.sequence).padStart(2, '0')}</span><div><p className="eyebrow">{new Date(point.completedAt).toLocaleDateString()} · {point.daysSincePrior === null ? 'first exact exposure' : `${point.daysSincePrior} calendar-day gap`}</p><h4>{session?.title ?? (point.imported ? 'Imported training' : point.exerciseName)}</h4><p>{point.completedSets} sets · {point.repetitions} reps · {point.volumeLoad.toLocaleString()} {settings.units} volume · {point.heaviestLoad} {settings.units} heaviest</p><small>{point.qualityConfirmedSets}/{point.completedSets} quality-confirmed sets · {point.averageRir.toFixed(1)} average RIR · {point.sourceSetIds.length} source IDs</small></div><span className="exposure-change"><b>{point.changeKind.replaceAll('-', ' ')}</b><small>{point.changeLabel}</small></span></li>
+            return <li key={`${point.sessionId}:${point.sequence}`} className={`exposure-point exposure-point--${point.changeKind}`}><span className="exposure-point__sequence">{String(point.sequence).padStart(2, '0')}</span><div><p className="eyebrow">{new Date(point.completedAt).toLocaleDateString()} · {point.daysSincePrior === null ? 'first exact exposure' : `${point.daysSincePrior} calendar-day gap`}</p><h4>{session?.title ?? (point.imported ? 'Imported training' : point.exerciseName)}</h4><p>{point.completedSets} sets · {point.repetitions} reps · {point.volumeLoad.toLocaleString()} {settings.units} volume · {point.heaviestLoad} {settings.units} heaviest</p><small>{point.qualityConfirmedSets}/{point.completedSets} sets with quality confirmed · {point.averageRir.toFixed(1)} average RIR</small></div><span className="exposure-change"><b>{point.changeKind.replaceAll('-', ' ')}</b><small>{point.changeLabel}</small></span></li>
           })}</ol> : <div className="compact-empty"><ListOrdered size={25} /><strong>No exact exposure sequence yet</strong><p>Family movements and neighboring variations are not borrowed. Complete or import this exact movement to begin its sequence.</p></div>}
         </div>}
         <p className="chart-note"><Link2 size={14} /> Calendar dates show when opportunities and work occurred. Exposure order shows only completed exact-movement evidence. Gaps stay visible, but they never become fake completed weeks, automatic progression, or catch-up volume.</p>
@@ -257,7 +257,7 @@ export function ProgressScreen() {
       </div>
 
       <section className="panel dose-panel">
-        <div className="panel__header"><div><p className="eyebrow">Plan versus completed · dose-v1</p><h3>What was intended, what was linked, what remains unknown</h3></div><CheckCircle2 size={20} /></div>
+        <div className="panel__header"><div><p className="eyebrow">Plan versus completed</p><h3>What you planned, what you finished</h3></div><CheckCircle2 size={20} /></div>
         <div className="dose-summary">
           <div><small>Stored plans in window</small><strong>{plannedDose.plannedSessionIds.length}</strong><span>{plannedDose.plannedSets} intended sets</span></div>
           <div><small>Linked completion</small><strong>{plannedDose.linkedCompletedSets} / {plannedDose.plannedSets}</strong><span>{plannedDose.plannedSets ? `${Math.round(plannedDose.linkedCompletedSets / plannedDose.plannedSets * 100)}% of stored set dose` : 'No stored set dose'}</span></div>
@@ -269,34 +269,34 @@ export function ProgressScreen() {
           <i aria-hidden="true"><b style={{ width: `${point.plannedSets ? Math.min(100, point.completedSets / point.plannedSets * 100) : point.completedSets ? 100 : 0}%` }} /></i>
           <span className={`dose-status dose-status--${point.status}`}><b>{point.completionRate === null ? point.status.replace('-', ' ') : `${Math.round(point.completionRate * 100)}%`}</b><small>{point.status.replace('-', ' ')}</small></span>
         </div>)}</div> : <div className="compact-empty"><Target size={24} /><strong>No stored dose in this window</strong><p>Completed history remains visible above, but no dated plan is available for an honest plan comparison.</p></div>}
-        <p className="chart-note">Only completed source sets linked to a stored session count toward plan completion. The {plannedDose.unlinkedCompletedSets} other completed {plannedDose.unlinkedCompletedSets === 1 ? 'set stays' : 'sets stay'} in progress totals but cannot be assigned to a missing plan. Below plan is execution evidence, not a neglect label or a recommendation to add catch-up volume.</p>
+        <p className="chart-note">Only sets you completed inside a saved session can count toward a plan. The {plannedDose.unlinkedCompletedSets} other completed {plannedDose.unlinkedCompletedSets === 1 ? 'set still counts' : 'sets still count'} in your totals, they just have no plan to match. Below plan means what happened, not a scolding or a cue to add catch-up work.</p>
       </section>
 
       <section className="panel muscle-dose-panel">
-        <div className="panel__header muscle-dose-header"><div><p className="eyebrow">Individual muscle dose · {muscleDose.ruleVersion}</p><h3>Direct work and secondary set credit</h3></div><div className="mini-toggle" aria-label="Muscle dose grouping">{(['all', 'upper', 'lower', 'arms', 'trunk'] as const).map((lens) => <button key={lens} aria-pressed={muscleLens === lens} className={muscleLens === lens ? 'selected' : ''} onClick={() => { setMuscleLens(lens); setSelectedMuscle(null) }}>{lens}</button>)}</div></div>
+        <div className="panel__header muscle-dose-header"><div><p className="eyebrow">Muscle by muscle</p><h3>Direct work and assisting work</h3></div><div className="mini-toggle" aria-label="Muscle dose grouping">{(['all', 'upper', 'lower', 'arms', 'trunk'] as const).map((lens) => <button key={lens} aria-pressed={muscleLens === lens} className={muscleLens === lens ? 'selected' : ''} onClick={() => { setMuscleLens(lens); setSelectedMuscle(null) }}>{lens}</button>)}</div></div>
         <div className="muscle-dose-summary">
-          <div><small>Completed source sets</small><strong>{muscleDose.sourceSetCount}</strong><span>Selected {summary.label.toLowerCase()}</span></div>
+          <div><small>Completed sets</small><strong>{muscleDose.sourceSetCount}</strong><span>Selected {summary.label.toLowerCase()}</span></div>
           <div><small>Mapped sets</small><strong>{muscleDose.mappedSourceSetCount}</strong><span>{muscleDose.unmappedSourceSetCount} visibly unmapped</span></div>
           <div><small>Direct credit</small><strong>{muscleDose.directSetEquivalents.toFixed(1)}</strong><span>1.0 per direct muscle assignment</span></div>
           <div><small>Secondary credit</small><strong>{muscleDose.fractionalSetEquivalents.toFixed(1)}</strong><span>0.5 per secondary assignment</span></div>
         </div>
-        <div className="muscle-area-strip" aria-label="Overlap-safe area dose">{muscleDose.areas.map((area) => <div key={area.lens}><small>{area.label}</small><strong>{area.conservedDose.toFixed(1)}</strong><span>{area.sourceSetCount} source {area.sourceSetCount === 1 ? 'set' : 'sets'}</span></div>)}</div>
+        <div className="muscle-area-strip" aria-label="Work by body area">{muscleDose.areas.map((area) => <div key={area.lens}><small>{area.label}</small><strong>{area.conservedDose.toFixed(1)}</strong><span>{area.sourceSetCount} completed {area.sourceSetCount === 1 ? 'set' : 'sets'}</span></div>)}</div>
         {visibleMuscles.length ? <div className="muscle-dose-layout">
           <div className="muscle-dose-list" aria-label={`${muscleLens} individual muscle dose`}>
             {visibleMuscles.map((point) => <button key={point.muscle} className={selectedMuscle === point.muscle ? 'selected' : ''} aria-pressed={selectedMuscle === point.muscle} onClick={() => setSelectedMuscle((current) => current === point.muscle ? null : point.muscle)}>
-              <span><strong>{point.label}</strong><small>{point.sourceSetCount} source {point.sourceSetCount === 1 ? 'set' : 'sets'} · last {point.lastCompletedAt ? new Date(point.lastCompletedAt).toLocaleDateString() : 'never'}</small></span>
+              <span><strong>{point.label}</strong><small>{point.sourceSetCount} completed {point.sourceSetCount === 1 ? 'set' : 'sets'} · last {point.lastCompletedAt ? new Date(point.lastCompletedAt).toLocaleDateString() : 'never'}</small></span>
               <i aria-hidden="true"><b className="muscle-dose-bar--direct" style={{ width: `${point.directDose / maxMuscleDose * 100}%` }} /><b className="muscle-dose-bar--fractional" style={{ width: `${point.fractionalDose / maxMuscleDose * 100}%` }} /></i>
               <span><b>{point.totalDose.toFixed(1)}</b><small>{point.directDose.toFixed(1)} direct + {point.fractionalDose.toFixed(1)} secondary</small></span>
             </button>)}
           </div>
           <aside className="muscle-dose-detail" aria-live="polite">
-            {muscleDetail ? <><p className="eyebrow">Dose provenance</p><h4>{muscleDetail.label}</h4><p>{muscleDetail.totalDose.toFixed(1)} muscle set-equivalents from {muscleDetail.sourceSetCount} completed source {muscleDetail.sourceSetCount === 1 ? 'set' : 'sets'}.</p>{muscleDetail.exercises.length ? <div className="muscle-dose-exercises">{muscleDetail.exercises.map((exercise) => <div key={exercise.exerciseId}><span><strong>{exercise.exerciseName}</strong><small>Last {new Date(exercise.lastCompletedAt).toLocaleDateString()} · {exercise.sourceSetCount} source {exercise.sourceSetCount === 1 ? 'set' : 'sets'}</small><details><summary>View {exercise.sourceSetCount} source set {exercise.sourceSetCount === 1 ? 'identifier' : 'identifiers'}</summary><code>{exercise.sourceSetIds.join(', ')}</code></details></span><b>{exercise.totalDose.toFixed(1)}<small>{exercise.directDose.toFixed(1)} + {exercise.fractionalDose.toFixed(1)}</small></b></div>)}</div> : <div className="muscle-dose-detail__empty">No contributing exercise or source set exists inside this selected window.</div>}</> : <><Layers3 size={24} /><h4>Open a muscle</h4><p>Select a row to inspect the exact exercises and source-set identifiers behind its credit.</p></>}
+            {muscleDetail ? <><p className="eyebrow">Where this came from</p><h4>{muscleDetail.label}</h4><p>{muscleDetail.totalDose.toFixed(1)} set-equivalents from {muscleDetail.sourceSetCount} completed {muscleDetail.sourceSetCount === 1 ? 'set' : 'sets'}.</p>{muscleDetail.exercises.length ? <div className="muscle-dose-exercises">{muscleDetail.exercises.map((exercise) => <div key={exercise.exerciseId}><span><strong>{exercise.exerciseName}</strong><small>Last {new Date(exercise.lastCompletedAt).toLocaleDateString()} · {exercise.sourceSetCount} completed {exercise.sourceSetCount === 1 ? 'set' : 'sets'}</small><details><summary>View the exact {exercise.sourceSetCount === 1 ? 'set record' : 'set records'}</summary><code>{exercise.sourceSetIds.join(', ')}</code></details></span><b>{exercise.totalDose.toFixed(1)}<small>{exercise.directDose.toFixed(1)} + {exercise.fractionalDose.toFixed(1)}</small></b></div>)}</div> : <div className="muscle-dose-detail__empty">No completed set inside this period feeds this muscle yet.</div>}</> : <><Layers3 size={24} /><h4>Open a muscle</h4><p>Select a row to see the exact movements and sets behind the number.</p></>}
           </aside>
         </div> : <div className="compact-empty"><Layers3 size={24} /><strong>No mapped muscle dose in this lens</strong><p>Choose another area or complete a built-in movement. Unknown mappings remain unknown.</p></div>}
-        {muscleDose.unmappedSourceSetCount > 0 && <div className="muscle-unmapped" role="note"><strong>{muscleDose.unmappedSourceSetCount} unmapped source {muscleDose.unmappedSourceSetCount === 1 ? 'set' : 'sets'}</strong><span>{muscleDose.unmappedExerciseNames.join(', ')}. These sets remain in completed volume but receive no inferred muscle credit.</span></div>}
+        {muscleDose.unmappedSourceSetCount > 0 && <div className="muscle-unmapped" role="note"><strong>{muscleDose.unmappedSourceSetCount} unmapped {muscleDose.unmappedSourceSetCount === 1 ? 'set' : 'sets'}</strong><span>{muscleDose.unmappedExerciseNames.join(', ')}. These sets remain in completed volume but receive no inferred muscle credit.</span></div>}
         {deload && (
           <div className={`deload-forecast deload-forecast--${deload.urgency}`} aria-label="Deload forecast">
-            <div><p className="eyebrow">Deload v1</p><h4>{deload.urgency === 'not-yet' ? 'No deload needed yet' : deload.urgency === 'approaching' ? 'A deload is close' : deload.urgency === 'due' ? 'This is the week to deload' : 'Deload is past due'}</h4></div>
+            <div><p className="eyebrow">Recovery week</p><h4>{deload.urgency === 'not-yet' ? 'No deload needed yet' : deload.urgency === 'approaching' ? 'A deload is close' : deload.urgency === 'due' ? 'This is the week to deload' : 'Deload is past due'}</h4></div>
             <ul>{deload.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
             <small>{deload.athleteChoice ? 'You choose when to take it. Sets drop to the least that holds the adaptation, reps roughly halve, and load holds before halving for the back half of the week.' : 'The evidence says this one should not wait any longer.'}</small>
           </div>
@@ -304,7 +304,7 @@ export function ProgressScreen() {
         {volumePlan.length > 0 && (
           <div className="volume-plan" aria-label="Weekly volume progression">
             <div className="volume-plan__heading">
-              <div><p className="eyebrow">Volume progression v1</p><h4>What next week should look like</h4></div>
+              <div><p className="eyebrow">Next week's volume</p><h4>What next week should look like</h4></div>
               <small>Weekly direct sets against the volume you can grow on and still recover from. Proposals only. Nothing changes until you apply it.</small>
             </div>
             <div className="volume-plan__list">
@@ -323,15 +323,15 @@ export function ProgressScreen() {
             <p className="chart-note">Landmarks start from published weekly set ranges and scale with your own volume tolerance. Pump and stimulus are asked per trained muscle, so rows marked exact were answered about that muscle directly. Rows marked attributed inherited a whole-session answer, either because the session predates per-muscle questions or the muscle fell outside the four asked about, and those are an approximation rather than a measurement.</p>
           </div>
         )}
-        <p className="chart-note">Muscle totals are non-additive across rows: one source set can credit several muscles. Direct means 1.0, secondary means 0.5, stabilizers receive no credit, and parent areas conserve each source set at its highest child credit. This is an unadjusted programming heuristic, not measured activation, recovery cost, or exact hypertrophy stimulus.</p>
+        <p className="chart-note">These rows do not add up to a single total: one set can credit several muscles. Direct work counts 1.0, assisting work counts 0.5, stabilizers count nothing, and a body area keeps each set at its highest single credit. It is a planning guide, not measured activation or a promise of growth.</p>
       </section>
 
       <section className="panel muscle-plan-panel">
-        <div className="panel__header"><div><p className="eyebrow">Planned muscle dose · {plannedMuscleDose.ruleVersion}</p><h3>Intended set credit versus linked completion</h3></div><Target size={20} /></div>
+        <div className="panel__header"><div><p className="eyebrow">Planned muscle work</p><h3>What the plan asked for versus what you finished</h3></div><Target size={20} /></div>
         <div className="muscle-dose-summary">
-          <div><small>Stored plans in window</small><strong>{plannedMuscleDose.plannedSessionIds.length}</strong><span>{plannedMuscleDose.plannedSourceSetCount} intended source sets</span></div>
+          <div><small>Stored plans in window</small><strong>{plannedMuscleDose.plannedSessionIds.length}</strong><span>{plannedMuscleDose.plannedSourceSetCount} planned sets</span></div>
           <div><small>Mapped planned sets</small><strong>{plannedMuscleDose.plannedMappedSetCount}</strong><span>{plannedMuscleDose.plannedUnmappedSetCount} planned sets unmapped</span></div>
-          <div><small>Linked mapped completion</small><strong>{plannedMuscleDose.linkedCompletedMappedSetCount}</strong><span>{plannedMuscleDose.linkedCompletedSetCount} total linked source sets</span></div>
+          <div><small>Linked mapped completion</small><strong>{plannedMuscleDose.linkedCompletedMappedSetCount}</strong><span>{plannedMuscleDose.linkedCompletedSetCount} matched to a plan</span></div>
           <div><small>Completed without stored plan</small><strong>{plannedMuscleDose.unlinkedCompletedSetCount}</strong><span>Preserved outside compliance</span></div>
         </div>
         {visiblePlannedMuscles.length ? <div className="muscle-plan-list" aria-label={`${muscleLens} planned muscle dose`}>
@@ -341,15 +341,15 @@ export function ProgressScreen() {
             <span className={`dose-status dose-status--${point.status}`}><b>{point.completionRate === null ? 'No plan' : `${Math.round(point.completionRate * 100)}%`}</b><small>{point.status.replaceAll('-', ' ')}</small></span>
           </div>)}
         </div> : <div className="compact-empty"><Target size={24} /><strong>No planned or linked muscle dose in this lens</strong><p>Choose another body-area lens or a range containing stored sessions.</p></div>}
-        {(plannedMuscleDose.plannedUnmappedSetCount > 0 || plannedMuscleDose.linkedCompletedUnmappedSetCount > 0) && <div className="muscle-unmapped" role="note"><strong>Mapping gap</strong><span>{plannedMuscleDose.plannedUnmappedSetCount} planned and {plannedMuscleDose.linkedCompletedUnmappedSetCount} linked completed source {plannedMuscleDose.plannedUnmappedSetCount + plannedMuscleDose.linkedCompletedUnmappedSetCount === 1 ? 'set is' : 'sets are'} excluded from muscle credit.{plannedMuscleDose.plannedUnmappedExerciseNames.length ? ` Review: ${plannedMuscleDose.plannedUnmappedExerciseNames.join(', ')}.` : ''}</span></div>}
-        <p className="chart-note">This comparison uses stored planned sets and completed source sets linked to those exact sessions. Ratios compare versioned muscle set-equivalents, not volume load or measured stimulus. Unlinked history remains valid progress evidence, and below-plan dose never creates neglect labels or catch-up work.</p>
+        {(plannedMuscleDose.plannedUnmappedSetCount > 0 || plannedMuscleDose.linkedCompletedUnmappedSetCount > 0) && <div className="muscle-unmapped" role="note"><strong>Mapping gap</strong><span>{plannedMuscleDose.plannedUnmappedSetCount} planned and {plannedMuscleDose.linkedCompletedUnmappedSetCount} completed {plannedMuscleDose.plannedUnmappedSetCount + plannedMuscleDose.linkedCompletedUnmappedSetCount === 1 ? 'set has' : 'sets have'} no muscle mapping, so they earn no muscle credit.{plannedMuscleDose.plannedUnmappedExerciseNames.length ? ` Review: ${plannedMuscleDose.plannedUnmappedExerciseNames.join(', ')}.` : ''}</span></div>}
+        <p className="chart-note">This compares saved planned sets against the completed sets from those same sessions. It counts set-equivalents per muscle, not volume load or measured stimulus. Sets outside a saved plan are still real progress, and coming in under plan never creates catch-up work.</p>
       </section>
 
       <div className="insight-grid">
         <section className="panel">
           <div className="panel__header"><div><p className="eyebrow">Priority attention</p><h3>Goal-relative completed evidence</h3></div><BrainCircuit size={19} /></div>
           <div className="priority-coverage">{priorityCoverage.map((item) => <div key={item.region}><span><strong>{item.region}</strong><small>{item.status === 'represented' ? item.contributingExercises.join(', ') : item.status === 'outside-window' ? `Last completed ${item.daysSinceLastExposure} days ago` : 'No completed history yet'}</small></span><span><b>{item.selectedSets} sets</b><small>{item.selectedVolume.toLocaleString()} volume load · {item.status.replace('-', ' ')}</small></span></div>)}</div>
-          <p className="chart-note">This completed-only card reports represented, outside-window, or no-history evidence. Dose-v1 separately compares stored intentions below; neither treats one below-plan window as neglect or catch-up debt.</p>
+          <p className="chart-note">This card only reports work you completed. The plan comparison below is a separate view, and neither one treats a light period as debt to make up.</p>
         </section>
         <section className="panel">
           <div className="panel__header"><div><p className="eyebrow">Exact movement mix</p><h3>What filled this window</h3></div><Dumbbell size={19} /></div>
@@ -359,14 +359,14 @@ export function ProgressScreen() {
         <section className="panel">
           <div className="panel__header"><div><p className="eyebrow">Current record ledger</p><h3>Bests inside this window</h3></div><Trophy size={19} /></div>
           <div className="record-filter" aria-label="Record category">{(['all', 'strength', 'repetition', 'scheme', 'workload'] as const).map((category) => <button key={category} aria-pressed={recordCategory === category} className={recordCategory === category ? 'selected' : ''} onClick={() => setRecordCategory(category)}>{category}</button>)}</div>
-          {filteredRecords.length ? <div className="record-list">{filteredRecords.slice(0, 12).map((record) => <div key={record.id} className={record.validation === 'numeric-only' ? 'is-numeric-only' : ''}><span className="record-medal">◆</span><div><strong>{record.label}{['load', 'estimated-load'].includes(record.unit) ? ` ${settings.units}` : record.unit === 'volume-load' ? ` ${settings.units}` : ''}</strong><small>{record.exerciseName} · {new Date(record.achievedAt).toLocaleDateString()} · {record.sourceSetIds.length} source {record.sourceSetIds.length === 1 ? 'set' : 'sets'} · {record.validation}</small></div><span>{record.category}</span></div>)}</div> : <div className="compact-empty"><Trophy size={24} /><strong>No record in this window</strong><p>Records outside the selected dates remain available in All time.</p></div>}
+          {filteredRecords.length ? <div className="record-list">{filteredRecords.slice(0, 12).map((record) => <div key={record.id} className={record.validation === 'numeric-only' ? 'is-numeric-only' : ''}><span className="record-medal">◆</span><div><strong>{record.label}{['load', 'estimated-load'].includes(record.unit) ? ` ${settings.units}` : record.unit === 'volume-load' ? ` ${settings.units}` : ''}</strong><small>{record.exerciseName} · {new Date(record.achievedAt).toLocaleDateString()} · {record.sourceSetIds.length} completed {record.sourceSetIds.length === 1 ? 'set' : 'sets'} · {record.validation === 'numeric-only' ? 'numbers only' : 'quality confirmed'}</small></div><span>{record.category}</span></div>)}</div> : <div className="compact-empty"><Trophy size={24} /><strong>No record in this window</strong><p>Records outside the selected dates remain available in All time.</p></div>}
         </section>
       </div>
 
       <div className="achievement-grid">
         <section className="panel">
           <div className="panel__header"><div><p className="eyebrow">Evidence-backed timeline</p><h3>PRs and micro wins</h3></div><Sparkles size={19} /></div>
-          {visibleAchievements.length ? <div className="achievement-list">{visibleAchievements.slice(0, 12).map((event) => <div key={event.id} className={`achievement-row achievement-row--${event.kind} ${event.validation === 'numeric-only' ? 'is-numeric-only' : ''}`}><span className="achievement-glyph">{event.kind === 'personal-record' ? '★' : '✦'}</span><span><strong>{event.title}</strong><small>{event.exerciseName} · {event.explanation}</small><em>{new Date(event.achievedAt).toLocaleDateString()} · {event.sourceSetIds.length} source {event.sourceSetIds.length === 1 ? 'set' : 'sets'} · {event.validation} · {event.ruleVersion}</em></span><b>{event.delta !== null ? `+${Number.isInteger(event.delta) ? event.delta : event.delta.toFixed(1)}` : 'BASE'}</b></div>)}</div> : <div className="compact-empty"><Sparkles size={24} /><strong>No win manufactured</strong><p>This period has no comparable improvement. Useful maintenance still remains in the completed-work charts.</p></div>}
+          {visibleAchievements.length ? <div className="achievement-list">{visibleAchievements.slice(0, 12).map((event) => <div key={event.id} className={`achievement-row achievement-row--${event.kind} ${event.validation === 'numeric-only' ? 'is-numeric-only' : ''}`}><span className="achievement-glyph">{event.kind === 'personal-record' ? '★' : '✦'}</span><span><strong>{event.title}</strong><small>{event.exerciseName} · {event.explanation}</small><em>{new Date(event.achievedAt).toLocaleDateString()} · {event.sourceSetIds.length} completed {event.sourceSetIds.length === 1 ? 'set' : 'sets'} · {event.validation === 'numeric-only' ? 'numbers only' : 'quality confirmed'}</em></span><b>{event.delta !== null ? `+${Number.isInteger(event.delta) ? event.delta : event.delta.toFixed(1)}` : 'BASE'}</b></div>)}</div> : <div className="compact-empty"><Sparkles size={24} /><strong>No new win this period</strong><p>Nothing here beat a comparable past set. The work you did still shows in the charts above.</p></div>}
         </section>
         <section className="panel">
           <div className="panel__header"><div><p className="eyebrow">Next planned session</p><h3>Safe record opportunities</h3></div><Target size={19} /></div>
@@ -375,9 +375,9 @@ export function ProgressScreen() {
       </div>
 
       <section className="panel reconciliation-panel">
-        <div className="panel__header"><div><p className="eyebrow">Calculation audit</p><h3>Every view reconciles to source sets</h3></div>{reconciliation.exact ? <CheckCircle2 size={20} /> : <HeartPulse size={20} />}</div>
+        <div className="panel__header"><div><p className="eyebrow">Calculation audit</p><h3>Every view adds up from your completed sets</h3></div>{reconciliation.exact ? <CheckCircle2 size={20} /> : <HeartPulse size={20} />}</div>
         <div className="reconciliation-grid">
-          <div><small>Completed source sets</small><strong>{summary.setCount}</strong><span>{reconciliation.sourceVolume.toLocaleString()} {settings.units}</span></div>
+          <div><small>Completed sets</small><strong>{summary.setCount}</strong><span>{reconciliation.sourceVolume.toLocaleString()} {settings.units}</span></div>
           <div><small>Time-series total</small><strong>{reconciliation.seriesVolume.toLocaleString()}</strong><span>Derived from the visible chart</span></div>
           <div><small>Body-lens total</small><strong>{reconciliation.regionVolume.toLocaleString()}</strong><span>Each set counted exactly once</span></div>
           <div className={reconciliation.exact ? 'reconciliation-pass' : 'reconciliation-fail'}><small>Integrity result</small><strong>{reconciliation.exact ? 'Exact match' : 'Review required'}</strong><span>No hidden planned volume</span></div>

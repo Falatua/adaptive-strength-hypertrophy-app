@@ -224,7 +224,7 @@ export function PlanScreen() {
             <p className="callout-copy">A passed Wednesday does not become a completed bench exposure. Only completed qualified work advances the second clock.</p>
           </section>
           {latestScheduleChange && <section className="panel schedule-change-card" aria-label="Latest missed opportunity decision">
-            <div className="panel__header"><div><p className="eyebrow">{latestScheduleChange.ruleVersion} · event {activeScheduleChanges.length}</p><h3>Latest queue rebuild</h3></div><RefreshCcw size={19} /></div>
+            <div className="panel__header"><div><p className="eyebrow">Rebuild {activeScheduleChanges.length}</p><h3>Latest queue rebuild</h3></div><RefreshCcw size={19} /></div>
             <div className="schedule-change-card__headline"><strong>{latestScheduleChange.mode.replaceAll('-', ' ')}</strong><small>{latestScheduleChange.input.reason.replaceAll('-', ' ')} · {latestScheduleChange.input.constraintState} · next {new Date(latestScheduleChange.input.nextOpportunityAt).toLocaleDateString()}</small></div>
             <div className="clock-comparison"><div><span>Completed sets</span><strong>{latestScheduleChange.completedSetCountBefore} → {latestScheduleChange.completedSetCountAfter}</strong><small>Unchanged source truth</small></div><div><span>Open planned sets</span><strong>{latestScheduleChange.openSetCountBefore} → {latestScheduleChange.openSetCountAfter}</strong><small>No catch-up debt</small></div></div>
             <p className="callout-copy">{latestScheduleChange.reasons[0]}</p>
@@ -260,7 +260,7 @@ export function PlanScreen() {
       <Modal open={reviewOpen} onClose={() => setReviewOpen(false)} title={`Review exposure round ${cycleReview?.microcycleNumber ?? ''}`} description="The app proposes a criterion-based decision from completed work, calendar bounds, effort, and pain. You make the final call and record why." wide>
         {cycleReview && <div className="cycle-review-modal">
           <section className="review-evidence">
-            <div className="review-evidence__headline"><span><Sparkles size={19} /><small>Deterministic recommendation</small></span><strong>{readable(cycleReview.recommendation)}</strong>{cycleReview.recommendationReasons.map((reason) => <p key={reason}><Check size={14} />{reason}</p>)}</div>
+            <div className="review-evidence__headline"><span><Sparkles size={19} /><small>What the rules suggest</small></span><strong>{readable(cycleReview.recommendation)}</strong>{cycleReview.recommendationReasons.map((reason) => <p key={reason}><Check size={14} />{reason}</p>)}</div>
             <div className="review-evidence__grid">
               <div><small>Qualified</small><strong>{cycleReview.evidence.qualifiedSessions} / {cycleReview.evidence.requiredSessions}</strong></div>
               <div><small>Completed sets</small><strong>{cycleReview.evidence.completedSets}</strong></div>
@@ -308,7 +308,7 @@ export function PlanScreen() {
           </div>
 
           <aside className="plan-preview">
-            <div className="plan-preview__header"><div><p className="eyebrow">Deterministic preview</p><h3>Next exposure queue</h3></div><Sparkles size={19} /></div>
+            <div className="plan-preview__header"><div><p className="eyebrow">Preview</p><h3>Next exposure queue</h3></div><Sparkles size={19} /></div>
             <div className="plan-preview__stats"><div><span>Required sessions</span><strong>{preview.requiredExposureCount}</strong></div><div><span>Projected sets</span><strong>{preview.projectedSets}</strong></div><div><span>Total minutes</span><strong>{preview.projectedMinutes}</strong></div></div>
             <div className="preview-session-list">{preview.sessions.map((session, index) => <article key={session.id}><span>{String(index + 1).padStart(2, '0')}</span><div><strong>{session.title}</strong><small>{session.durationMinutes} min · {session.exercises.length} movements</small><ul>{session.exercises.map((planned) => <li key={planned.id}><b>{planned.role}</b>{exercises.find((exercise) => exercise.id === planned.exerciseId)?.name} · {planned.sets.length} sets</li>)}</ul></div></article>)}</div>
             <div className="preview-rationale"><strong>Why this queue</strong>{preview.explanations.map((explanation) => <p key={explanation}><Check size={14} />{explanation}</p>)}</div>
