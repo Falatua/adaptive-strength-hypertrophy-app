@@ -139,6 +139,23 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .training-field-guide__action:hover { background: oklch(27% .04 128); color: var(--lime); }
 .training-field-guide__selector { width: 8px; height: 10px; background: var(--lime); clip-path: polygon(0 0, 100% 50%, 0 100%); filter: drop-shadow(2px 0 0 oklch(13% .02 130)); }
 
+.badge-case { display: grid; gap: 11px; margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--line); }
+.badge-case__heading { display: grid; gap: 5px; }
+.badge-case__heading small { color: var(--muted); line-height: 1.45; }
+.badge-case__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.badge-chip { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); opacity: .5; }
+.badge-chip.is-earned { opacity: 1; border-color: rgb(231 255 88 / 38%); background: rgb(231 255 88 / 7%); }
+.badge-chip span { display: grid; gap: 2px; min-width: 0; }
+.badge-chip strong { font-size: .86rem; }
+.badge-chip small { color: var(--muted); font-size: .73rem; line-height: 1.35; }
+.badge-chip__medal svg { display: block; width: 26px; height: 26px; fill: var(--muted); }
+.badge-chip.is-earned .badge-chip__medal svg { fill: var(--lime); }
+.badge-chip--silver.is-earned .badge-chip__medal svg { fill: #cfd8dc; }
+.badge-chip--gold.is-earned .badge-chip__medal svg { fill: #f2c14e; }
+.badge-chip__pip { fill: rgb(0 0 0 / 45%); }
+.badge-chip__track { grid-column: 1 / -1; display: block; height: 4px; border-radius: 999px; background: rgb(255 255 255 / 8%); overflow: hidden; }
+.badge-chip__track b { display: block; height: 100%; border-radius: 999px; background: var(--muted); }
+
 .athlete-level__blurb { margin: 0; color: var(--muted); line-height: 1.5; }
 .athlete-level__track { height: 10px; border-radius: 999px; background: rgb(255 255 255 / 8%); overflow: hidden; }
 .athlete-level__track i { display: block; height: 100%; border-radius: 999px; background: var(--lime); }

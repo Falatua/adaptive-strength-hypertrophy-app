@@ -62,8 +62,12 @@ export function evaluateBadges(input: {
   sessions: TrainingSession[]
   exercises: Exercise[]
 }): EarnedBadge[] {
-  const finished = input.sessions.filter((session) => session.status === 'completed' || session.status === 'partial-primary')
-  const sessionCount = finished.length
+  // A session counts as finished when it produced completed work. Relying on session status alone
+  // undercounts imported history and any set logged without a matching planned session, which made an
+  // athlete with hundreds of logged sets read as having never trained.
+  const finished = new Set(input.sessions.filter((session) => session.status === 'completed' || session.status === 'partial-primary').map((session) => session.id))
+  for (const workSet of input.history) finished.add(workSet.sessionId)
+  const sessionCount = finished.size
   const setCount = input.history.length
   const volume = input.history.reduce((total, workSet) => total + workSet.load * workSet.reps, 0)
   const recordCount = input.records.length

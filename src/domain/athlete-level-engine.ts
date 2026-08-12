@@ -72,7 +72,11 @@ export function athleteLevel(input: {
   records: PersonalRecord[]
   sessions: TrainingSession[]
 }): AthleteLevel {
-  const completedSessions = input.sessions.filter((session) => session.status === 'completed' || session.status === 'partial-primary').length
+  // Counted the same way badges count them: a session that produced completed work happened, whether
+  // or not a planned session record exists for it.
+  const finishedSessions = new Set(input.sessions.filter((session) => session.status === 'completed' || session.status === 'partial-primary').map((session) => session.id))
+  for (const workSet of input.history) finishedSessions.add(workSet.sessionId)
+  const completedSessions = finishedSessions.size
   const validatedRecords = input.records.filter((record) => record.validation === 'validated').length
   const numericRecords = input.records.length - validatedRecords
   const volumeLoad = input.history.reduce((total, workSet) => total + workSet.load * workSet.reps, 0)

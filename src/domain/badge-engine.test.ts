@@ -70,6 +70,20 @@ describe('evaluateBadges', () => {
     expect(find(evaluate({ history: gapped }), 'returner').earned).toBe(true)
   })
 
+  it('counts a session that produced logged work even without a session record', () => {
+    // Imported history and seeded work carry a session id but no planned session, and an athlete with
+    // hundreds of logged sets must not read as having never trained.
+    const history = [setFor('a', 'competition-bench', '2026-08-01T12:00:00.000Z'), setFor('b', 'competition-bench', '2026-08-02T12:00:00.000Z')]
+    const badges = evaluate({ history })
+    expect(find(badges, 'first-light').earned).toBe(true)
+  })
+
+  it('does not double count a session that has both a record and logged sets', () => {
+    const history = [setFor('a'), setFor('b')]
+    const badges = evaluate({ history, sessions: [sessionFor('session-1')] })
+    expect(find(badges, 'iron-habit').progressLabel).toBe('1 of 10 sessions')
+  })
+
   it('never reports progress outside zero and one', () => {
     const badges = evaluate({ sessions: Array.from({ length: 400 }, (_, index) => sessionFor(`s${index}`)) })
     expect(badges.every((badge) => badge.progress >= 0 && badge.progress <= 1)).toBe(true)
