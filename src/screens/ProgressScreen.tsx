@@ -16,6 +16,7 @@ import {
   type ProgressRange
 } from '../domain/analytics'
 import { useAppStore } from '../store/useAppStore'
+import { athleteLevel } from '../domain/athlete-level-engine'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { StatCard } from '../components/StatCard'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
@@ -28,6 +29,7 @@ type TimelineAxis = 'calendar' | 'exposure'
 
 export function ProgressScreen() {
   const { history, records, athlete, settings, sessions, surveys, mesocycles, missedOpportunityEvents, exercises: exerciseCatalog } = useAppStore()
+  const athleteProgress = athleteLevel({ history, records, sessions })
   const [range, setRange] = useState<ProgressRange>('28d')
   const [bodyLens, setBodyLens] = useState<BodyLens>('region')
   const [muscleLens, setMuscleLens] = useState<MuscleDoseLens>('all')
@@ -169,7 +171,7 @@ export function ProgressScreen() {
       </header>
 
       <section className="progress-banner">
-        <div className="progress-banner__avatar"><PixelAvatar mood={summary.setCount ? 'celebrate' : 'ready'} size="medium" /></div>
+        <div className="progress-banner__avatar"><PixelAvatar mood={summary.setCount ? 'celebrate' : 'ready'} size="medium" form={athleteProgress.form} level={athleteProgress.level} /></div>
         <div className="progress-banner__copy"><p className="eyebrow">Micro-win ledger · {summary.label}</p><h2>{bannerTitle}</h2><p>{summary.setCount ? `${summary.setCount} completed source sets across ${summary.activeDays} active ${summary.activeDays === 1 ? 'day' : 'days'}, producing ${validatedAchievements.length} validated ${validatedAchievements.length === 1 ? 'win' : 'wins'}${numericOnlyAchievements.length ? ` and ${numericOnlyAchievements.length} numeric-only ${numericOnlyAchievements.length === 1 ? 'best' : 'bests'}` : ''}. Planned or missed work never counts.` : 'Choose another period or complete a workout. Zero is shown honestly rather than replaced by all-time history.'}</p></div>
         <div className="progress-banner__badge"><Sparkles size={18} /><strong>{validatedAchievements.length} validated {validatedAchievements.length === 1 ? 'win' : 'wins'}</strong><span>{numericOnlyAchievements.length ? `${numericOnlyAchievements.length} numeric-only · ` : ''}{rangeDates}</span></div>
       </section>

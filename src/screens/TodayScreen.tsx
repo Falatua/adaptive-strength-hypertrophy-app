@@ -4,6 +4,7 @@ import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/
 import type { EffectiveSurveyMode, MissedOpportunityInput, SurveyAnswer } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
+import { athleteLevel } from '../domain/athlete-level-engine'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { StatCard } from '../components/StatCard'
 import { SurveyModal } from '../components/SurveyModal'
@@ -26,6 +27,7 @@ const dateInputFor = (offsetDays: number) => {
 
 export function TodayScreen() {
   const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, activeSessionId, startSession, resumeActiveSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
+  const athleteProgress = athleteLevel({ history, records, sessions })
   const [surveyOpen, setSurveyOpen] = useState(false)
   const [surveyChooserOpen, setSurveyChooserOpen] = useState(false)
   const [activeSurveyMode, setActiveSurveyMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
@@ -243,7 +245,7 @@ export function TodayScreen() {
         <div className="hero-workout__world">
           <div className="world-grid" aria-hidden="true" />
           <div className="pixel-platform" aria-hidden="true" />
-          <PixelAvatar mood="strong" size="large" />
+          <PixelAvatar mood="strong" size="large" form={athleteProgress.form} level={athleteProgress.level} />
           <TrainingFieldGuide route={routeLabel ?? 'Evidence-led'} nextWin={progressionTarget} evidence={progressionEvidence} onOpen={() => setWhyOpen(true)} />
         </div>
       </section>

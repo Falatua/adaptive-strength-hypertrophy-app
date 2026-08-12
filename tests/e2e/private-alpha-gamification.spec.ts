@@ -1531,3 +1531,29 @@ test('turns session feedback into next week volume rather than storing it unused
   await expect(volumePlan).toContainText('an approximation rather than a measurement')
   expect(browserErrors).toEqual([])
 })
+
+test('shows an earned athlete form and level that trace back to completed work', async ({ page }) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'You', exact: true }).click()
+
+  const levelPanel = page.getByLabel('Athlete level and form')
+  await expect(levelPanel).toBeVisible()
+  await expect(levelPanel).toContainText(/Level \d+ ·/)
+  // Points are only ever earned from work that happened, so the breakdown must be present.
+  await expect(levelPanel.locator('.athlete-level__sources li').first()).toBeVisible()
+  await expect(levelPanel).toContainText('never fall and cannot be bought')
+
+  // The avatar carries the same level beside its head, and the form matches the level reached.
+  const heroAvatar = page.locator('.profile-hero .pixel-avatar')
+  const levelText = String(await levelPanel.textContent()).match(/Level (\d+)/)?.[1]
+  await expect(heroAvatar.locator('.pixel-avatar__level')).toHaveText(String(levelText))
+  await expect(heroAvatar).toHaveAttribute('aria-label', new RegExp(`level ${levelText}`))
+  const form = String(await heroAvatar.getAttribute('class')).match(/pixel-avatar--(apprentice|forged|champion|apex)/)?.[1]
+  expect(['apprentice', 'forged', 'champion', 'apex']).toContain(form)
+  await expect(levelPanel).toContainText(new RegExp(form!, 'i'))
+
+  expect(browserErrors).toEqual([])
+})

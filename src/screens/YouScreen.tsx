@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid'
 import { useAppStore } from '../store/useAppStore'
 import type { CelebrationLevel, EquipmentProfile, EquipmentProfileKind, MovementPlacementExitAssessment, PlacementExitDecision, SurveyMode } from '../domain/types'
 import { Modal } from '../components/Modal'
+import { athleteLevel } from '../domain/athlete-level-engine'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { createBackup, parseBackup, type BackupPreview } from '../domain/backup'
 import { placementRouteLabels } from '../domain/placement-engine'
@@ -35,6 +36,7 @@ export function YouScreen() {
     activeMesocycleId, activeSessionId, onboardingComplete, recoverySnapshot, restoreBackup, undoLastRestore,
     restartOnboarding, resetForTesting, setNotice
   } = useAppStore()
+  const athleteProgress = athleteLevel({ history, records, sessions })
   const [resetOpen, setResetOpen] = useState(false)
   const [importPreview, setImportPreview] = useState<BackupPreview | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
@@ -149,8 +151,24 @@ export function YouScreen() {
     <div className="screen">
       <header className="screen-header"><div><p className="eyebrow">Athlete model and control</p><h1>The app learns. You stay in charge.</h1><p>Correct assumptions, adjust question burden, and export every meaningful part of your private history.</p></div></header>
       <section className="profile-hero">
-        <PixelAvatar size="large" mood="ready" />
+        <PixelAvatar size="large" mood="ready" form={athleteProgress.form} level={athleteProgress.level} />
         <div className="profile-hero__copy"><span className="status-chip status-chip--lime">{athlete.entryRoute}</span><h2>{athlete.name}'s current path</h2><p>{athlete.goal}</p><div><span><Dumbbell size={15} /> {athlete.trainingAge} years training</span><span><MapPin size={15} /> {settings.equipmentLocation}</span><span><Sparkles size={15} /> {athlete.continuity} continuity</span></div></div>
+      </section>
+
+      <section className="panel athlete-level" aria-label="Athlete level and form">
+        <div className="panel__header">
+          <div><p className="eyebrow">Athlete level v1</p><h3>Level {athleteProgress.level} · {athleteProgress.formName}</h3></div>
+          <span className="status-chip status-chip--lime">{athleteProgress.points.toLocaleString()} pts</span>
+        </div>
+        <p className="athlete-level__blurb">{athleteProgress.formBlurb}</p>
+        <div className="athlete-level__track" aria-hidden="true"><i style={{ width: `${Math.round(athleteProgress.progressToNextLevel * 100)}%` }} /></div>
+        <small>{athleteProgress.pointsIntoLevel} of {athleteProgress.pointsForNextLevel} toward level {athleteProgress.level + 1}{athleteProgress.nextForm ? ` · ${athleteProgress.nextForm.name} form unlocks at level ${athleteProgress.nextForm.minimumLevel}` : ' · final form reached'}</small>
+        {athleteProgress.sources.length > 0 && (
+          <ul className="athlete-level__sources">
+            {athleteProgress.sources.map((source) => <li key={source.label}><span><strong>{source.label}</strong><small>{source.detail}</small></span><b>+{source.points.toLocaleString()}</b></li>)}
+          </ul>
+        )}
+        <p className="modal-note">Levels come only from work that actually happened, so they never fall and cannot be bought. Every point above traces to completed sessions, confirmed records, volume moved, or movements you have trained enough to have a real history with.</p>
       </section>
 
       <div className="settings-layout">
@@ -239,7 +257,7 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </section>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.46.0 private alpha</strong></li><li><span>Rules</span><strong>0.46.0 predictive deloads and learned ceilings</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Effort metric v1 · Set structure v1 · Volume progression v1 · Deload v1 · Structure progression v1 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Movement notes v1 · Session extension v1 · Equipment v1 · Load increment v1 · Catalog merge v1 · Sound pack field-guide-synth-v1</strong></li><li><span>Backup schema</span><strong>Version 25</strong></li><li><span>Persistence</span><strong>Local v24 · cloud event v1</strong></li><li><span>Cloud sync</span><strong>{cloudConfiguration.status === 'ready' ? 'Manual private checkpoint ready' : 'Private release gate closed'}</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.47.0 private alpha</strong></li><li><span>Rules</span><strong>0.47.0 earned athlete forms and levels</strong></li><li><span>Calculations</span><strong>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Effort metric v1 · Set structure v1 · Volume progression v1 · Deload v1 · Athlete level v1 · Structure progression v1 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Movement notes v1 · Session extension v1 · Equipment v1 · Load increment v1 · Catalog merge v1 · Sound pack field-guide-synth-v1</strong></li><li><span>Backup schema</span><strong>Version 25</strong></li><li><span>Persistence</span><strong>Local v24 · cloud event v1</strong></li><li><span>Cloud sync</span><strong>{cloudConfiguration.status === 'ready' ? 'Manual private checkpoint ready' : 'Private release gate closed'}</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Clear local training data</button>
         </aside>

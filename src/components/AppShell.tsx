@@ -2,6 +2,7 @@ import { BarChart3, CalendarRange, Dumbbell, LibraryBig, Sparkles, UserRound } f
 import { useEffect, useRef, type ReactNode } from 'react'
 import type { NavKey } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
+import { athleteLevel } from '../domain/athlete-level-engine'
 import { PixelAvatar } from './PixelAvatar'
 
 const navItems: { id: NavKey; label: string; icon: typeof Dumbbell }[] = [
@@ -13,7 +14,8 @@ const navItems: { id: NavKey; label: string; icon: typeof Dumbbell }[] = [
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { nav, setNav, athlete, notice, setNotice, settings } = useAppStore()
+  const { nav, setNav, athlete, notice, setNotice, settings , history, records, sessions } = useAppStore()
+  const athleteProgress = athleteLevel({ history, records, sessions })
   const mainRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span><strong>ForgePath</strong><small>Private Alpha</small></span>
         </button>
         <div className="sidebar__athlete">
-          <PixelAvatar size="small" />
+          <PixelAvatar size="small" form={athleteProgress.form} level={athleteProgress.level} />
           <div><strong>{athlete.name}</strong><small>{athlete.continuity} path</small></div>
         </div>
         <nav className="sidebar__nav">
@@ -54,7 +56,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar__footer">
           <Sparkles size={16} />
-          <span>Rules v0.46.0<br /><small>Local-first training</small></span>
+          <span>Rules v0.47.0<br /><small>Local-first training</small></span>
         </div>
       </aside>
       <main ref={mainRef} id="main-content" className="main-content" tabIndex={-1}>{children}</main>

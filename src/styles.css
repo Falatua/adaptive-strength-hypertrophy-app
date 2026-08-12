@@ -139,7 +139,24 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .training-field-guide__action:hover { background: oklch(27% .04 128); color: var(--lime); }
 .training-field-guide__selector { width: 8px; height: 10px; background: var(--lime); clip-path: polygon(0 0, 100% 50%, 0 100%); filter: drop-shadow(2px 0 0 oklch(13% .02 130)); }
 
-.pixel-avatar { flex: none; }
+.athlete-level__blurb { margin: 0; color: var(--muted); line-height: 1.5; }
+.athlete-level__track { height: 10px; border-radius: 999px; background: rgb(255 255 255 / 8%); overflow: hidden; }
+.athlete-level__track i { display: block; height: 100%; border-radius: 999px; background: var(--lime); }
+.athlete-level > small { color: var(--muted); }
+.athlete-level__sources { display: grid; gap: 7px; margin: 4px 0 0; padding: 0; list-style: none; }
+.athlete-level__sources li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
+.athlete-level__sources span { display: grid; gap: 2px; }
+.athlete-level__sources small { color: var(--muted); font-size: .76rem; }
+.athlete-level__sources b { color: var(--lime); font: 800 .8rem/1 ui-monospace, monospace; }
+
+.pixel-avatar { flex: none; position: relative; }
+/* The level badge sits beside the head the way a roster entry shows one. */
+.pixel-avatar__level { position: absolute; top: 2%; right: 0; display: grid; place-items: center; min-width: 26%; aspect-ratio: 1; padding: 0 4px; border: 2px solid var(--surface); border-radius: 999px; background: var(--lime); color: #1b2016; font: 800 clamp(.58rem, 2.6vw, .9rem)/1 ui-monospace, monospace; box-shadow: 0 2px 0 rgb(0 0 0 / 30%); }
+.pixel-avatar--small .pixel-avatar__level { top: -6px; right: -6px; min-width: 18px; border-width: 2px; font-size: .56rem; }
+.pixel-aura rect { fill: var(--lime); opacity: .55; }
+.pixel-avatar--champion .pixel-shirt { fill: #3c4a2e; }
+.pixel-avatar--apex .pixel-shirt { fill: #47301f; }
+.pixel-avatar--apex .pixel-accent { fill: var(--lime); }
 .pixel-avatar svg { display: block; width: 100%; height: 100%; }
 .pixel-avatar--small { width: 42px; height: 42px; padding: 4px; background: #2a3125; border-radius: 8px; }
 .pixel-avatar--medium { width: 132px; height: 132px; }
