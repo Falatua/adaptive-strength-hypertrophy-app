@@ -22,7 +22,10 @@ export const estimatedOneRepMax = (load: number, reps: number) =>
 export function sessionCompletionStatus(session: TrainingSession): SessionStatus {
   const primary = session.exercises.find((exercise) => exercise.role === 'primary')
   const primaryStarted = primary?.sets.some((workSet) => workSet.completed) ?? false
-  const allComplete = session.exercises.length > 0 && session.exercises.every((exercise) => exercise.sets.every((workSet) => workSet.completed))
+  // Athlete-added work is volunteered, so an unfinished bonus set must not turn a session in which
+  // every prescribed set was completed into a partial one. Compliance measures the prescription.
+  const prescribed = session.exercises.map((exercise) => exercise.sets.filter((workSet) => !workSet.athleteAdded))
+  const allComplete = session.exercises.length > 0 && prescribed.every((sets) => sets.every((workSet) => workSet.completed))
   if (allComplete) return 'completed'
   if (primaryStarted) return 'partial-primary'
   return 'partial-no-primary'

@@ -324,6 +324,7 @@ export interface SetPrescription {
   completedLoad?: number
   actualRir?: number
   completed: boolean
+  athleteAdded?: boolean
 }
 
 export interface PlannedExercise {
@@ -340,6 +341,7 @@ export interface PlannedExercise {
   prescriptionMethod?: 'exact-history' | 'baseline-calibration'
   prescriptionNote?: string
   warmupGuidance?: string
+  athleteAdded?: boolean
 }
 
 export interface MovementNoteRecord {
@@ -491,6 +493,7 @@ export interface CompletedSetRecord {
   pain: number
   qualityConfirmed?: boolean
   setIndex: number
+  athleteAdded?: boolean
   plannedExerciseId?: string
   originalExerciseId?: string
   originalExerciseName?: string

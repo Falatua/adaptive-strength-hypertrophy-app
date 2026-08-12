@@ -98,6 +98,21 @@ describe('session completion truth', () => {
     session.exercises.forEach((exercise) => exercise.sets.forEach((workSet) => { workSet.completed = true }))
     expect(sessionCompletionStatus(session)).toBe('completed')
   })
+
+  it('does not let an unfinished athlete-added set downgrade a fully completed prescription', () => {
+    const session = structuredClone(sessions[0])
+    session.exercises.forEach((exercise) => exercise.sets.forEach((workSet) => { workSet.completed = true }))
+    session.exercises[0].sets.push({ id: 'set-added-1', targetLoad: 100, targetReps: 8, targetRir: 2, completed: false, athleteAdded: true })
+    expect(sessionCompletionStatus(session)).toBe('completed')
+  })
+
+  it('still reports a partial session when a prescribed set is left unfinished alongside added work', () => {
+    const session = structuredClone(sessions[0])
+    session.exercises.forEach((exercise) => exercise.sets.forEach((workSet) => { workSet.completed = true }))
+    session.exercises[1].sets[0].completed = false
+    session.exercises[0].sets.push({ id: 'set-added-1', targetLoad: 100, targetReps: 8, targetRir: 2, completed: true, athleteAdded: true })
+    expect(sessionCompletionStatus(session)).toBe('partial-primary')
+  })
 })
 
 describe('exercise identity', () => {

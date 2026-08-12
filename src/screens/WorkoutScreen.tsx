@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Pause, Play, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, Trophy } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Pause, Play, Plus, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
@@ -12,6 +12,7 @@ import { exerciseEquipmentFit, loadIncrementFor, sessionEquipmentGaps } from '..
 import { placementRouteLabels } from '../domain/placement-engine'
 import { playForgeSound } from '../services/sound-engine'
 import { MOVEMENT_NOTE_MAX_LENGTH, movementNotesForExercise } from '../domain/movement-note-engine'
+import { sessionExtensionGate } from '../domain/session-extension-engine'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary anchor',
@@ -22,7 +23,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, equipmentProfiles, history, movementNotes, settings, placementVerifications, updateSet, updateMovementNote, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, finishSession, leaveActiveSession, setNotice } = useAppStore()
+  const { sessions, exercises, equipmentProfiles, history, movementNotes, settings, placementVerifications, updateSet, updateMovementNote, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, addSetToExercise, addMovementToSession, finishSession, leaveActiveSession, setNotice } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
@@ -38,6 +39,9 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const [timerRunning, setTimerRunning] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [decisionInfo, setDecisionInfo] = useState<{ name: string; title: string; action: string; confidence: string; explanation: string } | null>(null)
+  const [addMovementOpen, setAddMovementOpen] = useState(false)
+  const [addSearch, setAddSearch] = useState('')
+  const [extensionError, setExtensionError] = useState<string | null>(null)
   const activeSetRecords = useMemo<CompletedSetRecord[]>(() => session?.exercises.flatMap((plannedExercise) => {
     const exercise = exercises.find((candidate) => candidate.id === plannedExercise.exerciseId)
     if (!exercise) return []
@@ -87,9 +91,11 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const placementCheckMovement = placementVerification?.movementPlacement
     ? session.exercises.find((planned) => planned.exerciseId === placementVerification.movementPlacement!.exerciseId)
     : undefined
-  const placementCheckUnlocked = placementCheckMovement
+  // Adding work re-hides an unanswered prompt, which is honest: the movement is no longer finished.
+  // An answer already given stays on screen, so added work cannot retract a captured response.
+  const placementCheckUnlocked = placementVerification?.warmupResponse !== 'not-answered' || (placementCheckMovement
     ? placementCheckMovement.sets.length > 0 && placementCheckMovement.sets.every((workSet) => workSet.completed)
-    : totalSets > 0 && completedSets === totalSets
+    : totalSets > 0 && completedSets === totalSets)
   const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0')
   const seconds = String(elapsed % 60).padStart(2, '0')
 
@@ -156,6 +162,37 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     if (!currentlyComplete) playForgeSound('set-complete', settings)
     if (!currentlyComplete && settings.haptics && !settings.quietMode && settings.celebrationLevel !== 'off' && 'vibrate' in navigator) navigator.vibrate(18)
   }
+
+  const extensionGate = sessionExtensionGate({
+    sessionStatus: session.status,
+    readiness: session.readiness,
+    painReported: placementVerification?.warmupResponse === 'painful'
+  })
+
+  const addSet = (plannedExerciseId: string) => {
+    const result = addSetToExercise(session.id, plannedExerciseId)
+    setExtensionError(result.ok ? null : result.error ?? 'That set could not be added.')
+    if (result.ok) playForgeSound('set-complete', settings)
+  }
+
+  const addMovement = (exerciseId: string) => {
+    const result = addMovementToSession(session.id, exerciseId)
+    if (!result.ok) return setExtensionError(result.error ?? 'That movement could not be added.')
+    setExtensionError(null)
+    setAddMovementOpen(false)
+    setAddSearch('')
+  }
+
+  const normalizedAddSearch = addSearch.trim().toLowerCase()
+  const sessionExerciseIds = new Set(session.exercises.map((planned) => planned.exerciseId))
+  const addableExercises = exercises
+    .filter((candidate) => !sessionExerciseIds.has(candidate.id))
+    .filter((candidate) => exerciseEquipmentFit(candidate, activeEquipmentProfile).available)
+    .filter((candidate) => !normalizedAddSearch || [
+      candidate.name, candidate.family, candidate.pattern, candidate.primaryRegion,
+      ...candidate.aliases, ...candidate.regions, ...candidate.equipment, ...candidate.roleTags
+    ].some((value) => value.toLowerCase().includes(normalizedAddSearch)))
+    .sort((a, b) => Number(b.favorite) - Number(a.favorite) || a.name.localeCompare(b.name))
 
   const bestEstimatedStrength = Math.max(0, ...session.exercises.flatMap((exercise) => exercise.sets
     .filter((set) => set.completed)
@@ -259,15 +296,20 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   <div className="set-table__head" role="row"><span>Set</span><span>Load</span><span>Reps</span><span>RIR</span><span>Status</span></div>
                   {planned.sets.map((workSet, index) => (
                     <div className={`set-row ${workSet.completed ? 'completed' : ''}`} role="row" key={workSet.id}>
-                      <span className="set-number">{index + 1}</span>
+                      <span className="set-number">{index + 1}{workSet.athleteAdded && <em title="Added by you today">+</em>}</span>
                       <label><span className="sr-only">Set {index + 1} load</span><input disabled={!equipmentFit.available} type="number" inputMode="decimal" step={loadIncrementFor(exercise, activeEquipmentProfile).value} value={workSet.completedLoad ?? workSet.targetLoad} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { load: Number(event.target.value) })} /><small>{settings.units}</small></label>
                       <label><span className="sr-only">Set {index + 1} repetitions</span><input disabled={!equipmentFit.available} type="number" inputMode="numeric" value={workSet.completedReps ?? workSet.targetReps} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { reps: Number(event.target.value) })} /></label>
                       <label><span className="sr-only">Set {index + 1} repetitions in reserve</span><select disabled={!equipmentFit.available} value={workSet.actualRir ?? workSet.targetRir} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { rir: Number(event.target.value) })}><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></label>
                       <button className="complete-set" disabled={!equipmentFit.available && !workSet.completed} onClick={() => logSet(planned.id, workSet.id, workSet.completed)} aria-pressed={workSet.completed}>{workSet.completed ? <><Check size={18} /> Done</> : equipmentFit.available ? 'Log set' : 'Blocked'}</button>
                     </div>
                   ))}
+                  {extensionGate.allowed && equipmentFit.available && (
+                    <button type="button" className="add-set-button" onClick={() => addSet(planned.id)}>
+                      <Plus size={16} /> Add a set to {exercise.name}
+                    </button>
+                  )}
                 </div>
-                {settings.opportunityPrompts && !settings.quietMode && exactHistory.length > 0 && (
+                {settings.opportunityPrompts && !settings.quietMode && !planned.athleteAdded && exactHistory.length > 0 && (
                   <div className={`pr-opportunity ${opportunities.length && !opportunities[0].eligible ? 'pr-opportunity--paused' : ''}`}>
                     <Trophy size={17} />
                     <span>{opportunities.length
@@ -283,12 +325,54 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
             )
           })}
         </div>
+
+        <section className="extra-work" aria-label="Add extra work">
+          <div className="extra-work__heading">
+            <Plus size={19} />
+            <span>
+              <strong>Feeling good today?</strong>
+              <small>Add sets to any movement above, or add another movement. Extra work is recorded as yours, separately from what was prescribed, so today's plan stays an honest record of what the engine asked for.</small>
+            </span>
+          </div>
+          {extensionGate.caution && <p className="extra-work__caution"><AlertTriangle size={16} /> {extensionGate.caution}</p>}
+          {!extensionGate.allowed && <p className="extra-work__blocked"><AlertTriangle size={16} /> {extensionGate.reason}</p>}
+          {extensionError && <p className="form-error" role="alert">{extensionError}</p>}
+          {extensionGate.allowed && (
+            <button type="button" className="button button--secondary" onClick={() => { setAddMovementOpen(true); setExtensionError(null) }}>
+              <Plus size={17} /> Add a movement
+            </button>
+          )}
+        </section>
       </main>
 
       <footer className="workout-footer">
         <div><TimerReset size={18} /><span><strong>{completedSets} of {totalSets} sets complete.</strong><small>Only completed work enters volume and progression.</small></span></div>
         <button className={`button ${completedSets === totalSets && totalSets > 0 ? 'button--primary' : 'button--secondary'}`} onClick={openFinishFlow}>Finish workout <CheckCircle2 size={18} /></button>
       </footer>
+
+      <Modal open={addMovementOpen} onClose={() => { setAddMovementOpen(false); setAddSearch('') }} title="Add a movement to today" description="Extra work you choose because you feel good. It is added as optional accessory work, never as the session's primary anchor, so it cannot become the evidence a route decision rests on." wide>
+        <label className="add-movement-search">
+          <span className="field-label">Search every movement available at {activeEquipmentProfile.name}</span>
+          <input className="swap-library-search" type="search" value={addSearch} onChange={(event) => setAddSearch(event.target.value)} placeholder="Name, muscle, pattern, or equipment" aria-label="Search movements to add" />
+        </label>
+        {extensionError && <p className="form-error" role="alert">{extensionError}</p>}
+        <p className="modal-note">Showing {addableExercises.length} available {addableExercises.length === 1 ? 'movement' : 'movements'}. Movements already in today's workout are not listed. Add a set to those instead.</p>
+        <div className="add-movement-list">
+          {addableExercises.slice(0, 40).map((candidate) => {
+            const exactCount = history.filter((workSet) => workSet.exerciseId === candidate.id).length
+            return (
+              <button type="button" key={candidate.id} className="add-movement-option" onClick={() => addMovement(candidate.id)}>
+                <span>
+                  <strong>{candidate.name}</strong>
+                  <small>{candidate.family} · {candidate.primaryRegion} · {candidate.equipment.join(', ')}</small>
+                </span>
+                <b>{exactCount ? `${exactCount} exact sets` : 'No exact history'}</b>
+              </button>
+            )
+          })}
+          {!addableExercises.length && <p className="modal-note">No movement matches that search at this location.</p>}
+        </div>
+      </Modal>
 
       <Modal open={Boolean(swapTarget)} onClose={() => { setSwapTarget(null); setSwapSearch(''); setSwapBrowseMode('recommended') }} title="Choose an educated replacement" description="Start with the strongest matches or search every compatible movement available at this location. The replacement keeps its own history and load progression." wide>
         <div className="swap-controls">

@@ -17,6 +17,7 @@ import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment, mov
 import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION, routeSessionProfile } from '../domain/route-session-engine'
 import { buildMissedOpportunityReplan } from '../domain/schedule-adaptation-engine'
 import { projectMovementNoteMerge, upsertMovementNote } from '../domain/movement-note-engine'
+import { buildAddedMovement, buildAddedSet, sessionExtensionGate } from '../domain/session-extension-engine'
 import type {
   AppSettings,
   AthleteProfile,
@@ -102,6 +103,8 @@ interface AppState {
   dismissDeferredFeedback: (requestId: string) => { ok: boolean; error?: string }
   expireDeferredFeedback: () => void
   skipExercise: (sessionId: string, plannedExerciseId: string) => void
+  addSetToExercise: (sessionId: string, plannedExerciseId: string) => { ok: boolean; error?: string }
+  addMovementToSession: (sessionId: string, exerciseId: string) => { ok: boolean; error?: string }
   markMissed: (sessionId: string, context: MissedOpportunityInput) => { ok: boolean; error?: string; event?: MissedOpportunityEvent }
   toggleFavorite: (exerciseId: string) => void
   setJointFeeling: (exerciseId: string, jointFeeling: Exercise['jointFeeling']) => void
@@ -587,6 +590,7 @@ export const useAppStore = create<AppState>()(
             primaryRegion: exercise.primaryRegion, completedAt, reps: workSet.completedReps ?? workSet.targetReps,
             load: workSet.completedLoad ?? workSet.targetLoad, rir: workSet.actualRir ?? workSet.targetRir,
             technique, pain, qualityConfirmed, setIndex, plannedExerciseId: plannedExercise.id,
+            athleteAdded: workSet.athleteAdded || plannedExercise.athleteAdded ? true : undefined,
             originalExerciseId: original?.id, originalExerciseName: original?.name, originalFamily: original?.family,
             originalPrimaryRegion: original?.primaryRegion
           }] : [])
@@ -605,13 +609,17 @@ export const useAppStore = create<AppState>()(
           : null
         const placementEvent = state.placementVerifications.find((event) => event.sessionId === sessionId && event.placementCreatedAt === state.athlete.placement.createdAt && event.status === 'active')
         const primary = session.exercises.find((plannedExercise) => plannedExercise.role === 'primary')
-        const firstPrimarySet = primary?.sets.find((workSet) => workSet.completed)
+        // Placement verification rests on the prescribed anchor. An athlete-added set is not evidence
+        // about whether the assigned route fits, so it can never become the first source set.
+        const firstPrimarySet = primary?.sets.find((workSet) => workSet.completed && !workSet.athleteAdded)
         const firstPrimarySetIndex = primary && firstPrimarySet ? primary.sets.findIndex((workSet) => workSet.id === firstPrimarySet.id) : -1
         const firstSourceSet = primary && firstPrimarySetIndex >= 0
           ? newHistory.find((workSet) => workSet.plannedExerciseId === primary.id && workSet.setIndex === firstPrimarySetIndex)
           : undefined
         const primaryExercise = primary ? state.exercises.find((exercise) => exercise.id === primary.exerciseId) : undefined
-        const plannedSets = session.exercises.flatMap((plannedExercise) => plannedExercise.sets).length
+        const prescribedSets = session.exercises.flatMap((plannedExercise) => plannedExercise.sets).filter((workSet) => !workSet.athleteAdded)
+        const plannedSets = prescribedSets.length
+        const completedPrescribedSets = prescribedSets.filter((workSet) => workSet.completed).length
         const actualMinutes = Math.max(1, Math.round((new Date(completedAt).getTime() - new Date(session.startedAt ?? completedAt).getTime()) / 60_000))
         const completedPlacementEvent = placementEvent ? completePlacementVerification(placementEvent, {
           firstSet: firstPrimarySet && firstSourceSet && primary && primaryExercise ? {
@@ -628,9 +636,9 @@ export const useAppStore = create<AppState>()(
           } : null,
           sessionEvidence: {
             sessionStatus: status,
-            completedSets: newHistory.length,
+            completedSets: completedPrescribedSets,
             plannedSets,
-            completionRate: plannedSets ? newHistory.length / plannedSets : 0,
+            completionRate: plannedSets ? completedPrescribedSets / plannedSets : 0,
             plannedMinutes: session.durationMinutes,
             actualMinutes,
             readiness: session.readiness ?? null,
@@ -766,6 +774,65 @@ export const useAppStore = create<AppState>()(
           exercises: session.exercises.filter((exercise) => exercise.id !== plannedExerciseId)
         })
       })),
+      addSetToExercise: (sessionId, plannedExerciseId) => {
+        const state = get()
+        const session = state.sessions.find((candidate) => candidate.id === sessionId)
+        if (!session) return { ok: false, error: 'That workout is no longer open.' }
+        const planned = session.exercises.find((exercise) => exercise.id === plannedExerciseId)
+        if (!planned) return { ok: false, error: 'That movement is no longer part of this workout.' }
+        const gate = sessionExtensionGate({
+          sessionStatus: session.status,
+          readiness: session.readiness,
+          painReported: state.placementVerifications.some((event) => event.sessionId === sessionId && event.status === 'active' && event.warmupResponse === 'painful')
+        })
+        if (!gate.allowed) return { ok: false, error: gate.reason }
+        const exercise = state.exercises.find((candidate) => candidate.id === planned.exerciseId)
+        const activeEquipmentProfile = state.equipmentProfiles.find((profile) => profile.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]
+        if (exercise && activeEquipmentProfile && !exerciseEquipmentFit(exercise, activeEquipmentProfile).available) {
+          return { ok: false, error: `${exercise.name} is unavailable at ${activeEquipmentProfile.name}. Change the movement before adding a set.` }
+        }
+        const addedSet = buildAddedSet({ sets: planned.sets, id: `set-added-${nanoid(8)}` })
+        set({
+          sessions: state.sessions.map((candidate) => candidate.id !== sessionId ? candidate : {
+            ...candidate,
+            exercises: candidate.exercises.map((item) => item.id !== plannedExerciseId ? item : { ...item, sets: [...item.sets, addedSet] })
+          })
+        })
+        return { ok: true }
+      },
+      addMovementToSession: (sessionId, exerciseId) => {
+        const state = get()
+        const session = state.sessions.find((candidate) => candidate.id === sessionId)
+        if (!session) return { ok: false, error: 'That workout is no longer open.' }
+        const gate = sessionExtensionGate({
+          sessionStatus: session.status,
+          readiness: session.readiness,
+          painReported: state.placementVerifications.some((event) => event.sessionId === sessionId && event.status === 'active' && event.warmupResponse === 'painful')
+        })
+        if (!gate.allowed) return { ok: false, error: gate.reason }
+        const exercise = state.exercises.find((candidate) => candidate.id === exerciseId)
+        if (!exercise) return { ok: false, error: 'That movement is not in the catalog.' }
+        if (session.exercises.some((item) => item.exerciseId === exerciseId)) {
+          return { ok: false, error: `${exercise.name} is already in this workout. Add a set to it instead.` }
+        }
+        const activeEquipmentProfile = state.equipmentProfiles.find((profile) => profile.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]
+        if (activeEquipmentProfile && !exerciseEquipmentFit(exercise, activeEquipmentProfile).available) {
+          return { ok: false, error: `${exercise.name} is unavailable at ${activeEquipmentProfile.name}.` }
+        }
+        const planned = buildAddedMovement({
+          id: `planned-added-${nanoid(8)}`,
+          setIdPrefix: `set-added-${nanoid(8)}`,
+          exercise,
+          history: state.history
+        })
+        set({
+          sessions: state.sessions.map((candidate) => candidate.id !== sessionId ? candidate : {
+            ...candidate,
+            exercises: [...candidate.exercises, planned]
+          })
+        })
+        return { ok: true }
+      },
       markMissed: (sessionId, context) => {
         const state = get()
         const activeEquipmentProfile = state.equipmentProfiles.find((profile) => profile.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]

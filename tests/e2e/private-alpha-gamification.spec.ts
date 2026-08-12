@@ -1297,3 +1297,74 @@ test('keeps productive checkpoints independent per exact movement and saves the 
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
   expect(browserErrors).toEqual([])
 })
+
+test('lets the athlete add sets and movements on a good day without rewriting the prescription record', async ({ page }) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Today', exact: true }).click()
+  await page.getByRole('button', { name: 'Start without check-in' }).click()
+
+  const footer = page.locator('.workout-footer')
+  await expect(footer).toContainText('0 of 9 sets complete.')
+  const extraWork = page.getByLabel('Add extra work')
+  await expect(extraWork).toContainText('Feeling good today?')
+  await expect(extraWork).not.toContainText('recorded pain that changed training')
+
+  // An added set repeats the last target instead of inventing a heavier one.
+  const firstCard = page.locator('.exercise-card').first()
+  const firstName = String(await firstCard.locator('.exercise-title h2').textContent())
+  const lastLoad = await firstCard.locator('.set-row input[type="number"]').first().inputValue()
+  await firstCard.getByRole('button', { name: `Add a set to ${firstName}` }).click()
+  await expect(footer).toContainText('0 of 10 sets complete.')
+  const addedRow = firstCard.locator('.set-row').last()
+  await expect(addedRow.locator('.set-number')).toContainText('+')
+  await expect(addedRow.locator('input[type="number"]').first()).toHaveValue(lastLoad)
+
+  // A movement added mid-session is optional accessory work, never the primary anchor.
+  await extraWork.getByRole('button', { name: 'Add a movement' }).click()
+  await page.getByLabel('Search movements to add').fill('curl')
+  const option = page.locator('.add-movement-option').first()
+  const addedMovementName = String(await option.locator('strong').textContent())
+  await option.click()
+  const addedCard = page.locator('.exercise-card').filter({ hasText: addedMovementName })
+  await expect(addedCard).toHaveClass(/exercise-card--optional/)
+  await expect(addedCard).toContainText('Athlete-added extra work')
+  await expect(page.locator('.exercise-card--primary').first()).not.toContainText(addedMovementName)
+  await expect(footer).toContainText('0 of 13 sets complete.')
+
+  // Adding a movement twice is refused, because the existing lane already owns that history.
+  await extraWork.getByRole('button', { name: 'Add a movement' }).click()
+  await page.getByLabel('Search movements to add').fill(addedMovementName)
+  await expect(page.locator('.add-movement-list')).not.toContainText(addedMovementName)
+  await page.getByRole('button', { name: 'Close' }).click()
+
+  const logSets = page.getByRole('button', { name: 'Log set' })
+  for (let remaining = await logSets.count(); remaining > 0; remaining = await logSets.count()) {
+    await logSets.first().click()
+  }
+  await expect(footer).toContainText('13 of 13 sets complete.')
+  await page.getByRole('button', { name: 'Finish workout' }).click()
+  await page.getByRole('button', { name: 'Finish workout without survey' }).click()
+
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
+  const history = persisted.state.history as Array<{ exerciseName: string; athleteAdded?: boolean }>
+  const added = history.filter((record) => record.athleteAdded)
+  // Extra work is stored as real training history, flagged so plan compliance stays honest.
+  expect(added).toHaveLength(4)
+  expect(added.filter((record) => record.exerciseName === addedMovementName)).toHaveLength(3)
+  expect(added.filter((record) => record.exerciseName === firstName)).toHaveLength(1)
+  expect(history.filter((record) => !record.athleteAdded).length).toBeGreaterThan(0)
+
+  // Placement evidence measures the prescription. Volunteered work must not enter the route decision.
+  const evidence = persisted.state.placementVerifications[0].sessionEvidence
+  expect(evidence.plannedSets).toBe(9)
+  expect(evidence.completedSets).toBe(9)
+  expect(evidence.completionRate).toBe(1)
+  expect(evidence.sessionStatus).toBe('completed')
+  const firstSet = persisted.state.placementVerifications[0].firstSet
+  expect(String(firstSet.sourceSetId)).toBeTruthy()
+  expect(history.find((record) => (record as { id: string }).id === firstSet.sourceSetId)?.athleteAdded).toBeUndefined()
+  expect(browserErrors).toEqual([])
+})
