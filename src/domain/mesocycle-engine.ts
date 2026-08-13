@@ -84,7 +84,10 @@ function latestCompletedSet(history: CompletedSetRecord[], exerciseId: string) {
 function priorPrescription(currentSessions: TrainingSession[], history: CompletedSetRecord[], exerciseId: string) {
   const latest = latestCompletedSet(history, exerciseId)
   if (latest) {
-    return { sets: 3, reps: latest.reps, load: latest.load, rir: Math.max(0, latest.rir), source: 'completed-history' as const }
+    const latestSessionSets = history
+      .filter((record) => record.exerciseId === exerciseId && record.sessionId === latest.sessionId)
+      .sort((a, b) => a.setIndex - b.setIndex)
+    return { sets: latestSessionSets.length || 3, reps: latest.reps, load: latest.load, rir: Math.max(0, latest.rir), angles: latestSessionSets.map((workSet) => workSet.benchAngleDeg), source: 'completed-history' as const }
   }
   const planned = currentSessions
     .flatMap((session) => session.exercises)
@@ -95,10 +98,11 @@ function priorPrescription(currentSessions: TrainingSession[], history: Complete
       reps: planned.sets[0].targetReps,
       load: planned.sets[0].targetLoad,
       rir: planned.sets[0].targetRir,
+      angles: planned.sets.map((workSet) => workSet.benchAngleDeg),
       source: 'existing-plan' as const
     }
   }
-  return { sets: 3, reps: 10, load: 0, rir: 3, source: 'calibration' as const }
+  return { sets: 3, reps: 10, load: 0, rir: 3, angles: [] as Array<number | undefined>, source: 'calibration' as const }
 }
 
 function routeLoad(prior: ReturnType<typeof priorPrescription>, intensity: number, increment: number) {
@@ -134,7 +138,10 @@ function plannedExercise(
     role,
     purpose,
     sets: makeSets(setCount, targetReps, targetLoad, targetRir)
-      .map((workSet, index) => ({ ...workSet, id: `${sessionKey}-${exercise.id}-set-${index + 1}` })),
+      .map((workSet, index) => {
+        const benchAngleDeg = prior.angles[index] ?? (prior.angles.length === 1 ? prior.angles[0] : undefined)
+        return { ...workSet, id: `${sessionKey}-${exercise.id}-set-${index + 1}`, ...(benchAngleDeg === undefined ? {} : { benchAngleDeg }) }
+      }),
     restSeconds,
     estimatedMinutes: Math.round(estimatedMinutes),
     optional: role === 'tertiary',

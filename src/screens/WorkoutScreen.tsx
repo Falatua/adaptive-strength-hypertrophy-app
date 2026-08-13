@@ -18,6 +18,7 @@ import { playForgeSound } from '../services/sound-engine'
 import { MOVEMENT_NOTE_MAX_LENGTH, movementNotesForExercise } from '../domain/movement-note-engine'
 import { sessionExtensionGate } from '../domain/session-extension-engine'
 import { sessionClockState } from '../domain/session-clock'
+import { ABX_BACK_PAD_ANGLES, benchAngleLabel, buildBenchAngleLadder, comparableAngleHistory, normalizeBenchAngle, supportsBenchAngle } from '../domain/bench-angle-engine'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary movement',
@@ -27,7 +28,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, equipmentProfiles, history, movementNotes, settings, placementVerifications, updateSet, updateMovementNote, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
+  const { sessions, exercises, equipmentProfiles, history, movementNotes, settings, placementVerifications, updateSet, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
@@ -53,7 +54,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
       id: `active:${session.id}:${workSet.id}`, sessionId: session.id, exerciseId: exercise.id, exerciseName: exercise.name,
       family: exercise.family, primaryRegion: exercise.primaryRegion, completedAt: session.startedAt ?? new Date().toISOString(),
       reps: workSet.completedReps ?? workSet.targetReps, load: workSet.completedLoad ?? workSet.targetLoad,
-      rir: workSet.actualRir ?? workSet.targetRir, technique: 4, pain: 0, setIndex
+      rir: workSet.actualRir ?? workSet.targetRir, technique: 4, pain: 0, setIndex, benchAngleDeg: workSet.benchAngleDeg
     }] : [])
   }) ?? [], [exercises, session])
   const activeAchievementPreview = useMemo(() => {
@@ -303,10 +304,12 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
             if (!exercise) return null
             const equipmentFit = exerciseEquipmentFit(exercise, activeEquipmentProfile)
             const exactHistory = history.filter((set) => set.exerciseId === exercise.id)
-            const recent = exactHistory.slice(-planned.sets.length)
+            const angleCapable = supportsBenchAngle(exercise)
+            const progressionHistory = angleCapable ? comparableAngleHistory(exactHistory, planned) : exactHistory
+            const recent = progressionHistory.slice(-planned.sets.length)
             const lastVolume = volumeLoad(recent)
             const recommendation = recommendProgression({
-              history: exactHistory,
+              history: progressionHistory,
               targetLoad: planned.sets[0]?.targetLoad ?? 0,
               targetReps: planned.sets[0]?.targetReps ?? 0,
               targetSets: planned.sets.length,
@@ -370,6 +373,26 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                 )}
                 {!exactHistory.length && (
                   <p className="load-unknown-note"><Info size={15} /> No logged {exercise.name} yet, so there is no honest load to hand you. Work to the {effortDisplayFor(0, effortMetric).label} target and enter what you actually lifted. Once it is logged, the next session starts from your real number.</p>
+                )}
+                {angleCapable && (
+                  <details className="bench-angle-panel">
+                    <summary><span><strong>Bench angle</strong><small>Optional setup tracking · {planned.sets.every((workSet) => workSet.benchAngleDeg === undefined) ? 'not tracked' : planned.sets.map((workSet) => workSet.benchAngleDeg === undefined ? '—' : `${workSet.benchAngleDeg}°`).join(' → ')}</small></span><ChevronDown size={18} /></summary>
+                    <div className="bench-angle-panel__body">
+                      <p>Track the back-pad angle when it matters to you. Progress and PR prompts compare only the same recorded degree. Blank stays honestly untracked.</p>
+                      <div className="bench-angle-actions" aria-label="Bench angle plan shortcuts">
+                        <button type="button" onClick={() => updateBenchAnglePlan(session.id, planned.id, buildBenchAngleLadder(planned.sets.length, 'high-to-low'))}>High → low</button>
+                        <button type="button" onClick={() => updateBenchAnglePlan(session.id, planned.id, buildBenchAngleLadder(planned.sets.length, 'low-to-high'))}>Low → high</button>
+                        <button type="button" onClick={() => updateBenchAnglePlan(session.id, planned.id, planned.sets.map(() => undefined))}>Clear</button>
+                      </div>
+                      <div className="bench-angle-presets" aria-label="Apply one angle to every set">
+                        {ABX_BACK_PAD_ANGLES.map((angle) => <button type="button" key={angle} onClick={() => updateBenchAnglePlan(session.id, planned.id, planned.sets.map(() => angle))}>{angle}°</button>)}
+                      </div>
+                      <div className="bench-angle-set-grid">
+                        {planned.sets.map((workSet, index) => <label key={workSet.id}><span>Set {index + 1}</span><input type="number" min="0" max="90" step="1" inputMode="decimal" value={workSet.benchAngleDeg ?? ''} placeholder="—" aria-label={`Set ${index + 1} bench angle in degrees`} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { benchAngleDeg: event.target.value === '' ? null : normalizeBenchAngle(Number(event.target.value)) })} /><small>{benchAngleLabel(workSet.benchAngleDeg)}</small></label>)}
+                      </div>
+                      <small className="bench-angle-source">ABX positions are offered as reference presets. Any 0–90° value is allowed, because benches differ.</small>
+                    </div>
+                  </details>
                 )}
                 <div className="set-table" role="table" aria-label={`${exercise.name} sets`}>
                   <div className="set-table__head" role="row"><span>Set</span><span>Load</span><span>Reps</span><span title={effortDisplayFor(0, effortMetric).hint}>{effortDisplayFor(0, effortMetric).label}</span><span>Status</span></div>

@@ -5,12 +5,20 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-13
 status: working-private-alpha
-app_version: 0.54.0
+app_version: 0.55.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.55.0 Angle-Aware Incline Delta
+
+- Adds optional per-set bench-angle tracking to incline movements with same-angle, high-to-low, low-to-high, clear, and independently editable setup controls.
+- Offers the current ABX back-pad positions as reference presets while accepting any 0 to 90 degree value.
+- Keeps untracked history explicit and separates progression recommendations, personal records, workload records, achievements, and PR opportunities by recorded angle.
+- Shows angle-specific set and volume summaries in movement history, supports audited angle correction, validates angle data in backups, and carries the latest completed angle plan into future training-block generation.
+- Treats mixed-angle ladders as valid completed dose without issuing a false single-angle PR or progression comparison.
 
 ## Outcome
 

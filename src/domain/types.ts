@@ -345,6 +345,8 @@ export interface SetPrescription {
   completed: boolean
   athleteAdded?: boolean
   grouping?: SetGrouping
+  /** Optional back-pad angle. Undefined means it was not tracked. */
+  benchAngleDeg?: number
 }
 
 export interface PlannedExercise {
@@ -518,6 +520,7 @@ export interface CompletedSetRecord {
   setIndex: number
   athleteAdded?: boolean
   grouping?: SetGrouping
+  benchAngleDeg?: number
   plannedExerciseId?: string
   originalExerciseId?: string
   originalExerciseName?: string
@@ -640,6 +643,7 @@ export interface PersonalRecord {
     formula?: 'epley'
     formulaVersion?: 'epley-v1'
     eligibleRepRange?: [number, number]
+    benchAngleDeg?: number
   }
   validation: 'validated' | 'numeric-only'
   ruleVersion: 'pr-v2'

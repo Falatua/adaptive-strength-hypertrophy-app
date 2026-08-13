@@ -9,6 +9,7 @@ import type {
   RecordOpportunity,
   TrainingSession
 } from './types'
+import { benchAngleKey, benchAngleLabel, comparableAngleHistory } from './bench-angle-engine'
 
 export const historyVolume = (history: CompletedSetRecord[]) =>
   history.reduce((total, workSet) => total + workSet.reps * workSet.load, 0)
@@ -45,10 +46,18 @@ const record = (input: Omit<PersonalRecord, 'scope' | 'ruleVersion'>): PersonalR
 
 export function derivePersonalRecords(history: CompletedSetRecord[]): PersonalRecord[] {
   const byExercise = new Map<string, CompletedSetRecord[]>()
-  history.forEach((workSet) => byExercise.set(workSet.exerciseId, [...(byExercise.get(workSet.exerciseId) ?? []), workSet]))
+  history.forEach((workSet) => {
+    const key = `${workSet.exerciseId}::${benchAngleKey(workSet)}`
+    byExercise.set(key, [...(byExercise.get(key) ?? []), workSet])
+  })
   const records: PersonalRecord[] = []
 
-  byExercise.forEach((sets, exerciseId) => {
+  byExercise.forEach((sets) => {
+    const exerciseId = sets[0].exerciseId
+    const angle = sets[0].benchAngleDeg
+    const setupId = angle === undefined ? '' : `:${benchAngleKey(sets[0])}`
+    const setupLabel = angle === undefined ? '' : ` at ${angle}°`
+    const setupContext = angle === undefined ? {} : { benchAngleDeg: angle }
     const loadSet = best(sets, (workSet) => workSet.load)
     const eligibleStrengthSets = sets.filter((workSet) => workSet.reps >= 1 && workSet.reps <= 12)
     const strengthSet = eligibleStrengthSets.length ? best(eligibleStrengthSets, (workSet) => workSet.load * (1 + workSet.reps / 30)) : null
@@ -58,25 +67,25 @@ export function derivePersonalRecords(history: CompletedSetRecord[]): PersonalRe
 
     records.push(
       record({
-        id: `record:${exerciseId}:absolute-load`, exerciseId, exerciseName, type: 'absolute-load', category: 'strength',
-        value: loadSet.load, unit: 'load', label: `${loadSet.load} heaviest completed load`, achievedAt: loadSet.completedAt,
-        sourceSessionId: loadSet.sessionId, sourceSetIds: [loadSet.id], context: { load: loadSet.load, reps: loadSet.reps }, validation: validationFor([loadSet])
+        id: `record:${exerciseId}${setupId}:absolute-load`, exerciseId, exerciseName, type: 'absolute-load', category: 'strength',
+        value: loadSet.load, unit: 'load', label: `${loadSet.load} heaviest completed load${setupLabel}`, achievedAt: loadSet.completedAt,
+        sourceSessionId: loadSet.sessionId, sourceSetIds: [loadSet.id], context: { load: loadSet.load, reps: loadSet.reps, ...setupContext }, validation: validationFor([loadSet])
       }),
       record({
-        id: `record:${exerciseId}:exercise-session-volume`, exerciseId, exerciseName, type: 'exercise-session-volume', category: 'workload',
-        value: historyVolume(volumeSets), unit: 'volume-load', label: `${historyVolume(volumeSets).toLocaleString()} exact-movement session volume`,
+        id: `record:${exerciseId}${setupId}:exercise-session-volume`, exerciseId, exerciseName, type: 'exercise-session-volume', category: 'workload',
+        value: historyVolume(volumeSets), unit: 'volume-load', label: `${historyVolume(volumeSets).toLocaleString()} exact-movement session volume${setupLabel}`,
         achievedAt: recordDate(volumeSets), sourceSessionId: volumeSets[0].sessionId, sourceSetIds: orderedSets(volumeSets).map((workSet) => workSet.id),
-        context: { setCount: volumeSets.length, repetitionScheme: orderedSets(volumeSets).map((workSet) => workSet.reps) }, validation: validationFor(volumeSets)
+        context: { setCount: volumeSets.length, repetitionScheme: orderedSets(volumeSets).map((workSet) => workSet.reps), ...setupContext }, validation: validationFor(volumeSets)
       })
     )
 
     if (strengthSet) {
       const estimated = Math.round(strengthSet.load * (1 + strengthSet.reps / 30))
       records.push(record({
-        id: `record:${exerciseId}:estimated-strength`, exerciseId, exerciseName, type: 'estimated-strength', category: 'strength',
-        value: estimated, unit: 'estimated-load', label: `${estimated} estimated strength`, achievedAt: strengthSet.completedAt,
+        id: `record:${exerciseId}${setupId}:estimated-strength`, exerciseId, exerciseName, type: 'estimated-strength', category: 'strength',
+        value: estimated, unit: 'estimated-load', label: `${estimated} estimated strength${setupLabel}`, achievedAt: strengthSet.completedAt,
         sourceSessionId: strengthSet.sessionId, sourceSetIds: [strengthSet.id],
-        context: { load: strengthSet.load, reps: strengthSet.reps, formula: 'epley', formulaVersion: 'epley-v1', eligibleRepRange: [1, 12] }, validation: validationFor([strengthSet])
+        context: { load: strengthSet.load, reps: strengthSet.reps, formula: 'epley', formulaVersion: 'epley-v1', eligibleRepRange: [1, 12], ...setupContext }, validation: validationFor([strengthSet])
       }))
     }
 
@@ -89,17 +98,17 @@ export function derivePersonalRecords(history: CompletedSetRecord[]): PersonalRe
     byLoad.forEach((loadSets, load) => {
       const winner = best(loadSets, (workSet) => workSet.reps)
       records.push(record({
-        id: `record:${exerciseId}:reps-at-load:${load}`, exerciseId, exerciseName, type: 'reps-at-load', category: 'repetition',
-        value: winner.reps, unit: 'repetitions', label: `${winner.reps} reps at ${load}`, achievedAt: winner.completedAt,
-        sourceSessionId: winner.sessionId, sourceSetIds: [winner.id], context: { load, reps: winner.reps }, validation: validationFor([winner])
+        id: `record:${exerciseId}${setupId}:reps-at-load:${load}`, exerciseId, exerciseName, type: 'reps-at-load', category: 'repetition',
+        value: winner.reps, unit: 'repetitions', label: `${winner.reps} reps at ${load}${setupLabel}`, achievedAt: winner.completedAt,
+        sourceSessionId: winner.sessionId, sourceSetIds: [winner.id], context: { load, reps: winner.reps, ...setupContext }, validation: validationFor([winner])
       }))
     })
     byReps.forEach((repSets, reps) => {
       const winner = best(repSets, (workSet) => workSet.load)
       records.push(record({
-        id: `record:${exerciseId}:load-for-reps:${reps}`, exerciseId, exerciseName, type: 'load-for-reps', category: 'strength',
-        value: winner.load, unit: 'load', label: `${winner.load} for ${reps} reps`, achievedAt: winner.completedAt,
-        sourceSessionId: winner.sessionId, sourceSetIds: [winner.id], context: { load: winner.load, reps }, validation: validationFor([winner])
+        id: `record:${exerciseId}${setupId}:load-for-reps:${reps}`, exerciseId, exerciseName, type: 'load-for-reps', category: 'strength',
+        value: winner.load, unit: 'load', label: `${winner.load} for ${reps} reps${setupLabel}`, achievedAt: winner.completedAt,
+        sourceSessionId: winner.sessionId, sourceSetIds: [winner.id], context: { load: winner.load, reps, ...setupContext }, validation: validationFor([winner])
       }))
     })
 
@@ -116,10 +125,10 @@ export function derivePersonalRecords(history: CompletedSetRecord[]): PersonalRe
       const uniformReps = sameNumber(repetitions)
       const schemeLabel = uniformReps ? `${winner.length} × ${repetitions[0]}` : repetitions.join(' / ')
       records.push(record({
-        id: `record:${exerciseId}:set-scheme:${key}`, exerciseId, exerciseName, type: 'set-scheme', category: 'scheme',
-        value: winner[0].load, unit: 'load', label: `${schemeLabel} at ${winner[0].load}`, achievedAt: recordDate(winner),
+        id: `record:${exerciseId}${setupId}:set-scheme:${key}`, exerciseId, exerciseName, type: 'set-scheme', category: 'scheme',
+        value: winner[0].load, unit: 'load', label: `${schemeLabel} at ${winner[0].load}${setupLabel}`, achievedAt: recordDate(winner),
         sourceSessionId: winner[0].sessionId, sourceSetIds: winner.map((workSet) => workSet.id),
-        context: { load: winner[0].load, setCount: winner.length, repetitionScheme: repetitions }, validation: validationFor(winner)
+        context: { load: winner[0].load, setCount: winner.length, repetitionScheme: repetitions, ...setupContext }, validation: validationFor(winner)
       }))
     })
   })
@@ -167,14 +176,19 @@ export function deriveAchievementEvents(history: CompletedSetRecord[]): Achievem
     })
 
     const currentByExercise = new Map<string, CompletedSetRecord[]>()
-    currentSets.forEach((workSet) => currentByExercise.set(workSet.exerciseId, [...(currentByExercise.get(workSet.exerciseId) ?? []), workSet]))
-    currentByExercise.forEach((exerciseSets, exerciseId) => {
+    currentSets.forEach((workSet) => {
+      const key = `${workSet.exerciseId}::${benchAngleKey(workSet)}`
+      currentByExercise.set(key, [...(currentByExercise.get(key) ?? []), workSet])
+    })
+    currentByExercise.forEach((exerciseSets, setupKey) => {
+      const exerciseId = exerciseSets[0].exerciseId
       const exerciseName = exerciseSets[0].exerciseName
-      const priorExact = accumulated.filter((workSet) => workSet.exerciseId === exerciseId)
-      if (!seenExercises.has(exerciseId) && priorExact.length === 0) {
+      const angleDescription = exerciseSets[0].benchAngleDeg === undefined ? '' : ` at ${benchAngleLabel(exerciseSets[0].benchAngleDeg)}`
+      const priorExact = accumulated.filter((workSet) => workSet.exerciseId === exerciseId && benchAngleKey(workSet) === benchAngleKey(exerciseSets[0]))
+      if (!seenExercises.has(setupKey) && priorExact.length === 0) {
         events.push({
-          id: `achievement:baseline:${exerciseId}:${sessionId}`, kind: 'micro-win', category: 'baseline', title: 'Baseline established',
-          explanation: `First completed exact-movement exposure for ${exerciseName}.`, exerciseId, exerciseName,
+          id: `achievement:baseline:${exerciseId}:${benchAngleKey(exerciseSets[0])}:${sessionId}`, kind: 'micro-win', category: 'baseline', title: 'Baseline established',
+          explanation: `First completed exact-movement exposure for ${exerciseName}${angleDescription}.`, exerciseId, exerciseName,
           achievedAt: recordDate(exerciseSets), scope: 'recent', value: historyVolume(exerciseSets), priorValue: null, delta: null,
           sourceSessionId: sessionId, sourceSetIds: exerciseSets.map((workSet) => workSet.id), priorSourceSetIds: [],
           validation: 'validated', ruleVersion: achievementRuleVersion
@@ -192,7 +206,7 @@ export function deriveAchievementEvents(history: CompletedSetRecord[]): Achievem
         const alreadyHas = (category: AchievementEvent['category']) => events.some((event) => event.sourceSessionId === sessionId && event.exerciseId === exerciseId && event.category === category)
         if (comparableScheme && currentLoad !== null && priorLoad !== null && currentLoad > priorLoad && currentRir >= priorRir && !alreadyHas('strength')) {
           events.push({
-            id: `achievement:load-win:${exerciseId}:${sessionId}`, kind: 'micro-win', category: 'strength', title: 'Load micro win',
+            id: `achievement:load-win:${exerciseId}:${benchAngleKey(exerciseSets[0])}:${sessionId}`, kind: 'micro-win', category: 'strength', title: 'Load micro win',
             explanation: `More load across the same completed repetition scheme without worse effort.`, exerciseId, exerciseName,
             achievedAt: recordDate(exerciseSets), scope: 'recent', value: currentLoad, priorValue: priorLoad, delta: currentLoad - priorLoad,
             sourceSessionId: sessionId, sourceSetIds: currentOrdered.map((workSet) => workSet.id), priorSourceSetIds: priorOrdered.map((workSet) => workSet.id),
@@ -203,7 +217,7 @@ export function deriveAchievementEvents(history: CompletedSetRecord[]): Achievem
         const priorReps = priorOrdered.reduce((sum, workSet) => sum + workSet.reps, 0)
         if (currentOrdered.length === priorOrdered.length && currentLoad !== null && currentLoad === priorLoad && currentReps > priorReps && currentRir >= priorRir && !alreadyHas('repetition')) {
           events.push({
-            id: `achievement:rep-win:${exerciseId}:${sessionId}`, kind: 'micro-win', category: 'repetition', title: 'One rep compounded',
+            id: `achievement:rep-win:${exerciseId}:${benchAngleKey(exerciseSets[0])}:${sessionId}`, kind: 'micro-win', category: 'repetition', title: 'One rep compounded',
             explanation: `More total repetitions across the same number of sets at the same load and no worse effort.`, exerciseId, exerciseName,
             achievedAt: recordDate(exerciseSets), scope: 'recent', value: currentReps, priorValue: priorReps, delta: currentReps - priorReps,
             sourceSessionId: sessionId, sourceSetIds: currentOrdered.map((workSet) => workSet.id), priorSourceSetIds: priorOrdered.map((workSet) => workSet.id),
@@ -212,7 +226,7 @@ export function deriveAchievementEvents(history: CompletedSetRecord[]): Achievem
         }
         if (currentLoad !== null && currentLoad === priorLoad && currentReps === priorReps && currentRir >= priorRir + 1 && validationFor(currentOrdered) === 'validated' && validationFor(priorOrdered) === 'validated') {
           events.push({
-            id: `achievement:quality-win:${exerciseId}:${sessionId}`, kind: 'micro-win', category: 'quality', title: 'Quality micro win',
+            id: `achievement:quality-win:${exerciseId}:${benchAngleKey(exerciseSets[0])}:${sessionId}`, kind: 'micro-win', category: 'quality', title: 'Quality micro win',
             explanation: `The same load and repetitions finished with ${currentRir.toFixed(1)} average RIR instead of ${priorRir.toFixed(1)}.`, exerciseId, exerciseName,
             achievedAt: recordDate(exerciseSets), scope: 'recent', value: currentRir, priorValue: priorRir, delta: currentRir - priorRir,
             sourceSessionId: sessionId, sourceSetIds: currentOrdered.map((workSet) => workSet.id), priorSourceSetIds: priorOrdered.map((workSet) => workSet.id),
@@ -222,7 +236,7 @@ export function deriveAchievementEvents(history: CompletedSetRecord[]): Achievem
         const gapDays = (new Date(recordDate(exerciseSets)).getTime() - new Date(recordDate(previousSession)).getTime()) / 86_400_000
         if (gapDays >= 14) {
           events.push({
-            id: `achievement:return:${exerciseId}:${sessionId}`, kind: 'micro-win', category: 'return', title: 'Movement returned',
+            id: `achievement:return:${exerciseId}:${benchAngleKey(exerciseSets[0])}:${sessionId}`, kind: 'micro-win', category: 'return', title: 'Movement returned',
             explanation: `${exerciseName} was completed again after ${Math.floor(gapDays)} days.`, exerciseId, exerciseName,
             achievedAt: recordDate(exerciseSets), scope: 'recent', value: 1, priorValue: 0, delta: 1,
             sourceSessionId: sessionId, sourceSetIds: currentOrdered.map((workSet) => workSet.id), priorSourceSetIds: priorOrdered.map((workSet) => workSet.id),
@@ -230,7 +244,7 @@ export function deriveAchievementEvents(history: CompletedSetRecord[]): Achievem
           })
         }
       }
-      seenExercises.add(exerciseId)
+      seenExercises.add(setupKey)
     })
 
     const completedAt = new Date(recordDate(currentSets)).getTime()
@@ -257,10 +271,13 @@ export function deriveRecordOpportunities(input: {
   readiness: ReadinessOutcome
 }): RecordOpportunity[] {
   const { history, planned, exercise, readiness } = input
-  const exactHistory = history.filter((workSet) => workSet.exerciseId === exercise.id)
+  const exerciseHistory = history.filter((workSet) => workSet.exerciseId === exercise.id)
+  const exactHistory = comparableAngleHistory(exerciseHistory, planned)
   if (!planned.sets.length || !exactHistory.length) return []
   const current = new Map(derivePersonalRecords(exactHistory).map((recordValue) => [recordValue.id, recordValue]))
   const first = planned.sets[0]
+  const setupId = first.benchAngleDeg === undefined ? '' : `:${benchAngleKey(first)}`
+  const setupLabel = first.benchAngleDeg === undefined ? '' : ` at ${first.benchAngleDeg}°`
   const plannedLoads = planned.sets.map((workSet) => workSet.targetLoad)
   const plannedReps = planned.sets.map((workSet) => workSet.targetReps)
   const gateReasons: string[] = []
@@ -283,17 +300,17 @@ export function deriveRecordOpportunities(input: {
 
   const plannedLoad = first.targetLoad
   const plannedRep = first.targetReps
-  add('load-for-reps', 'strength', 'Load-for-reps opportunity', `${plannedLoad} × ${plannedRep} would be the heaviest completed set of ${plannedRep} for this exact movement.`, plannedLoad, `record:${exercise.id}:load-for-reps:${plannedRep}`)
-  add('reps-at-load', 'repetition', 'Repetition opportunity', `${plannedRep} repetitions at ${plannedLoad} would be a new exact-load repetition best.`, plannedRep, `record:${exercise.id}:reps-at-load:${plannedLoad}`)
-  add('absolute-load', 'strength', 'Absolute-load opportunity', `${plannedLoad} would be the heaviest completed load for this exact movement.`, plannedLoad, `record:${exercise.id}:absolute-load`)
+  add('load-for-reps', 'strength', 'Load-for-reps opportunity', `${plannedLoad} × ${plannedRep}${setupLabel} would be the heaviest completed set of ${plannedRep} for this exact setup.`, plannedLoad, `record:${exercise.id}${setupId}:load-for-reps:${plannedRep}`)
+  add('reps-at-load', 'repetition', 'Repetition opportunity', `${plannedRep} repetitions at ${plannedLoad}${setupLabel} would be a new exact-setup repetition best.`, plannedRep, `record:${exercise.id}${setupId}:reps-at-load:${plannedLoad}`)
+  add('absolute-load', 'strength', 'Absolute-load opportunity', `${plannedLoad}${setupLabel} would be the heaviest completed load for this exact setup.`, plannedLoad, `record:${exercise.id}${setupId}:absolute-load`)
 
   if (sameNumber(plannedLoads) && planned.sets.length >= 2) {
     const key = plannedReps.join('-')
     const schemeLabel = sameNumber(plannedReps) ? `${planned.sets.length} × ${plannedReps[0]}` : plannedReps.join(' / ')
-    add('set-scheme', 'scheme', 'Set-scheme opportunity', `Completing the prescribed ${schemeLabel} at ${plannedLoads[0]} would set a new exact-scheme load best.`, plannedLoads[0], `record:${exercise.id}:set-scheme:${key}`)
+    add('set-scheme', 'scheme', 'Set-scheme opportunity', `Completing the prescribed ${schemeLabel} at ${plannedLoads[0]}${setupLabel} would set a new exact-setup load best.`, plannedLoads[0], `record:${exercise.id}${setupId}:set-scheme:${key}`)
   }
   const projectedVolume = planned.sets.reduce((sum, _workSet, index) => sum + plannedLoads[index] * plannedReps[index], 0)
-  add('exercise-session-volume', 'workload', 'Planned workload opportunity', `Completing the prescribed sets would create ${projectedVolume.toLocaleString()} exact-movement volume.`, projectedVolume, `record:${exercise.id}:exercise-session-volume`)
+  add('exercise-session-volume', 'workload', 'Planned workload opportunity', `Completing the prescribed sets would create ${projectedVolume.toLocaleString()} exact-setup volume${setupLabel}.`, projectedVolume, `record:${exercise.id}${setupId}:exercise-session-volume`)
 
   const priority: Record<RecordOpportunity['type'], number> = {
     'load-for-reps': 0, 'reps-at-load': 1, 'absolute-load': 2, 'set-scheme': 3,

@@ -1286,6 +1286,31 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .movement-note-editor__meta { display: flex; justify-content: space-between; gap: 14px; margin-top: 7px; }
 .movement-note-editor__meta small { font-size: .6rem; line-height: 1.4; }
 .movement-note-editor__meta small:last-child { flex: none; color: var(--blue); }
+.bench-angle-panel { border-top: 1px solid rgb(124 184 255 / 22%); background: rgb(124 184 255 / 3%); }
+.bench-angle-panel summary { display: flex; align-items: center; justify-content: space-between; min-height: 54px; padding: 10px 16px; cursor: pointer; list-style: none; }
+.bench-angle-panel summary::-webkit-details-marker { display: none; }
+.bench-angle-panel summary span, .bench-angle-panel summary strong, .bench-angle-panel summary small { display: block; }
+.bench-angle-panel summary strong { color: var(--text); font-size: .74rem; }
+.bench-angle-panel summary small { margin-top: 4px; font-size: .62rem; }
+.bench-angle-panel[open] summary svg { transform: rotate(180deg); }
+.bench-angle-panel__body { padding: 0 16px 16px; }
+.bench-angle-panel__body > p { margin: 0 0 12px; color: var(--muted); font-size: .7rem; line-height: 1.55; }
+.bench-angle-actions, .bench-angle-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.bench-angle-actions { margin-bottom: 8px; }
+.bench-angle-actions button, .bench-angle-presets button { min-height: 44px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--muted); font-size: .66rem; }
+.bench-angle-presets button { min-width: 48px; color: var(--blue); }
+.bench-angle-set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; margin-top: 12px; }
+.bench-angle-set-grid label { display: grid; grid-template-columns: auto 54px; align-items: center; gap: 5px 8px; padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: #0e1210; }
+.bench-angle-set-grid label > span { color: var(--text); font-size: .68rem; font-weight: 750; }
+.bench-angle-set-grid input { width: 54px; min-height: 44px; text-align: center; }
+.bench-angle-set-grid small { grid-column: 1 / -1; font-size: .58rem; }
+.bench-angle-source { display: block; margin-top: 10px; font-size: .58rem; line-height: 1.45; }
+.angle-history { margin: 20px 0; padding: 16px; border: 1px solid rgb(124 184 255 / 22%); border-radius: 12px; background: rgb(124 184 255 / 4%); }
+.angle-history > p { margin: 0 0 12px; color: var(--muted); font-size: .72rem; line-height: 1.55; }
+.angle-history__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.angle-history__grid article { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: #11150f; }
+.angle-history__grid strong { color: var(--blue); font-size: .78rem; }
+.angle-history__grid span, .angle-history__grid small { color: var(--muted); font-size: .64rem; }
 .movement-note-recall { display: grid; grid-template-columns: minmax(150px, .32fr) minmax(0, 1fr); gap: 14px; margin-bottom: 10px; padding: 10px; border: 1px solid rgb(231 255 88 / 22%); border-radius: 9px; background: rgb(231 255 88 / 5%); }
 .movement-note-recall b, .movement-note-recall small { display: block; }
 .movement-note-recall b { color: var(--lime); font-size: .7rem; }

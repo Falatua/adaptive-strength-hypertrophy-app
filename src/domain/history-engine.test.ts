@@ -3,6 +3,18 @@ import { athlete, exercises, history, sessions } from './seed'
 import { deriveAchievementEvents, derivePersonalRecords, deriveRecordOpportunities, findExerciseDuplicatePairs, historyVolume, projectExerciseMerge } from './history-engine'
 
 describe('source history replay', () => {
+  it('keeps personal records independent across recorded incline angles', () => {
+    const base = history.find((workSet) => workSet.exerciseId === 'competition-bench')!
+    const sets = [
+      { ...base, id: 'angle-30', exerciseId: 'incline-db-press', exerciseName: 'Incline Dumbbell Press', benchAngleDeg: 30, load: 80, reps: 10 },
+      { ...base, id: 'angle-45', exerciseId: 'incline-db-press', exerciseName: 'Incline Dumbbell Press', benchAngleDeg: 45, load: 70, reps: 10 }
+    ]
+    const records = derivePersonalRecords(sets).filter((record) => record.type === 'absolute-load')
+    expect(records).toHaveLength(2)
+    expect(records.map((record) => record.context.benchAngleDeg).sort()).toEqual([30, 45])
+    expect(records.find((record) => record.context.benchAngleDeg === 30)?.value).toBe(80)
+    expect(records.find((record) => record.context.benchAngleDeg === 45)?.value).toBe(70)
+  })
   it('derives every record from exact supporting set IDs', () => {
     const records = derivePersonalRecords(history)
     const sourceIds = new Set(history.map((workSet) => workSet.id))

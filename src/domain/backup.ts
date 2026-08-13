@@ -436,6 +436,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
     if (typeof workSet.sessionId !== 'string') errors.push('A completed set is missing its session reference.')
     if (!isValidDate(workSet.completedAt)) errors.push('A completed set has an invalid date.')
     if (!isFiniteNonNegative(workSet.reps) || !isFiniteNonNegative(workSet.load) || !isFiniteNonNegative(workSet.rir)) errors.push('A completed set has invalid numeric training data.')
+    if (workSet.benchAngleDeg !== undefined && (!Number.isFinite(workSet.benchAngleDeg) || Number(workSet.benchAngleDeg) < 0 || Number(workSet.benchAngleDeg) > 90)) errors.push('A completed set has an invalid bench angle.')
     if (workSet.qualityConfirmed !== undefined && typeof workSet.qualityConfirmed !== 'boolean') errors.push('A completed set has an invalid quality-confirmation state.')
     if (workSet.rirKnown !== undefined && typeof workSet.rirKnown !== 'boolean') errors.push('A completed set has an invalid RIR missingness state.')
     const hasImportMetadata = ['importBatchId', 'importRow', 'importSourceName', 'importFingerprint', 'importUnits'].some((key) => workSet[key] !== undefined)
@@ -481,6 +482,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
       if (planned.substitutionEventId !== undefined && (typeof planned.substitutionEventId !== 'string' || !substitutionEventIds.has(planned.substitutionEventId))) errors.push('A planned exercise references an unknown substitution event.')
       planned.sets.forEach((workSet) => {
         if (!isRecord(workSet) || !isFiniteNonNegative(workSet.targetLoad) || !isFiniteNonNegative(workSet.targetReps)) errors.push('A planned set has invalid targets.')
+        if (isRecord(workSet) && workSet.benchAngleDeg !== undefined && (!Number.isFinite(workSet.benchAngleDeg) || Number(workSet.benchAngleDeg) < 0 || Number(workSet.benchAngleDeg) > 90)) errors.push('A planned set has an invalid bench angle.')
       })
     })
   })

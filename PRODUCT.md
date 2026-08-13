@@ -70,6 +70,15 @@ Athlete-facing language uses **training round** for a microcycle and **training 
 - Marking a current protected main lift as avoid does not silently remove or replace it. ForgePath keeps the current plan intact, explains the conflict, and waits for the athlete to approve a training-block revision.
 - Programming preference and joint response remain separate. "I do not like this" is not automatically recorded as pain, and an irritating joint response is not reduced to personal taste.
 
+## Angle-Aware Incline Setups
+
+- Back-pad angle is an optional per-set setup variable for incline movements that use an adjustable bench. Leaving it blank means untracked, never zero degrees.
+- The workout offers common ABX back-pad positions as convenient presets while allowing any value from 0 to 90 degrees because equipment detents and real pad angles vary.
+- An athlete may apply one angle to every set, build a high-to-low or low-to-high set ladder, or enter each set independently.
+- Progression recommendations, volume comparisons, personal records, and micro wins compare only the same exact movement and recorded angle. A mixed-angle ladder is tracked as completed work but does not receive a misleading single-angle PR prompt.
+- Angle labels describe setup evidence, not guaranteed muscle recruitment or difficulty. ForgePath does not infer that one angle is better, safer, harder, or more effective without the athlete's own comparable history and feedback.
+- Completed angle setups carry into future training-block generation as editable suggestions. The athlete can change or clear them at any time.
+
 ## Accessibility & Inclusion
 
 Target WCAG 2.2 AA for all core workflows. Support keyboard and touch input, screen readers, large text, sufficient contrast, non-color state labels, reduced motion, silent operation, optional haptics, focused-training mode, and a modern non-pixel typeface for numerical and explanatory content. Pixel art and game language are enhancement layers and can never be required to understand or complete training.

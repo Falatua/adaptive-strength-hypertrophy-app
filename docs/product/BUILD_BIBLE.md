@@ -3,9 +3,9 @@ type: product-build-bible
 aliases: [Adaptive Training App Build Bible, App Build Bible]
 tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
-updated: 2026-08-11
+updated: 2026-08-12
 status: canonical-build-reference-and-active-implementation
-version: 1.50.0
+version: 1.51.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -26,6 +26,15 @@ Use this source order when information conflicts:
 6. [[Living App Development Outline]] as a compact historical outline.
 
 Every material change must update the requirement register, this document or its linked specification, the project note, [[Hot Cache]], and [[Codex Session Log]]. Never silently overwrite a training rule. Version rule changes, calculation changes, exercise merges, plan revisions, and recommendation decisions so historical results remain explainable.
+
+### Version 1.51.0 Change Entry
+
+- Added optional per-set back-pad angle tracking for incline movements using an adjustable bench.
+- Added the current Freak Athlete ABX 0°, 15°, 22°, 30°, 37°, 45°, 52°, 60°, 67°, 75°, and 85° back-pad positions as reference presets without restricting athletes to that equipment.
+- Defined same-angle, high-to-low, low-to-high, independently edited, and untracked setup states.
+- Separated PRs, workload records, micro wins, and automatic progression evidence by exact recorded angle. Mixed-angle sessions retain completed dose but cannot masquerade as a single-angle comparison.
+- Required angle history, correction, backup validation, responsive controls, and carry-forward into future plan generation.
+- Prohibited unearned biomechanical claims. The stored degree is setup evidence; athlete feedback and comparable history remain necessary to learn personal response.
 
 The companion [[Build Bible Requirement Traceability Matrix]] maps every requirement to its implementation chapter and delivery phase.
 

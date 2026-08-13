@@ -50,6 +50,12 @@ import type {
   SubstitutionReason,
   TrainingSession
 } from '../domain/types'
+
+const withOptionalBenchAngle = <T extends { benchAngleDeg?: number }>(value: T, angle: number | undefined): T => {
+  const withoutAngle = { ...value }
+  delete withoutAngle.benchAngleDeg
+  return (angle === undefined ? withoutAngle : { ...withoutAngle, benchAngleDeg: angle }) as T
+}
 import { cloudAuthoritativeBuild, LEGACY_APP_STORAGE_KEY } from '../services/cloud-config'
 
 interface AppState {
@@ -93,7 +99,8 @@ interface AppState {
   leaveActiveSession: () => void
   pinSession: (sessionId: string) => { ok: boolean; error?: string }
   setReadiness: (sessionId: string, answers: SurveyAnswer[], skipped: boolean, mode: EffectiveSurveyMode) => void
-  updateSet: (sessionId: string, plannedExerciseId: string, setId: string, data: { reps?: number; load?: number; rir?: number }) => void
+  updateSet: (sessionId: string, plannedExerciseId: string, setId: string, data: { reps?: number; load?: number; rir?: number; benchAngleDeg?: number | null }) => void
+  updateBenchAnglePlan: (sessionId: string, plannedExerciseId: string, angles: Array<number | undefined>) => void
   updateMovementNote: (sessionId: string, plannedExerciseId: string, body: string) => void
   toggleSetComplete: (sessionId: string, plannedExerciseId: string, setId: string) => void
   setSessionClockRunning: (sessionId: string, running: boolean) => void
@@ -118,7 +125,7 @@ interface AppState {
   setJointFeeling: (exerciseId: string, jointFeeling: Exercise['jointFeeling']) => void
   addCustomExercise: (exercise: Exercise) => void
   updateExerciseCatalog: (exerciseId: string, input: ExerciseCatalogInput, reason: string) => { ok: boolean; error?: string; exercise?: Exercise }
-  correctHistorySet: (setId: string, data: Pick<CompletedSetRecord, 'reps' | 'load' | 'rir' | 'technique' | 'pain' | 'qualityConfirmed' | 'completedAt'>, reason: string) => { ok: boolean; error?: string }
+  correctHistorySet: (setId: string, data: Pick<CompletedSetRecord, 'reps' | 'load' | 'rir' | 'technique' | 'pain' | 'qualityConfirmed' | 'completedAt'> & { benchAngleDeg?: number | null }, reason: string) => { ok: boolean; error?: string }
   deleteHistorySet: (setId: string, reason: string) => { ok: boolean; error?: string }
   mergeExercises: (sourceIds: string[], targetId: string, reason: string) => { ok: boolean; error?: string }
   importCompletedHistory: (records: CompletedSetRecord[], sourceName: string, skippedDuplicates: number) => { ok: boolean; error?: string }
@@ -418,12 +425,21 @@ export const useAppStore = create<AppState>()(
           ...session,
           exercises: session.exercises.map((exercise) => exercise.id !== plannedExerciseId ? exercise : {
             ...exercise,
-            sets: exercise.sets.map((workSet) => workSet.id === setId ? {
+            sets: exercise.sets.map((workSet) => workSet.id === setId ? withOptionalBenchAngle({
               ...workSet,
               completedReps: data.reps ?? workSet.completedReps,
               completedLoad: data.load ?? workSet.completedLoad,
               actualRir: data.rir ?? workSet.actualRir
-            } : workSet)
+            }, data.benchAngleDeg === null ? undefined : data.benchAngleDeg ?? workSet.benchAngleDeg) : workSet)
+          })
+        })
+      })),
+      updateBenchAnglePlan: (sessionId, plannedExerciseId, angles) => set((state) => ({
+        sessions: state.sessions.map((session) => session.id !== sessionId ? session : {
+          ...session,
+          exercises: session.exercises.map((exercise) => exercise.id !== plannedExerciseId ? exercise : {
+            ...exercise,
+            sets: exercise.sets.map((workSet, index) => withOptionalBenchAngle(workSet, angles[index]))
           })
         })
       })),
@@ -617,7 +633,7 @@ export const useAppStore = create<AppState>()(
             id: nanoid(), sessionId, exerciseId: exercise.id, exerciseName: exercise.name, family: exercise.family,
             primaryRegion: exercise.primaryRegion, completedAt, reps: workSet.completedReps ?? workSet.targetReps,
             load: workSet.completedLoad ?? workSet.targetLoad, rir: workSet.actualRir ?? workSet.targetRir,
-            technique, pain, qualityConfirmed, setIndex, plannedExerciseId: plannedExercise.id,
+            technique, pain, qualityConfirmed, setIndex, plannedExerciseId: plannedExercise.id, benchAngleDeg: workSet.benchAngleDeg,
             athleteAdded: workSet.athleteAdded || plannedExercise.athleteAdded ? true : undefined,
             grouping: workSet.grouping,
             originalExerciseId: original?.id, originalExerciseName: original?.name, originalFamily: original?.family,
@@ -1021,7 +1037,8 @@ export const useAppStore = create<AppState>()(
         if (!reason.trim()) return { ok: false, error: 'Add a short reason so the correction remains auditable.' }
         if ([data.reps, data.load, data.rir, data.technique, data.pain].some((value) => !Number.isFinite(value) || value < 0)) return { ok: false, error: 'Use valid zero-or-greater numbers.' }
         if (Number.isNaN(new Date(data.completedAt).getTime())) return { ok: false, error: 'Use a valid completion date.' }
-        const history = state.history.map((candidate) => candidate.id === setId ? { ...candidate, ...data, rirKnown: true } : candidate)
+        const correctedData = { ...data, benchAngleDeg: data.benchAngleDeg === null ? undefined : data.benchAngleDeg }
+        const history = state.history.map((candidate) => candidate.id === setId ? { ...candidate, ...correctedData, rirKnown: true } : candidate)
         const records = derivePersonalRecords(history)
         const event: HistoryMutationEvent = {
           id: nanoid(), type: 'set-corrected', createdAt: new Date().toISOString(), reason: reason.trim(),
