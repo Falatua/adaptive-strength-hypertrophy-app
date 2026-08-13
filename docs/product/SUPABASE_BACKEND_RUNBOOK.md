@@ -2,8 +2,8 @@
 type: backend-runbook
 tags: [fitness, app, supabase, postgres, auth, sync, operations]
 created: 2026-08-10
-updated: 2026-08-11
-status: remote-foundation-verified-invite-acceptance-pending
+updated: 2026-08-12
+status: remote-foundation-verified-invite-sent-acceptance-pending
 confidence: verified-live-transactional
 ---
 
@@ -32,7 +32,7 @@ The local foundation includes:
 
 Both migrations were applied transactionally on 2026-08-11. Because the original SQL Editor application did not populate the Supabase CLI ledger, `supabase_migrations.schema_migrations` was repaired from the exact committed files. The two remote statement payloads now match the committed SHA-256 manifest byte-for-byte. Live read-only verification found fourteen of fourteen tables with forced Row Level Security, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, two security-invoker volume views, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction then passed identity, profile isolation, device registration, projection-write denial, snapshot apply, exact replay, stale conflict, invariant, and cross-athlete visibility checks. Its rollback proof returned zero test users, devices, events, and snapshots.
 
-Production and local redirect URLs are configured. Public signup is disabled and persisted after a hard reload. Browser-safe project URL and publishable key values are stored as GitHub Actions secrets outside the public source tree. Pages compilation remains gated by the unset `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable until one approved athlete is invited and the real email-link and phone-to-laptop recovery drill passes.
+Production and local redirect URLs are configured. Public signup is disabled and persisted after a hard reload. The approved athlete invitation was sent on 2026-08-12 and remains unaccepted. The private release gate is temporarily enabled so that invitation acceptance can be tested, but this is not approval for wider cloud release. During the activation audit, the GitHub browser-key secret was found to contain plain-English instruction text instead of a Supabase key. The secret was corrected from the existing browser-safe dashboard key without exposing it to source, logs, or the vault. The deployment workflow now validates the gate, URL, and browser-safe key shape before it can build Pages.
 
 It does not yet claim automatic synchronization, entity-level merge, active-workout handoff, complete new-device hydration, device revocation UI, an accepted real invitation, or a completed physical phone-to-laptop drill. The transactional database proof covers two isolated identities without leaving accounts or athlete data behind; it does not replace real invitation acceptance.
 
@@ -49,7 +49,7 @@ ForgePath was created in another owner-approved organization. This satisfies the
 5. Keep the checked-in narrowed browser contract in `src/services/supabase.types.ts` aligned with migrations. Regenerate the complete schema type file when the CLI is linked through an approved local credential path.
 6. In Authentication URL Configuration, set the Site URL to the hosted Pages URL and allow both the hosted URL and local Vite URL as redirects.
 7. Disable open public signup for the hosted private alpha. Completed and verified after hard reload. Invite the approved athlete account from the dashboard after JB supplies the exact email.
-8. Add `FORGEPATH_SUPABASE_URL` and `FORGEPATH_SUPABASE_PUBLISHABLE_KEY` as source-repository Actions secrets, never as tracked public source. Completed. Set `FORGEPATH_CLOUD_RELEASE_ENABLED=true` only after invite-only Auth is verified. These are the only Supabase values eligible for browser compilation.
+8. Add `FORGEPATH_SUPABASE_URL` and `FORGEPATH_SUPABASE_PUBLISHABLE_KEY` as source-repository Actions secrets, never as tracked public source. Completed and revalidated on 2026-08-12 after correcting a malformed browser-key secret. The release gate is temporarily enabled for the approved invitation acceptance window. These are the only Supabase values eligible for browser compilation, and `npm run qc:cloud-release` now rejects missing, malformed, or server-side credentials.
 9. Run the full local and remote acceptance gates below. The migration, grants, RLS, RPC, idempotency, stale-conflict, rollback, and simulated two-identity gates pass. Real invitation, email delivery, restore undo on a second physical browser, and offline recovery remain.
 10. Push only after the migration, auth flow, Row Level Security, app tests, and live Pages behavior pass.
 

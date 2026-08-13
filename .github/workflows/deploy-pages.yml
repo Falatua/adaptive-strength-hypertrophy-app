@@ -16,6 +16,7 @@ jobs:
   verify-and-build:
     runs-on: ubuntu-latest
     env:
+      FORGEPATH_CLOUD_RELEASE_ENABLED: ${{ vars.FORGEPATH_CLOUD_RELEASE_ENABLED }}
       VITE_SUPABASE_URL: ${{ vars.FORGEPATH_CLOUD_RELEASE_ENABLED == 'true' && secrets.FORGEPATH_SUPABASE_URL || '' }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.FORGEPATH_CLOUD_RELEASE_ENABLED == 'true' && secrets.FORGEPATH_SUPABASE_PUBLISHABLE_KEY || '' }}
     steps:
