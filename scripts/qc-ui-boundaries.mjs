@@ -52,6 +52,14 @@ for (const file of files) {
 }
 
 const styles = await readFile(new URL('src/styles.css', root), 'utf8')
+const cloudAuth = await readFile(new URL('src/components/CloudAppRoot.tsx', root), 'utf8')
+for (const [name, pattern] of [
+  ['login-screen cloud banner', /cloud-auth__brand|cloud-auth__route|Your training follows you/i],
+  ['login-screen database disclosure', /cloud-auth__privacy|Training data is isolated to your account by Row Level Security|Private and protected/i]
+]) {
+  if (pattern.test(cloudAuth)) failures.push(`src/components/CloudAppRoot.tsx still contains ${name}. Keep the authentication gate focused on account actions.`)
+}
+
 for (const [name, pattern, help] of [
   ['keyboard focus', /:focus-visible/, 'Add a visible keyboard focus state.'],
   ['reduced motion', /prefers-reduced-motion:\s*reduce/, 'Honor the system reduced-motion preference.'],

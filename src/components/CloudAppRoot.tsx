@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { AlertTriangle, Cloud, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
 import type { Session } from '@supabase/supabase-js'
 import App from '../App'
 import { backupStateFrom, createBackup } from '../domain/backup'
@@ -107,7 +107,7 @@ function CloudAuth({ recovery, onRecoveryComplete }: { recovery: boolean; onReco
 }
 
 function AuthFrame({ title, detail, children }: { title: string; detail: string; children: ReactNode }) {
-  return <main className="cloud-auth"><section className="cloud-auth__card"><div className="cloud-auth__brand"><span><Cloud size={22} /></span><div><small>ForgePath private cloud</small><strong>Your training follows you</strong></div></div><div className="cloud-auth__intro"><h1>{title}</h1><p>{detail}</p></div>{children}<p className="cloud-auth__privacy"><ShieldCheck size={16} /> Training data is isolated to your account by Row Level Security.</p></section></main>
+  return <main className="cloud-auth"><section className="cloud-auth__card"><div className="cloud-auth__intro"><h1>{title}</h1><p>{detail}</p></div>{children}</section></main>
 }
 
 function AuthError({ message }: { message: string }) {
