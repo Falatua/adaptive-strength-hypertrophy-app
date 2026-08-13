@@ -47,7 +47,6 @@ describe('route-specific session generation', () => {
         expect(primary.sets).toHaveLength(profile.primary.sets)
         expect(primary.sets[0]).toMatchObject({ targetReps: profile.primary.reps, targetRir: profile.primary.rir })
         expect(primary.restSeconds).toBe(profile.primary.restSeconds)
-        expect(primary.warmupGuidance).toBe(profile.warmupGuidance)
         expect(session.generation).toMatchObject({ ruleVersion: 'route-session-v2', route, placementCreatedAt: '2026-08-10T14:00:00.000Z', equipment: { profileId: 'equipment-commercial-gym', incrementUnit: 'lb' } })
         expect(routeSessionGenerationError(session.generation)).toBeNull()
       })

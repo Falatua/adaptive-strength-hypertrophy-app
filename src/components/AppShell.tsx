@@ -5,6 +5,7 @@ import type { NavKey } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { athleteLevel } from '../domain/athlete-level-engine'
 import { PixelAvatar } from './PixelAvatar'
+import { LevelProgress } from './LevelProgress'
 
 const navItems: { id: NavKey; label: string; icon: typeof Dumbbell }[] = [
   { id: 'today', label: 'Today', icon: Dumbbell },
@@ -43,7 +44,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
         <div className="sidebar__athlete">
           <PixelAvatar size="small" form={athleteProgress.form} level={athleteProgress.level} />
-          <div><strong>{athlete.name}</strong><small>{athlete.continuity} path</small></div>
+          <div><strong>{athlete.name}</strong><small>{athlete.continuity} path</small><LevelProgress progress={athleteProgress} compact /></div>
         </div>
         <nav className="sidebar__nav">
           {navItems.map((item) => {

@@ -18,6 +18,8 @@ import {
 import { useAppStore } from '../store/useAppStore'
 import { athleteLevel } from '../domain/athlete-level-engine'
 import { PixelAvatar } from '../components/PixelAvatar'
+import { CollapsiblePanel } from '../components/CollapsiblePanel'
+import { LevelProgress } from '../components/LevelProgress'
 import { StatCard } from '../components/StatCard'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { filterMuscleDose, filterPlannedMuscleDose, muscleDoseFor, plannedMuscleDoseFor, type MuscleDoseLens } from '../domain/muscle-dose'
@@ -173,6 +175,7 @@ export function ProgressScreen() {
       <section className="progress-banner">
         <div className="progress-banner__avatar"><PixelAvatar mood={summary.setCount ? 'celebrate' : 'ready'} size="medium" form={athleteProgress.form} level={athleteProgress.level} /></div>
         <div className="progress-banner__copy"><p className="eyebrow">Your wins · {summary.label}</p><h2>{bannerTitle}</h2><p>{summary.setCount ? `${summary.setCount} completed sets across ${summary.activeDays} active ${summary.activeDays === 1 ? 'day' : 'days'}, producing ${validatedAchievements.length} confirmed ${validatedAchievements.length === 1 ? 'win' : 'wins'}${numericOnlyAchievements.length ? ` and ${numericOnlyAchievements.length} numbers-only ${numericOnlyAchievements.length === 1 ? 'best' : 'bests'}` : ''}. Planned or missed work never counts.` : 'Choose another period or complete a workout. Zero is shown honestly rather than replaced by all-time history.'}</p></div>
+        <div className="progress-banner__level"><LevelProgress progress={athleteProgress} compact /></div>
         <div className="progress-banner__badge"><Sparkles size={18} /><strong>{validatedAchievements.length} validated {validatedAchievements.length === 1 ? 'win' : 'wins'}</strong><span>{numericOnlyAchievements.length ? `${numericOnlyAchievements.length} numeric-only · ` : ''}{rangeDates}</span></div>
       </section>
 
@@ -190,11 +193,12 @@ export function ProgressScreen() {
         <div><Dumbbell size={17} /><span><small>Average set load</small><strong>{Math.round(summary.averageLoad).toLocaleString()} {settings.units}</strong></span></div>
       </section>
 
-      <section className="panel training-timeline" aria-label="Calendar and completed exposure history">
+      <CollapsiblePanel className="panel training-timeline" ariaLabel="Calendar and completed exposure history" label="the calendar view" defaultOpen header={<>
         <div className="panel__header training-timeline__header">
           <div><p className="eyebrow">Two clocks</p><h3>When you trained versus what moved forward</h3></div>
           <div className="mini-toggle" aria-label="Timeline axis"><button aria-pressed={timelineAxis === 'calendar'} className={timelineAxis === 'calendar' ? 'selected' : ''} onClick={() => setTimelineAxis('calendar')}><CalendarDays size={15} /> Calendar</button><button aria-pressed={timelineAxis === 'exposure'} className={timelineAxis === 'exposure' ? 'selected' : ''} onClick={() => setTimelineAxis('exposure')}><ListOrdered size={15} /> Exposure order</button></div>
         </div>
+      </>}>
 
         <div className={`fixed-event-strip fixed-event-strip--${fixedEvent.state}`} aria-label="Fixed event countdown">
           <CalendarClock size={19} />
@@ -237,27 +241,24 @@ export function ProgressScreen() {
           })}</ol> : <div className="compact-empty"><ListOrdered size={25} /><strong>No exact exposure sequence yet</strong><p>Family movements and neighboring variations are not borrowed. Complete or import this exact movement to begin its sequence.</p></div>}
         </div>}
         <p className="chart-note"><Link2 size={14} /> Calendar dates show when opportunities and work occurred. Exposure order shows only completed exact-movement evidence. Gaps stay visible, but they never become fake completed weeks, automatic progression, or catch-up volume.</p>
-      </section>
+      </CollapsiblePanel>
 
       <div className="charts-grid">
-        <section className="panel chart-panel chart-panel--wide">
-          <div className="panel__header"><div><p className="eyebrow">Volume explorer · {summary.label}</p><h3>{range === 'today' ? 'Daily' : ['quarter', 'year'].includes(range) ? 'Monthly' : range === 'all' ? 'Yearly' : 'Daily'} volume load</h3></div><span className={trend !== null && trend < 0 ? 'trend-down' : 'trend-up'}>{trend !== null && trend < 0 ? <ArrowDownRight size={15} /> : <ArrowUpRight size={15} />}{trendLabel}</span></div>
+        <CollapsiblePanel className="panel chart-panel chart-panel--wide" label="the volume explorer" defaultOpen header={<div className="panel__header"><div><p className="eyebrow">Volume explorer · {summary.label}</p><h3>{range === 'today' ? 'Daily' : ['quarter', 'year'].includes(range) ? 'Monthly' : range === 'all' ? 'Yearly' : 'Daily'} volume load</h3></div><span className={trend !== null && trend < 0 ? 'trend-down' : 'trend-up'}>{trend !== null && trend < 0 ? <ArrowDownRight size={15} /> : <ArrowUpRight size={15} />}{trendLabel}</span></div>}>
           <div className="chart-wrap" aria-label={`${summary.label} volume load chart`}>
             <ResponsiveContainer width="100%" height="100%"><AreaChart data={summary.points} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}><defs><linearGradient id="volumeFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e7ff58" stopOpacity={0.42} /><stop offset="100%" stopColor="#e7ff58" stopOpacity={0} /></linearGradient></defs><CartesianGrid stroke="#2c3129" vertical={false} /><XAxis dataKey="label" stroke="#788171" tickLine={false} axisLine={false} fontSize={11} minTickGap={24} /><YAxis stroke="#788171" tickLine={false} axisLine={false} fontSize={11} tickFormatter={(value) => Number(value) >= 1000 ? `${Math.round(Number(value) / 1000)}k` : String(value)} /><Tooltip contentStyle={{ background: '#191d17', border: '1px solid #353b31', borderRadius: 10 }} formatter={(value) => [`${Number(value).toLocaleString()} ${settings.units}`, 'Volume load']} /><Area isAnimationActive={false} type="monotone" dataKey="volume" stroke="#e7ff58" strokeWidth={3} fill="url(#volumeFill)" /></AreaChart></ResponsiveContainer>
           </div>
           <p className="chart-note">Exercise-specific volume load is best for like-for-like trends. It is not a universal stimulus score across different movements.</p>
-        </section>
-        <section className="panel chart-panel">
-          <div className="panel__header body-lens-header"><div><p className="eyebrow">Body-volume lens</p><h3>{bodyLens === 'region' ? 'Primary-region volume' : 'Upper, lower, arms, and trunk'}</h3></div><div className="mini-toggle" aria-label="Body volume grouping"><button aria-pressed={bodyLens === 'region'} className={bodyLens === 'region' ? 'selected' : ''} onClick={() => setBodyLens('region')}>Regions</button><button aria-pressed={bodyLens === 'area'} className={bodyLens === 'area' ? 'selected' : ''} onClick={() => setBodyLens('area')}>Areas</button></div></div>
+        </CollapsiblePanel>
+        <CollapsiblePanel className="panel chart-panel" label="the body volume lens" header={<div className="panel__header body-lens-header"><div><p className="eyebrow">Body-volume lens</p><h3>{bodyLens === 'region' ? 'Primary-region volume' : 'Upper, lower, arms, and trunk'}</h3></div><div className="mini-toggle" aria-label="Body volume grouping"><button aria-pressed={bodyLens === 'region'} className={bodyLens === 'region' ? 'selected' : ''} onClick={() => setBodyLens('region')}>Regions</button><button aria-pressed={bodyLens === 'area'} className={bodyLens === 'area' ? 'selected' : ''} onClick={() => setBodyLens('area')}>Areas</button></div></div>}>
           <div className="chart-wrap chart-wrap--small" aria-label={`Volume by ${bodyLens}`}>
             <ResponsiveContainer width="100%" height="100%"><BarChart data={bodyData.slice(0, 8)} layout="vertical" margin={{ top: 0, right: 8, left: 8, bottom: 0 }}><XAxis type="number" hide /><YAxis dataKey="label" type="category" stroke="#aeb6a7" tickLine={false} axisLine={false} width={78} fontSize={11} /><Tooltip contentStyle={{ background: '#191d17', border: '1px solid #353b31', borderRadius: 10 }} formatter={(value) => [`${Number(value).toLocaleString()} ${settings.units}`, 'Volume load']} /><Bar isAnimationActive={false} dataKey="volume" fill="#ff7a45" radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer>
           </div>
           <p className="chart-note">Exclusive primary-region assignment keeps totals conserved. The separately labeled muscle-dose view below answers a different question with fractional credit.</p>
-        </section>
+        </CollapsiblePanel>
       </div>
 
-      <section className="panel dose-panel">
-        <div className="panel__header"><div><p className="eyebrow">Plan versus completed</p><h3>What you planned, what you finished</h3></div><CheckCircle2 size={20} /></div>
+      <CollapsiblePanel className="panel dose-panel" label="the plan comparison" header={<div className="panel__header"><div><p className="eyebrow">Plan versus completed</p><h3>What you planned, what you finished</h3></div><CheckCircle2 size={20} /></div>}>
         <div className="dose-summary">
           <div><small>Stored plans in window</small><strong>{plannedDose.plannedSessionIds.length}</strong><span>{plannedDose.plannedSets} intended sets</span></div>
           <div><small>Linked completion</small><strong>{plannedDose.linkedCompletedSets} / {plannedDose.plannedSets}</strong><span>{plannedDose.plannedSets ? `${Math.round(plannedDose.linkedCompletedSets / plannedDose.plannedSets * 100)}% of stored set dose` : 'No stored set dose'}</span></div>
@@ -270,10 +271,9 @@ export function ProgressScreen() {
           <span className={`dose-status dose-status--${point.status}`}><b>{point.completionRate === null ? point.status.replace('-', ' ') : `${Math.round(point.completionRate * 100)}%`}</b><small>{point.status.replace('-', ' ')}</small></span>
         </div>)}</div> : <div className="compact-empty"><Target size={24} /><strong>No stored dose in this window</strong><p>Completed history remains visible above, but no dated plan is available for an honest plan comparison.</p></div>}
         <p className="chart-note">Only sets you completed inside a saved session can count toward a plan. The {plannedDose.unlinkedCompletedSets} other completed {plannedDose.unlinkedCompletedSets === 1 ? 'set still counts' : 'sets still count'} in your totals, they just have no plan to match. Below plan means what happened, not a scolding or a cue to add catch-up work.</p>
-      </section>
+      </CollapsiblePanel>
 
-      <section className="panel muscle-dose-panel">
-        <div className="panel__header muscle-dose-header"><div><p className="eyebrow">Muscle by muscle</p><h3>Direct work and assisting work</h3></div><div className="mini-toggle" aria-label="Muscle dose grouping">{(['all', 'upper', 'lower', 'arms', 'trunk'] as const).map((lens) => <button key={lens} aria-pressed={muscleLens === lens} className={muscleLens === lens ? 'selected' : ''} onClick={() => { setMuscleLens(lens); setSelectedMuscle(null) }}>{lens}</button>)}</div></div>
+      <CollapsiblePanel className="panel muscle-dose-panel" label="muscle by muscle" header={<div className="panel__header muscle-dose-header"><div><p className="eyebrow">Muscle by muscle</p><h3>Direct work and assisting work</h3></div><div className="mini-toggle" aria-label="Muscle dose grouping">{(['all', 'upper', 'lower', 'arms', 'trunk'] as const).map((lens) => <button key={lens} aria-pressed={muscleLens === lens} className={muscleLens === lens ? 'selected' : ''} onClick={() => { setMuscleLens(lens); setSelectedMuscle(null) }}>{lens}</button>)}</div></div>}>
         <div className="muscle-dose-summary">
           <div><small>Completed sets</small><strong>{muscleDose.sourceSetCount}</strong><span>Selected {summary.label.toLowerCase()}</span></div>
           <div><small>Mapped sets</small><strong>{muscleDose.mappedSourceSetCount}</strong><span>{muscleDose.unmappedSourceSetCount} visibly unmapped</span></div>
@@ -324,10 +324,9 @@ export function ProgressScreen() {
           </div>
         )}
         <p className="chart-note">These rows do not add up to a single total: one set can credit several muscles. Direct work counts 1.0, assisting work counts 0.5, stabilizers count nothing, and a body area keeps each set at its highest single credit. It is a planning guide, not measured activation or a promise of growth.</p>
-      </section>
+      </CollapsiblePanel>
 
-      <section className="panel muscle-plan-panel">
-        <div className="panel__header"><div><p className="eyebrow">Planned muscle work</p><h3>What the plan asked for versus what you finished</h3></div><Target size={20} /></div>
+      <CollapsiblePanel className="panel muscle-plan-panel" label="planned muscle work" header={<div className="panel__header"><div><p className="eyebrow">Planned muscle work</p><h3>What the plan asked for versus what you finished</h3></div><Target size={20} /></div>}>
         <div className="muscle-dose-summary">
           <div><small>Stored plans in window</small><strong>{plannedMuscleDose.plannedSessionIds.length}</strong><span>{plannedMuscleDose.plannedSourceSetCount} planned sets</span></div>
           <div><small>Mapped planned sets</small><strong>{plannedMuscleDose.plannedMappedSetCount}</strong><span>{plannedMuscleDose.plannedUnmappedSetCount} planned sets unmapped</span></div>
@@ -343,49 +342,43 @@ export function ProgressScreen() {
         </div> : <div className="compact-empty"><Target size={24} /><strong>No planned or linked muscle dose in this lens</strong><p>Choose another body-area lens or a range containing stored sessions.</p></div>}
         {(plannedMuscleDose.plannedUnmappedSetCount > 0 || plannedMuscleDose.linkedCompletedUnmappedSetCount > 0) && <div className="muscle-unmapped" role="note"><strong>Mapping gap</strong><span>{plannedMuscleDose.plannedUnmappedSetCount} planned and {plannedMuscleDose.linkedCompletedUnmappedSetCount} completed {plannedMuscleDose.plannedUnmappedSetCount + plannedMuscleDose.linkedCompletedUnmappedSetCount === 1 ? 'set has' : 'sets have'} no muscle mapping, so they earn no muscle credit.{plannedMuscleDose.plannedUnmappedExerciseNames.length ? ` Review: ${plannedMuscleDose.plannedUnmappedExerciseNames.join(', ')}.` : ''}</span></div>}
         <p className="chart-note">This compares saved planned sets against the completed sets from those same sessions. It counts set-equivalents per muscle, not volume load or measured stimulus. Sets outside a saved plan are still real progress, and coming in under plan never creates catch-up work.</p>
-      </section>
+      </CollapsiblePanel>
 
       <div className="insight-grid">
-        <section className="panel">
-          <div className="panel__header"><div><p className="eyebrow">Priority attention</p><h3>Goal-relative completed evidence</h3></div><BrainCircuit size={19} /></div>
+        <CollapsiblePanel className="panel" label="priority attention" header={<div className="panel__header"><div><p className="eyebrow">Priority attention</p><h3>Goal-relative completed evidence</h3></div><BrainCircuit size={19} /></div>}>
           <div className="priority-coverage">{priorityCoverage.map((item) => <div key={item.region}><span><strong>{item.region}</strong><small>{item.status === 'represented' ? item.contributingExercises.join(', ') : item.status === 'outside-window' ? `Last completed ${item.daysSinceLastExposure} days ago` : 'No completed history yet'}</small></span><span><b>{item.selectedSets} sets</b><small>{item.selectedVolume.toLocaleString()} volume load · {item.status.replace('-', ' ')}</small></span></div>)}</div>
           <p className="chart-note">This card only reports work you completed. The plan comparison below is a separate view, and neither one treats a light period as debt to make up.</p>
-        </section>
-        <section className="panel">
-          <div className="panel__header"><div><p className="eyebrow">Exact movement mix</p><h3>What filled this window</h3></div><Dumbbell size={19} /></div>
+        </CollapsiblePanel>
+        <CollapsiblePanel className="panel" label="the movement mix" header={<div className="panel__header"><div><p className="eyebrow">Exact movement mix</p><h3>What filled this window</h3></div><Dumbbell size={19} /></div>}>
           {exerciseMix.length ? <div className="movement-mix">{exerciseMix.slice(0, 6).map((item, index) => <div key={item.exerciseId}><span className="movement-mix__rank">{String(index + 1).padStart(2, '0')}</span><span><strong>{item.name}</strong><small>{item.sets} sets · {item.repetitions} reps · {item.sessions} {item.sessions === 1 ? 'session' : 'sessions'}</small><i><b style={{ width: `${Math.max(3, item.volumeShare * 100)}%` }} /></i></span><span><b>{(item.volumeShare * 100).toFixed(1)}%</b><small>{item.volume.toLocaleString()} volume load</small></span></div>)}</div> : <div className="compact-empty"><Dumbbell size={24} /><strong>No movement mix yet</strong><p>Complete a set inside this period to create an exact-movement breakdown.</p></div>}
           <p className="chart-note">Percent is share of selected-period volume load, not share of hypertrophy stimulus or enjoyment. Different exercises are not mechanically interchangeable.</p>
-        </section>
-        <section className="panel">
-          <div className="panel__header"><div><p className="eyebrow">Current record ledger</p><h3>Bests inside this window</h3></div><Trophy size={19} /></div>
+        </CollapsiblePanel>
+        <CollapsiblePanel className="panel" label="records for this period" header={<div className="panel__header"><div><p className="eyebrow">Current record ledger</p><h3>Bests inside this window</h3></div><Trophy size={19} /></div>}>
           <div className="record-filter" aria-label="Record category">{(['all', 'strength', 'repetition', 'scheme', 'workload'] as const).map((category) => <button key={category} aria-pressed={recordCategory === category} className={recordCategory === category ? 'selected' : ''} onClick={() => setRecordCategory(category)}>{category}</button>)}</div>
           {filteredRecords.length ? <div className="record-list">{filteredRecords.slice(0, 12).map((record) => <div key={record.id} className={record.validation === 'numeric-only' ? 'is-numeric-only' : ''}><span className="record-medal">◆</span><div><strong>{record.label}{['load', 'estimated-load'].includes(record.unit) ? ` ${settings.units}` : record.unit === 'volume-load' ? ` ${settings.units}` : ''}</strong><small>{record.exerciseName} · {new Date(record.achievedAt).toLocaleDateString()} · {record.sourceSetIds.length} completed {record.sourceSetIds.length === 1 ? 'set' : 'sets'} · {record.validation === 'numeric-only' ? 'numbers only' : 'quality confirmed'}</small></div><span>{record.category}</span></div>)}</div> : <div className="compact-empty"><Trophy size={24} /><strong>No record in this window</strong><p>Records outside the selected dates remain available in All time.</p></div>}
-        </section>
+        </CollapsiblePanel>
       </div>
 
       <div className="achievement-grid">
-        <section className="panel">
-          <div className="panel__header"><div><p className="eyebrow">Evidence-backed timeline</p><h3>PRs and micro wins</h3></div><Sparkles size={19} /></div>
+        <CollapsiblePanel className="panel" label="the wins timeline" header={<div className="panel__header"><div><p className="eyebrow">Evidence-backed timeline</p><h3>PRs and micro wins</h3></div><Sparkles size={19} /></div>}>
           {visibleAchievements.length ? <div className="achievement-list">{visibleAchievements.slice(0, 12).map((event) => <div key={event.id} className={`achievement-row achievement-row--${event.kind} ${event.validation === 'numeric-only' ? 'is-numeric-only' : ''}`}><span className="achievement-glyph">{event.kind === 'personal-record' ? '★' : '✦'}</span><span><strong>{event.title}</strong><small>{event.exerciseName} · {event.explanation}</small><em>{new Date(event.achievedAt).toLocaleDateString()} · {event.sourceSetIds.length} completed {event.sourceSetIds.length === 1 ? 'set' : 'sets'} · {event.validation === 'numeric-only' ? 'numbers only' : 'quality confirmed'}</em></span><b>{event.delta !== null ? `+${Number.isInteger(event.delta) ? event.delta : event.delta.toFixed(1)}` : 'BASE'}</b></div>)}</div> : <div className="compact-empty"><Sparkles size={24} /><strong>No new win this period</strong><p>Nothing here beat a comparable past set. The work you did still shows in the charts above.</p></div>}
-        </section>
-        <section className="panel">
-          <div className="panel__header"><div><p className="eyebrow">Next planned session</p><h3>Safe record opportunities</h3></div><Target size={19} /></div>
+        </CollapsiblePanel>
+        <CollapsiblePanel className="panel" label="the next planned session" header={<div className="panel__header"><div><p className="eyebrow">Next planned session</p><h3>Safe record opportunities</h3></div><Target size={19} /></div>}>
           {nextOpportunities.length ? <div className="opportunity-list">{nextOpportunities.map((opportunity) => <div key={opportunity.id}><Trophy size={17} /><span><strong>{opportunity.title}</strong><small>{opportunity.explanation}</small><em>{opportunity.gateReason}</em></span></div>)}</div> : <div className="compact-empty"><Target size={24} /><strong>No PR chase prescribed</strong><p>The next session can still build strength, skill, and recoverable volume. ForgePath does not add work to manufacture a badge.</p></div>}
-        </section>
+        </CollapsiblePanel>
       </div>
 
-      <section className="panel reconciliation-panel">
-        <div className="panel__header"><div><p className="eyebrow">Calculation audit</p><h3>Every view adds up from your completed sets</h3></div>{reconciliation.exact ? <CheckCircle2 size={20} /> : <HeartPulse size={20} />}</div>
+      <CollapsiblePanel className="panel reconciliation-panel" label="the calculation audit" header={<div className="panel__header"><div><p className="eyebrow">Calculation audit</p><h3>Every view adds up from your completed sets</h3></div>{reconciliation.exact ? <CheckCircle2 size={20} /> : <HeartPulse size={20} />}</div>}>
         <div className="reconciliation-grid">
           <div><small>Completed sets</small><strong>{summary.setCount}</strong><span>{reconciliation.sourceVolume.toLocaleString()} {settings.units}</span></div>
           <div><small>Time-series total</small><strong>{reconciliation.seriesVolume.toLocaleString()}</strong><span>Derived from the visible chart</span></div>
           <div><small>Body-lens total</small><strong>{reconciliation.regionVolume.toLocaleString()}</strong><span>Each set counted exactly once</span></div>
           <div className={reconciliation.exact ? 'reconciliation-pass' : 'reconciliation-fail'}><small>Integrity result</small><strong>{reconciliation.exact ? 'Exact match' : 'Review required'}</strong><span>No hidden planned volume</span></div>
         </div>
-      </section>
+      </CollapsiblePanel>
 
       <section className="panel long-horizon">
-        <div><p className="eyebrow">Current direction</p><h3>{athlete.goal}</h3><p>Strength anchors remain independently tracked while flexible accessory dose follows current muscle priorities and completed evidence.</p></div>
+        <div><p className="eyebrow">Current direction</p><h3>{athlete.goal}</h3><p>Your main lifts stay tracked on their own while flexible accessory work follows current muscle priorities and completed evidence.</p></div>
         <div className="horizon-track"><span className="done">Baseline</span><i /><span className="active">Build</span><i /><span>Strength</span><i /><span>Review</span></div>
       </section>
     </div>

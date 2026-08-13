@@ -40,7 +40,7 @@ export const exercises: Exercise[] = [
   {
     id: 'sumo-deadlift', name: 'Sumo Deadlift', family: 'Deadlift', aliases: ['Sumo Deads'], pattern: 'hinge',
     regions: ['glutes', 'hamstrings', 'quadriceps', 'back', 'trunk'], primaryRegion: 'glutes', equipment: ['barbell', 'plates'],
-    description: 'Wide-stance competition hinge and current deadlift strength anchor.', roleTags: ['strength anchor', 'competition', 'hinge'], favorite: true, jointFeeling: 'good'
+    description: 'Wide-stance competition hinge and your current main deadlift.', roleTags: ['strength anchor', 'competition', 'hinge'], favorite: true, jointFeeling: 'good'
   },
   {
     id: 'deficit-conventional', name: 'Conventional Deficit Deadlift', family: 'Deadlift', aliases: ['Deficit Conventional'], pattern: 'hinge',
@@ -156,7 +156,7 @@ export const mesocycles: MesocyclePlan[] = [{
   targetMicrocycles: 4,
   minimumProductiveExposures: 9,
   successCriteria: 'Complete at least three productive exposure rounds with stable technique, manageable pain, and recoverable fatigue.',
-  exitPlan: 'Review anchor performance and recovery. Continue, recover, pivot, or enter a more specific strength phase.',
+  exitPlan: 'Review main-lift performance and recovery. Continue, recover, pivot, or enter a more specific strength phase.',
   weeklyOpportunities: 3,
   defaultMinutes: 60,
   strengthAnchors: ['competition-squat', 'competition-bench', 'conventional-deadlift'],
@@ -201,7 +201,7 @@ export const sessions: TrainingSession[] = [
   {
     id: 'session-bench',
     title: 'Bench Strength + Upper Body',
-    objective: 'Progress the bench anchor and build triceps, chest, and upper back.',
+    objective: 'Progress the bench and build triceps, chest, and upper back.',
     dayLabel: 'Next best session',
     plannedDate: iso(today),
     status: 'planned',
@@ -209,7 +209,7 @@ export const sessions: TrainingSession[] = [
     mesocycleId: 'mesocycle-powerbuilding-1',
     planVersion: 1,
     exercises: [
-      { id: 'plan-bench', exerciseId: 'competition-bench', role: 'primary', purpose: 'Strength anchor', sets: makeSets(4, 6, 175, 2), restSeconds: 180, estimatedMinutes: 22, optional: false },
+      { id: 'plan-bench', exerciseId: 'competition-bench', role: 'primary', purpose: 'Main lift', sets: makeSets(4, 6, 175, 2), restSeconds: 180, estimatedMinutes: 22, optional: false },
       { id: 'plan-board', exerciseId: 'two-board-press', role: 'secondary', purpose: 'Build bench lockout and triceps strength', sets: makeSets(3, 8, 165, 2), restSeconds: 150, estimatedMinutes: 15, optional: false },
       { id: 'plan-row', exerciseId: 'chest-supported-row', role: 'accessory', purpose: 'Upper-back dose with low systemic fatigue', sets: makeSets(3, 10, 130, 2), restSeconds: 90, estimatedMinutes: 10, optional: false },
       { id: 'plan-triceps', exerciseId: 'triceps-extension', role: 'accessory', purpose: 'Direct triceps hypertrophy', sets: makeSets(3, 12, 55, 2), restSeconds: 75, estimatedMinutes: 8, optional: false },
@@ -219,7 +219,7 @@ export const sessions: TrainingSession[] = [
   {
     id: 'session-squat',
     title: 'Squat Strength + Quads',
-    objective: 'Progress the squat anchor and build quads without excess hinge fatigue.',
+    objective: 'Progress the squat and build quads without excess hinge fatigue.',
     dayLabel: 'Queued · 2',
     plannedDate: iso(subDays(today, -2)),
     status: 'planned',
@@ -227,7 +227,7 @@ export const sessions: TrainingSession[] = [
     mesocycleId: 'mesocycle-powerbuilding-1',
     planVersion: 1,
     exercises: [
-      { id: 'plan-squat', exerciseId: 'competition-squat', role: 'primary', purpose: 'Strength anchor', sets: makeSets(4, 5, 245, 2), restSeconds: 210, estimatedMinutes: 25, optional: false },
+      { id: 'plan-squat', exerciseId: 'competition-squat', role: 'primary', purpose: 'Main lift', sets: makeSets(4, 5, 245, 2), restSeconds: 210, estimatedMinutes: 25, optional: false },
       { id: 'plan-ssb', exerciseId: 'ssb-squat', role: 'secondary', purpose: 'Build quads and upper-back position', sets: makeSets(3, 8, 185, 2), restSeconds: 150, estimatedMinutes: 16, optional: false },
       { id: 'plan-hack', exerciseId: 'hack-squat', role: 'accessory', purpose: 'Direct quadriceps dose', sets: makeSets(3, 10, 180, 2), restSeconds: 100, estimatedMinutes: 12, optional: false },
       { id: 'plan-curl', exerciseId: 'leg-curl', role: 'tertiary', purpose: 'Hamstring maintenance', sets: makeSets(3, 12, 90, 2), restSeconds: 75, estimatedMinutes: 8, optional: false },
@@ -237,7 +237,7 @@ export const sessions: TrainingSession[] = [
   {
     id: 'session-deadlift',
     title: 'Deadlift Strength + Back',
-    objective: 'Progress the deadlift anchor and build off-floor, low-back, and lat strength.',
+    objective: 'Progress the deadlift and build off-floor, low-back, and lat strength.',
     dayLabel: 'Queued · 3',
     plannedDate: iso(subDays(today, -4)),
     status: 'planned',
@@ -245,7 +245,7 @@ export const sessions: TrainingSession[] = [
     mesocycleId: 'mesocycle-powerbuilding-1',
     planVersion: 1,
     exercises: [
-      { id: 'plan-deadlift', exerciseId: 'conventional-deadlift', role: 'primary', purpose: 'Strength anchor', sets: makeSets(4, 4, 315, 2), restSeconds: 210, estimatedMinutes: 24, optional: false },
+      { id: 'plan-deadlift', exerciseId: 'conventional-deadlift', role: 'primary', purpose: 'Main lift', sets: makeSets(4, 4, 315, 2), restSeconds: 210, estimatedMinutes: 24, optional: false },
       { id: 'plan-deficit', exerciseId: 'deficit-conventional', role: 'secondary', purpose: 'Build low-back and off-floor strength for the deadlift', sets: makeSets(3, 6, 235, 2), restSeconds: 180, estimatedMinutes: 16, optional: false },
       { id: 'plan-cambered-row', exerciseId: 'cambered-row', role: 'accessory', purpose: 'Upper-back and lat hypertrophy', sets: makeSets(3, 10, 115, 2), restSeconds: 90, estimatedMinutes: 10, optional: false },
       { id: 'plan-pulldown', exerciseId: 'lat-pulldown', role: 'accessory', purpose: 'Lat dose with stable technique', sets: makeSets(3, 10, 120, 2), restSeconds: 80, estimatedMinutes: 8, optional: false },

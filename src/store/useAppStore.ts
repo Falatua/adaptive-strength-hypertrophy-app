@@ -282,7 +282,7 @@ export const useAppStore = create<AppState>()(
           onboardingStartStep: 0,
           notice: route === 'pain-aware-modified'
             ? 'Pain-aware placement saved. Automatic session generation is paused until movement restrictions are reassessed.'
-            : `${placementRouteLabels[route]} saved as a ${athlete.placement.confidence}-confidence hypothesis. ${generatedSessions.length} route-specific sessions were queued under ${ROUTE_SESSION_RULE_VERSION}.`
+            : `${placementRouteLabels[route]} saved as a ${athlete.placement.confidence}-confidence starting point. ${generatedSessions.length} sessions are queued for it.`
         }
       }),
       restartOnboarding: (startStep = 0) => set({ onboardingComplete: false, onboardingStartStep: startStep, activeSessionId: null, nav: 'today', notice: null }),

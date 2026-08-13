@@ -154,9 +154,9 @@ export function PlanScreen() {
   }
 
   const anchorGroups = [
-    { label: 'Squat anchor', options: exercises.filter((exercise) => exercise.pattern === 'squat') },
-    { label: 'Press anchor', options: exercises.filter((exercise) => exercise.pattern === 'horizontal-push' || exercise.pattern === 'vertical-push') },
-    { label: 'Hinge anchor', options: exercises.filter((exercise) => exercise.pattern === 'hinge') }
+    { label: 'Main squat', options: exercises.filter((exercise) => exercise.pattern === 'squat') },
+    { label: 'Main press', options: exercises.filter((exercise) => exercise.pattern === 'horizontal-push' || exercise.pattern === 'vertical-push') },
+    { label: 'Main hinge', options: exercises.filter((exercise) => exercise.pattern === 'hinge') }
   ]
 
   return (
@@ -242,9 +242,9 @@ export function PlanScreen() {
           <section className="panel">
             <div className="panel__header"><div><p className="eyebrow">Protected qualities</p><h3>Current contract</h3></div><Target size={19} /></div>
             <ul className="priority-list">
-              <li><span>Anchors</span><strong>{activeAnchors.join(', ') || 'Choose anchors'}</strong></li>
+              <li><span>Main lifts</span><strong>{activeAnchors.join(', ') || 'Choose your main lifts'}</strong></li>
               <li><span>Entry route</span><strong>{activePlan?.entryRoute ? `${readable(activePlan.entryRoute)} · ${activePlan.generationRuleVersion}` : 'Manual adaptation rules'}</strong></li>
-              <li><span>Movement lanes</span><strong>{activePlan?.movementPlacements?.length ? `${activePlan.movementPlacements.length} exact anchors placed independently${activePlan.movementPlacements.some((movement) => movement.historyReview) ? ` · ${activePlan.movementPlacements.filter((movement) => movement.historyReview).length} history reviewed` : ''}` : 'Global route applies to all anchors'}</strong></li>
+              <li><span>Movement lanes</span><strong>{activePlan?.movementPlacements?.length ? `${activePlan.movementPlacements.length} main lifts placed independently${activePlan.movementPlacements.some((movement) => movement.historyReview) ? ` · ${activePlan.movementPlacements.filter((movement) => movement.historyReview).length} history reviewed` : ''}` : 'One route applies to every main lift'}</strong></li>
               <li><span>Placement checkpoint</span><strong>{readable(placementExit.recommendation)} · {placementExit.resolved} resolved plan-route checks{placementExit.excludedDifferentRouteChecks ? ` · ${placementExit.excludedDifferentRouteChecks} different-lane excluded` : ''}</strong></li>
               <li><span>Exact lane checkpoints</span><strong>{movementExits.filter((assessment) => assessment.recommendation !== 'collect-evidence').length} ready for review · {movementExits.reduce((total, assessment) => total + assessment.resolved, 0)} resolved exact-movement checks</strong></li>
               <li><span>Generated for</span><strong>{activePlan?.generationEquipment ? `${activePlan.generationEquipment.profileName} · ${activePlan.generationEquipment.incrementUnit}` : 'Legacy or manual equipment context'}</strong></li>
@@ -274,7 +274,7 @@ export function PlanScreen() {
             const enabled = cycleReview.eligible[choice.id]
             return <button type="button" key={choice.id} aria-pressed={reviewDecision === choice.id} className={reviewDecision === choice.id ? 'selected' : ''} disabled={!enabled} onClick={() => setReviewDecision(choice.id)}><span>{reviewDecision === choice.id ? <Check size={16} /> : <CircleDashed size={16} />}</span><span><strong>{choice.title}</strong><small>{choice.detail}</small>{!enabled && <em>Not eligible from the current exposure evidence.</em>}</span></button>
           })}</fieldset>
-          <button className="pivot-choice" onClick={openPivot}><RefreshCcw size={18} /><span><strong>Pivot or change the training contract</strong><small>Open a new mesocycle version with different objectives, anchors, dose, or adaptation.</small></span><ChevronRight size={17} /></button>
+          <button className="pivot-choice" onClick={openPivot}><RefreshCcw size={18} /><span><strong>Pivot or change the training contract</strong><small>Open a new cycle version with different objectives, main lifts, dose, or adaptation.</small></span><ChevronRight size={17} /></button>
           <label><span className="field-label">Why is this the right decision now?</span><textarea value={reviewReason} onChange={(event) => setReviewReason(event.target.value)} placeholder="Example: The round is complete, effort stayed recoverable, and my schedule can support another exposure round." /></label>
           {reviewError && <div className="import-error" role="alert"><AlertCircle size={17} /><span><strong>Review not saved</strong>{reviewError}</span></div>}
           <p className="modal-note">Calendar time alone cannot complete the mesocycle. Planned work never enters completed volume, and this decision never rewrites prior sessions.</p>
@@ -297,7 +297,7 @@ export function PlanScreen() {
               <label><span className="field-label">Target exposure rounds</span><input type="number" min="3" max="8" value={draft.targetMicrocycles} onChange={(event) => setDraft({ ...draft, targetMicrocycles: Math.min(8, Math.max(3, Number(event.target.value))) })} /></label>
             </div>
 
-            <fieldset className="plan-fieldset"><legend>Protected strength anchors</legend><div className="anchor-selects">{anchorGroups.map((group, index) => <label key={group.label}><span>{group.label}</span><select value={draft.strengthAnchors[index] ?? ''} onChange={(event) => updateAnchor(index, event.target.value)}>{group.options.map((exercise) => <option value={exercise.id} key={exercise.id}>{exercise.name}</option>)}</select></label>)}</div></fieldset>
+            <fieldset className="plan-fieldset"><legend>Your main lifts</legend><div className="anchor-selects">{anchorGroups.map((group, index) => <label key={group.label}><span>{group.label}</span><select value={draft.strengthAnchors[index] ?? ''} onChange={(event) => updateAnchor(index, event.target.value)}>{group.options.map((exercise) => <option value={exercise.id} key={exercise.id}>{exercise.name}</option>)}</select></label>)}</div></fieldset>
 
             <fieldset className="plan-fieldset"><legend>Priority regions <small>Choose up to 3</small></legend><div className="region-chips">{regions.map((region) => <button type="button" key={region} aria-pressed={draft.priorityRegions.includes(region)} onClick={() => toggleRegion('priorityRegions', region)}>{readable(region)}</button>)}</div></fieldset>
             <fieldset className="plan-fieldset"><legend>Maintenance regions <small>Choose up to 3</small></legend><div className="region-chips region-chips--maintenance">{regions.map((region) => <button type="button" key={region} aria-pressed={draft.maintenanceRegions.includes(region)} onClick={() => toggleRegion('maintenanceRegions', region)}>{readable(region)}</button>)}</div></fieldset>

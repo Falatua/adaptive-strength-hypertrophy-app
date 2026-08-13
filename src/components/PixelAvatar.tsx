@@ -25,7 +25,7 @@ export function PixelAvatar({ mood = 'ready', size = 'medium', form = 'apprentic
       role="img"
     >
       <img src={`${import.meta.env.BASE_URL}athlete-forms/${form}.png`} alt="" />
-      {typeof level === 'number' && <span className="pixel-avatar__level" aria-hidden="true">{level}</span>}
+      {typeof level === 'number' && <span className="pixel-avatar__level" aria-hidden="true"><b>LV</b>{level}</span>}
     </div>
   )
 }

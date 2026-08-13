@@ -359,7 +359,6 @@ export interface PlannedExercise {
   substitutionEventId?: string
   prescriptionMethod?: 'exact-history' | 'baseline-calibration'
   prescriptionNote?: string
-  warmupGuidance?: string
   athleteAdded?: boolean
 }
 

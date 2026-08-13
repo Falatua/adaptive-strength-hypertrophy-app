@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 async function enterRecommendedProfile(page: import('@playwright/test').Page) {
   await page.goto('/')
@@ -21,6 +21,15 @@ async function completeFirstMovementSets(page: import('@playwright/test').Page) 
   for (let remaining = await logSets.count(); remaining > 0; remaining = await logSets.count()) {
     await logSets.first().click()
   }
+}
+
+
+// Progress and You fold their sections by default. Open the one a test reads, by the same words the
+// athlete sees on the toggle. Already-open panels expose "Hide ...", so this only clicks closed ones.
+const openPanel = async (page: Page, label: string) => {
+  const toggle = page.getByRole('button', { name: new RegExp(`^(Show|Hide) ${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }).first()
+  await toggle.waitFor({ state: 'visible' })
+  if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
 }
 
 test('turns the current prescription into an original, evidence-backed field guide', async ({ page }, testInfo) => {
@@ -162,6 +171,7 @@ test('shows an honest cloud foundation without weakening local backup or respons
     await expect(cloudPanel.getByRole('button', { name: 'Email private sign-in link' })).toBeDisabled()
   }
   await expect(page.getByRole('heading', { name: 'Backup and recovery' })).toBeVisible()
+  await openPanel(page, 'backup and recovery')
   await expect(page.getByRole('button', { name: 'Export verified backup' })).toBeEnabled()
   await expect(page.getByText('Local v24 · cloud event v1')).toBeVisible()
 
@@ -287,7 +297,6 @@ test('validates an athlete-controlled PR without changing the prescription', asy
   await page.getByRole('button', { name: 'Start without check-in' }).click()
   await expect(page.getByRole('heading', { name: 'Bench Bridge and Calibration Session' })).toBeVisible()
   await expect(page.locator('.pr-opportunity').first()).toContainText('This is already prescribed. Do not add work to chase it.')
-  await expect(page.locator('.exercise-card--primary')).toContainText('Route-specific warm-up')
   if (testInfo.project.name === 'mobile-chromium') await page.locator('.exercise-card--primary').screenshot({ path: 'output/playwright/route-generated-workout-mobile.png' })
 
   const firstLoad = page.getByLabel('Set 1 load').first()
@@ -302,7 +311,9 @@ test('validates an athlete-controlled PR without changing the prescription', asy
   await page.getByRole('button', { name: 'Did any movement create joint pain or irritation?: 0' }).click()
   await page.getByRole('button', { name: 'Save feedback & finish' }).click()
   await expect(page.getByRole('heading', { name: 'PRs and micro wins' })).toBeVisible()
+  await openPanel(page, 'the wins timeline')
   await expect(page.getByText('Strength PR').first()).toBeVisible()
+  await openPanel(page, 'records for this period')
   await expect(page.getByText('185 heaviest completed load', { exact: false }).first()).toBeVisible()
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
@@ -318,6 +329,7 @@ test('keeps achievement controls optional and mobile layouts contained', async (
   await page.getByRole('button', { name: 'You', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Achievement controls' })).toBeVisible()
   const sounds = page.getByRole('checkbox', { name: 'Pocket-console sounds' })
+  await openPanel(page, 'achievement controls')
   await page.getByRole('button', { name: 'Preview sounds' }).click()
   await sounds.check()
   const quietMode = page.getByRole('checkbox', { name: 'Quiet mode' })
@@ -325,6 +337,7 @@ test('keeps achievement controls optional and mobile layouts contained', async (
   await expect(page.getByRole('button', { name: 'Preview sounds' })).toBeDisabled()
   await page.reload()
   await page.getByRole('button', { name: 'You' }).click()
+  await openPanel(page, 'achievement controls')
   await expect(page.getByRole('checkbox', { name: 'Pocket-console sounds' })).toBeChecked()
   await expect(page.getByRole('checkbox', { name: 'Quiet mode' })).toBeChecked()
 
@@ -347,7 +360,7 @@ test('explains a protected-primary substitution and preserves its outcome eviden
   await page.getByLabel('Substitution reason').selectOption('equipment')
   await page.getByRole('button', { name: /Coffin Press/ }).click()
   await expect(page.getByRole('alert')).toContainText('Confirm the protected-primary tradeoff')
-  await page.getByRole('checkbox', { name: 'Confirm primary-anchor change' }).check()
+  await page.getByRole('checkbox', { name: 'Confirm main-lift change' }).check()
   if (testInfo.project.name === 'mobile-chromium') await page.screenshot({ path: 'output/playwright/substitution-picker-mobile.png', fullPage: true })
   await page.getByRole('button', { name: /Coffin Press/ }).click()
   await expect(page.getByText('Baseline calibration', { exact: true })).toBeVisible()
@@ -378,6 +391,7 @@ test('honors minimal and off survey preferences without inventing answers', asyn
   page.on('pageerror', (error) => browserErrors.push(error.message))
   await enterRecommendedProfile(page)
   await page.getByRole('button', { name: 'You' }).click()
+  await openPanel(page, 'survey preferences')
   await page.getByLabel('Pre-session check-in mode').selectOption('minimal')
   await page.getByLabel('Post-session feedback mode').selectOption('off')
   await page.getByRole('button', { name: 'Today' }).click()
@@ -418,6 +432,7 @@ test('defers optional feedback without blocking training and replays quality evi
   await page.getByRole('button', { name: /Minimal.*3 essential questions/ }).click()
   await page.getByRole('button', { name: 'Remind me later' }).click()
   await expect(page.getByRole('heading', { name: 'PRs and micro wins' })).toBeVisible()
+  await openPanel(page, 'the wins timeline')
   await expect(page.getByText('Unverified number best').first()).toBeVisible()
 
   await page.getByRole('button', { name: 'Today' }).click()
@@ -433,7 +448,9 @@ test('defers optional feedback without blocking training and replays quality evi
   await page.getByRole('button', { name: 'Save feedback' }).click()
   await expect(page.getByLabel('Optional session feedback')).toHaveCount(0)
   await page.getByRole('button', { name: 'Progress' }).click()
+  await openPanel(page, 'the wins timeline')
   await expect(page.getByText('Strength PR').first()).toBeVisible()
+  await openPanel(page, 'records for this period')
   await expect(page.getByText('185 heaviest completed load', { exact: false }).first()).toBeVisible()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
@@ -457,8 +474,11 @@ test('shows calendar-quarter progress, exact movement mix, and honest priority a
   await page.getByRole('button', { name: 'Qtr' }).click()
   await expect(page.getByRole('heading', { name: 'Monthly volume load' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'What filled this window' })).toBeVisible()
+  await openPanel(page, 'the movement mix')
   await expect(page.getByRole('heading', { name: 'Goal-relative completed evidence' })).toBeVisible()
+  await openPanel(page, 'priority attention')
   await expect(page.getByText('share of selected-period volume load, not share of hypertrophy stimulus or enjoyment', { exact: false })).toBeVisible()
+  await openPanel(page, 'the plan comparison')
   await expect(page.getByText('neither one treats a light period as debt to make up', { exact: false })).toBeVisible()
   await expect(page.locator('.progress-range button')).toHaveCount(7)
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
@@ -475,7 +495,7 @@ test('links calendar dates to exact completed-exposure order without creating mi
   await page.getByRole('button', { name: 'Progress' }).click()
   await expect(page.getByRole('heading', { name: 'When you trained versus what moved forward' })).toBeVisible()
   await expect(page.getByLabel('Fixed event countdown')).toContainText('No fixed event declared')
-  await expect(page.getByLabel(/training calendar/)).toBeVisible()
+  await expect(page.getByLabel('Calendar and completed exposure history')).toBeVisible()
   const completedDay = page.locator('.calendar-grid > button.has-completion:not(.outside-month)').first()
   await expect(completedDay).toBeVisible()
   await completedDay.click()
@@ -486,6 +506,7 @@ test('links calendar dates to exact completed-exposure order without creating mi
     await page.locator('.training-timeline').screenshot({ path: 'output/playwright/calendar-history-mobile.png' })
   }
 
+  await openPanel(page, 'the calendar view')
   await page.getByRole('button', { name: 'Exposure order' }).click()
   await page.locator('.exposure-picker').getByRole('button', { name: 'Competition Bench Press' }).click()
   await expect(page.locator('.exposure-summary')).toContainText('exact completed exposures')
@@ -518,6 +539,7 @@ test('records a missed opportunity and rebuilds only the open exposure queue fro
   page.on('pageerror', (error) => browserErrors.push(error.message))
   await enterRecommendedProfile(page)
   await page.getByRole('button', { name: 'You' }).click()
+  await openPanel(page, 'your training locations')
   await page.getByRole('button', { name: /^Home Gym home gym/ }).click()
   await page.getByRole('button', { name: 'Today' }).click()
   const before = await page.evaluate(() => {
@@ -614,6 +636,7 @@ test('shows transparent individual muscle dose with overlap-safe area rollups an
   await page.getByRole('button', { name: 'Progress' }).click()
   await page.getByRole('button', { name: 'All time' }).click()
   await expect(page.getByRole('heading', { name: 'Direct work and assisting work' })).toBeVisible()
+  await openPanel(page, 'muscle by muscle')
   await expect(page.getByText('These rows do not add up to a single total', { exact: false })).toBeVisible()
   await expect(page.getByLabel('Work by body area')).toContainText('Whole body')
   await page.getByRole('button', { name: 'arms', exact: true }).click()
@@ -627,6 +650,7 @@ test('shows transparent individual muscle dose with overlap-safe area rollups an
   await expect(page.locator('.muscle-dose-exercises code').first()).not.toBeEmpty()
   await expect(page.getByRole('heading', { name: 'What the plan asked for versus what you finished' })).toBeVisible()
   await expect(page.getByLabel('arms planned muscle dose')).toContainText('Triceps')
+  await openPanel(page, 'planned muscle work')
   await expect(page.getByText('Sets outside a saved plan are still real progress', { exact: false })).toBeVisible()
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
@@ -751,6 +775,7 @@ test('separates linked plan completion from completed history with no stored pla
 
   const dosePanel = page.locator('.dose-panel')
   await expect(dosePanel.getByRole('heading', { name: 'What you planned, what you finished' })).toBeVisible()
+  await openPanel(page, 'the plan comparison')
   await expect(dosePanel.getByText('1 / 9', { exact: true })).toBeVisible()
   await expect(dosePanel.getByText('5 planned · 1 linked completed', { exact: false })).toBeVisible()
   await expect(dosePanel.getByText('Completed without stored plan')).toBeVisible()
@@ -869,6 +894,7 @@ test('turns imported exact history into athlete-reviewed placement evidence with
   await expect(page.locator('.movement-placement-preview')).toContainText('Exact history accepted for evidence + tolerance')
   await page.getByRole('button', { name: /This looks right.*Enter ForgePath/ }).click()
   await page.getByRole('button', { name: 'You' }).click()
+  await openPanel(page, 'your placement')
   await expect(page.locator('.profile-movement-lanes')).toContainText('History reviewed')
   await expect(page.locator('.profile-movement-lanes')).toContainText('6 recent exact sets')
   if (testInfo.project.name === 'mobile-chromium') {
@@ -908,10 +934,12 @@ test('uses a saved location profile to gate unavailable work and executable load
   await page.getByLabel('Equipment constraints').fill('No cables\nNo selectorized machines')
   await page.getByLabel('barbell load increment').fill('2.5')
   await page.getByRole('button', { name: 'Save location' }).click()
+  await openPanel(page, 'your training locations')
   await page.getByRole('button', { name: /Garage Rack.*Use here/ }).click()
   await expect(page.getByRole('button', { name: /Garage Rack.*Active/ })).toBeVisible()
   await page.reload()
   await page.getByRole('button', { name: 'You' }).click()
+  await openPanel(page, 'your training locations')
   await expect(page.getByRole('button', { name: /Garage Rack.*Active/ })).toBeVisible()
   if (testInfo.project.name === 'mobile-chromium') await page.locator('.equipment-profile-panel').screenshot({ path: 'output/playwright/equipment-profiles-mobile.png' })
 
@@ -952,7 +980,7 @@ test('filters the initial route queue through the selected training location', a
   await page.getByRole('button', { name: /Continue/ }).click()
   await expect(page.getByText('Generated for Travel Setup')).toBeVisible()
   await expect(page.locator('.route-equipment-preview')).toContainText('Competition Bench Press: barbell, bench, rack')
-  await expect(page.locator('.route-equipment-preview')).toContainText('Protected anchors stay visible and require your review.')
+  await expect(page.locator('.route-equipment-preview')).toContainText('Your main lifts stay visible and need your review.')
   if (testInfo.project.name === 'mobile-chromium') await page.locator('.route-equipment-preview').screenshot({ path: 'output/playwright/equipment-anchor-conflicts-mobile.png' })
   await page.getByRole('button', { name: 'Back' }).click()
   await page.getByRole('button', { name: /Home Gym/ }).click()
@@ -1042,6 +1070,7 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
   await page.getByRole('button', { name: /This looks right.*Enter ForgePath/ }).click()
   await page.getByRole('button', { name: 'You' }).click()
   await expect(page.getByText('Base-Building Cycle', { exact: true }).first()).toBeVisible()
+  await openPanel(page, 'your placement')
   await expect(page.getByText(/high confidence.*conservative/i)).toBeVisible()
   await expect(page.locator('.profile-movement-lanes')).toContainText('Competition Back Squat')
   await expect(page.locator('.profile-movement-lanes')).toContainText('Introductory Skill Cycle')
@@ -1095,6 +1124,7 @@ test('pauses automatic training when placement says pain changes movement choice
   expect(blockedState.state.missedOpportunityEvents).toHaveLength(0)
   await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click()
   await page.getByRole('button', { name: 'You', exact: true }).click()
+  await openPanel(page, 'your placement')
   await page.getByRole('button', { name: 'Reassess starting placement' }).click()
   await expect(page.getByRole('heading', { name: 'Build my starting profile' })).toBeVisible()
   await page.getByRole('button', { name: /Quick Start/ }).click()
@@ -1120,7 +1150,7 @@ test('turns warm-up, first-set, session, and recovery evidence into an auditable
   await completeFirstMovementSets(page)
   await expect(page.getByText('Competition Bench Press check 1 of 3')).toBeVisible()
   await page.getByRole('button', { name: 'As expected' }).click()
-  await expect(page.getByText('Warm-up saved')).toBeVisible()
+  await expect(page.getByText('Answer saved')).toBeVisible()
   await page.getByRole('button', { name: 'Finish workout' }).click()
   await page.getByRole('button', { name: /Full.*10 questions/ }).click()
   await page.getByRole('button', { name: 'How difficult was the session overall?: 7' }).click()
@@ -1133,6 +1163,7 @@ test('turns warm-up, first-set, session, and recovery evidence into an auditable
   if (testInfo.project.name === 'mobile-chromium') await page.locator('.placement-recovery-check').screenshot({ path: 'output/playwright/placement-recovery-check-mobile.png' })
   await page.getByRole('button', { name: 'Recovered', exact: true }).click()
   await page.getByRole('button', { name: 'You', exact: true }).click()
+  await openPanel(page, 'your placement')
   await expect(page.getByText('1 resolved · 1 productive checks across 1 exact lane', { exact: false })).toBeVisible()
   await expect(page.getByText('Starting route supported')).toBeVisible()
   if (testInfo.project.name === 'mobile-chromium') await page.locator('.placement-profile-evidence').screenshot({ path: 'output/playwright/placement-verification-profile-mobile.png' })
@@ -1144,6 +1175,7 @@ test('turns warm-up, first-set, session, and recovery evidence into an auditable
   expect(persisted.state.history.some((workSet: { id: string }) => workSet.id === persisted.state.placementVerifications[0].firstSet.sourceSetId)).toBe(true)
   await page.reload()
   await page.getByRole('button', { name: 'You', exact: true }).click()
+  await openPanel(page, 'your placement')
   await expect(page.getByText('Starting route supported')).toBeVisible()
   persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
   expect(persisted.state.placementVerifications[0].recoveryCapturedAt).toBeTruthy()
@@ -1161,7 +1193,7 @@ test('requires placement review after painful productive verification without di
   await expect(page.getByRole('button', { name: 'Painful' })).toBeHidden()
   await completeFirstMovementSets(page)
   await page.getByRole('button', { name: 'Painful' }).click()
-  await expect(page.getByText('Warm-up saved')).toBeVisible()
+  await expect(page.getByText('Answer saved')).toBeVisible()
   await expect(page.getByText('painful', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Finish workout' }).click()
   await page.getByRole('button', { name: 'Finish workout without survey' }).click()
@@ -1213,6 +1245,7 @@ test('turns repeated productive checks into an athlete-reviewed placement checkp
   await page.locator('.placement-exit-callout').click()
   const dismissNotice = page.getByRole('button', { name: 'Dismiss message' })
   if (await dismissNotice.isVisible()) await dismissNotice.click()
+  await openPanel(page, 'your placement')
   const checkpoint = page.locator('.placement-exit-panel')
   await expect(checkpoint).toContainText('Review a more advanced route')
   await expect(checkpoint.locator('.placement-exit-criterion--met')).toHaveCount(4)
@@ -1291,6 +1324,7 @@ test('keeps productive checkpoints independent per exact movement and saves the 
   if (testInfo.project.name === 'mobile-chromium') await movementCallout.screenshot({ path: 'output/playwright/movement-exit-checkpoint-mobile.png' })
   await movementCallout.click()
   const lane = page.locator('.movement-lane-card').filter({ hasText: 'Competition Bench Press' })
+  await openPanel(page, 'your placement')
   await lane.locator('summary').click()
   await expect(lane).toContainText('Review a more advanced route')
   await expect(lane).toContainText('2/3 exact checks')
@@ -1538,6 +1572,7 @@ test('turns session feedback into next week volume rather than storing it unused
   await page.getByRole('button', { name: /Save feedback/ }).click()
 
   await page.getByRole('button', { name: 'Progress', exact: true }).click()
+  await openPanel(page, 'muscle by muscle')
   const volumePlan = page.getByLabel('Weekly volume progression')
   await expect(volumePlan).toBeVisible()
   await expect(volumePlan).toContainText('What next week should look like')
@@ -1568,7 +1603,7 @@ test('shows an earned athlete form and level that trace back to completed work',
   // The avatar carries the same level beside its head, and the form matches the level reached.
   const heroAvatar = page.locator('.profile-hero .pixel-avatar')
   const levelText = String(await levelPanel.textContent()).match(/Level (\d+)/)?.[1]
-  await expect(heroAvatar.locator('.pixel-avatar__level')).toHaveText(String(levelText))
+  await expect(heroAvatar.locator('.pixel-avatar__level')).toHaveText(`LV${levelText}`)
   await expect(heroAvatar).toHaveAttribute('aria-label', new RegExp(`level ${levelText}`))
   const form = String(await heroAvatar.getAttribute('class')).match(/pixel-avatar--(apprentice|forged|champion|apex)/)?.[1]
   expect(['apprentice', 'forged', 'champion', 'apex']).toContain(form)

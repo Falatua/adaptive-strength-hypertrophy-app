@@ -7,6 +7,8 @@ import { Modal } from '../components/Modal'
 import { athleteLevel } from '../domain/athlete-level-engine'
 import { LocationArt } from '../components/LocationArt'
 import { PixelAvatar } from '../components/PixelAvatar'
+import { CollapsiblePanel } from '../components/CollapsiblePanel'
+import { LevelProgress } from '../components/LevelProgress'
 import { createBackup, parseBackup, type BackupPreview } from '../domain/backup'
 import { placementRouteLabels } from '../domain/placement-engine'
 import { placementVerificationVerdictLabels, summarizePlacementVerification } from '../domain/placement-verification-engine'
@@ -153,7 +155,7 @@ export function YouScreen() {
       <header className="screen-header"><div><p className="eyebrow">Your profile</p><h1>The app learns. You stay in charge.</h1><p>Fix anything it assumed, choose how many questions you answer, and export your own history whenever you want.</p></div></header>
       <section className="profile-hero">
         <PixelAvatar size="large" mood="ready" form={athleteProgress.form} level={athleteProgress.level} />
-        <div className="profile-hero__copy"><span className="status-chip status-chip--lime">{athlete.entryRoute}</span><h2>{athlete.name}'s current path</h2><p>{athlete.goal}</p><div><span><Dumbbell size={15} /> {athlete.trainingAge} years training</span><span><MapPin size={15} /> {settings.equipmentLocation}</span><span><Sparkles size={15} /> {athlete.continuity} continuity</span></div></div>
+        <div className="profile-hero__copy"><span className="status-chip status-chip--lime">{athlete.entryRoute}</span><LevelProgress progress={athleteProgress} /><h2>{athlete.name}'s current path</h2><p>{athlete.goal}</p><div><span><Dumbbell size={15} /> {athlete.trainingAge} years training</span><span><MapPin size={15} /> {settings.equipmentLocation}</span><span><Sparkles size={15} /> {athlete.continuity} continuity</span></div></div>
       </section>
 
       <section className="panel athlete-level" aria-label="Athlete level and form">
@@ -174,8 +176,7 @@ export function YouScreen() {
 
       <div className="settings-layout">
         <div className="settings-main">
-          <section className="panel">
-            <div className="panel__header"><div><p className="eyebrow">Where you were placed</p><h3>Current training profile</h3></div><UserRound size={19} /></div>
+          <CollapsiblePanel className="panel" label="your placement" header={<div className="panel__header"><div><p className="eyebrow">Where you were placed</p><h3>Current training profile</h3></div><UserRound size={19} /></div>}>
             <div className="level-list">{Object.entries(athlete.level).map(([key, value]) => <div key={key}><span>{key.replace(/([A-Z])/g, ' $1')}</span><div>{Array.from({ length: 5 }, (_, index) => <i key={index} className={index < value ? 'filled' : ''} />)}</div><strong>{value}/5</strong></div>)}</div>
             <p className="chart-note">Experience and current preparedness stay separate. An interrupted schedule does not turn an experienced athlete into a beginner.</p>
             <div className="placement-profile-evidence"><span><Sparkles size={17} /><span><strong>{athlete.entryRoute}</strong><small>{athlete.placement.confidence} confidence · {athlete.placement.decision}</small>{athlete.placement.selectedRoute !== athlete.placement.recommendedRoute && <small>We suggested: {placementRouteLabels[athlete.placement.recommendedRoute]}</small>}</span></span><details><summary>Why and how this will be verified</summary><p>{athlete.placement.reasons.join(' ')}</p>{athlete.placement.uncertainInputs.length > 0 && <p><strong>Still uncertain:</strong> {athlete.placement.uncertainInputs.join(', ')}.</p>}<ul>{athlete.placement.verificationPlan.map((item) => <li key={item}>{item}</li>)}</ul><p><strong>Exit criteria:</strong> {athlete.placement.exitCriteria.join('; ')}.</p></details>
@@ -200,10 +201,9 @@ export function YouScreen() {
                 {activeSessionId ? <small className="control-reason">Finish or leave your open workout to review this.</small> : placementExit.collected === 0 && !placementExitReviewed ? <small className="control-reason">There is nothing to review until a checkpoint collects evidence.</small> : null}
               </section>
               <button className="button button--small button--secondary" disabled={Boolean(activeSessionId)} onClick={() => restartOnboarding()}>Reassess starting placement</button>{activeSessionId && <small className="control-reason">Finish or leave your open workout first.</small>}</div>
-          </section>
+          </CollapsiblePanel>
 
-          <section className="panel equipment-profile-panel">
-            <div className="panel__header"><div><p className="eyebrow">Where you train</p><h3>Training locations</h3></div><button className="button button--small button--secondary" onClick={() => openEquipmentEditor()}><Plus size={15} /> Add</button></div>
+          <CollapsiblePanel className="panel equipment-profile-panel" label="your training locations" header={<div className="panel__header"><div><p className="eyebrow">Where you train</p><h3>Training locations</h3></div><button className="button button--small button--secondary" onClick={() => openEquipmentEditor()}><Plus size={15} /> Add</button></div>}>
             <p className="callout-copy">The active location controls movement availability and executable load jumps. A location name alone never implies equipment.</p>
             <div className="equipment-profile-list">{equipmentProfiles.map((profile) => {
               const active = profile.id === activeEquipmentProfile?.id
@@ -217,23 +217,20 @@ export function YouScreen() {
               </article>
             })}</div>
             {activeEquipmentProfile && <div className="equipment-profile-summary"><Wrench size={18} /><span><strong>{activeEquipmentProfile.equipment.join(' · ')}</strong><small>Load jumps: barbell {activeEquipmentProfile.increments.barbell}, dumbbell {activeEquipmentProfile.increments.dumbbell}, cable {activeEquipmentProfile.increments.cable}, machine {activeEquipmentProfile.increments.machine} {activeEquipmentProfile.incrementUnit}</small>{activeEquipmentProfile.constraints.length > 0 && <small>Constraints: {activeEquipmentProfile.constraints.join(' · ')}</small>}</span></div>}
-          </section>
+          </CollapsiblePanel>
 
-          <section className="panel">
-            <div className="panel__header"><div><p className="eyebrow">How much we ask you</p><h3>Survey preferences</h3></div><BrainCircuit size={19} /></div>
+          <CollapsiblePanel className="panel" label="survey preferences" header={<div className="panel__header"><div><p className="eyebrow">How much we ask you</p><h3>Survey preferences</h3></div><BrainCircuit size={19} /></div>}>
             <label className="setting-row"><span><strong>Pre-session check-in</strong><small>Full 10, quick 5, minimal 3, off, or choose each workout.</small></span><select aria-label="Pre-session check-in mode" value={settings.preSurveyMode} onChange={(event) => updateSettings({ preSurveyMode: event.target.value as SurveyMode })}>{surveyModes.map((mode) => <option key={mode} value={mode}>{surveyModeLabels[mode]}</option>)}</select></label>
             <label className="setting-row"><span><strong>Post-session feedback</strong><small>Full 10, quick 5, minimal 3, off, or choose each workout.</small></span><select aria-label="Post-session feedback mode" value={settings.postSurveyMode} onChange={(event) => updateSettings({ postSurveyMode: event.target.value as SurveyMode })}>{surveyModes.map((mode) => <option key={mode} value={mode}>{surveyModeLabels[mode]}</option>)}</select></label>
             <p className="chart-note">Every question and whole survey remains skippable. Missing means unknown and never lowers adherence or readiness.</p>
-          </section>
+          </CollapsiblePanel>
 
-          <section className="panel">
-            <div className="panel__header"><div><p className="eyebrow">Visual and workout focus</p><h3>Experience controls</h3></div><Eye size={19} /></div>
+          <CollapsiblePanel className="panel" label="experience controls" header={<div className="panel__header"><div><p className="eyebrow">Visual and workout focus</p><h3>Experience controls</h3></div><Eye size={19} /></div>}>
             <label className="toggle-row"><span><strong>Focused training mode</strong><small>Reduce pixel-world decoration during active sets.</small></span><input type="checkbox" checked={settings.focusedMode} onChange={(event) => updateSettings({ focusedMode: event.target.checked })} /></label>
             <label className="toggle-row"><span><strong>Reduced motion</strong><small>Keep characters and charts visually still.</small></span><input type="checkbox" checked={settings.reducedMotion} onChange={(event) => updateSettings({ reducedMotion: event.target.checked })} /></label>
-          </section>
+          </CollapsiblePanel>
 
-          <section className="panel">
-            <div className="panel__header"><div><p className="eyebrow">Extras</p><h3>Achievement controls</h3></div><Sparkles size={19} /></div>
+          <CollapsiblePanel className="panel" label="achievement controls" header={<div className="panel__header"><div><p className="eyebrow">Extras</p><h3>Achievement controls</h3></div><Sparkles size={19} /></div>}>
             <label className="setting-row"><span><strong>Celebration level</strong><small>Off, restrained, standard, or high-energy visual feedback.</small></span><select value={settings.celebrationLevel} onChange={(event) => updateSettings({ celebrationLevel: event.target.value as CelebrationLevel })}>{(['off', 'subtle', 'normal', 'high-energy'] as const).map((level) => <option key={level} value={level}>{level}</option>)}</select></label>
             <label className="toggle-row"><span><strong>Quiet mode</strong><small>Hide live prompts and celebrations without changing training or records.</small></span><input type="checkbox" checked={settings.quietMode} onChange={(event) => updateSettings({ quietMode: event.target.checked })} /></label>
             <label className="toggle-row"><span><strong>Planned opportunities</strong><small>Show only records already available inside the prescribed work.</small></span><input type="checkbox" checked={settings.opportunityPrompts} onChange={(event) => updateSettings({ opportunityPrompts: event.target.checked })} /></label>
@@ -243,13 +240,12 @@ export function YouScreen() {
             <div className="sound-preview-row"><span><strong>Field Guide sound pack</strong><small>Hear the original workout-start cue before you opt in.</small></span><button type="button" className="button button--small button--secondary" disabled={settings.quietMode} onClick={() => playForgeSound('workout-start', { sounds: true, quietMode: settings.quietMode })}><Volume2 size={15} /> Preview sounds</button></div>
             <label className="toggle-row"><span><strong>Haptics</strong><small>Subtle set-completion feedback on supported devices.</small></span><input type="checkbox" checked={settings.haptics} onChange={(event) => updateSettings({ haptics: event.target.checked })} /></label>
             <p className="chart-note">Quiet mode and celebration settings never change what gets logged, how you progress, or your records.</p>
-          </section>
+          </CollapsiblePanel>
         </div>
 
         <aside className="settings-aside">
           <CloudSyncPanel />
-          <section className="panel">
-            <div className="panel__header"><div><p className="eyebrow">Local data</p><h3>Backup and recovery</h3></div><ShieldCheck size={19} /></div>
+          <CollapsiblePanel className="panel" label="backup and recovery" header={<div className="panel__header"><div><p className="eyebrow">Local data</p><h3>Backup and recovery</h3></div><ShieldCheck size={19} /></div>}>
             <div className="privacy-status"><HardDrive size={28} /><strong>Stored on this device</strong><p>Training and the rules behind it work with no account and no AI service.</p></div>
             <div className="data-actions">
               <button className="full-row-button" onClick={exportData}><Download size={17} /> Export verified backup</button>
@@ -258,7 +254,7 @@ export function YouScreen() {
             </div>
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
-          </section>
+          </CollapsiblePanel>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.51.1 private alpha</strong></li><li><span>Rules</span><strong>0.51.0 plainer language and training location art</strong></li><li className="diagnostic-list__wide"><span>Calculations</span><details><summary>Rule versions behind the numbers</summary><p>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Effort metric v1 · Set structure v1 · Volume progression v1 · Deload v1 · Athlete level v1 · Training split v1 · Structure progression v1 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Movement notes v1 · Session extension v1 · Equipment v1 · Load increment v1 · Catalog merge v1 · Sound pack field-guide-synth-v1</p></details></li><li><span>Backup schema</span><strong>Version 25</strong></li><li><span>Persistence</span><strong>Local v24 · cloud event v1</strong></li><li><span>Cloud sync</span><strong>{cloudConfiguration.status === 'ready' ? 'Manual private checkpoint ready' : 'Private release gate closed'}</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Clear local training data</button>

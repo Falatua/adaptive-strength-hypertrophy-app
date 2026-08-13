@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlarmClock, AlertTriangle, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, FileCheck2, Footprints, HelpCircle, RotateCcw, ShieldCheck, Trophy } from 'lucide-react'
+import { AlarmClock, AlertTriangle, MessageSquare, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, FileCheck2, Footprints, HelpCircle, RotateCcw, ShieldCheck, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import type { EffectiveSurveyMode, MissedOpportunityInput, SurveyAnswer } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
@@ -102,6 +102,12 @@ export function TodayScreen() {
       : progression.action === 'sets'
         ? `${progression.nextSets} sets`
         : progression.title
+  // Kept in reverse order so the most recent voice is first, and capped so Today stays scannable.
+  const recentSessionNotes = sessions
+    .filter((session) => session.completedAt && session.note && session.note.trim().length > 0)
+    .sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime())
+    .slice(0, 3)
+    .map((session) => ({ id: session.id, title: session.title, completedAt: session.completedAt!, note: session.note!.trim() }))
   const progressionEvidence = `${progression.confidence} confidence · ${primaryHistory.length} exact completed set${primaryHistory.length === 1 ? '' : 's'}`
   const heroObjective = `${primaryExercise?.name ?? 'The primary movement'} leads today. ${progression.title}.`
   const whyReasons = nextSession?.generation
@@ -115,7 +121,7 @@ export function TodayScreen() {
     : [
         { title: `${primaryExercise?.name ?? 'The primary movement'} is the lift that matters today`, detail: 'Everything else is built around it. Its last qualified exact exposure is the number you have to beat, and no similar-looking variation gets to stand in for it.' },
         { title: 'Missing a day costs you nothing but the day', detail: 'There is no catch-up debt here and nothing gets added to punish you. You pick up at the next useful exposure, not at an invented deficit.' },
-        { title: `Built to finish inside ${settings.availableMinutes} minutes`, detail: 'The anchor gets your best effort first. Accessory work is what gets trimmed when time runs short, because that is the part you can afford to lose.' },
+        { title: `Built to finish inside ${settings.availableMinutes} minutes`, detail: 'Your main lift gets your best effort first. Accessory work is what gets trimmed when time runs short, because that is the part you can afford to lose.' },
         { title: progression.title, detail: progression.explanation }
       ]
 
@@ -251,13 +257,22 @@ export function TodayScreen() {
       </section>
 
       <section className="stats-grid" aria-label="Current training snapshot">
-        <StatCard label="Last anchor exposure" value={`${lastVolume.toLocaleString()} ${settings.units}`} detail={`${recentPrimary.length} completed sets · exact movement`} icon={<Dumbbell size={18} />} />
+        <StatCard label="Last time on this lift" value={`${lastVolume.toLocaleString()} ${settings.units}`} detail={`${recentPrimary.length} completed sets · exact movement`} icon={<Dumbbell size={18} />} />
         <StatCard label="Current continuity" value={athlete.continuity} detail="Calendar pressure reduced · exposure clocks preserved" icon={<CalendarClock size={18} />} tone="orange" />
         <StatCard label="Recent record" value={recentRecordValue} detail={recentRecord?.label ?? 'Complete work to create a record'} icon={<Trophy size={18} />} tone="purple" />
         <StatCard label="Placement checks" value={`${placementVerification.resolved} resolved`} detail={`${placementLaneCount} exact lane${placementLaneCount === 1 ? '' : 's'} · ${placementVerification.state.replaceAll('-', ' ')}`} icon={<ShieldCheck size={18} />} tone="blue" />
       </section>
 
       <div className="today-grid">
+        {recentSessionNotes.length > 0 && (
+          <section className="panel session-notes-panel">
+            <div className="panel__header"><div><p className="eyebrow">In your words</p><h3>What you said after recent sessions</h3></div><MessageSquare size={19} /></div>
+            <ul className="session-notes">
+              {recentSessionNotes.map((entry) => <li key={entry.id}><span>{new Date(entry.completedAt).toLocaleDateString()}</span><div><strong>{entry.title}</strong><p>{entry.note}</p></div></li>)}
+            </ul>
+            <p className="chart-note">These are your own words from the post-session question. Nothing here changes a target on its own, and nothing is discarded.</p>
+          </section>
+        )}
         <section className="panel">
           <div className="panel__header"><div><p className="eyebrow">Session map</p><h3>What today builds</h3></div><span>{nextSession?.exercises.length} movements</span></div>
           <ol className="session-map">

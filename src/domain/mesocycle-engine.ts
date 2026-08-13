@@ -39,7 +39,7 @@ export interface GenerationContext {
 
 const adaptationCopy = {
   powerbuilding: {
-    primary: 'Practice and progress the strength anchor while preserving hypertrophy work.',
+    primary: 'Practice and progress your main lifts while preserving hypertrophy work.',
     suffix: 'Strength + Development'
   },
   strength: {
@@ -47,7 +47,7 @@ const adaptationCopy = {
     suffix: 'Strength Practice'
   },
   hypertrophy: {
-    primary: 'Keep the anchor practiced while allocating more of the session to priority muscle work.',
+    primary: 'Keep your main lift practiced while allocating more of the session to priority muscle work.',
     suffix: 'Anchor + Hypertrophy'
   },
   reacclimation: {
@@ -137,7 +137,6 @@ function plannedExercise(
     restSeconds,
     estimatedMinutes: Math.round(estimatedMinutes),
     optional: role === 'tertiary',
-    warmupGuidance: routeProfile ? routeProfile.warmupGuidance : undefined
   }
 }
 
@@ -251,7 +250,7 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     return {
       id: sessionKey,
       title: titleFor(anchor, routeProfile ? `${routeProfile.label} Session` : adaptationCopy[draft.dominantAdaptation].suffix),
-      objective: `${draft.objective} Today's protected anchor is ${anchor.name}.${routeProfile ? ` ${routeProfile.strategy}` : ''}`,
+      objective: `${draft.objective} Today's main lift is ${anchor.name}.${routeProfile ? ` ${routeProfile.strategy}` : ''}`,
       dayLabel: index === 0 ? 'Next best session' : `Queued · ${index + 1}`,
       plannedDate: addDays(startsAt, index * 2).toISOString(),
       status: 'planned',

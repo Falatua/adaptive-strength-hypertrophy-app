@@ -27,7 +27,7 @@ test('finds leg press in the expanded library and replaces a squat through full-
     const persisted = JSON.parse(localStorage.getItem(key) ?? '{}')
     const planned = persisted.state.sessions.find((session: { status: string }) => session.status === 'planned')
     planned.exercises[0].exerciseId = 'competition-squat'
-    planned.exercises[0].purpose = 'Strength anchor'
+    planned.exercises[0].purpose = 'Main lift'
     localStorage.setItem(key, JSON.stringify(persisted))
   })
   await page.reload()
@@ -39,7 +39,7 @@ test('finds leg press in the expanded library and replaces a squat through full-
   await expect(page.getByRole('button', { name: /45-Degree Leg Press/ })).toBeVisible()
   await page.getByRole('button', { name: /45-Degree Leg Press/ }).click()
   await expect(page.getByRole('alert')).toContainText('Confirm the protected-primary tradeoff')
-  await page.getByRole('checkbox', { name: 'Confirm primary-anchor change' }).check()
+  await page.getByRole('checkbox', { name: 'Confirm main-lift change' }).check()
   await page.getByRole('button', { name: /45-Degree Leg Press/ }).click()
   await expect(page.locator('.exercise-card').first()).toContainText('45-Degree Leg Press')
   await expect(page.locator('.exercise-card').first()).toContainText('Baseline calibration')

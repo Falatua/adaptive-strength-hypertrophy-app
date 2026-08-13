@@ -26,7 +26,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, equipmentProfiles, history, movementNotes, settings, placementVerifications, updateSet, updateMovementNote, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession, setNotice } = useAppStore()
+  const { sessions, exercises, equipmentProfiles, history, movementNotes, settings, placementVerifications, updateSet, updateMovementNote, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
@@ -38,7 +38,6 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const [finishOpen, setFinishOpen] = useState(false)
   const [finishChooserOpen, setFinishChooserOpen] = useState(false)
   const [activePostMode, setActivePostMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
-  const [warmupConfirmed, setWarmupConfirmed] = useState(false)
   const [clockNow, setClockNow] = useState(() => Date.now())
   const [decisionInfo, setDecisionInfo] = useState<{ name: string; title: string; action: string; confidence: string; explanation: string } | null>(null)
   const [addMovementOpen, setAddMovementOpen] = useState(false)
@@ -270,22 +269,15 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
           </section>
         )}
         {placementVerification && placementCheckUnlocked && (
-          <section className={`warmup-check placement-session-check ${placementVerification.warmupResponse !== 'not-answered' ? 'is-captured' : ''}`} aria-label="Placement verification warm-up">
-            <div><Sparkles size={20} /><span><strong>{placementVerification.movementPlacement ? `${placementVerification.movementPlacement.exerciseName} check` : 'Placement check'} {placementVerification.sequence} of 3</strong><small>{placementCheckMovement ? `Every ${placementVerification.movementPlacement!.exerciseName} set is logged.` : 'Every planned set is logged.'} {placementRouteLabels[placementVerification.placementRoute]} is our best guess so far. How did the warm-up feel? Answer only if it helps.</small></span></div>
+          <section className={`warmup-check placement-session-check ${placementVerification.warmupResponse !== 'not-answered' ? 'is-captured' : ''}`} aria-label="Placement verification check">
+            <div><Sparkles size={20} /><span><strong>{placementVerification.movementPlacement ? `${placementVerification.movementPlacement.exerciseName} check` : 'Placement check'} {placementVerification.sequence} of 3</strong><small>{placementCheckMovement ? `Every ${placementVerification.movementPlacement!.exerciseName} set is logged.` : 'Every planned set is logged.'} {placementRouteLabels[placementVerification.placementRoute]} is our best guess so far. How did the work feel? Answer only if it helps.</small></span></div>
             {placementVerification.warmupResponse === 'not-answered' ? <div>
-              <button onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'better') }}>Better</button>
-              <button onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'as-expected') }}>As expected</button>
-              <button onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'harder') }}>Harder</button>
-              <button className="pain" onClick={() => { playForgeSound('warning', settings); setWarmupConfirmed(true); setPlacementWarmup(session.id, 'painful') }}>Painful</button>
-              <button className="text-button" onClick={() => { setWarmupConfirmed(true); setPlacementWarmup(session.id, 'skipped') }}>Skip</button>
-            </div> : <div className="placement-session-check__saved"><Check size={17} /><span><strong>Warm-up saved</strong><small>{placementVerification.warmupResponse.replace('-', ' ')}</small></span></div>}
-          </section>
-        )}
-
-        {!placementVerification && !warmupConfirmed && session.readiness && session.readiness !== 'normal' && (
-          <section className="warmup-check">
-            <div><Sparkles size={20} /><span><strong>Warm-up confirmation</strong><small>Readiness is {session.readiness}. Let performance confirm the plan.</small></span></div>
-            <div><button onClick={() => setWarmupConfirmed(true)}>Better</button><button onClick={() => setWarmupConfirmed(true)}>Normal</button><button onClick={() => { setWarmupConfirmed(true); setNotice('Keep the anchor conservative and monitor the first set.') }}>Harder</button><button className="pain" onClick={() => { playForgeSound('warning', settings); setWarmupConfirmed(true); setNotice('Pain-aware mode: change or stop the affected movement.') }}>Painful</button><button className="text-button" onClick={() => setWarmupConfirmed(true)}>Skip</button></div>
+              <button onClick={() => { setPlacementWarmup(session.id, 'better') }}>Better</button>
+              <button onClick={() => { setPlacementWarmup(session.id, 'as-expected') }}>As expected</button>
+              <button onClick={() => { setPlacementWarmup(session.id, 'harder') }}>Harder</button>
+              <button className="pain" onClick={() => { playForgeSound('warning', settings); setPlacementWarmup(session.id, 'painful') }}>Painful</button>
+              <button className="text-button" onClick={() => { setPlacementWarmup(session.id, 'skipped') }}>Skip</button>
+            </div> : <div className="placement-session-check__saved"><Check size={17} /><span><strong>Answer saved</strong><small>{placementVerification.warmupResponse.replace('-', ' ')}</small></span></div>}
           </section>
         )}
 
@@ -333,7 +325,6 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   <button className="info-button" onClick={() => setDecisionInfo({ name: exercise.name, title: recommendation.title, action: recommendation.action, confidence: recommendation.confidence, explanation: recommendation.explanation })} aria-label={`More information about ${exercise.name}`} aria-haspopup="dialog"><Info size={17} /></button>
                 </div>
                 {planned.prescriptionNote && <div className="substitution-prescription"><RefreshCcw size={16} /><span><strong>{planned.prescriptionMethod === 'exact-history' ? 'Exact-history replacement' : 'Baseline calibration'}</strong>{planned.prescriptionNote}</span></div>}
-                {planned.warmupGuidance && exerciseIndex === 0 && <div className="route-warmup-guidance"><Sparkles size={16} /><span><strong>Route-specific warm-up</strong>{planned.warmupGuidance}</span></div>}
                 <section className="movement-note-editor" aria-label={`${exercise.name} movement notebook`}>
                   <div className="movement-note-editor__heading"><BookOpen size={18} /><span><strong>Movement note</strong><small>Saved to this exact movement and workout</small></span></div>
                   {priorMovementNote && <div className="movement-note-recall"><span><b>Last note</b><small>{new Date(priorMovementNote.sessionDate).toLocaleDateString()}{priorMovementNote.microcycleNumber ? ` · Week ${priorMovementNote.microcycleNumber}` : ''} · {priorMovementNote.sessionTitle}</small></span><p>{priorMovementNote.body}</p></div>}
@@ -472,7 +463,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
           <label><span className="field-label">Why are you changing this movement? <small>Optional</small></span><select aria-label="Substitution reason" value={swapReason} onChange={(event) => { setSwapReason(event.target.value as SubstitutionReason); setSwapError(null) }}>
             <option value="none">No reason</option><option value="pain">Pain or joint irritation</option><option value="equipment">Equipment unavailable</option><option value="time">Short on time</option><option value="fatigue">Fatigue is high</option><option value="target-feel">Not feeling the target</option><option value="variety">Want variety</option><option value="preference">Prefer something else</option><option value="harder">Need a harder option</option><option value="easier">Need an easier option</option><option value="other">Other</option>
           </select></label>
-          {swapTarget?.role === 'primary' && <label className="primary-override"><input type="checkbox" checked={primaryOverrideConfirmed} onChange={(event) => { setPrimaryOverrideConfirmed(event.target.checked); setSwapError(null) }} /><span><strong>Confirm primary-anchor change</strong><small>The replacement may preserve purpose, but it owns a separate progression clock and changes movement specificity.</small></span></label>}
+          {swapTarget?.role === 'primary' && <label className="primary-override"><input type="checkbox" checked={primaryOverrideConfirmed} onChange={(event) => { setPrimaryOverrideConfirmed(event.target.checked); setSwapError(null) }} /><span><strong>Confirm main-lift change</strong><small>The replacement may preserve purpose, but it owns a separate progression clock and changes movement specificity.</small></span></label>}
         </div>
         {swapError && <p className="form-error" role="alert">{swapError}</p>}
         <div className="swap-library-nav">
