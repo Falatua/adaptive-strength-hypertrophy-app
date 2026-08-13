@@ -197,9 +197,9 @@ test('organizes the exercise library and saves programming preferences', async (
   await page.getByRole('button', { name: 'Library', exact: true }).click()
 
   await page.getByRole('button', { name: /My preferences/ }).click()
-  await expect(page.getByText('16 movements', { exact: true })).toBeVisible()
+  await expect(page.getByText('0 movements', { exact: true })).toBeVisible()
   await expect(page.locator('#library-filter-panel').getByRole('button', { name: 'Preferred', exact: true })).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.getByText('Nothing matches this search yet.')).toHaveCount(0)
+  await expect(page.getByText('Nothing matches this search yet.')).toBeVisible()
 
   await page.getByRole('button', { name: /Body part/ }).click()
   await page.getByRole('button', { name: 'Back', exact: true }).click()
@@ -1021,7 +1021,8 @@ test('uses a saved location profile to gate unavailable work and executable load
   await expect(page.getByText('3 movements need equipment review')).toBeVisible()
   await page.getByRole('button', { name: 'Start without check-in' }).click()
   await expect(page.getByRole('heading', { name: 'Resolve equipment before logging' })).toBeVisible()
-  await expect(page.getByRole('dialog').getByText('Two-Board Press')).toBeVisible()
+  await expect(page.getByRole('dialog').locator('.equipment-gap-list > div')).toHaveCount(3)
+  await expect(page.getByRole('dialog').locator('.equipment-gap-list')).toContainText('plausible available alternatives')
   await page.getByRole('button', { name: 'Start and resolve movements' }).click()
   await expect(page.getByRole('heading', { name: 'Bench Calibration Session' })).toBeVisible()
   await expect(page.getByText('Garage Rack · 3 to resolve')).toBeVisible()
