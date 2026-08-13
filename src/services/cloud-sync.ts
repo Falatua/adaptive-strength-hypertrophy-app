@@ -293,6 +293,22 @@ export async function updateCloudPassword(password: string, currentPassword?: st
   if (passwordError) throw new Error(passwordError)
   const client = await getCloudClient()
   if (!client) throw new Error('The ForgePath cloud client could not start.')
+  return updateCloudPasswordUsing(client, password, currentPassword)
+}
+
+export async function updateCloudPasswordUsing(client: ForgePathCloudClient, password: string, currentPassword?: string) {
+  const passwordError = validateNewPassword(password)
+  if (passwordError) throw new Error(passwordError)
+  if (currentPassword) {
+    const { data: currentUser, error: userError } = await client.auth.getUser()
+    if (userError) throw userError
+    if (!currentUser.user?.email) throw new Error('This account has no verified email.')
+    const { error: signInError } = await client.auth.signInWithPassword({
+      email: currentUser.user.email,
+      password: currentPassword
+    })
+    if (signInError) throw new Error('The current password is incorrect.')
+  }
   const { data, error } = await client.auth.updateUser({
     password,
     ...(currentPassword ? { current_password: currentPassword } : {}),

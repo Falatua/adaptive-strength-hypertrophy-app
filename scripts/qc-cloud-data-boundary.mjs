@@ -17,6 +17,8 @@ if (!sync.includes("key === CLOUD_OUTBOX_STORAGE_KEY ? cloudPayloadMemory.set(ke
 if (!root.includes('window.localStorage.removeItem(LEGACY_APP_STORAGE_KEY)')) failures.push('the verified one-time migration does not remove the legacy training copy')
 if (!root.includes('await fetchCloudSnapshot()') || !root.includes('await pushCloudSnapshot(currentState)')) failures.push('cloud bootstrap does not prove a remote source of truth')
 if (!sync.includes('persistSession: true') || !sync.includes('autoRefreshToken: true')) failures.push('the browser auth session is not configured for secure renewal')
+if (!sync.includes('shouldCreateUser: false') || /\.auth\.signUp\s*\(/.test(sync) || /\.auth\.admin\b/.test(sync)) failures.push('the browser authentication service can escape the invite-only account boundary')
+if (!sync.includes("password.length < 12") || !sync.includes('current password is incorrect')) failures.push('the browser password service is missing the strong-password or current-password reauthentication boundary')
 if (!config.includes("loopback && import.meta.env.VITE_FORGEPATH_LOCAL_E2E === 'true'")) failures.push('the local test override is not restricted to loopback')
 if (/VITE_.*(?:SECRET|SERVICE|PASSWORD|PRIVATE)/i.test(`${store}\n${sync}\n${root}\n${config}`)) failures.push('browser source references a privileged Vite credential')
 

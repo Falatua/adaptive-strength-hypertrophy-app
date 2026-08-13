@@ -13,6 +13,7 @@ import {
   queueCloudSnapshot,
   readPendingSnapshot,
   recordCloudPushResult,
+  updateCloudPasswordUsing,
   validateNewPassword,
   type ForgePathCloudClient
 } from './cloud-sync'
@@ -82,6 +83,37 @@ describe('password policy', () => {
     expect(validateNewPassword('NoNumbersHere!')).toMatch(/number/i)
     expect(validateNewPassword('NoSymbolsHere12')).toMatch(/symbol/i)
     expect(validateNewPassword('PrivatePath12!')).toBeNull()
+  })
+
+  it('reauthenticates with the current password before changing an existing password', async () => {
+    const getUser = vi.fn().mockResolvedValue({ data: { user: { email: 'athlete@example.com' } }, error: null })
+    const signInWithPassword = vi.fn().mockResolvedValue({ data: { session: {} }, error: null })
+    const updateUser = vi.fn().mockResolvedValue({ data: { user: { id: 'athlete-id' } }, error: null })
+    const client = { auth: { getUser, signInWithPassword, updateUser } } as unknown as ForgePathCloudClient
+
+    await updateCloudPasswordUsing(client, 'PrivatePath12!', 'CurrentPath12!')
+
+    expect(signInWithPassword).toHaveBeenCalledWith({ email: 'athlete@example.com', password: 'CurrentPath12!' })
+    expect(updateUser).toHaveBeenCalledWith(expect.objectContaining({
+      password: 'PrivatePath12!',
+      current_password: 'CurrentPath12!',
+      data: { forgepath_password_ready: true }
+    }))
+    expect(signInWithPassword.mock.invocationCallOrder[0]).toBeLessThan(updateUser.mock.invocationCallOrder[0])
+  })
+
+  it('stops password changes when current-password reauthentication fails', async () => {
+    const updateUser = vi.fn()
+    const client = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { email: 'athlete@example.com' } }, error: null }),
+        signInWithPassword: vi.fn().mockResolvedValue({ data: {}, error: new Error('invalid credentials') }),
+        updateUser
+      }
+    } as unknown as ForgePathCloudClient
+
+    await expect(updateCloudPasswordUsing(client, 'PrivatePath12!', 'WrongCurrent12!')).rejects.toThrow(/current password is incorrect/i)
+    expect(updateUser).not.toHaveBeenCalled()
   })
 })
 

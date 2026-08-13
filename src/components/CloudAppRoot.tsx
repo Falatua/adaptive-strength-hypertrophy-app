@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { AlertTriangle, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
-import type { Session } from '@supabase/supabase-js'
+import type { Session, User } from '@supabase/supabase-js'
 import App from '../App'
 import { backupStateFrom, createBackup } from '../domain/backup'
 import { useAppStore } from '../store/useAppStore'
 import { cloudAuthoritativeBuild, cloudConfiguration, LEGACY_APP_STORAGE_KEY } from '../services/cloud-config'
+import { passwordModeFor, type CloudPasswordMode } from '../services/cloud-auth-policy'
 import {
   CLOUD_LAST_SYNC_STORAGE_KEY,
   CLOUD_OUTBOX_STORAGE_KEY,
@@ -54,8 +55,8 @@ function PasswordField({ value, onChange, label = 'Password', autoComplete = 'cu
   return <label className="cloud-auth__field"><span>{label}</span><span><LockKeyhole size={17} /><input type={visible ? 'text' : 'password'} value={value} onChange={(event) => onChange(event.target.value)} autoComplete={autoComplete} /><button type="button" aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`} onClick={() => setVisible((current) => !current)}>{visible ? <EyeOff size={17} /> : <Eye size={17} />}</button></span></label>
 }
 
-function CloudAuth({ recovery, onRecoveryComplete }: { recovery: boolean; onRecoveryComplete: () => void }) {
-  const [mode, setMode] = useState<'signin' | 'forgot' | 'invite'>(recovery ? 'signin' : 'signin')
+export function CloudAuth({ passwordMode, onPasswordComplete }: { passwordMode: CloudPasswordMode | null; onPasswordComplete: (user: User) => void }) {
+  const [mode, setMode] = useState<'signin' | 'forgot' | 'invite'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
@@ -70,7 +71,10 @@ function CloudAuth({ recovery, onRecoveryComplete }: { recovery: boolean; onReco
     try { await action() } catch (cause) { setError(messageFrom(cause, 'ForgePath could not complete that account request.')) } finally { setBusy(false) }
   }
 
-  if (recovery) return <AuthFrame title="Choose a new password" detail="Your recovery link is verified. Set a new password to return to your training.">
+  if (passwordMode) return <AuthFrame
+    title={passwordMode === 'setup' ? 'Create your ForgePath password' : 'Choose a new password'}
+    detail={passwordMode === 'setup' ? 'Your email is verified. Set the password you will use on future visits.' : 'Your recovery link is verified. Set a new password to return to your training.'}
+  >
     <PasswordField value={password} onChange={setPassword} label="New password" autoComplete="new-password" />
     <PasswordField value={confirmation} onChange={setConfirmation} label="Confirm new password" autoComplete="new-password" />
     <p className="cloud-auth__hint">Use 12 or more characters with uppercase, lowercase, a number, and a symbol.</p>
@@ -78,8 +82,8 @@ function CloudAuth({ recovery, onRecoveryComplete }: { recovery: boolean; onReco
       const passwordError = validateNewPassword(password)
       if (passwordError) throw new Error(passwordError)
       if (password !== confirmation) throw new Error('The passwords do not match.')
-      await updateCloudPassword(password)
-      onRecoveryComplete()
+      const user = await updateCloudPassword(password)
+      onPasswordComplete(user)
     })}>{busy ? <LoaderCircle className="spin" size={17} /> : <ShieldCheck size={17} />} Save new password</button>
     {error && <AuthError message={error} />}
   </AuthFrame>
@@ -130,6 +134,7 @@ export function CloudAppRoot() {
   const saveTimer = useRef<number | null>(null)
   const saveChain = useRef(Promise.resolve())
   const lastBackupChecksum = useRef<string | null>(null)
+  const passwordMode = passwordModeFor(session, recovery)
 
   useEffect(() => {
     if (!cloudAuthoritativeBuild) return
@@ -140,6 +145,7 @@ export function CloudAppRoot() {
       const listener = client.auth.onAuthStateChange((event, nextSession) => {
         if (!mounted) return
         if (event === 'PASSWORD_RECOVERY') setRecovery(true)
+        if (event === 'SIGNED_OUT') setRecovery(false)
         setSession(nextSession)
         if (!nextSession) { setReady(false); setSaveState('loading') }
       })
@@ -183,10 +189,10 @@ export function CloudAppRoot() {
   }
 
   useEffect(() => {
-    if (session && !recovery) void Promise.resolve().then(bootstrap)
+    if (session && !passwordMode) void Promise.resolve().then(bootstrap)
   // retryToken deliberately restarts the verified bootstrap after an explicit retry.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user.id, recovery, retryToken])
+  }, [session?.user.id, passwordMode, retryToken])
 
   const saveNow = async () => {
     if (!session || !ready) return
@@ -260,8 +266,11 @@ export function CloudAppRoot() {
 
   if (!cloudAuthoritativeBuild) return <App />
   if (checking) return <CloudLoading />
-  if (!session) return <CloudAuth recovery={false} onRecoveryComplete={() => setRecovery(false)} />
-  if (recovery || session.user.user_metadata?.forgepath_password_ready !== true) return <CloudAuth recovery onRecoveryComplete={() => setRecovery(false)} />
+  if (!session) return <CloudAuth passwordMode={null} onPasswordComplete={() => undefined} />
+  if (passwordMode) return <CloudAuth passwordMode={passwordMode} onPasswordComplete={(user) => {
+    setSession((current) => current ? { ...current, user } : current)
+    setRecovery(false)
+  }} />
   if (!ready) return <CloudLoading error={error} retry={() => setRetryToken((value) => value + 1)} />
   return <CloudRuntimeContext.Provider value={runtime as CloudRuntimeValue}><App /></CloudRuntimeContext.Provider>
 }

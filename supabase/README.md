@@ -8,4 +8,6 @@ The browser receives only the project URL and publishable key. Never place a dat
 
 The dedicated production project is ForgePath. Its migration history is repaired and checksum-locked to `migrations/manifest.json`; `audits/forgepath_acceptance.sql` provides the repeatable read-only production proof. Do not reuse the JB-OS or Roman TD database.
 
+Production Auth must remain invite-only: disable public signup, manual identity linking, and anonymous sign-ins; require email confirmation; enable only the email provider; keep the GitHub Pages URL in the redirect allow list; and enforce a minimum 12-character password containing lowercase and uppercase letters, digits, and symbols. The browser may mark password setup in user metadata for interface routing only. Authorization must continue to use `auth.uid()` or server-controlled app metadata, never user metadata.
+
 Follow `docs/product/SUPABASE_BACKEND_RUNBOOK.md`. Apply migrations from version control, run the acceptance audit after each deployment, and do not recreate the schema manually in Table Editor.
