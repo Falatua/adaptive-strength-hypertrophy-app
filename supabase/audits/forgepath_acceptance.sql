@@ -4,7 +4,8 @@
 with expected(version, name, statement_count, content_sha256) as (
   values
     ('20260811000100'::text, 'forgepath_cloud_foundation'::text, 1, 'c18793b38bfcfa6b45b483bc1be0c4a9051cc50649efd4c8c38946559331813c'::text),
-    ('20260811000200'::text, 'forgepath_training_core'::text, 1, '50484d39e0ef86cbe49cce813357586d185fa23b1e7c3847a88b9bc45ceef5c8'::text)
+    ('20260811000200'::text, 'forgepath_training_core'::text, 1, '50484d39e0ef86cbe49cce813357586d185fa23b1e7c3847a88b9bc45ceef5c8'::text),
+    ('20260813000100'::text, 'forgepath_account_controls'::text, 1, '18a316cb8c7657f15a0ffc6e8cf556e388de411cde9695499f9f01d96d2ebfd8'::text)
 ), actual as (
   select
     version,
@@ -114,4 +115,24 @@ select
 from pg_proc p
 join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public'
-  and p.proname = 'push_forgepath_snapshot';
+  and p.proname = 'push_forgepath_snapshot'
+
+union all
+
+select
+  'account_reset_rpc' as check_name,
+  count(*) = 1
+    and bool_and(p.prosecdef)
+    and bool_and(pg_get_function_result(p.oid) = 'jsonb')
+    and bool_and(has_function_privilege('authenticated', p.oid, 'EXECUTE'))
+    and not bool_or(has_function_privilege('anon', p.oid, 'EXECUTE')) as passed,
+  jsonb_build_object(
+    'function_count', count(*),
+    'security_definer_count', count(*) filter (where p.prosecdef),
+    'authenticated_execute', bool_or(has_function_privilege('authenticated', p.oid, 'EXECUTE')),
+    'anon_execute', bool_or(has_function_privilege('anon', p.oid, 'EXECUTE'))
+  ) as evidence
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname = 'reset_forgepath_data';

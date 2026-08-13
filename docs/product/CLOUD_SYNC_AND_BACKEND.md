@@ -3,8 +3,8 @@ type: product-process
 aliases: [Adaptive Training Data Backend, Supabase Training App Architecture]
 tags: [fitness, app, backend, database, supabase, postgres, privacy, learning]
 created: 2026-08-09
-updated: 2026-08-11
-status: active-backend-foundation
+updated: 2026-08-13
+status: cloud-authoritative-private-alpha
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -15,16 +15,28 @@ confidence: product-decision
 
 The first disposable prototype can run on a local database. The first real multi-device or multi-user version should use a structured backend. Supabase is the current leading recommendation because this product needs relational Postgres data, authentication, per-user authorization, server-side functions, migrations, backups, and an optional vector-search path in one system.
 
-The recommended architecture is:
+The current owner-approved architecture is:
 
-1. A local workout database or durable cache for fast and offline session execution.
-2. Supabase Postgres as the private cloud system of record.
+1. Supabase Postgres as the private cloud system of record.
+2. In-memory client state for the open session, with no durable browser copy of training history, plans, surveys, notes, settings, or recovery payloads.
 3. Supabase Auth plus Row Level Security for user isolation.
 4. Server-side functions for privileged rules, sync reconciliation, exports, and optional AI-provider calls.
 5. Versioned SQL views or background jobs for daily through annual aggregates and learning features.
 6. Optional pgvector only for research retrieval or semantic note search, not for authoritative workout truth.
 
 No separate data warehouse, vector database, or foundation-model training pipeline is required for the first useful product.
+
+The browser may retain the renewable Supabase Auth session and harmless device and server-version metadata. Those values are not athlete training records. Offline durable training is intentionally not part of this cloud-only decision. If Supabase is unavailable, the app must say the save is incomplete and retain only the current in-memory state long enough to retry. It must not label unconfirmed work as saved.
+
+## Cloud-Authoritative Account Slice, 2026-08-13
+
+Private alpha 0.54.0 replaces the athlete-facing manual checkpoint with an authenticated cloud gate and automatic whole-state snapshot persistence. An invited athlete signs in with email and password. Invitation and recovery links return to ForgePath, require a new password with at least twelve mixed characters, and never create a public account. Public signup remains disabled.
+
+On authenticated launch, ForgePath verifies and hydrates the latest Supabase snapshot before opening training. When no remote copy exists, it uploads the current state once. A legacy browser copy is read only for this one migration and is deleted only after Supabase confirms the save. Afterward, the Zustand persistence writer is disabled for cloud builds, and the retry payload exists only in memory. Automatic saves are serialized, checksum-deduplicated, versioned, and conflict-preserving.
+
+Account controls are split by privilege. `reset_forgepath_data('RESET')` is an authenticated, recently reauthenticated, self-scoped database function that deletes every ForgePath row for the caller while preserving the Auth account. `delete-account` is an authenticated Edge Function that verifies the caller, recent JWT issue time, exact confirmation, allowed origin, and then uses the server-only Auth Admin client to delete that caller. `on delete cascade` removes the related ForgePath rows. No privileged key enters the browser bundle.
+
+This slice does not yet claim normalized entity mutation, automatic multi-writer merge, offline durable workouts, active-workout handoff, device revocation UI, or a completed physical phone-to-laptop acceptance drill. The snapshot remains the cloud source of truth until those later contracts are proven.
 
 ## Phone and Laptop Product Decision
 

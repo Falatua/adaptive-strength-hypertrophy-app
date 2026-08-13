@@ -15,7 +15,7 @@ import { placementVerificationVerdictLabels, summarizePlacementVerification } fr
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from '../domain/placement-exit-engine'
 import { playForgeSound } from '../services/sound-engine'
 import { CloudSyncPanel } from '../components/CloudSyncPanel'
-import { cloudConfiguration } from '../services/cloud-sync'
+import { cloudConfiguration, cloudAuthoritativeBuild } from '../services/cloud-config'
 
 const surveyModeLabels: Record<SurveyMode, string> = { full: 'Full', quick: 'Quick', minimal: 'Minimal', off: 'Off', ask: 'Ask each time' }
 const placementExitLabels = {
@@ -245,22 +245,22 @@ export function YouScreen() {
 
         <aside className="settings-aside">
           <CloudSyncPanel />
-          <CollapsiblePanel className="panel" label="backup and recovery" header={<div className="panel__header"><div><p className="eyebrow">Local data</p><h3>Backup and recovery</h3></div><ShieldCheck size={19} /></div>}>
-            <div className="privacy-status"><HardDrive size={28} /><strong>Stored on this device</strong><p>Training and the rules behind it work with no account and no AI service.</p></div>
+          <CollapsiblePanel className="panel" label="backup and recovery" header={<div className="panel__header"><div><p className="eyebrow">Your data</p><h3>Backup and recovery</h3></div><ShieldCheck size={19} /></div>}>
+            <div className="privacy-status"><HardDrive size={28} /><strong>{cloudAuthoritativeBuild ? 'Stored in your private cloud account' : 'Stored on this test device'}</strong><p>{cloudAuthoritativeBuild ? 'Supabase is the source of truth. Export remains available as a personal, portable copy.' : 'This local build keeps the deterministic development and browser test path available.'}</p></div>
             <div className="data-actions">
               <button className="full-row-button" onClick={exportData}><Download size={17} /> Export verified backup</button>
               <button className="full-row-button" onClick={() => fileInput.current?.click()}><Upload size={17} /> Preview and restore</button>
               <input ref={fileInput} className="sr-only" type="file" accept="application/json,.json" onChange={readImport} aria-label="Choose ForgePath backup to restore" />
             </div>
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
-            {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore local state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
+            {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </CollapsiblePanel>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.53.0 private alpha</strong></li><li><span>Rules</span><strong>0.53.0 plain-language life-aware planning</strong></li><li className="diagnostic-list__wide"><span>Calculations</span><details><summary>Rule versions behind the numbers</summary><p>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Effort metric v1 · Set structure v1 · Volume progression v1 · Deload v1 · Athlete level v1 · Training split v1 · Structure progression v1 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Movement notes v1 · Session extension v1 · Equipment v1 · Load increment v1 · Catalog merge v1 · Sound pack field-guide-synth-v1</p></details></li><li><span>Backup schema</span><strong>Version 25</strong></li><li><span>Persistence</span><strong>Local v25 · cloud event v1</strong></li><li><span>Cloud sync</span><strong>{cloudConfiguration.status === 'ready' ? 'Manual private checkpoint ready' : 'Private release gate closed'}</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.54.0 private alpha</strong></li><li><span>Rules</span><strong>0.54.0 cloud account controls</strong></li><li className="diagnostic-list__wide"><span>Calculations</span><details><summary>Rule versions behind the numbers</summary><p>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Route session v3 · Effort metric v1 · Set structure v1 · Volume progression v1 · Deload v1 · Athlete level v1 · Training split v1 · Structure progression v1 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Movement notes v1 · Session extension v1 · Equipment v1 · Load increment v1 · Catalog merge v1 · Sound pack field-guide-synth-v1</p></details></li><li><span>Backup schema</span><strong>Version 25</strong></li><li><span>Persistence</span><strong>{cloudAuthoritativeBuild ? 'Supabase snapshot v1 · no browser training copy' : 'Local test state v25'}</strong></li><li><span>Cloud</span><strong>{cloudConfiguration.status === 'ready' ? 'Authenticated and account-scoped' : 'Private release gate closed'}</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
-          <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Clear local training data</button>
+          {!cloudAuthoritativeBuild && <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Clear local test data</button>}
         </aside>
       </div>
-      <footer className="screen-footer"><Moon size={16} /> ForgePath Private Alpha · Your training is saved on this device</footer>
+      <footer className="screen-footer"><Moon size={16} /> ForgePath Private Alpha · {cloudAuthoritativeBuild ? 'Your training is saved to your private cloud account' : 'Local test mode'}</footer>
 
       <Modal open={placementExitOpen} onClose={() => setPlacementExitOpen(false)} title="Review your starting plan" description="ForgePath compared your completed workouts with the plan's starting expectations. It will not change future training until you choose what happens next." wide>
         <div className="placement-exit-review">
@@ -306,7 +306,7 @@ export function YouScreen() {
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setEquipmentOpen(false)}>Cancel</button><button className="button button--primary" onClick={submitEquipmentProfile}><ShieldCheck size={17} /> Save location</button></div>
       </Modal>
 
-      <Modal open={resetOpen} onClose={() => setResetOpen(false)} title="Clear all local training data" description="This permanently removes this browser's completed sets, sessions, plans, surveys, notes, records, feedback, and testing history, then restarts onboarding. The exercise catalog and equipment templates remain available so ForgePath can build a new plan. Export first if you want a recoverable copy.">
+      <Modal open={!cloudAuthoritativeBuild && resetOpen} onClose={() => setResetOpen(false)} title="Clear all local test data" description="This removes this browser's development data, then restarts onboarding. The exercise catalog and equipment templates remain available so ForgePath can build a new plan.">
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setResetOpen(false)}>Keep my data</button><button className="button button--danger" onClick={() => { resetForTesting(); setResetOpen(false) }}>Clear and restart</button></div>
       </Modal>
 

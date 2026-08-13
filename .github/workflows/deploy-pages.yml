@@ -34,6 +34,8 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run desktop and mobile browser journeys
+        env:
+          VITE_FORGEPATH_LOCAL_E2E: true
         run: npm run test:e2e
       - name: Build and verify the GitHub Pages artifact
         run: npm run check:pages

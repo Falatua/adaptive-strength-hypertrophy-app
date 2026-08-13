@@ -2,8 +2,8 @@
 type: backend-runbook
 tags: [fitness, app, supabase, postgres, auth, sync, operations]
 created: 2026-08-10
-updated: 2026-08-12
-status: remote-foundation-verified-invite-sent-acceptance-pending
+updated: 2026-08-13
+status: cloud-account-controls-deployed-acceptance-pending
 confidence: verified-live-transactional
 ---
 
@@ -11,18 +11,20 @@ confidence: verified-live-transactional
 
 ## Current Boundary
 
-Private alpha 0.39.1 hardens the first cloud foundation and includes exact-movement notes in its validated version 25 bootstrap snapshot. A dedicated remote project exists in a separate approved Supabase organization: `ForgePath`, project reference `kdavpkphvapnckenbuyg`, AWS `us-east-2`. JB-OS and Roman TD Global Leaderboard were not modified, paused, deleted, or reused.
+Private alpha 0.54.0 makes the validated version 25 snapshot cloud-authoritative for invited accounts. A dedicated remote project exists in a separate approved Supabase organization: `ForgePath`, project reference `kdavpkphvapnckenbuyg`, AWS `us-east-2`. JB-OS and Roman TD Global Leaderboard were not modified, paused, deleted, or reused.
 
 The local foundation includes:
 
-- two versioned migrations in `supabase/migrations`;
+- three checksum-locked versioned migrations in `supabase/migrations`;
 - fourteen forced Row Level Security tables and two security-invoker volume views;
-- an invite-only browser sign-in flow that does not create public accounts;
+- an invite-only email and password gate, invitation setup, and password recovery flow that does not create public accounts;
 - stable device identity and version metadata;
-- a local retry outbox;
+- a memory-only retry payload for cloud builds;
 - an idempotent authenticated snapshot function;
 - version conflict preservation with no silent overwrite;
-- integrity-validated cloud review and an athlete-confirmed restore with a local undo point;
+- automatic verified launch hydration, serialized checksum-deduplicated saves, and conflict preservation;
+- recently reauthenticated reset that deletes all caller-owned ForgePath rows but preserves the login;
+- a deployed authenticated Edge Function that permanently deletes the caller's Auth account and cascaded app data without exposing the server credential;
 - a deployment path for browser-safe Supabase configuration;
 - automated static database-boundary checks;
 - checksum-locked migration history plus read-only and rolled-back production acceptance scripts;
@@ -30,9 +32,9 @@ The local foundation includes:
 - a normalized entity ledger, device cursors, exercises, sessions, movements, sets, notes, survey records, and explicit missingness;
 - source-set daily, weekly, monthly, and yearly total and exclusive primary-region volume rollups.
 
-Both migrations were applied transactionally on 2026-08-11. Because the original SQL Editor application did not populate the Supabase CLI ledger, `supabase_migrations.schema_migrations` was repaired from the exact committed files. The two remote statement payloads now match the committed SHA-256 manifest byte-for-byte. Live read-only verification found fourteen of fourteen tables with forced Row Level Security, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, two security-invoker volume views, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction then passed identity, profile isolation, device registration, projection-write denial, snapshot apply, exact replay, stale conflict, invariant, and cross-athlete visibility checks. Its rollback proof returned zero test users, devices, events, and snapshots.
+The first two migrations were applied transactionally on 2026-08-11. The third account-control migration and its exact ledger statement were applied on 2026-08-13, and the `delete-account` Edge Function was deployed from the checked-in source. Because the original SQL Editor applications did not populate the Supabase CLI ledger, `supabase_migrations.schema_migrations` was repaired from the exact committed files. All three remote statement payloads are represented by the SHA-256 manifest. The established live proof covers fourteen forced-RLS tables, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, two security-invoker volume views, and the authenticated snapshot RPC. The new reset RPC is authenticated only, self-scoped through `auth.uid()`, exact-confirmation gated, and rejects JWTs older than five minutes.
 
-Production and local redirect URLs are configured. Public signup is disabled and persisted after a hard reload. The approved athlete invitation was sent on 2026-08-12 and remains unaccepted. The private release gate is temporarily enabled so that invitation acceptance can be tested, but this is not approval for wider cloud release. During the activation audit, the GitHub browser-key secret was found to contain plain-English instruction text instead of a Supabase key. The secret was corrected from the existing browser-safe dashboard key without exposing it to source, logs, or the vault. The deployment workflow now validates the gate, URL, and browser-safe key shape before it can build Pages.
+Production and local redirect URLs are configured. Public signup is disabled and persisted after a hard reload. The approved athlete invitation was sent on 2026-08-12 and remains unaccepted. The private release gate is enabled for the approved invitation acceptance window, but this is not approval for wider cloud release. During the activation audit, the GitHub browser-key secret was found to contain plain-English instruction text instead of a Supabase key. The secret was corrected from the existing browser-safe dashboard key without exposing it to source, logs, or the vault. The deployment workflow now validates the gate, URL, and browser-safe key shape before it can build Pages.
 
 It does not yet claim automatic synchronization, entity-level merge, active-workout handoff, complete new-device hydration, device revocation UI, an accepted real invitation, or a completed physical phone-to-laptop drill. The transactional database proof covers two isolated identities without leaving accounts or athlete data behind; it does not replace real invitation acceptance.
 
@@ -63,7 +65,7 @@ ForgePath was created in another owner-approved organization. This satisfies the
 - Conflict: a stale base version creates a preserved conflict and does not replace the current snapshot.
 - Device boundary: an unknown or revoked device cannot push.
 - Recovery: a verified cloud copy restores on a second browser, creates a local undo point, and retains backup integrity.
-- Offline: local training remains usable when Supabase is unreachable and the outbox remains visible.
+- Offline: no durable browser training copy is created. Unconfirmed in-memory changes remain visibly unsaved and retryable while the page stays open.
 - Status truth: only a successful authenticated push or reviewed restore changes the last-confirmed cloud state.
 - Secrets: no database password, secret key, service-role key, or personal export appears in source, compiled assets, logs, Pages, or the vault.
 

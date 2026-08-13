@@ -60,6 +60,10 @@ export type ForgePathDatabase = {
         }
         Returns: Json
       }
+      reset_forgepath_data: {
+        Args: { p_confirmation: string }
+        Returns: Json
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>

@@ -3,9 +3,9 @@ type: implementation-status
 aliases: [ForgePath Private Alpha, Adaptive Training App Private Alpha]
 tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
-updated: 2026-08-11
+updated: 2026-08-13
 status: working-private-alpha
-app_version: 0.40.0
+app_version: 0.54.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
@@ -14,9 +14,20 @@ confidence: verified
 
 ## Outcome
 
-A working private, local-first application now exists at `/Users/redsky/Projects/adaptive-strength-hypertrophy-app`. Its provisional interface name is **ForgePath Private Alpha**. The name is not final product approval.
+A working private, cloud-authoritative application now exists at `/Users/redsky/Projects/adaptive-strength-hypertrophy-app`. Its provisional interface name is **ForgePath Private Alpha**. The name is not final product approval.
 
 The code is preserved in the public GitHub source repository `Falatua/adaptive-strength-hypertrophy-app`. Releases 0.1.0 through 0.34.0 remain in Git history. Private alpha 0.30.0 is commit `b204c54342a08366f8026e305171993ffb27aee7` and adds fresh readiness evidence without penalizing missing or stale answers. Private alpha 0.31.0 feature commit `06336129e7c2952e4645e088fbc0b4c8479208cf` adds source-backed relative priority-region dose as a bounded schedule tie-break. Private alpha 0.32.0 feature commit `035e175` adds context-grounded product and design registers, the evidence-backed Today Training Field Guide, post-onboarding focus handoff, and automated UI boundaries. Private alpha 0.33.0 adds the original `field-guide-synth-v1` runtime sound pack. Private alpha 0.34.0 feature commit `2f469b4ef237092ab5a8687d2fdd03626ab55194` adds the cross-device UX task-focus corrections recorded in [[UX Audit 2026-08-10]]. Private alpha 0.35.0 feature commit `900010570c60981b2b2beeb58cf31f66b754ee37` adds the functional UX corrections recorded in [[Functional UX Audit 2026-08-10]]. Private alpha 0.36.0 feature commits `8257a8b6b0e94eaf6a0eefb4cf78302fee8335dc` and `888b5d8669d8106455a76d4e96df5f4d34da9a30` add the automatic private-source-to-public-artifact Pages release, exact subpath PWA behavior, neutral visitor seed, and stable 390 by 844 mobile gate recorded in [[GitHub Pages Deployment 2026-08-10]]. Private alpha 0.37.0 standardizes readable vertical rhythm across headers, subheaders, supporting text, cards, and dialogs on phone and laptop. The first complete GitHub specification mirror is commit `20cf4298870a11608ddc69642c52c4a1c1b2867f`; later specification commits keep `docs/product/` aligned with implementation. The latest remote identity is recorded in [[Adaptive Strength and Hypertrophy App]] and [[Codex Session Log]].
+
+## Private Alpha 0.54.0 Cloud Account Delta
+
+- Gates configured releases behind an invited Supabase email and password before any training data renders.
+- Supports secure invitation setup, password change, generic recovery email responses, and verified recovery password replacement.
+- Hydrates the integrity-checked cloud snapshot before opening training and automatically serializes checksum-deduplicated changes back to Supabase.
+- Reads legacy browser training state once when needed, uploads it, and removes it only after Supabase confirms the save. Cloud builds do not persist training payloads or retry outboxes in browser storage.
+- Adds export-first reset and permanent deletion controls with current-password reauthentication plus exact RESET or DELETE confirmation.
+- Deploys the self-scoped reset RPC and authenticated server-only account deletion Edge Function. Privileged credentials remain outside source and the browser.
+- Passes 346 deterministic tests, three checksum-locked migration checks, cloud data-boundary checks, dependency audit, lint, TypeScript build, Pages build, and compiled-secret scan. Local Playwright startup was blocked by the managed sandbox's port restriction, so GitHub Actions remains the authoritative browser suite for this release.
+- Keeps public signup disabled. Normalized entity merge, durable offline workouts, device revocation, active-workout handoff, and the physical approved-athlete phone-to-laptop drill remain incomplete.
 
 Private alpha 0.40.0 adds a 154-movement built-in catalog and searchable full-library workout substitutions, including a verified squat-to-leg-press path, while preserving the clean testing reset, exact-movement notes, and complete-state snapshot path. The dedicated remote ForgePath project remains invite-only with public signup disabled. Full automatic cross-device synchronization remains incomplete.
 

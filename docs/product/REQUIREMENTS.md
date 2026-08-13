@@ -2451,7 +2451,54 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Catalog expansion must migrate into existing browsers without erasing favorites, joint responses, athlete aliases, custom movements, or athlete-owned equipment profiles. New system equipment may extend seeded location templates. Every replacement retains its own exact history and conservative calibration when no history exists; the original load and progression clock are never transferred.
 - Detail: [[Adaptive Strength and Hypertrophy App Build Bible#82. Deep Exercise Catalog and Full-Library Substitution]]
 
+### R-388 Cloud-Authoritative Athlete Data
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: In configured private releases, Supabase is the authoritative store for training history, plans, surveys, notes, preferences, and recovery state. Browser storage may contain only the renewable Auth session and harmless device or server-version metadata. A legacy training copy may be read once for migration and must be removed only after a verified cloud save.
+- Detail: [[Data Backend Storage and Learning Architecture#Cloud-Authoritative Account Slice, 2026-08-13]]
+
+### R-389 Secure Invite-Only Password Access and Recovery
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Require an invited email and password before cloud training opens. Support invitation password setup, generic non-enumerating recovery responses, verified recovery redirects, and new passwords of at least twelve mixed characters. Keep public signup and anonymous sign-in disabled.
+- Detail: [[ForgePath Supabase Backend Runbook]]
+
+### R-390 Verified Cloud Bootstrap and Automatic Save
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Hydrate and integrity-check the newest cloud snapshot before rendering training. Serialize and checksum-deduplicate automatic saves, preserve server-version conflicts without overwrite, and never label an unconfirmed mutation as saved.
+- Detail: [[Data Backend Storage and Learning Architecture#Cloud-Authoritative Account Slice, 2026-08-13]]
+
+### R-391 Account-Preserving Data Reset
+- Status: implemented
+- Provenance: from-user
+- Requirement: Let the athlete export first, re-enter the current password, type RESET, and transactionally delete every caller-owned ForgePath data row while preserving the Auth account. Restart onboarding only after the clean cloud state is confirmed.
+- Detail: [[ForgePath Supabase Backend Runbook]]
+
+### R-392 Permanent Account and Data Deletion
+- Status: implemented
+- Provenance: from-user
+- Requirement: Let the athlete export first, re-enter the current password, type DELETE, and permanently delete the caller's Auth account plus all cascaded ForgePath data through an authenticated server-only function. Never expose the privileged credential to the browser.
+- Detail: [[ForgePath Supabase Backend Runbook]]
+
+### R-393 Sensitive Account Action Reauthentication
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Reset and permanent deletion require a fresh password sign-in and a JWT issued no more than five minutes earlier. The server must independently enforce caller identity, allowed origin where applicable, exact confirmation, and self-only scope.
+- Detail: [[ForgePath Supabase Backend Runbook]]
+
+### R-394 Cloud Data Boundary Verification
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Automated release checks must reject privileged browser credentials, persistent training outboxes, cloud-build training writes to browser storage, missing migration checksums, public reset execution, or account deletion without authenticated server administration.
+- Detail: [[ForgePath Supabase Backend Runbook]]
+
 ## Thread Coverage Audit
+
+### 2026-08-13 Cloud-Authoritative Accounts, Recovery, Reset, and Deletion
+- Scope: User requested moving ForgePath data out of local browser storage into Supabase, secure account-specific login and password recovery, and athlete-controlled reset and permanent deletion.
+- Result: Added R-388 through R-394. Private alpha 0.54.0 adds the authenticated cloud gate, invitation password setup, recovery, verified launch hydration, automatic cloud saves, one-time local migration cleanup, recently reauthenticated reset, and an authenticated server-only account deletion function.
+- Status: Local UI, backend, cloud-storage, password-policy, dependency, build, and static security checks pass. The third migration and deletion function are deployed. The final approved-athlete email and physical phone-to-laptop acceptance drill remain release gates.
 
 ### 2026-08-11 Deep Exercise Library and Leg Press Substitution
 - Scope: JB requested a deeper RP Hypertrophy and JuggernautAI-informed exercise library after leg press was unavailable when replacing squats, plus the ability to enter the library and select a different movement.
@@ -2736,6 +2783,8 @@ This is the canonical traceability index for every durable requirement JB states
 - Exact boundary and default setting for focused-training or low-decoration mode.
 
 ## Change Log
+
+- 2026-08-13: Added R-388 through R-394 for cloud-authoritative athlete storage, invite-only password access and recovery, verified automatic snapshot hydration and save, account-preserving reset, permanent account deletion, recent reauthentication, and automated cloud data-boundary security checks. Private alpha 0.54.0 keeps normalized entity merge, durable offline workouts, device revocation, and active-workout handoff deferred.
 
 - 2026-08-11: Added R-385 through R-387 and Build Bible Chapter 82 after JB could not select leg press as a squat replacement. Private alpha 0.40.0 expands the built-in catalog to 154 movements, adds searchable full-library workout substitutions, preserves athlete catalog preferences and custom records during local persistence version 24 migration, and keeps replacement prescriptions exact-history-only or conservatively calibrated.
 

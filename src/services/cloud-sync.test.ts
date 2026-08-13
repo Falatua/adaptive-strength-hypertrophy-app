@@ -13,6 +13,7 @@ import {
   queueCloudSnapshot,
   readPendingSnapshot,
   recordCloudPushResult,
+  validateNewPassword,
   type ForgePathCloudClient
 } from './cloud-sync'
 
@@ -70,6 +71,17 @@ describe('cloud configuration boundary', () => {
     const legacyAnonKey = `eyJ${'a'.repeat(40)}.${'b'.repeat(40)}.${'c'.repeat(40)}`
     expect(evaluateCloudConfiguration(projectUrl, legacyAnonKey).status).toBe('ready')
     expect(evaluateCloudConfiguration(projectUrl, 'service-role-secret')).toEqual({ status: 'invalid', reason: 'The ForgePath publishable key is invalid.' })
+  })
+})
+
+describe('password policy', () => {
+  it('requires a long mixed-character password before sending an Auth update', () => {
+    expect(validateNewPassword('Short1!')).toMatch(/12 characters/i)
+    expect(validateNewPassword('alllowercase12!')).toMatch(/uppercase/i)
+    expect(validateNewPassword('ALLUPPERCASE12!')).toMatch(/lowercase/i)
+    expect(validateNewPassword('NoNumbersHere!')).toMatch(/number/i)
+    expect(validateNewPassword('NoSymbolsHere12')).toMatch(/symbol/i)
+    expect(validateNewPassword('PrivatePath12!')).toBeNull()
   })
 })
 

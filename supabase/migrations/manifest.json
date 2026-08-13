@@ -14,6 +14,13 @@
       "file": "20260811000200_forgepath_training_core.sql",
       "sha256": "50484d39e0ef86cbe49cce813357586d185fa23b1e7c3847a88b9bc45ceef5c8",
       "remoteStatementCount": 1
+    },
+    {
+      "version": "20260813000100",
+      "name": "forgepath_account_controls",
+      "file": "20260813000100_forgepath_account_controls.sql",
+      "sha256": "18a316cb8c7657f15a0ffc6e8cf556e388de411cde9695499f9f01d96d2ebfd8",
+      "remoteStatementCount": 1
     }
   ]
 }

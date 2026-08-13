@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid'
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { athlete as seedAthlete, equipmentProfiles as seedEquipmentProfiles, exercises as seedExercises, history as seedHistory, mesocycles as seedMesocycles, sessions as seedSessions } from '../domain/seed'
 import { compressSession, normalizeExerciseRole, readinessFromSurvey, sessionCompletionStatus } from '../domain/training-engine'
 import { backupStateFrom, type RestorableAppState } from '../domain/backup'
@@ -50,6 +50,7 @@ import type {
   SubstitutionReason,
   TrainingSession
 } from '../domain/types'
+import { cloudAuthoritativeBuild, LEGACY_APP_STORAGE_KEY } from '../services/cloud-config'
 
 interface AppState {
   nav: NavKey
@@ -128,6 +129,16 @@ interface AppState {
   undoLastRestore: () => void
   resetDemo: () => void
   resetForTesting: () => void
+}
+
+const browserStateStorage: StateStorage = {
+  getItem: (name) => typeof window === 'undefined' ? null : window.localStorage.getItem(name),
+  setItem: (name, value) => {
+    if (typeof window !== 'undefined' && !cloudAuthoritativeBuild) window.localStorage.setItem(name, value)
+  },
+  removeItem: (name) => {
+    if (typeof window !== 'undefined') window.localStorage.removeItem(name)
+  }
 }
 
 const initialSettings: AppSettings = {
@@ -1235,8 +1246,9 @@ export const useAppStore = create<AppState>()(
       resetForTesting: () => set({ nav: 'today', notice: null, ...cleanTestingStart() })
     }),
     {
-      name: 'forgepath-private-alpha-v1',
+      name: LEGACY_APP_STORAGE_KEY,
       version: 25,
+      storage: createJSONStorage(() => browserStateStorage),
       partialize: (state) => ({
         athlete: state.athlete,
         settings: state.settings,

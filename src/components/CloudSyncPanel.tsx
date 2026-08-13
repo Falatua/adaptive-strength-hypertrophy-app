@@ -1,165 +1,97 @@
-import { useEffect, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Cloud, CloudOff, DownloadCloud, LoaderCircle, LogOut, Mail, RefreshCw, ShieldCheck, UploadCloud } from 'lucide-react'
-import type { Session } from '@supabase/supabase-js'
-import { backupStateFrom } from '../domain/backup'
-import { useAppStore } from '../store/useAppStore'
-import { acceptCloudSnapshot, cloudConfiguration, fetchCloudSnapshot, getCloudClient, localCloudMetadata, pushCloudSnapshot, requestPrivateSignIn, signOutCloud, type CloudSnapshot } from '../services/cloud-sync'
+import { useState } from 'react'
+import { AlertTriangle, CheckCircle2, Cloud, CloudOff, KeyRound, LoaderCircle, LogOut, RefreshCw, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
+import { cloudConfiguration } from '../services/cloud-config'
+import { updateCloudPassword, validateNewPassword } from '../services/cloud-sync'
+import { useCloudRuntime } from './cloud-runtime-context'
+import { Modal } from './Modal'
 
-type BusyAction = 'auth' | 'push' | 'pull' | 'restore' | null
+type BusyAction = 'signout' | 'password' | 'reset' | 'delete' | 'retry' | null
+
+function errorMessage(cause: unknown) {
+  return cause instanceof Error ? cause.message : 'The account action could not be completed.'
+}
 
 export function CloudSyncPanel() {
-  const restoreBackup = useAppStore((state) => state.restoreBackup)
-  const setNotice = useAppStore((state) => state.setNotice)
-  const [session, setSession] = useState<Session | null>(null)
-  const [checkingSession, setCheckingSession] = useState(cloudConfiguration.status === 'ready')
-  const [email, setEmail] = useState('')
+  const runtime = useCloudRuntime()
   const [busy, setBusy] = useState<BusyAction>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [cloudCopy, setCloudCopy] = useState<CloudSnapshot | null>(null)
-  const [metadata, setMetadata] = useState(localCloudMetadata)
+  const [passwordOpen, setPasswordOpen] = useState(false)
+  const [resetOpen, setResetOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [typedConfirmation, setTypedConfirmation] = useState('')
 
-  useEffect(() => {
-    let mounted = true
-    let unsubscribe: (() => void) | null = null
-    getCloudClient().then((client) => {
-      if (!client || !mounted) return
-      client.auth.getSession().then(({ data, error: sessionError }) => {
-        if (!mounted) return
-        if (sessionError) setError(sessionError.message)
-        setSession(data.session)
-        setCheckingSession(false)
-      })
-      const { data: listener } = client.auth.onAuthStateChange((_event, nextSession) => {
-        if (mounted) {
-          setSession(nextSession)
-          setCheckingSession(false)
-          if (!nextSession) setCloudCopy(null)
-        }
-      })
-      unsubscribe = () => listener.subscription.unsubscribe()
-    }).catch((cause: unknown) => {
-      if (!mounted) return
-      setError(cause instanceof Error ? cause.message : 'The private cloud session could not be checked.')
-      setCheckingSession(false)
-    })
-    return () => {
-      mounted = false
-      unsubscribe?.()
-    }
-  }, [])
-
-  const fail = (cause: unknown) => {
-    setError(cause instanceof Error ? cause.message : 'The cloud request could not be completed.')
+  const run = async (action: BusyAction, request: () => Promise<void>, done?: () => void) => {
+    setBusy(action)
     setMessage(null)
-    setBusy(null)
-    setMetadata(localCloudMetadata())
-  }
-
-  const sendLink = async () => {
-    setBusy('auth')
     setError(null)
     try {
-      await requestPrivateSignIn(email)
-      setMessage('Check your email for the private sign-in link. This screen can stay open.')
-      setBusy(null)
+      await request()
+      done?.()
     } catch (cause) {
-      fail(cause)
+      setError(errorMessage(cause))
+    } finally {
+      setBusy(null)
     }
   }
 
-  const push = async () => {
-    setBusy('push')
-    setError(null)
-    setMessage(null)
-    try {
-      const result = await pushCloudSnapshot(backupStateFrom(useAppStore.getState()))
-      if (result.status === 'conflict') {
-        setError('A newer cloud copy exists. Review it before choosing what should become current; ForgePath did not overwrite either copy.')
-      } else {
-        setMessage(`Cloud copy saved as version ${result.serverVersion}.`)
-      }
-      setMetadata(localCloudMetadata())
-      setBusy(null)
-    } catch (cause) {
-      fail(cause)
-    }
+  const clearSensitiveFields = () => {
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+    setTypedConfirmation('')
   }
 
-  const pull = async () => {
-    setBusy('pull')
-    setError(null)
-    setMessage(null)
-    try {
-      const snapshot = await fetchCloudSnapshot()
-      setCloudCopy(snapshot)
-      setMessage(snapshot ? `Cloud version ${snapshot.serverVersion} passed the ForgePath backup integrity check.` : 'No cloud copy exists yet. Your local training data is unchanged.')
-      setMetadata(localCloudMetadata())
-      setBusy(null)
-    } catch (cause) {
-      fail(cause)
-    }
-  }
-
-  const restore = () => {
-    if (!cloudCopy) return
-    setBusy('restore')
-    acceptCloudSnapshot(cloudCopy.serverVersion)
-    restoreBackup(cloudCopy.backup.data)
-    setMetadata(localCloudMetadata())
-    setCloudCopy(null)
-    setMessage(null)
-    setBusy(null)
-    setNotice(`Cloud version ${cloudCopy.serverVersion} restored after integrity validation. Your prior local state is available as an undo point.`)
-  }
-
-  const signOut = async () => {
-    setBusy('auth')
-    setError(null)
-    try {
-      await signOutCloud()
-      setSession(null)
-      setCloudCopy(null)
-      setMessage('Signed out. Local workout data remains on this device.')
-      setBusy(null)
-    } catch (cause) {
-      fail(cause)
-    }
-  }
-
-  if (cloudConfiguration.status !== 'ready') {
-    return <section className="panel cloud-panel cloud-panel--pending" aria-label="Cloud sync setup">
-      <div className="panel__header"><div><p className="eyebrow">Private cloud</p><h3>Cloud sync is off</h3></div><CloudOff size={19} /></div>
-      <div className="cloud-boundary"><ShieldCheck size={23} /><div><strong>Local training stays available</strong><p>{cloudConfiguration.reason} Everything you log stays on this device.</p></div></div>
-      <p className="chart-note">There is no server to sync with yet, and the app stores no keys or passwords.</p>
-    </section>
-  }
-
-  if (checkingSession) {
-    return <section className="panel cloud-panel" aria-label="Cloud sync"><div className="cloud-wait"><LoaderCircle className="spin" size={22} /><span><strong>Checking private session</strong><small>Local logging remains available.</small></span></div></section>
-  }
-
-  return <section className="panel cloud-panel" aria-label="Cloud sync">
-    <div className="panel__header"><div><p className="eyebrow">Private cloud</p><h3>{session ? 'Manual cross-device checkpoint' : 'Connect your invited account'}</h3></div><Cloud size={19} /></div>
-    {!session ? <>
-      <p className="callout-copy">Only an email already invited to this private alpha can sign in. Asking for a link never creates a public account.</p>
-      <label className="cloud-email"><span className="field-label">Invited email</span><span><Mail size={16} /><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /></span></label>
-      <button className="button button--primary button--full" disabled={busy === 'auth' || !email.trim()} onClick={sendLink}>{busy === 'auth' ? <LoaderCircle className="spin" size={16} /> : <Mail size={16} />} Email private sign-in link</button>
-    </> : <>
-      <div className="cloud-account"><CheckCircle2 size={22} /><span><small>Signed in privately</small><strong>{session.user.email ?? 'ForgePath athlete'}</strong></span><button className="text-button" disabled={Boolean(busy)} onClick={signOut}><LogOut size={14} /> Sign out</button></div>
-      <div className="cloud-status-grid">
-        <div><small>This device knows</small><strong>Cloud v{metadata.serverVersion || 'none'}</strong></div>
-        <div><small>Last confirmed</small><strong>{metadata.lastSyncedAt ? new Date(metadata.lastSyncedAt).toLocaleString() : 'Not yet synced'}</strong></div>
-        <div><small>Outbox</small><strong>{metadata.hasPendingUpload ? 'Upload waiting' : 'Clear'}</strong></div>
-      </div>
-      <div className="cloud-actions">
-        <button className="full-row-button" disabled={Boolean(busy)} onClick={push}>{busy === 'push' ? <LoaderCircle className="spin" size={17} /> : <UploadCloud size={17} />} Save this device to cloud</button>
-        <button className="full-row-button" disabled={Boolean(busy)} onClick={pull}>{busy === 'pull' ? <LoaderCircle className="spin" size={17} /> : <DownloadCloud size={17} />} Check cloud copy</button>
-      </div>
-      {cloudCopy && <div className="cloud-review"><RefreshCw size={18} /><div><strong>Cloud version {cloudCopy.serverVersion}</strong><small>{cloudCopy.backup.data.history.length} completed sets · {cloudCopy.backup.data.sessions.length} sessions · saved {new Date(cloudCopy.updatedAt).toLocaleString()}</small><p>Restoring creates an automatic local undo point. Nothing changes until you choose restore.</p><button className="button button--small button--secondary" disabled={Boolean(busy)} onClick={restore}>Restore this cloud copy</button></div></div>}
-    </>}
-    {message && <div className="cloud-message" role="status"><CheckCircle2 size={17} /><span>{message}</span></div>}
-    {error && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Cloud action stopped</strong>{error}</span></div>}
-    <p className="chart-note">This first slice uses explicit save and reviewed restore. Automatic merging and active-workout handoff stay off until their conflict and recovery gates are complete.</p>
+  if (!runtime) return <section className="panel cloud-panel cloud-panel--pending" aria-label="Cloud account">
+    <div className="panel__header"><div><p className="eyebrow">Private cloud</p><h3>Cloud access is unavailable</h3></div><CloudOff size={19} /></div>
+    <div className="cloud-boundary"><ShieldCheck size={23} /><div><strong>This build is not cloud-authoritative</strong><p>{cloudConfiguration.status === 'ready' ? 'The local test override is active.' : cloudConfiguration.reason}</p></div></div>
   </section>
+
+  const savedLabel = runtime.saveState === 'saved' ? 'Saved to Supabase' : runtime.saveState === 'saving' ? 'Saving to Supabase' : 'Cloud save needs attention'
+
+  return <>
+    <section className="panel cloud-panel" aria-label="Cloud account">
+      <div className="panel__header"><div><p className="eyebrow">Private cloud</p><h3>Your account and data</h3></div><Cloud size={19} /></div>
+      <div className="cloud-account"><CheckCircle2 size={22} /><span><small>Signed in securely</small><strong>{runtime.session.user.email ?? 'ForgePath athlete'}</strong></span><button className="text-button" disabled={Boolean(busy) || runtime.saveState === 'saving'} onClick={() => run('signout', runtime.signOut)}><LogOut size={14} /> Sign out</button></div>
+      <div className={`cloud-save-state cloud-save-state--${runtime.saveState}`}><span>{runtime.saveState === 'saving' ? <LoaderCircle className="spin" size={19} /> : runtime.saveState === 'error' ? <AlertTriangle size={19} /> : <ShieldCheck size={19} />}</span><div><strong>{savedLabel}</strong><small>{runtime.lastSavedAt ? `Last confirmed ${new Date(runtime.lastSavedAt).toLocaleString()}` : 'Waiting for the first confirmed save'}</small></div>{runtime.saveState === 'error' && <button type="button" disabled={busy === 'retry'} onClick={() => run('retry', runtime.retrySave)}><RefreshCw size={15} /> Retry</button>}</div>
+      <p className="chart-note">Training history, plans, surveys, notes, and settings are stored in your private Supabase account. This browser keeps only the signed-in session and device metadata.</p>
+      <div className="data-actions">
+        <button className="full-row-button" onClick={() => { clearSensitiveFields(); setPasswordOpen(true) }}><KeyRound size={17} /> Change password</button>
+        <button className="full-row-button" onClick={() => { clearSensitiveFields(); setResetOpen(true) }}><RotateCcw size={17} /> Reset training data</button>
+        <button className="full-row-button full-row-button--danger" onClick={() => { clearSensitiveFields(); setDeleteOpen(true) }}><Trash2 size={17} /> Delete account and data</button>
+      </div>
+      {(error || runtime.error) && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Cloud action stopped</strong>{error ?? runtime.error}</span></div>}
+      {message && <div className="cloud-message" role="status"><CheckCircle2 size={17} /><span>{message}</span></div>}
+    </section>
+
+    <Modal open={passwordOpen} onClose={() => setPasswordOpen(false)} title="Change your password" description="Confirm your current password, then choose a new password that is unique to ForgePath.">
+      <div className="cloud-sensitive-form">
+        <label><span className="field-label">Current password</span><input type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></label>
+        <label><span className="field-label">New password</span><input type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /></label>
+        <label><span className="field-label">Confirm new password</span><input type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></label>
+        <p className="modal-note">Use at least 12 characters with uppercase, lowercase, a number, and a symbol.</p>
+      </div>
+      <div className="modal__actions"><button className="button button--ghost" onClick={() => setPasswordOpen(false)}>Cancel</button><button className="button button--primary" disabled={busy === 'password' || !currentPassword || !newPassword || !confirmPassword} onClick={() => run('password', async () => {
+        const passwordError = validateNewPassword(newPassword)
+        if (passwordError) throw new Error(passwordError)
+        if (newPassword !== confirmPassword) throw new Error('The new passwords do not match.')
+        await updateCloudPassword(newPassword, currentPassword)
+        setMessage('Your password was changed.')
+      }, () => { clearSensitiveFields(); setPasswordOpen(false) })}>{busy === 'password' ? <LoaderCircle className="spin" size={16} /> : <KeyRound size={16} />} Change password</button></div>
+    </Modal>
+
+    <Modal open={resetOpen} onClose={() => setResetOpen(false)} title="Reset all training data" description="This permanently deletes your cloud training history, plans, surveys, notes, settings, and recovery state, then starts onboarding again. Your login remains active. Export first if you want a recoverable copy.">
+      <div className="cloud-sensitive-form"><label><span className="field-label">Current password</span><input type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></label><label><span className="field-label">Type RESET to confirm</span><input value={typedConfirmation} onChange={(event) => setTypedConfirmation(event.target.value)} autoComplete="off" /></label></div>
+      <div className="modal__actions"><button className="button button--ghost" onClick={() => setResetOpen(false)}>Keep my data</button><button className="button button--danger" disabled={busy === 'reset' || !currentPassword || typedConfirmation !== 'RESET'} onClick={() => run('reset', () => runtime.resetData(currentPassword), () => { clearSensitiveFields(); setResetOpen(false); setMessage('Your cloud training data was reset. Onboarding is ready for a fresh start.') })}>{busy === 'reset' ? <LoaderCircle className="spin" size={16} /> : <RotateCcw size={16} />} Reset training data</button></div>
+    </Modal>
+
+    <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete your ForgePath account" description="This permanently deletes the login and every ForgePath data row linked to it. This cannot be undone. Export first if you want to keep a personal copy.">
+      <div className="warning-box"><AlertTriangle size={18} /> You will be signed out immediately and will need a new invitation to return.</div>
+      <div className="cloud-sensitive-form"><label><span className="field-label">Current password</span><input type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></label><label><span className="field-label">Type DELETE to confirm</span><input value={typedConfirmation} onChange={(event) => setTypedConfirmation(event.target.value)} autoComplete="off" /></label></div>
+      <div className="modal__actions"><button className="button button--ghost" onClick={() => setDeleteOpen(false)}>Keep my account</button><button className="button button--danger" disabled={busy === 'delete' || !currentPassword || typedConfirmation !== 'DELETE'} onClick={() => run('delete', () => runtime.deleteAccount(currentPassword))}>{busy === 'delete' ? <LoaderCircle className="spin" size={16} /> : <Trash2 size={16} />} Permanently delete account</button></div>
+    </Modal>
+  </>
 }

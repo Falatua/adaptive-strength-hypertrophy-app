@@ -1,17 +1,16 @@
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { BACKUP_APP_VERSION, BACKUP_SCHEMA_VERSION, createBackup, parseBackup, type ForgePathBackup, type RestorableAppState } from '../domain/backup'
 import type { ForgePathDatabase, Json } from './supabase.types'
+import { cloudConfiguration, evaluateCloudConfiguration, type CloudConfiguration } from './cloud-config'
+
+export { cloudConfiguration, evaluateCloudConfiguration }
+export type { CloudConfiguration }
 
 export const CLOUD_RULE_VERSION = 'cloud-sync-v1'
 export const CLOUD_DEVICE_STORAGE_KEY = 'forgepath-cloud-device-v1'
 export const CLOUD_OUTBOX_STORAGE_KEY = 'forgepath-cloud-outbox-v1'
 export const CLOUD_VERSION_STORAGE_KEY = 'forgepath-cloud-server-version-v1'
 export const CLOUD_LAST_SYNC_STORAGE_KEY = 'forgepath-cloud-last-sync-v1'
-
-export type CloudConfiguration =
-  | { status: 'ready'; url: string; publishableKey: string }
-  | { status: 'missing'; reason: string }
-  | { status: 'invalid'; reason: string }
 
 export type CloudPushResult = {
   status: 'applied' | 'already_applied' | 'conflict'
@@ -42,35 +41,6 @@ type PushRpcRow = {
   message?: string
 }
 
-const configuredUrl = import.meta.env.VITE_SUPABASE_URL?.trim() ?? ''
-const configuredPublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() ?? ''
-
-export function evaluateCloudConfiguration(url: string, publishableKey: string): CloudConfiguration {
-  if (!url && !publishableKey) return { status: 'missing', reason: 'Private cloud access is not enabled in this build.' }
-  if (!url || !publishableKey) return { status: 'invalid', reason: 'The ForgePath cloud connection is incomplete.' }
-  try {
-    const parsed = new URL(url)
-    const isCanonicalProjectOrigin = parsed.protocol === 'https:'
-      && /^[a-z0-9]{20}\.supabase\.co$/.test(parsed.hostname)
-      && !parsed.username
-      && !parsed.password
-      && !parsed.port
-      && (parsed.pathname === '/' || parsed.pathname === '')
-      && !parsed.search
-      && !parsed.hash
-    if (!isCanonicalProjectOrigin) throw new Error('invalid host')
-    url = parsed.origin
-  } catch {
-    return { status: 'invalid', reason: 'The ForgePath cloud project URL is invalid.' }
-  }
-  const isModernPublishableKey = /^sb_publishable_[A-Za-z0-9_-]{20,}$/.test(publishableKey)
-  const isLegacyAnonJwt = /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(publishableKey) && publishableKey.length >= 100
-  if (!isModernPublishableKey && !isLegacyAnonJwt) return { status: 'invalid', reason: 'The ForgePath publishable key is invalid.' }
-  return { status: 'ready', url, publishableKey }
-}
-
-export const cloudConfiguration = evaluateCloudConfiguration(configuredUrl, configuredPublishableKey)
-
 export type ForgePathCloudClient = SupabaseClient<ForgePathDatabase>
 
 let cloudClient: ForgePathCloudClient | null = null
@@ -80,7 +50,8 @@ export async function getCloudClient() {
   if (cloudConfiguration.status !== 'ready') return null
   if (cloudClient) return cloudClient
   if (!cloudClientPromise) {
-    cloudClientPromise = import('@supabase/supabase-js').then(({ createClient }) => createClient<ForgePathDatabase>(cloudConfiguration.url, cloudConfiguration.publishableKey, {
+    const { url, publishableKey } = cloudConfiguration
+    cloudClientPromise = import('@supabase/supabase-js').then(({ createClient }) => createClient<ForgePathDatabase>(url, publishableKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     }))
   }
@@ -220,9 +191,23 @@ async function sendPending(client: ForgePathCloudClient, session: Session, pendi
 }
 
 export async function pushCloudSnapshot(state: RestorableAppState): Promise<CloudPushResult> {
-  const storage = requireBrowserStorage()
+  const storage = cloudAuthoritativeStorage()
   const { client, session } = await requireAuthenticatedClient()
   return pushCloudSnapshotUsing(state, client, session, storage)
+}
+
+const cloudPayloadMemory = new Map<string, string>()
+
+function cloudAuthoritativeStorage(): Storage {
+  const browser = requireBrowserStorage()
+  return {
+    get length() { return browser.length + cloudPayloadMemory.size },
+    clear: () => cloudPayloadMemory.clear(),
+    getItem: (key) => key === CLOUD_OUTBOX_STORAGE_KEY ? cloudPayloadMemory.get(key) ?? null : browser.getItem(key),
+    key: (index) => [...cloudPayloadMemory.keys(), ...Array.from({ length: browser.length }, (_, item) => browser.key(item)).filter(Boolean) as string[]][index] ?? null,
+    removeItem: (key) => key === CLOUD_OUTBOX_STORAGE_KEY ? cloudPayloadMemory.delete(key) : browser.removeItem(key),
+    setItem: (key, value) => key === CLOUD_OUTBOX_STORAGE_KEY ? cloudPayloadMemory.set(key, value) : browser.setItem(key, value)
+  }
 }
 
 export async function pushCloudSnapshotUsing(state: RestorableAppState, client: ForgePathCloudClient, session: Session, storage: Storage): Promise<CloudPushResult> {
@@ -273,6 +258,62 @@ export async function requestPrivateSignIn(email: string) {
   const redirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).toString()
   const { error } = await client.auth.signInWithOtp({ email: normalized, options: { shouldCreateUser: false, emailRedirectTo: redirectTo } })
   if (error) throw error
+}
+
+export async function signInWithPassword(email: string, password: string) {
+  const client = await getCloudClient()
+  if (!client) throw new Error(cloudConfiguration.status === 'ready' ? 'The ForgePath cloud client could not start.' : cloudConfiguration.reason)
+  const normalized = email.trim().toLowerCase()
+  if (!/^\S+@\S+\.\S+$/.test(normalized) || !password) throw new Error('Enter your invited email and password.')
+  const { data, error } = await client.auth.signInWithPassword({ email: normalized, password })
+  if (error) throw error
+  return data.session
+}
+
+export async function requestPasswordRecovery(email: string) {
+  const client = await getCloudClient()
+  if (!client) throw new Error(cloudConfiguration.status === 'ready' ? 'The ForgePath cloud client could not start.' : cloudConfiguration.reason)
+  const normalized = email.trim().toLowerCase()
+  if (!/^\S+@\S+\.\S+$/.test(normalized)) throw new Error('Enter your account email.')
+  const redirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).toString()
+  const { error } = await client.auth.resetPasswordForEmail(normalized, { redirectTo })
+  if (error) throw error
+}
+
+export function validateNewPassword(password: string) {
+  if (password.length < 12) return 'Use at least 12 characters.'
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+    return 'Include uppercase, lowercase, a number, and a symbol.'
+  }
+  return null
+}
+
+export async function updateCloudPassword(password: string, currentPassword?: string) {
+  const passwordError = validateNewPassword(password)
+  if (passwordError) throw new Error(passwordError)
+  const client = await getCloudClient()
+  if (!client) throw new Error('The ForgePath cloud client could not start.')
+  const { data, error } = await client.auth.updateUser({
+    password,
+    ...(currentPassword ? { current_password: currentPassword } : {}),
+    data: { forgepath_password_ready: true }
+  })
+  if (error) throw error
+  return data.user
+}
+
+export async function resetCloudData() {
+  const { client } = await requireAuthenticatedClient()
+  const { data, error } = await client.rpc('reset_forgepath_data', { p_confirmation: 'RESET' })
+  if (error) throw error
+  return data
+}
+
+export async function deleteCloudAccount() {
+  const { client } = await requireAuthenticatedClient()
+  const { data, error } = await client.functions.invoke('delete-account', { body: { confirmation: 'DELETE' } })
+  if (error) throw error
+  return data
 }
 
 export async function signOutCloud() {

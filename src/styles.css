@@ -994,6 +994,43 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .cloud-review strong, .cloud-review small { display: block; }
 .cloud-review small { margin-top: 4px; font-size: .66rem; line-height: 1.45; }
 .cloud-review p { margin: 8px 0; color: var(--muted); font-size: .72rem; line-height: 1.5; }
+.cloud-auth { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 20% 15%, rgb(97 200 255 / 9%), transparent 38%), radial-gradient(circle at 85% 80%, rgb(231 255 88 / 7%), transparent 40%), var(--bg); }
+.cloud-auth__card { width: min(100%, 440px); padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: color-mix(in srgb, var(--surface) 94%, transparent); box-shadow: 0 22px 70px rgb(0 0 0 / 34%); }
+.cloud-auth__brand { display: flex; align-items: center; gap: 11px; margin-bottom: 26px; }
+.cloud-auth__brand > span { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid rgb(97 200 255 / 36%); border-radius: 12px; background: rgb(97 200 255 / 8%); color: var(--blue); }
+.cloud-auth__brand small, .cloud-auth__brand strong { display: block; }
+.cloud-auth__brand small { margin-bottom: 3px; color: var(--muted); font: 700 .62rem var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+.cloud-auth__brand strong { font-size: .83rem; }
+.cloud-auth__intro h1 { margin: 0 0 8px; font-size: clamp(1.45rem, 5vw, 2rem); }
+.cloud-auth__intro p { margin: 0 0 22px; color: var(--muted); font-size: .8rem; line-height: 1.6; }
+.cloud-auth__field { display: grid; gap: 7px; margin-bottom: 13px; }
+.cloud-auth__field > span:first-child { color: var(--muted); font-size: .68rem; font-weight: 800; }
+.cloud-auth__field > span:last-child { position: relative; display: flex; align-items: center; }
+.cloud-auth__field > span:last-child > svg { position: absolute; left: 13px; color: var(--muted); pointer-events: none; }
+.cloud-auth__field input { min-height: 48px; padding-left: 41px; padding-right: 42px; }
+.cloud-auth__field button { position: absolute; right: 4px; display: grid; width: 40px; height: 40px; place-items: center; border: 0; background: transparent; color: var(--muted); }
+.cloud-auth__hint, .cloud-auth__message { margin: 0 0 14px; color: var(--muted); font-size: .68rem; line-height: 1.5; }
+.cloud-auth__message { padding: 10px; border: 1px solid rgb(231 255 88 / 28%); border-radius: 9px; background: rgb(231 255 88 / 6%); color: var(--lime); }
+.cloud-auth__links { display: flex; justify-content: space-between; gap: 14px; margin-top: 14px; }
+.cloud-auth__links button { min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--blue); font-size: .69rem; font-weight: 800; text-align: left; }
+.cloud-auth__privacy { display: flex; align-items: flex-start; gap: 7px; margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: .65rem; line-height: 1.45; }
+.cloud-auth__privacy svg { flex: none; color: var(--lime); }
+.cloud-auth__loading { text-align: center; }
+.cloud-auth__loading > svg { color: var(--blue); }
+.cloud-auth__loading h1 { margin: 15px 0 8px; font-size: 1.2rem; }
+.cloud-auth__loading p { color: var(--muted); font-size: .76rem; line-height: 1.55; }
+.cloud-save-state { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin: 11px 0; padding: 12px; border: 1px solid rgb(231 255 88 / 24%); border-radius: 10px; background: rgb(231 255 88 / 5%); }
+.cloud-save-state > span { color: var(--lime); }
+.cloud-save-state strong, .cloud-save-state small { display: block; }
+.cloud-save-state small { margin-top: 3px; color: var(--muted); font-size: .62rem; }
+.cloud-save-state button { display: inline-flex; align-items: center; gap: 5px; min-height: 38px; border: 0; background: transparent; color: var(--blue); font-size: .65rem; font-weight: 850; }
+.cloud-save-state--saving { border-color: rgb(97 200 255 / 25%); background: rgb(97 200 255 / 5%); }
+.cloud-save-state--saving > span { color: var(--blue); }
+.cloud-save-state--error { border-color: rgb(255 121 67 / 40%); background: rgb(255 121 67 / 7%); }
+.cloud-save-state--error > span { color: var(--orange); }
+.full-row-button--danger { color: var(--orange); }
+.cloud-sensitive-form { display: grid; gap: 12px; margin: 4px 0 18px; }
+.cloud-sensitive-form label { display: grid; gap: 6px; }
 .spin { animation: forge-spin .85s linear infinite; }
 @keyframes forge-spin { to { transform: rotate(360deg); } }
 .data-actions { border-top: 1px solid var(--line); }

@@ -5,12 +5,14 @@ import { resolve } from 'node:path'
 const manifestPath = resolve('supabase/migrations/manifest.json')
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
 const migrationDirectory = resolve('supabase/migrations')
-const [foundationEntry, trainingCoreEntry] = manifest.migrations
+const [foundationEntry, trainingCoreEntry, accountControlsEntry] = manifest.migrations
 const foundationPath = resolve(migrationDirectory, foundationEntry.file)
 const trainingCorePath = resolve(migrationDirectory, trainingCoreEntry.file)
+const accountControlsPath = resolve(migrationDirectory, accountControlsEntry.file)
 const foundation = readFileSync(foundationPath, 'utf8')
 const trainingCore = readFileSync(trainingCorePath, 'utf8')
-const migration = `${foundation}\n${trainingCore}`
+const accountControls = readFileSync(accountControlsPath, 'utf8')
+const migration = `${foundation}\n${trainingCore}\n${accountControls}`
 const requiredTables = [
   'forgepath_profiles',
   'forgepath_devices',
@@ -29,7 +31,7 @@ const requiredTables = [
 ]
 const failures = []
 
-if (manifest.schemaVersion !== 1 || manifest.migrations.length !== 2) failures.push('migration manifest shape is invalid')
+if (manifest.schemaVersion !== 1 || manifest.migrations.length !== 3) failures.push('migration manifest shape is invalid')
 for (const entry of manifest.migrations) {
   if (`${entry.version}_${entry.name}.sql` !== entry.file) failures.push(`${entry.file} does not match its version and name`)
   const contents = readFileSync(resolve(migrationDirectory, entry.file))
@@ -48,6 +50,23 @@ for (const table of requiredTables) {
 for (const evidence of ['auth.uid()', 'pg_advisory_xact_lock', 'Idempotent replay accepted', "'conflict'", 'octet_length(p_payload::text) > 26214400']) {
   if (!foundation.includes(evidence)) failures.push(`snapshot sync safety evidence is missing: ${evidence}`)
 }
+
+for (const evidence of [
+  'reset_forgepath_data',
+  "p_confirmation <> 'RESET'",
+  "auth.jwt() ->> 'iat'",
+  'Recent sign-in required',
+  'delete from public.forgepath_state_snapshots where user_id = v_user_id',
+  'grant execute on function public.reset_forgepath_data(text) to authenticated'
+]) {
+  if (!accountControls.includes(evidence)) failures.push(`account data control evidence is missing: ${evidence}`)
+}
+
+const deleteAccountFunction = readFileSync(resolve('supabase/functions/delete-account/index.ts'), 'utf8')
+for (const evidence of ['createSupabaseContext', "auth: 'user'", 'supabaseAdmin.auth.admin.deleteUser', "body.confirmation !== 'DELETE'", 'Recent sign-in required', 'allowedOrigins.has(origin)']) {
+  if (!deleteAccountFunction.includes(evidence)) failures.push(`account deletion evidence is missing: ${evidence}`)
+}
+if (/VITE_|localStorage|sessionStorage/.test(deleteAccountFunction)) failures.push('account deletion function risks exposing privileged configuration or browser storage')
 
 for (const evidence of [
   'resulting_version = expected_version + 1',
