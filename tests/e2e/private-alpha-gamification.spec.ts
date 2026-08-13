@@ -192,14 +192,14 @@ test('pipes every exercise-library browse control into a real canonical filter',
 
   await page.getByRole('button', { name: /Movement type/ }).click()
   await page.getByRole('button', { name: 'Hinge', exact: true }).click()
-  await expect(page.getByText('26 movements', { exact: true })).toBeVisible()
-  await expect(page.locator('.library-card')).toHaveCount(26)
+  await expect(page.getByText('33 movements', { exact: true })).toBeVisible()
+  await expect(page.locator('.library-card')).toHaveCount(33)
 
   await page.getByRole('button', { name: 'Hide filters' }).click()
   await expect(page.locator('#library-filter-panel')).toHaveCount(0)
   await page.getByRole('button', { name: 'Show filters' }).click()
   await page.getByRole('button', { name: 'Reset' }).click()
-  await expect(page.getByText('154 movements', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('242 movements', { exact: true }).first()).toBeVisible()
 
   // Every movement carries its own drawing rather than one shared arrow.
   await expect(page.locator('.library-card .movement-art').first()).toBeVisible()

@@ -19,7 +19,7 @@ The current PWA is responsive on phone and laptop and contains the first authent
 
 For repeatable personal testing, You now includes a true clean-data reset. It removes every local completed set, session, plan, survey, note, record, feedback item, correction, and testing event from the current browser, then restarts onboarding. It retains only the canonical exercise catalog and equipment templates required to create a new plan. It does not alter Supabase or another browser.
 
-The built-in exercise catalog now contains 154 canonical movements, including three leg-press variants and deep strength, weak-point, machine, unilateral, cable, bodyweight, arm, calf, and trunk coverage. Workout substitutions show six educated matches first and also provide a searchable full-library path. Every selected movement keeps its own exact history and receives conservative load calibration when no prior exposure exists.
+The built-in exercise catalog now contains 242 canonical movements, including three leg-press variants and deep strength, weak-point, machine, unilateral, cable, bodyweight, arm, calf, and trunk coverage. Workout substitutions show six educated matches first and also provide a searchable full-library path. Every selected movement keeps its own exact history and receives conservative load calibration when no prior exposure exists.
 
 ## Hosted preview
 

@@ -4,6 +4,7 @@ import { makeSets } from './training-engine'
 import { derivePersonalRecords } from './history-engine'
 import { buildPlacementAssessment } from './placement-engine'
 import { expandedCommercialEquipment, expandedExercises } from './exercise-catalog-expansion'
+import { extraCommercialEquipment, extraExercises, extraPortableEquipment } from './exercise-catalog-extras'
 import type { AthleteProfile, CompletedSetRecord, EquipmentProfile, Exercise, MesocyclePlan, TrainingSession } from './types'
 
 export const exercises: Exercise[] = [
@@ -116,23 +117,24 @@ export const exercises: Exercise[] = [
     id: 'ab-wheel', name: 'Ab Wheel Rollout', family: 'Trunk', aliases: ['Ab Roller'], pattern: 'carry',
     regions: ['trunk'], primaryRegion: 'trunk', equipment: ['ab wheel'], description: 'Anti-extension trunk work.', roleTags: ['accessory', 'trunk'], favorite: false, jointFeeling: 'good'
   },
-  ...expandedExercises
+  ...expandedExercises,
+  ...extraExercises
 ]
 
 export const equipmentProfiles: EquipmentProfile[] = [
   {
     id: 'equipment-commercial-gym', name: 'Commercial Gym', kind: 'commercial-gym', source: 'seed', incrementUnit: 'lb',
-    equipment: ['ab wheel', 'adjustable bench', 'barbell', 'bench', 'boards', 'cable station', 'cambered bar', 'deficit platform', 'dumbbells', 'hack squat machine', 'neutral handle', 'plates', 'rack', 'rope', 'row machine', 'safety squat bar', 'seated leg curl', ...expandedCommercialEquipment],
+    equipment: ['ab wheel', 'adjustable bench', 'barbell', 'bench', 'boards', 'cable station', 'cambered bar', 'deficit platform', 'dumbbells', 'hack squat machine', 'neutral handle', 'plates', 'rack', 'rope', 'row machine', 'safety squat bar', 'seated leg curl', ...expandedCommercialEquipment, ...extraCommercialEquipment],
     increments: { barbell: 5, dumbbell: 5, cable: 5, machine: 10, other: 5 }, constraints: [], updatedAt: '2026-08-11T12:00:00.000Z'
   },
   {
     id: 'equipment-home-gym', name: 'Home Gym', kind: 'home-gym', source: 'seed', incrementUnit: 'lb',
-    equipment: ['ab wheel', 'adjustable bench', 'barbell', 'bench', 'bodyweight', 'dumbbells', 'plates', 'pull-up bar', 'rack'],
+    equipment: ['ab wheel', 'adjustable bench', 'barbell', 'bench', 'bodyweight', 'dumbbells', 'plates', 'pull-up bar', 'rack', ...extraPortableEquipment],
     increments: { barbell: 5, dumbbell: 5, cable: 5, machine: 10, other: 5 }, constraints: ['No cable or selectorized machine work'], updatedAt: '2026-08-11T12:00:00.000Z'
   },
   {
     id: 'equipment-travel', name: 'Travel Setup', kind: 'travel', source: 'seed', incrementUnit: 'lb',
-    equipment: ['adjustable bench', 'bodyweight', 'dumbbells'],
+    equipment: ['adjustable bench', 'bodyweight', 'dumbbells', ...extraPortableEquipment],
     increments: { barbell: 5, dumbbell: 5, cable: 5, machine: 10, other: 5 }, constraints: ['Dumbbell load may vary by location'], updatedAt: '2026-08-11T12:00:00.000Z'
   }
 ]

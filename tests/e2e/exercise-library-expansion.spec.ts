@@ -47,7 +47,7 @@ test('finds leg press in the expanded library and replaces a squat through full-
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
   expect(persisted.version).toBe(24)
-  expect(persisted.state.exercises).toHaveLength(154)
+  expect(persisted.state.exercises).toHaveLength(242)
   expect(persisted.state.substitutionEvents.at(-1)).toMatchObject({ originalExerciseId: 'competition-squat', selectedExerciseId: 'leg-press-45' })
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)

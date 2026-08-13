@@ -8,7 +8,7 @@ describe('exercise catalog governance', () => {
   })
 
   it('ships a deep catalog with stable unique identities and no exact alias collision', () => {
-    expect(exercises).toHaveLength(154)
+    expect(exercises).toHaveLength(242)
     expect(new Set(exercises.map((exercise) => exercise.id)).size).toBe(exercises.length)
     expect(new Set(exercises.map((exercise) => exercise.name.toLowerCase())).size).toBe(exercises.length)
     const exactNames = new Map<string, string[]>()
