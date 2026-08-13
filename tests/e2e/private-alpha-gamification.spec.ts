@@ -167,7 +167,7 @@ test('keeps heading, subheading, and supporting copy rhythm readable across dest
   expect(modalRhythm.supportingCopyGap).toBeGreaterThanOrEqual(8)
 })
 
-test('shows an honest cloud foundation without weakening local backup or responsive containment', async ({ page }, testInfo) => {
+test('shows an honest local test boundary without weakening backup or responsive containment', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
   page.on('pageerror', (error) => browserErrors.push(error.message))
@@ -175,19 +175,12 @@ test('shows an honest cloud foundation without weakening local backup or respons
   await page.getByRole('button', { name: 'Dismiss message' }).click()
   await page.getByRole('button', { name: 'You', exact: true }).click()
 
-  const cloudPanel = page.getByLabel(/Cloud sync/)
+  const cloudPanel = page.getByLabel('Cloud account')
   await expect(cloudPanel).toBeVisible()
-  const pendingHeading = cloudPanel.getByRole('heading', { name: 'Cloud sync is off' })
-  const authHeading = cloudPanel.getByRole('heading', { name: 'Connect your invited account' })
-  if (await pendingHeading.isVisible()) {
-    await expect(cloudPanel).toContainText('Local training stays available')
-    await expect(cloudPanel).toContainText('Everything you log stays on this device.')
-    await expect(cloudPanel.getByRole('button')).toHaveCount(0)
-  } else {
-    await expect(authHeading).toBeVisible()
-    await expect(cloudPanel).toContainText('Only an email already invited to this private alpha can sign in.')
-    await expect(cloudPanel.getByRole('button', { name: 'Email private sign-in link' })).toBeDisabled()
-  }
+  await expect(cloudPanel.getByRole('heading', { name: 'Cloud access is unavailable' })).toBeVisible()
+  await expect(cloudPanel).toContainText('This build is not cloud-authoritative')
+  await expect(cloudPanel).toContainText('The local test override is active.')
+  await expect(cloudPanel.getByRole('button')).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Backup and recovery' })).toBeVisible()
   await openPanel(page, 'backup and recovery')
   await expect(page.getByRole('button', { name: 'Export verified backup' })).toBeEnabled()

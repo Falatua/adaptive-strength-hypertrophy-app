@@ -1,15 +1,15 @@
 import { expect, test } from '@playwright/test'
 
-test('clean testing reset removes all local training truth and restarts onboarding', async ({ page }) => {
+test('clean test-mode reset removes all local training truth and restarts onboarding', async ({ page }) => {
   await page.goto('/')
   await page.evaluate(() => localStorage.clear())
   await page.reload()
 
   await page.getByRole('button', { name: 'Quick Start' }).click()
   await page.getByRole('button', { name: 'You' }).click()
-  await page.getByRole('button', { name: 'Clear local training data' }).click()
+  await page.getByRole('button', { name: 'Clear local test data' }).click()
 
-  const resetDialog = page.getByRole('dialog', { name: 'Clear all local training data' })
+  const resetDialog = page.getByRole('dialog', { name: 'Clear all local test data' })
   await expect(resetDialog).toContainText('completed sets, sessions, plans, surveys, notes, records, feedback, and testing history')
   await resetDialog.getByRole('button', { name: 'Clear and restart' }).click()
 
