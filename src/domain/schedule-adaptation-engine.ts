@@ -175,6 +175,7 @@ export function scheduleSessionEligibility(session: TrainingSession, exercises: 
     const fit = exerciseEquipmentFit(exercise, equipmentProfile)
     if (!fit.available) return [{ plannedExerciseId: planned.id, exerciseName: exercise.name, reason: `missing ${fit.missing.join(', ')}` }]
     if (exercise.jointFeeling === 'avoid' || exercise.jointFeeling === 'irritating') return [{ plannedExerciseId: planned.id, exerciseName: exercise.name, reason: `${exercise.jointFeeling} joint response` }]
+    if (exercise.disliked) return [{ plannedExerciseId: planned.id, exerciseName: exercise.name, reason: 'athlete marked this movement avoid' }]
     return []
   })
   const eligibleToLead = Boolean(primary && primaryFit?.available && !primaryJointBlocked)
@@ -182,6 +183,7 @@ export function scheduleSessionEligibility(session: TrainingSession, exercises: 
     ...(!primary ? ['The protected primary has no known exercise identity.'] : []),
     ...(primaryFit && !primaryFit.available ? [`The protected primary is missing ${primaryFit.missing.join(', ')} at ${equipmentProfile.name}.`] : []),
     ...(primaryJointBlocked ? [`The protected primary is marked ${primaryJointResponse} for joint response and requires movement review.`] : []),
+    ...(primary?.disliked ? ['The protected primary is marked avoid. It stays protected until the athlete approves a training-block change.'] : []),
     ...(eligibleToLead && removableSupport.length === 0 ? [`Every planned movement is executable at ${equipmentProfile.name}.`] : []),
     ...(eligibleToLead && removableSupport.length > 0 ? [`The protected primary is executable at ${equipmentProfile.name}; ${removableSupport.length} support movement${removableSupport.length === 1 ? '' : 's'} must be removed or replaced.`] : [])
   ]

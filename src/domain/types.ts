@@ -318,6 +318,7 @@ export interface Exercise {
   description: string
   roleTags: string[]
   favorite: boolean
+  disliked?: boolean
   jointFeeling: JointFeeling
   custom?: boolean
   retired?: boolean

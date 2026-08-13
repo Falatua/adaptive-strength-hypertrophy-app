@@ -6380,6 +6380,30 @@ The full library is an athlete-authority path, not a way to bypass equipment or 
 - Added deterministic muscle-dose fallback, catalog uniqueness checks, leg-press substitution rules, and phone plus desktop full-library journeys.
 - Advanced the working application to private alpha 0.40.0 while preserving backup schema 25, the closed cloud release gate, and exact-movement progression integrity.
 
+## 83. Plain-Language Life-Aware Planning and Library Preferences
+
+### 83.1 Athlete Language
+
+Ordinary screens use starting-plan check, main-lift starting plan, training round, training block, and missed workout. Placement, movement lane, microcycle, mesocycle, and missed opportunity remain valid internal model names, but they cannot appear unexplained in athlete-facing decisions.
+
+### 83.2 Volume-Debt Boundary
+
+A missed or partial workout preserves only completed source sets. Unfinished planned sets earn no volume, records, progression, or experience and are never copied into later workouts as work the athlete owes. An unfinished priority can be rescheduled at a recoverable dose, which protects the training goal without repaying every missed set. The current training round may extend, hold, or recover. Repeated plan-to-actual differences may inform an athlete-approved future training-block version.
+
+### 83.3 Library Interaction
+
+Every movement is a visibly bounded card with a full-width, minimum 44-pixel details row and downward chevron. Every movement also exposes a written three-state programming preference: preferred, neutral, or avoid. The same state is visible and editable in the movement detail.
+
+Preferred movements receive a deterministic ranking benefit. Avoided movements are excluded from newly selected secondary work, accessories, and substitution recommendations. Preference remains separate from joint response. Marking an existing protected main lift avoid records a conflict but does not silently remove it; the athlete must approve a training-block revision.
+
+### Version 1.51.0 Change Entry
+
+- Added the Life-Aware Plan contract and plain-language training-cycle terminology.
+- Defined volume debt and prohibited automatic catch-up work.
+- Reorganized Library cards with stronger boundaries and a touch-safe bottom details control.
+- Added preferred, neutral, and avoid programming preferences with deterministic generation and substitution effects.
+- Advanced the working application to private alpha 0.53.0 with 345 deterministic tests; browser journeys remain pending in the current restricted local environment.
+
 ### Version 1.47.0 Change Entry
 
 - Activated the dedicated ForgePath Supabase project in a separate approved organization without modifying JB-OS or Roman TD.

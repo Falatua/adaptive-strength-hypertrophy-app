@@ -50,6 +50,7 @@ export function mergeSystemExerciseCatalog(current: Exercise[] | undefined, syst
       ...structuredClone(system),
       aliases: normalizeCatalogList([...system.aliases, ...exercise.aliases], [system.name]),
       favorite: exercise.favorite,
+      disliked: exercise.disliked,
       jointFeeling: exercise.jointFeeling,
       retired: exercise.retired,
       mergedIntoId: exercise.mergedIntoId

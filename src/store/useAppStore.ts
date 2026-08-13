@@ -113,6 +113,7 @@ interface AppState {
   clearSetStructure: (sessionId: string, groupId: string) => { ok: boolean; error?: string }
   markMissed: (sessionId: string, context: MissedOpportunityInput) => { ok: boolean; error?: string; event?: MissedOpportunityEvent }
   toggleFavorite: (exerciseId: string) => void
+  setExercisePreference: (exerciseId: string, preference: 'preferred' | 'neutral' | 'avoid') => void
   setJointFeeling: (exerciseId: string, jointFeeling: Exercise['jointFeeling']) => void
   addCustomExercise: (exercise: Exercise) => void
   updateExerciseCatalog: (exerciseId: string, input: ExerciseCatalogInput, reason: string) => { ok: boolean; error?: string; exercise?: Exercise }
@@ -458,7 +459,7 @@ export const useAppStore = create<AppState>()(
           ? recordPlacementWarmup(event, response, new Date().toISOString())
           : event),
         notice: response === 'painful'
-          ? 'Pain noted. Modify or stop the affected movement. This placement check will require review before another automatic start.'
+          ? 'Pain noted. Modify or stop the affected movement. This starting-plan check will require your review before another automatic start.'
           : response === 'harder'
             ? 'Harder warm-up saved. Keep the first work set submaximal so the route can be checked honestly.'
             : 'Warm-up response saved as placement evidence.'
@@ -482,7 +483,7 @@ export const useAppStore = create<AppState>()(
         if (!reason.trim()) return { ok: false, error: 'Add a short reason so the placement decision remains explainable.' }
         const createdAt = new Date().toISOString()
         const assessment = buildPlacementExitAssessment({ placement: state.athlete.placement, verificationEvents: state.placementVerifications, assessedAt: createdAt })
-        if (assessment.collected === 0) return { ok: false, error: 'Complete at least one productive check on the current plan route before recording a criterion review.' }
+        if (assessment.collected === 0) return { ok: false, error: 'Finish at least one check on your current route before reviewing this checkpoint.' }
         if (assessment.reassessmentRequired && decision === 'continue-current') return { ok: false, error: 'Pain-changing evidence requires reassessment before automatic training can continue.' }
         const sourceIds = assessment.sourceVerificationEvents.filter((event) => event.placementRoute === assessment.currentRoute).map((event) => event.id).sort().join('|')
         const duplicate = state.placementExitReviews.some((review) => review.placementCreatedAt === assessment.placementCreatedAt && review.assessment.sourceVerificationEvents.filter((event) => event.placementRoute === review.assessment.currentRoute).map((event) => event.id).sort().join('|') === sourceIds)
@@ -495,19 +496,19 @@ export const useAppStore = create<AppState>()(
           placementExitReviews: [...state.placementExitReviews, event],
           ...(decision === 'reassess-now' ? { onboardingComplete: false, onboardingStartStep: 1 as const, activeSessionId: null, nav: 'today' as const } : {}),
           notice: decision === 'reassess-now'
-            ? 'Criterion review saved. Review the current movement profile before creating the next placement and plan version.'
+            ? 'Checkpoint review saved. Look over your current lift profile before starting a new placement and plan version.'
             : decision === 'defer'
-              ? 'Placement checkpoint deferred with your reason. Training history and the current route remain unchanged.'
-              : 'Current placement retained from athlete-reviewed criterion evidence. Normal progression remains separately governed.'
+              ? 'Starting-plan review deferred with your reason. Training history and the current plan remain unchanged.'
+              : 'You reviewed the checkpoint and kept your current placement. Normal progression is unaffected.'
         })
         return { ok: true }
       },
       recordMovementPlacementExitReview: (exerciseId, decision, reason) => {
         const state = get()
-        if (state.activeSessionId) return { ok: false, error: 'Finish or leave the active workout before reviewing a movement lane.' }
+        if (state.activeSessionId) return { ok: false, error: 'Finish or leave the active workout before reviewing a main lift\'s starting plan.' }
         if (!reason.trim()) return { ok: false, error: 'Add a short reason so the movement decision remains explainable.' }
         const movementPlacement = state.athlete.placement.movementPlacements?.find((movement) => movement.exerciseId === exerciseId)
-        if (!movementPlacement) return { ok: false, error: 'That exact movement lane is not part of the current placement.' }
+        if (!movementPlacement) return { ok: false, error: 'That main lift is not part of the current starting profile.' }
         const createdAt = new Date().toISOString()
         const assessment = buildMovementPlacementExitAssessment({ placement: state.athlete.placement, movementPlacement, verificationEvents: state.placementVerifications, assessedAt: createdAt })
         if (assessment.collected === 0) return { ok: false, error: 'Complete at least one productive check for this exact movement before recording a lane review.' }
@@ -964,7 +965,12 @@ export const useAppStore = create<AppState>()(
         })
         return { ok: true, event: result.event }
       },
-      toggleFavorite: (exerciseId) => set((state) => ({ exercises: state.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, favorite: !exercise.favorite } : exercise) })),
+      toggleFavorite: (exerciseId) => set((state) => ({ exercises: state.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, favorite: !exercise.favorite, disliked: false } : exercise) })),
+      setExercisePreference: (exerciseId, preference) => set((state) => ({
+        exercises: state.exercises.map((exercise) => exercise.id === exerciseId
+          ? { ...exercise, favorite: preference === 'preferred', disliked: preference === 'avoid' }
+          : exercise)
+      })),
       setJointFeeling: (exerciseId, jointFeeling) => set((state) => ({ exercises: state.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, jointFeeling } : exercise) })),
       addCustomExercise: (exercise) => set((state) => ({ exercises: [...state.exercises, exercise] })),
       updateExerciseCatalog: (exerciseId, input, reason) => {
@@ -1109,7 +1115,7 @@ export const useAppStore = create<AppState>()(
       },
       applyMesocycleRevision: (draft) => {
         const state = get()
-        if (state.activeSessionId) return { ok: false, error: 'Finish or leave the active workout before revising the mesocycle.' }
+        if (state.activeSessionId) return { ok: false, error: 'Finish or leave the active workout before revising the training block.' }
         if (!draft.revisionReason.trim()) return { ok: false, error: 'Add a short reason so this plan change stays explainable.' }
         if (draft.strengthAnchors.length === 0) return { ok: false, error: 'Choose at least one protected strength anchor.' }
         const activePlan = state.mesocycles.find((plan) => plan.id === state.activeMesocycleId)
@@ -1156,13 +1162,13 @@ export const useAppStore = create<AppState>()(
       },
       applyCycleReview: (decision, reason) => {
         const state = get()
-        if (state.activeSessionId) return { ok: false, error: 'Finish or leave the active workout before reviewing the exposure round.' }
+        if (state.activeSessionId) return { ok: false, error: 'Finish or leave the active workout before reviewing the training round.' }
         if (!reason.trim()) return { ok: false, error: 'Add a short reason so the cycle decision remains explainable.' }
         const plan = state.mesocycles.find((candidate) => candidate.id === state.activeMesocycleId && candidate.status === 'active')
-        if (!plan) return { ok: false, error: 'There is no active mesocycle to review.' }
+        if (!plan) return { ok: false, error: 'There is no active training block to review.' }
         const reviewedAt = new Date()
         const summary = buildCycleReview(plan, state.sessions, state.history, reviewedAt)
-        if (!summary.eligible[decision]) return { ok: false, error: decision === 'extend' ? 'Extension becomes available after the target date and before the maximum span.' : 'Complete the protected exposure round before choosing that decision.' }
+        if (!summary.eligible[decision]) return { ok: false, error: decision === 'extend' ? 'Extension becomes available after the target date and before the maximum span.' : 'Complete the important workouts in this training round before choosing that decision.' }
         const currentRoundSessions = state.sessions.filter((session) => session.mesocycleId === plan.id && (session.microcycleNumber ?? 1) === summary.microcycleNumber)
         const unresolvedIds = currentRoundSessions.filter((session) => ['planned', 'active', 'deferred'].includes(session.status)).map((session) => session.id)
         let sessions = state.sessions
@@ -1208,8 +1214,8 @@ export const useAppStore = create<AppState>()(
             : generated.length
               ? `Exposure round ${summary.microcycleNumber + 1} is queued from the recorded review decision.`
               : decision === 'extend'
-                ? 'The unresolved exposure round was extended without adding catch-up volume.'
-                : 'The current exposure round remains active at the same targets.'
+                ? 'The unfinished training round was extended without adding catch-up work.'
+                : 'The current training round remains active at the same targets.'
         })
         return { ok: true }
       },

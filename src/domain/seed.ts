@@ -171,7 +171,7 @@ export const athlete: AthleteProfile = {
   name: 'Demo Athlete',
   trainingAge: 8,
   goal: 'Powerbuilding: improve squat, bench, and deadlift while growing chest, back, and arms',
-  entryRoute: 'Base-Building Cycle',
+  entryRoute: 'Building a Base',
   strengthAnchors: ['competition-squat', 'competition-bench', 'conventional-deadlift'],
   priorityRegions: ['chest', 'back', 'triceps'],
   weeklyOpportunities: 3,

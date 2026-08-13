@@ -11,6 +11,7 @@ This directory records the complete product and implementation specification in 
 - [GitHub Pages Deployment](GITHUB_PAGES_DEPLOYMENT_2026-08-10.md): automatic deployment, release gates, project-subpath PWA behavior, public-preview privacy, and live verification.
 - [Pixel Training Adventure](PIXEL_TRAINING_ADVENTURE.md): original character world, evolving companion, XP, level-up, evolution, accessibility, and asset rules.
 - [Exercise Library and Recommendations](EXERCISE_LIBRARY_AND_RECOMMENDATIONS.md): catalog identity, preferences, contextual exercise rules, substitutions, and recommendation behavior.
+- [Life-Aware Plan](LIFE_AWARE_PLAN_2026-08-12.md): plain-language training rounds and blocks, missed-work handling, prohibited volume debt, and future-plan learning.
 - [Cloud Sync and Backend](CLOUD_SYNC_AND_BACKEND.md): phone-laptop parity, local-first storage, authenticated synchronization, workout handoff, conflicts, security, and recovery.
 - [Supabase Backend Runbook](SUPABASE_BACKEND_RUNBOOK.md): live project state, migration checksums, credential boundaries, repeatable acceptance gates, remaining invitation drill, and next backend slices.
 

@@ -279,12 +279,12 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
       <main className="workout-main">
         {cancelledPlacementName && (
           <section className="warmup-check placement-session-check is-captured" role="status" aria-live="polite">
-            <div><AlertTriangle size={20} /><span><strong>Exact movement check cancelled</strong><small>This session no longer verifies the {cancelledPlacementName} placement lane. The replacement still earns its own training history.</small></span></div>
+            <div><AlertTriangle size={20} /><span><strong>{cancelledPlacementName} starting check cancelled</strong><small>Because you changed the main lift, this workout no longer tells ForgePath how {cancelledPlacementName} should progress. The replacement still builds its own training history.</small></span></div>
           </section>
         )}
         {placementVerification && placementCheckUnlocked && (
-          <section className={`warmup-check placement-session-check ${placementVerification.warmupResponse !== 'not-answered' ? 'is-captured' : ''}`} aria-label="Placement verification check">
-            <div><Sparkles size={20} /><span><strong>{placementVerification.movementPlacement ? `${placementVerification.movementPlacement.exerciseName} check` : 'Placement check'} {placementVerification.sequence} of 3</strong><small>{placementCheckMovement ? `Every ${placementVerification.movementPlacement!.exerciseName} set is logged.` : 'Every planned set is logged.'} {placementRouteLabels[placementVerification.placementRoute]} is our best guess so far. How did the work feel? Answer only if it helps.</small></span></div>
+          <section className={`warmup-check placement-session-check ${placementVerification.warmupResponse !== 'not-answered' ? 'is-captured' : ''}`} aria-label="Starting plan check">
+            <div><Sparkles size={20} /><span><strong>{placementVerification.movementPlacement ? `${placementVerification.movementPlacement.exerciseName} starting check` : 'Starting plan check'} {placementVerification.sequence} of 3</strong><small>{placementCheckMovement ? `Every ${placementVerification.movementPlacement!.exerciseName} set is logged.` : 'Every planned set is logged.'} {placementRouteLabels[placementVerification.placementRoute]} is ForgePath's best starting guess. Tell it whether the completed work felt easier, as expected, harder, or painful. This answer is optional.</small></span></div>
             {placementVerification.warmupResponse === 'not-answered' ? <div>
               <button onClick={() => { setPlacementWarmup(session.id, 'better') }}>Better</button>
               <button onClick={() => { setPlacementWarmup(session.id, 'as-expected') }}>As expected</button>

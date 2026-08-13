@@ -48,6 +48,28 @@ The interface should feel like an experienced training partner with the quiet de
 - Supersets require zero catalogued muscle overlap. Myo-reps and drop sets belong late in a movement, with the leading set retaining the progression target while every completed mini-set or drop still counts toward dose.
 - A first-time athlete starts with a blank training record. Established-history scenarios are test fixtures, never user-facing demo data.
 
+## Life-Aware Planning
+
+Athlete-facing language uses **training round** for a microcycle and **training block** for a mesocycle. Technical names may remain in schemas and research documents, but ordinary screens must define them before use and prefer the plain-language names.
+
+- A training round is the current group of important workouts, usually about a week but allowed to stretch when life interrupts it. Calendar days schedule the work; only completed work advances the training clock.
+- A training block is several training rounds serving one larger strength or hypertrophy goal. Its length is a planning estimate, not proof that the athlete completed the intended work.
+- A missed opportunity means a planned workout could not be performed. It is schedule evidence, not failure, noncompliance, or completed training.
+- A partial workout keeps every completed set as source truth. Unfinished sets receive no repetitions, load, volume, progression, points, or record credit.
+- **Volume debt** means treating missed planned sets as work the athlete must repay later. ForgePath prohibits volume debt. It never doubles the next workout, crams missed accessories into later sessions, or adds sets merely to make the plan spreadsheet whole.
+- After missed work, only open future plans may move, shorten, reorder, substitute, hold, extend, recover, or expire. Completed workouts never change.
+- The current training round may extend, hold its targets, or enter recovery. The next round may progress load, then repetitions, then sets only when enough important work was completed and recovery supports the change.
+- One disrupted round does not erase earned progress or automatically lower the plan. Repeated differences between planned and completed training become evidence at the next athlete-approved training-block review. The proposal may reduce weekly frequency, session length, or planned volume to match sustainable reality.
+- Every future-plan change is a suggestion with a plain-language reason. The athlete approves it. Life-aware adaptation is never silent and never punitive.
+
+## Exercise Preferences
+
+- Every movement has one programming preference: preferred, neutral, or avoid. The Library presents these as clear thumbs-up and thumbs-down controls with written labels.
+- Preferred movements rank higher when ForgePath selects new secondary work, accessories, or substitutions. Preference never overrides pain, equipment availability, goal specificity, or completed-history truth.
+- Avoided movements are excluded from newly generated secondary work, accessories, and substitution recommendations.
+- Marking a current protected main lift as avoid does not silently remove or replace it. ForgePath keeps the current plan intact, explains the conflict, and waits for the athlete to approve a training-block revision.
+- Programming preference and joint response remain separate. "I do not like this" is not automatically recorded as pain, and an irritating joint response is not reduced to personal taste.
+
 ## Accessibility & Inclusion
 
 Target WCAG 2.2 AA for all core workflows. Support keyboard and touch input, screen readers, large text, sufficient contrast, non-color state labels, reduced motion, silent operation, optional haptics, focused-training mode, and a modern non-pixel typeface for numerical and explanatory content. Pixel art and game language are enhancement layers and can never be required to understand or complete training.

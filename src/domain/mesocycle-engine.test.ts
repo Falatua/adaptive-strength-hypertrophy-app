@@ -93,4 +93,18 @@ describe('criterion-driven mesocycle planning', () => {
     expect(history.length).toBeGreaterThan(preview.projectedSets)
     expect(preview.sessions.every((session) => session.exercises.every((item) => item.sets.every((set) => !set.completed)))).toBe(true)
   })
+
+  it('keeps disliked movements out of newly selected support work', () => {
+    const avoided = structuredClone(exercises).map((exercise) => exercise.id === 'two-board-press' || exercise.id === 'cable-fly' ? { ...exercise, disliked: true } : exercise)
+    const preview = buildMesocyclePreview(draft(), {
+      exercises: avoided,
+      currentSessions: sessions,
+      history,
+      planId: 'preference-plan',
+      planVersion: 2
+    })
+    const programmed = preview.sessions.flatMap((session) => session.exercises.map((exercise) => exercise.exerciseId))
+    expect(programmed).not.toContain('two-board-press')
+    expect(programmed).not.toContain('cable-fly')
+  })
 })

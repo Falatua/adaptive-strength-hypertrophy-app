@@ -17,16 +17,16 @@ export const movementPlacementRuleVersion = 'movement-placement-v2' as const
 export const previousMovementPlacementRuleVersion = 'movement-placement-v1' as const
 
 export const placementRouteLabels: Record<PlacementRoute, string> = {
-  'introductory-skill': 'Introductory Skill Cycle',
-  reacclimation: 'Reacclimation and Productive Work',
-  'bridge-calibration': 'Bridge and Calibration Cycle',
-  'base-building': 'Base-Building Cycle',
-  hypertrophy: 'Direct Hypertrophy Development',
-  powerbuilding: 'Direct Powerbuilding Development',
-  strength: 'Direct Strength Development',
-  power: 'Direct Power Development',
-  'event-specific': 'Event-Specific Development',
-  'pain-aware-modified': 'Pain-Aware Modified Entry'
+  'introductory-skill': 'Skill-Building Cycle',
+  reacclimation: 'Easing Back In',
+  'bridge-calibration': 'Finding Your Working Weights',
+  'base-building': 'Building a Base',
+  hypertrophy: 'Muscle Growth',
+  powerbuilding: 'Strength and Size',
+  strength: 'Strength',
+  power: 'Power and Speed',
+  'event-specific': 'Meet Preparation',
+  'pain-aware-modified': 'Working Around Pain'
 }
 
 const clampDimension = (value: number | null, fallback = 3) => Math.max(1, Math.min(5, value ?? fallback))

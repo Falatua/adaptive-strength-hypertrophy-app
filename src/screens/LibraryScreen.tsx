@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
-import { AlertTriangle, BookOpen, BrainCircuit, ChevronRight, Clock3, Download, Dumbbell, FileCheck2, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Star, Target, Trash2, Undo2, Upload } from 'lucide-react'
+import { AlertTriangle, BookOpen, BrainCircuit, ChevronDown, ChevronRight, Clock3, Download, Dumbbell, FileCheck2, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Target, ThumbsDown, ThumbsUp, Trash2, Undo2, Upload } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { duplicateCandidates, volumeLoad } from '../domain/training-engine'
 import { findExerciseDuplicateGroups } from '../domain/catalog-engine'
@@ -12,17 +12,11 @@ import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
 import { MovementArt } from '../components/MovementArt'
 import { movementNotesForExercise } from '../domain/movement-note-engine'
+import { bodyRegionFilters as regionFilters, bodyRegionFilterIds } from './library-filters'
 
-const regionFilters: { id: BodyRegion | 'all'; label: string }[] = [
-  { id: 'all', label: 'All' }, { id: 'chest', label: 'Chest' }, { id: 'back', label: 'Back' }, { id: 'shoulders', label: 'Shoulders' },
-  { id: 'quadriceps', label: 'Quads' }, { id: 'hamstrings', label: 'Hamstrings' }, { id: 'glutes', label: 'Glutes' }, { id: 'biceps', label: 'Biceps' }, { id: 'triceps', label: 'Triceps' }
-]
 const muscleLabel = new Map(muscleDefinitions.map((muscle) => [muscle.id, muscle.label]))
-const patternFilters: { id: MovementPattern | 'all'; label: string }[] = [
-  { id: 'all', label: 'All patterns' }, { id: 'squat', label: 'Squat' }, { id: 'hinge', label: 'Hinge' }, { id: 'horizontal-push', label: 'Horizontal push' },
-  { id: 'vertical-push', label: 'Vertical push' }, { id: 'horizontal-pull', label: 'Horizontal pull' }, { id: 'vertical-pull', label: 'Vertical pull' }, { id: 'isolation', label: 'Isolation' }, { id: 'carry', label: 'Carry' }
-]
-type BrowseDimension = 'body' | 'pattern' | 'favorites'
+type BrowseDimension = 'body' | 'favorites'
+type PreferenceFilter = 'all' | 'preferred' | 'avoid'
 
 const patternLabels: Record<MovementPattern, string> = {
   squat: 'Squat pattern',
@@ -37,12 +31,11 @@ const patternLabels: Record<MovementPattern, string> = {
 
 
 export function LibraryScreen() {
-  const { athlete, activeSessionId, exercises, equipmentProfiles, history, movementNotes, historyMutations, substitutionEvents, settings, toggleFavorite, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, undoLatestHistoryMutation, restartOnboarding, setNotice } = useAppStore()
+  const { athlete, activeSessionId, exercises, equipmentProfiles, history, movementNotes, historyMutations, substitutionEvents, settings, setExercisePreference, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, undoLatestHistoryMutation, restartOnboarding, setNotice } = useAppStore()
   const [placementEvidenceAssessedAt] = useState(() => new Date().toISOString())
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState<BodyRegion | 'all'>('all')
-  const [pattern, setPattern] = useState<MovementPattern | 'all'>('all')
-  const [favoritesOnly, setFavoritesOnly] = useState(false)
+  const [preferenceFilter, setPreferenceFilter] = useState<PreferenceFilter>('all')
   const [filtersOpen, setFiltersOpen] = useState(true)
   const [visibleWindow, setVisibleWindow] = useState({ key: '', count: 48 })
   const [browseDimension, setBrowseDimension] = useState<BrowseDimension | null>(null)
@@ -80,13 +73,12 @@ export function LibraryScreen() {
     const needle = search.toLowerCase()
     const matchesSearch = !needle || [exercise.name, exercise.family, ...exercise.aliases, ...exercise.roleTags].join(' ').toLowerCase().includes(needle)
     const matchesRegion = region === 'all' || exercise.regions.includes(region)
-    const matchesPattern = pattern === 'all' || exercise.pattern === pattern
-    const matchesFavorite = !favoritesOnly || exercise.favorite
-    return matchesSearch && matchesRegion && matchesPattern && matchesFavorite
-  }), [exercises, favoritesOnly, pattern, search, region])
+    const matchesPreference = preferenceFilter === 'all' || (preferenceFilter === 'preferred' ? exercise.favorite : exercise.disliked)
+    return matchesSearch && matchesRegion && matchesPreference
+  }), [exercises, preferenceFilter, search, region])
 
   const activeExercises = useMemo(() => exercises.filter((exercise) => !exercise.retired), [exercises])
-  const filterWindowKey = `${search}\u0000${region}\u0000${pattern}\u0000${favoritesOnly}`
+  const filterWindowKey = `${search}\u0000${region}\u0000${preferenceFilter}`
   const visibleCount = visibleWindow.key === filterWindowKey ? visibleWindow.count : 48
   const placementEvidence = useMemo(() => athlete.strengthAnchors.flatMap((exerciseId) => {
     const exercise = exercises.find((candidate) => candidate.id === exerciseId)
@@ -274,32 +266,30 @@ export function LibraryScreen() {
     setFiltersOpen(true)
     setSearch('')
     setRegion('all')
-    setPattern('all')
-    setFavoritesOnly(dimension === 'favorites')
+    setPreferenceFilter(dimension === 'favorites' ? 'preferred' : 'all')
     window.requestAnimationFrame(() => filterPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
   const clearFilters = () => {
     setSearch('')
     setRegion('all')
-    setPattern('all')
-    setFavoritesOnly(false)
+    setPreferenceFilter('all')
     setBrowseDimension(null)
   }
 
   return (
     <div className="screen">
       <header className="screen-header">
-        <div><p className="eyebrow">Movement library</p><h1>One movement. One history.</h1><p>Browse by body part or movement type, save the ones you like, and every set you log stays with the same movement.</p></div>
+        <div><p className="eyebrow">Movement library</p><h1>Find it. Rate it. Train it.</h1><p>Browse by body part, mark movements you prefer or want to avoid, and open any movement for its complete history and setup details.</p></div>
         <div className="screen-header__actions"><button className="button button--secondary" onClick={openImport}><Upload size={17} /> Import history</button><button className="button button--secondary" onClick={() => setQualityOpen(true)}><ListChecks size={17} /> Data quality {duplicateGroups.length ? `(${duplicateGroups.length})` : ''}</button><button className="button button--primary" onClick={() => { setFormError(null); setAddOpen(true) }}><Plus size={17} /> Add movement</button></div>
       </header>
 
       <section className="library-categories">
         {([
-          ['body', 'Body part', '11 areas', 'chest'], ['pattern', 'Movement type', '8 types', 'squat'],
-          ['favorites', 'My movements', `${activeExercises.filter((exercise) => exercise.favorite).length} saved`, 'heart']
+          ['body', 'Body part', `${bodyRegionFilterIds.length} areas`, 'chest'],
+          ['favorites', 'My preferences', `${activeExercises.filter((exercise) => exercise.favorite).length} preferred · ${activeExercises.filter((exercise) => exercise.disliked).length} avoid`, 'heart']
         ] as [BrowseDimension, string, string, string][]).map(([id, title, detail, icon]) => <button key={id} aria-pressed={browseDimension === id} onClick={() => openBrowseDimension(id)}><span className={`category-pixel category-pixel--${icon}`}><Dumbbell size={19} /></span><strong>{title}</strong><small>{detail}</small></button>)}
-        <button className="library-view-all" aria-pressed={browseDimension === null && region === 'all' && pattern === 'all' && !favoritesOnly && !search} onClick={clearFilters}><span className="category-pixel category-pixel--target"><ListChecks size={19} /></span><strong>View all</strong><small>{activeExercises.length} movements</small></button>
+        <button className="library-view-all" aria-pressed={browseDimension === null && region === 'all' && preferenceFilter === 'all' && !search} onClick={clearFilters}><span className="category-pixel category-pixel--target"><ListChecks size={19} /></span><strong>View all</strong><small>{activeExercises.length} movements</small></button>
       </section>
 
       <section className="library-browser" ref={filterPanelRef}>
@@ -310,8 +300,8 @@ export function LibraryScreen() {
         </div>
         {filtersOpen && <div className="filter-stack" id="library-filter-panel">
           <div className="filter-chips" aria-label="Body part and weak point filter"><span>Body part</span>{regionFilters.map((item) => <button key={item.id} className={region === item.id ? 'selected' : ''} aria-pressed={region === item.id} onClick={() => setRegion(item.id)}>{item.label}</button>)}</div>
-          <div className="filter-chips" aria-label="Movement pattern filter"><span>Pattern</span>{patternFilters.map((item) => <button key={item.id} className={pattern === item.id ? 'selected' : ''} aria-pressed={pattern === item.id} onClick={() => setPattern(item.id)}>{item.label}</button>)}</div>
-          <div className="filter-chips filter-chips--availability" aria-label="Saved movements filter"><span>Show</span><button className={!favoritesOnly ? 'selected' : ''} aria-pressed={!favoritesOnly} onClick={() => setFavoritesOnly(false)}>All movements</button><button className={favoritesOnly ? 'selected' : ''} aria-pressed={favoritesOnly} onClick={() => setFavoritesOnly(true)}><Star size={14} /> Saved only</button><button onClick={clearFilters}>Reset</button></div>
+
+          <div className="filter-chips filter-chips--availability" aria-label="Movement preference filter"><span>Preference</span><button className={preferenceFilter === 'all' ? 'selected' : ''} aria-pressed={preferenceFilter === 'all'} onClick={() => setPreferenceFilter('all')}>All</button><button className={preferenceFilter === 'preferred' ? 'selected' : ''} aria-pressed={preferenceFilter === 'preferred'} onClick={() => setPreferenceFilter('preferred')}><ThumbsUp size={14} /> Preferred</button><button className={preferenceFilter === 'avoid' ? 'selected' : ''} aria-pressed={preferenceFilter === 'avoid'} onClick={() => setPreferenceFilter('avoid')}><ThumbsDown size={14} /> Avoid</button><button onClick={clearFilters}>Reset</button></div>
         </div>}
         {filtered.length ? (
           <div className="exercise-grid">
@@ -320,14 +310,14 @@ export function LibraryScreen() {
               const latest = [...exactHistory].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0]
               const equipmentFit = exerciseEquipmentFit(exercise, activeEquipmentProfile)
               return (
-                <article className={`library-card ${equipmentFit.available ? 'is-available' : 'is-unavailable'}`} key={exercise.id}>
-                  <div className="library-card__top"><MovementArt exercise={exercise} /><button className={exercise.favorite ? 'favorite active' : 'favorite'} onClick={() => toggleFavorite(exercise.id)} aria-label={`${exercise.favorite ? 'Remove' : 'Add'} ${exercise.name} ${exercise.favorite ? 'from' : 'to'} favorites`}><Star size={17} fill={exercise.favorite ? 'currentColor' : 'none'} /></button></div>
+                <article className={`library-card ${equipmentFit.available ? 'is-available' : 'is-unavailable'} ${exercise.favorite ? 'is-preferred' : ''} ${exercise.disliked ? 'is-disliked' : ''}`} key={exercise.id}>
+                  <div className="library-card__top"><MovementArt exercise={exercise} /><div className="exercise-preference" role="group" aria-label={`${exercise.name} preference`}><button className={exercise.favorite ? 'is-active is-preferred' : ''} aria-pressed={exercise.favorite} onClick={() => setExercisePreference(exercise.id, exercise.favorite ? 'neutral' : 'preferred')}><ThumbsUp size={17} /><span>Prefer</span></button><button className={exercise.disliked ? 'is-active is-avoid' : ''} aria-pressed={Boolean(exercise.disliked)} onClick={() => setExercisePreference(exercise.id, exercise.disliked ? 'neutral' : 'avoid')}><ThumbsDown size={17} /><span>Avoid</span></button></div></div>
                   <p className="eyebrow">{exercise.family} · {exercise.pattern.replace('-', ' ')}</p>
                   <h3>{exercise.name}</h3>
                   <p>{exercise.description}</p>
                   <div className="library-card__tags"><span>{patternLabels[exercise.pattern].toLowerCase()}</span><span>{exercise.primaryRegion}</span><span className={`joint joint--${exercise.jointFeeling}`}>{exercise.jointFeeling}</span>{exercise.custom && <span>custom</span>}<span className={equipmentFit.available ? 'equipment-available' : 'equipment-missing'}>{equipmentFit.available ? 'available here' : `missing ${equipmentFit.missing.length}`}</span></div>
                   <div className="library-card__history"><History size={15} /><span>{latest ? <>Last: <strong>{latest.load} × {latest.reps}</strong> · {new Date(latest.completedAt).toLocaleDateString()}</> : 'No exact history yet'}</span></div>
-                  <button className="library-card__open" onClick={() => setSelected(exercise)}>Open movement</button>
+                  <button className="library-card__open" onClick={() => setSelected(exercise)} aria-label={`View details for ${exercise.name}`}><span>View movement details</span><ChevronDown size={20} /></button>
                 </article>
               )
             })}
@@ -354,9 +344,11 @@ export function LibraryScreen() {
               <div><small>Last exact exposure</small><strong>{selectedHistory[0] ? new Date(selectedHistory[0].completedAt).toLocaleDateString() : 'Never'}</strong></div>
               <div><small>Exact volume load</small><strong>{volumeLoad(selectedHistory).toLocaleString()}</strong></div>
               <div><small>Completed sets</small><strong>{selectedHistory.length}</strong></div>
+              <div><small>Programming preference</small><strong>{selected.favorite ? 'Preferred' : selected.disliked ? 'Avoid' : 'Neutral'}</strong></div>
               <div><small>Joint response</small><strong>{selected.jointFeeling}</strong></div>
               <div><small>Saved notes</small><strong>{selectedMovementNotes.length}</strong></div>
             </div>
+            <div className="preference-picker"><span><Target size={18} /><span><strong>Should ForgePath program this movement?</strong><small>Preferred movements rank higher. Avoided movements are excluded from new secondary work, accessories, and substitution suggestions. A current main lift stays protected until you approve a training-block change.</small></span></span><div><button className={selected.favorite ? 'selected preferred' : ''} aria-pressed={selected.favorite} onClick={() => { const preference = selected.favorite ? 'neutral' : 'preferred'; setExercisePreference(selected.id, preference); setSelected({ ...selected, favorite: preference === 'preferred', disliked: false }) }}><ThumbsUp size={17} /> Prefer</button><button className={!selected.favorite && !selected.disliked ? 'selected neutral' : ''} aria-pressed={!selected.favorite && !selected.disliked} onClick={() => { setExercisePreference(selected.id, 'neutral'); setSelected({ ...selected, favorite: false, disliked: false }) }}>Neutral</button><button className={selected.disliked ? 'selected avoid' : ''} aria-pressed={Boolean(selected.disliked)} onClick={() => { const preference = selected.disliked ? 'neutral' : 'avoid'; setExercisePreference(selected.id, preference); setSelected({ ...selected, favorite: false, disliked: preference === 'avoid' }) }}><ThumbsDown size={17} /> Avoid</button></div></div>
             <div className={`exercise-muscle-map ${selectedMuscleCredits ? '' : 'is-unmapped'}`}>
               <span><Target size={18} /><span><strong>{selected.custom ? selected.muscleMapping ? 'Muscles you mapped' : 'No muscles mapped yet' : 'Built-in muscle mapping'}</strong><small>{selected.custom && selected.muscleMapping ? `Reviewed ${new Date(selected.muscleMapping.reviewedAt).toLocaleDateString()} · editable and undoable` : selected.custom ? 'Completed and planned sets receive no muscle credit until you review a mapping.' : 'Built in and fixed. You can edit the mapping on movements you create yourself.'}</small></span></span>
               {selectedMuscleCredits ? <span className="exercise-muscle-map__credits"><b>Direct · {muscleLabel.get(Object.entries(selectedMuscleCredits).find(([, credit]) => credit === 1)?.[0] as MuscleId) ?? 'Unknown'}</b><small>Secondary · {Object.entries(selectedMuscleCredits).filter(([, credit]) => credit === 0.5).map(([muscle]) => muscleLabel.get(muscle as MuscleId)).join(', ') || 'None'}</small></span> : <b>No inferred credit</b>}

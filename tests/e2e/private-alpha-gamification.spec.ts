@@ -199,25 +199,38 @@ test('shows an honest cloud foundation without weakening local backup or respons
   expect(browserErrors).toEqual([])
 })
 
-test('pipes every exercise-library browse control into a real canonical filter', async ({ page }) => {
+test('organizes the exercise library and saves programming preferences', async ({ page }) => {
   await enterRecommendedProfile(page)
   await page.getByRole('button', { name: 'Library', exact: true }).click()
 
-  await page.getByRole('button', { name: /My movements/ }).click()
+  await page.getByRole('button', { name: /My preferences/ }).click()
   await expect(page.getByText('16 movements', { exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Saved only' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Preferred' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByText('Nothing matches this search yet.')).toHaveCount(0)
 
-  await page.getByRole('button', { name: /Movement type/ }).click()
-  await page.getByRole('button', { name: 'Hinge', exact: true }).click()
-  await expect(page.getByText('33 movements', { exact: true })).toBeVisible()
-  await expect(page.locator('.library-card')).toHaveCount(33)
+  await page.getByRole('button', { name: /Body part/ }).click()
+  await page.getByRole('button', { name: 'Back', exact: true }).click()
+  await expect(page.locator('.library-card').first()).toBeVisible()
 
   await page.getByRole('button', { name: 'Hide filters' }).click()
   await expect(page.locator('#library-filter-panel')).toHaveCount(0)
   await page.getByRole('button', { name: 'Show filters' }).click()
   await page.getByRole('button', { name: 'Reset' }).click()
   await expect(page.getByText('242 movements', { exact: true }).first()).toBeVisible()
+
+  const conventional = page.locator('.library-card').filter({ hasText: 'Conventional Deadlift' }).first()
+  await expect(conventional).toBeVisible()
+  await conventional.getByRole('button', { name: 'Avoid' }).click()
+  await expect(conventional).toHaveClass(/is-disliked/)
+  const detailButton = conventional.getByRole('button', { name: 'View details for Conventional Deadlift' })
+  expect((await detailButton.boundingBox())?.height).toBeGreaterThanOrEqual(44)
+  await detailButton.click()
+  await expect(page.getByRole('heading', { name: 'Conventional Deadlift' })).toBeVisible()
+  await expect(page.getByText('Avoided movements are excluded')).toBeVisible()
+  await page.getByRole('button', { name: 'Close Conventional Deadlift' }).click()
+  await page.reload()
+  await page.locator('#library-filter-panel').getByRole('button', { name: 'Avoid', exact: true }).click()
+  await expect(page.locator('.library-card').filter({ hasText: 'Conventional Deadlift' })).toBeVisible()
 
   // Every movement carries its own drawing rather than one shared arrow.
   await expect(page.locator('.library-card .movement-art').first()).toBeVisible()

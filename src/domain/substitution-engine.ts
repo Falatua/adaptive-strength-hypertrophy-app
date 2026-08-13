@@ -110,7 +110,7 @@ export function rankExerciseSubstitutions(input: {
 }): RankedSubstitution[] {
   const { planned, original, exercises, history, athlete, readiness, reason, equipmentProfile } = input
   return exercises
-    .filter((candidate) => candidate.id !== original.id && !candidate.retired && candidate.jointFeeling !== 'avoid')
+    .filter((candidate) => candidate.id !== original.id && !candidate.retired && candidate.jointFeeling !== 'avoid' && !candidate.disliked)
     .filter((candidate) => !equipmentProfile || exerciseEquipmentFit(candidate, equipmentProfile).available)
     .map((candidate) => {
       const reasons: string[] = []

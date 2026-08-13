@@ -45,7 +45,7 @@ export function PostSurveyModal({
   })), note)
 
   return (
-    <Modal open={open} onClose={onClose} title={`${followUp ? 'Optional ' : ''}${surveyModeLabel[mode]} session feedback`} description={`${questions.length} optional questions. ${completedSets} of ${totalSets} sets are complete; unfinished work creates no volume debt.`} wide>
+    <Modal open={open} onClose={onClose} title={`${followUp ? 'Optional ' : ''}${surveyModeLabel[mode]} session feedback`} description={`${questions.length} optional questions. ${completedSets} of ${totalSets} sets are complete; unfinished sets will not be added to a later workout.`} wide>
       <div className="finish-summary">
         <div><small>Completed sets</small><strong>{completedSets}</strong></div>
         <div><small>Volume load</small><strong>{volume.toLocaleString()}</strong></div>

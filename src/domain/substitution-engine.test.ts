@@ -76,4 +76,14 @@ describe('explainable exercise substitutions', () => {
     expect(legPress.prescriptionMethod).toBe('baseline-calibration')
     expect(legPress.prescription.every((workSet) => workSet.targetLoad === 0 && workSet.targetRir >= 3)).toBe(true)
   })
+
+  it('never recommends a movement the athlete marked avoid', () => {
+    const avoided = structuredClone(exercises).map((exercise) => exercise.id === 'leg-press-45' ? { ...exercise, disliked: true } : exercise)
+    const commercial = equipmentProfiles.find((profile) => profile.id === 'equipment-commercial-gym')!
+    const result = rankExerciseSubstitutions({
+      planned: structuredClone(squatPlan), original: squat, exercises: avoided, history: structuredClone(history),
+      athlete: structuredClone(athlete), readiness: 'normal', reason: 'preference', equipmentProfile: commercial
+    })
+    expect(result.map((item) => item.candidate.id)).not.toContain('leg-press-45')
+  })
 })

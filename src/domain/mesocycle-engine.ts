@@ -68,6 +68,7 @@ const exerciseScore = (exercise: Exercise, role: 'secondary' | 'accessory', prio
   if (exercise.jointFeeling === 'great') score += 5
   if (exercise.jointFeeling === 'good') score += 3
   if (exercise.favorite) score += 2
+  if (exercise.disliked) score -= 100
   if (role === 'secondary' && exercise.roleTags.includes('secondary builder')) score += 7
   if (role === 'accessory' && exercise.roleTags.includes('accessory')) score += 4
   if (priorityRegions.includes(exercise.primaryRegion)) score += 6
@@ -142,7 +143,7 @@ function plannedExercise(
 
 function chooseSecondary(anchor: Exercise, exercises: Exercise[], excluded: Set<string>, priorityRegions: BodyRegion[], equipmentProfile?: EquipmentProfile) {
   return exercises
-    .filter((exercise) => !excluded.has(exercise.id) && exercise.jointFeeling !== 'avoid')
+    .filter((exercise) => !excluded.has(exercise.id) && exercise.jointFeeling !== 'avoid' && !exercise.disliked)
     .filter((exercise) => !equipmentProfile || exerciseEquipmentFit(exercise, equipmentProfile).available)
     .filter((exercise) => exercise.pattern === anchor.pattern || exercise.family === anchor.family)
     .sort((a, b) => exerciseScore(b, 'secondary', priorityRegions) - exerciseScore(a, 'secondary', priorityRegions) || a.name.localeCompare(b.name))[0]
@@ -155,7 +156,7 @@ function chooseAccessories(exercises: Exercise[], excluded: Set<string>, regions
   rotated.forEach((region) => {
     if (selected.length >= count) return
     const match = exercises
-      .filter((exercise) => !excluded.has(exercise.id) && !selected.some((item) => item.id === exercise.id) && exercise.jointFeeling !== 'avoid' && exercise.primaryRegion === region)
+      .filter((exercise) => !excluded.has(exercise.id) && !selected.some((item) => item.id === exercise.id) && exercise.jointFeeling !== 'avoid' && !exercise.disliked && exercise.primaryRegion === region)
       .filter((exercise) => !equipmentProfile || exerciseEquipmentFit(exercise, equipmentProfile).available)
       .sort((a, b) => exerciseScore(b, 'accessory', regions) - exerciseScore(a, 'accessory', regions) || a.name.localeCompare(b.name))[0]
     if (match) selected.push(match)

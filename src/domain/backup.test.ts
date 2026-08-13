@@ -68,7 +68,7 @@ describe('versioned backup and restore', () => {
     expect(parsed.summary.historyReviewedAnchors).toBe(0)
     expect(parsed.summary.routeGeneratedSessions).toBe(0)
     expect(parsed.summary.equipmentProfiles).toBe(3)
-    expect(parsed.summary.placementRoute).toBe('Base-Building Cycle')
+    expect(parsed.summary.placementRoute).toBe('Building a Base')
     expect(parsed.summary.placementConfidence).toBe('high')
     expect(parsed.warnings).toEqual([])
   })

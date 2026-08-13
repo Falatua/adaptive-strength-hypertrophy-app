@@ -150,7 +150,7 @@ export function ProgressScreen() {
     ? 'No completed work in this window.'
     : trend !== null && trend > 0
       ? 'Your completed workload moved forward.'
-      : 'Every useful exposure remains visible.'
+      : 'Every workout you completed stays visible.'
 
   const showMonth = (offset: number) => {
     const next = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + offset, 1)
@@ -196,13 +196,13 @@ export function ProgressScreen() {
       <CollapsiblePanel className="panel training-timeline" ariaLabel="Calendar and completed exposure history" label="the calendar view" defaultOpen header={<>
         <div className="panel__header training-timeline__header">
           <div><p className="eyebrow">Two clocks</p><h3>When you trained versus what moved forward</h3></div>
-          <div className="mini-toggle" aria-label="Timeline axis"><button aria-pressed={timelineAxis === 'calendar'} className={timelineAxis === 'calendar' ? 'selected' : ''} onClick={() => setTimelineAxis('calendar')}><CalendarDays size={15} /> Calendar</button><button aria-pressed={timelineAxis === 'exposure'} className={timelineAxis === 'exposure' ? 'selected' : ''} onClick={() => setTimelineAxis('exposure')}><ListOrdered size={15} /> Exposure order</button></div>
+          <div className="mini-toggle" aria-label="Timeline axis"><button aria-pressed={timelineAxis === 'calendar'} className={timelineAxis === 'calendar' ? 'selected' : ''} onClick={() => setTimelineAxis('calendar')}><CalendarDays size={15} /> By date</button><button aria-pressed={timelineAxis === 'exposure'} className={timelineAxis === 'exposure' ? 'selected' : ''} onClick={() => setTimelineAxis('exposure')}><ListOrdered size={15} /> By workout</button></div>
         </div>
       </>}>
 
         <div className={`fixed-event-strip fixed-event-strip--${fixedEvent.state}`} aria-label="Fixed event countdown">
           <CalendarClock size={19} />
-          {fixedEvent.state === 'none' ? <span><strong>No fixed event declared</strong><small>Calendar history and exposure order remain available without inventing a deadline.</small></span>
+          {fixedEvent.state === 'none' ? <span><strong>No fixed event declared</strong><small>You can look at this by date or by workout without the app inventing a deadline.</small></span>
             : fixedEvent.state === 'unparsed' ? <span><strong>{fixedEvent.label}</strong><small>Add an ISO date such as 2026-12-12 during placement review to enable an exact countdown.</small></span>
               : <span><strong>{fixedEvent.label}</strong><small>{fixedEvent.state === 'upcoming' ? `${fixedEvent.daysRemaining} calendar days remain` : fixedEvent.state === 'today' ? 'Event date is today' : `${Math.abs(fixedEvent.daysRemaining ?? 0)} calendar days past`} · the deadline never changes completed-exposure order</small></span>}
         </div>
@@ -238,9 +238,9 @@ export function ProgressScreen() {
           {exposureSequence.length ? <ol className="exposure-sequence">{[...exposureSequence].reverse().map((point) => {
             const session = sessions.find((candidate) => candidate.id === point.sessionId)
             return <li key={`${point.sessionId}:${point.sequence}`} className={`exposure-point exposure-point--${point.changeKind}`}><span className="exposure-point__sequence">{String(point.sequence).padStart(2, '0')}</span><div><p className="eyebrow">{new Date(point.completedAt).toLocaleDateString()} · {point.daysSincePrior === null ? 'first exact exposure' : `${point.daysSincePrior} calendar-day gap`}</p><h4>{session?.title ?? (point.imported ? 'Imported training' : point.exerciseName)}</h4><p>{point.completedSets} sets · {point.repetitions} reps · {point.volumeLoad.toLocaleString()} {settings.units} volume · {point.heaviestLoad} {settings.units} heaviest</p><small>{point.qualityConfirmedSets}/{point.completedSets} sets with quality confirmed · {point.averageRir.toFixed(1)} average RIR</small></div><span className="exposure-change"><b>{point.changeKind.replaceAll('-', ' ')}</b><small>{point.changeLabel}</small></span></li>
-          })}</ol> : <div className="compact-empty"><ListOrdered size={25} /><strong>No exact exposure sequence yet</strong><p>Family movements and neighboring variations are not borrowed. Complete or import this exact movement to begin its sequence.</p></div>}
+          })}</ol> : <div className="compact-empty"><ListOrdered size={25} /><strong>No completed workouts for this lift yet</strong><p>Family movements and neighboring variations are not borrowed. Complete or import this exact movement to begin its sequence.</p></div>}
         </div>}
-        <p className="chart-note"><Link2 size={14} /> Calendar dates show when opportunities and work occurred. Exposure order shows only completed exact-movement evidence. Gaps stay visible, but they never become fake completed weeks, automatic progression, or catch-up volume.</p>
+        <p className="chart-note"><Link2 size={14} /> By date shows when training actually happened. By workout lines up only the sessions where you completed that exact lift, in the order you did them. Gaps stay visible, and they never become fake completed weeks, automatic progression, or catch-up work.</p>
       </CollapsiblePanel>
 
       <div className="charts-grid">

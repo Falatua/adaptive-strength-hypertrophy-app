@@ -69,12 +69,12 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
     return {
       action: 'hold',
       title: 'Establish today’s baseline',
-      explanation: 'No completed comparable exposure is available yet. Complete the planned work before progressing.',
+      explanation: 'You have not completed a comparable set of this lift yet. Finish the planned work before it can progress.',
       nextLoad: targetLoad,
       nextReps: targetReps,
       nextSets: targetSets,
       confidence: 'low',
-      reasons: ['No completed comparable exposure']
+      reasons: ['No comparable set completed yet']
     }
   }
 
@@ -101,8 +101,8 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
   if (continuity === 'returning' || readiness === 'reacclimate') {
     return {
       action: 'reacclimate',
-      title: 'Rebuild the exposure',
-      explanation: 'The recent gap makes prior capacity less certain. Use a submaximal exposure before resuming progression.',
+      title: 'Rebuild this lift',
+      explanation: 'The recent gap makes your old numbers less certain. Take one easier session before progression resumes.',
       nextLoad: Math.max(increment, Math.round((targetLoad * 0.9) / increment) * increment),
       nextReps: Math.max(repRange[0], targetReps - 1),
       nextSets: Math.max(2, targetSets - 1),
@@ -155,12 +155,12 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
     return {
       action: 'sets',
       title: 'One recovered set is available',
-      explanation: 'Load and repetitions have remained stable across multiple exposures while recovery is good. One additional set can increase the current block dose.',
+      explanation: 'Load and reps have held steady across several sessions while recovery is good. One added set can raise the dose for this block.',
       nextLoad: targetLoad,
       nextReps: targetReps,
       nextSets: targetSets + 1,
       confidence: 'medium',
-      reasons: ['Multiple comparable exposures', 'Recovery supports more dose', 'Set increase remains goal-relevant']
+      reasons: ['Several comparable sessions', 'Recovery supports more dose', 'Set increase remains goal-relevant']
     }
   }
 

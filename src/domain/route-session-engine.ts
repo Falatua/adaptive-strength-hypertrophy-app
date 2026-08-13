@@ -37,7 +37,7 @@ const sharedProgression = 'Progress load first when comparable performance and r
 
 const profiles: Record<PlacementRoute, RouteSessionProfile> = {
   'introductory-skill': {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'introductory-skill', label: 'Introductory Skill',
+    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'introductory-skill', label: 'Skill Building',
     strategy: 'Technique-first practice with repeatable submaximal work and a small exercise menu.',
     primary: { sets: 2, reps: 8, rir: 4, intensity: 0.60, restSeconds: 150 },
     secondary: { sets: 2, reps: 10, rir: 4, intensity: 0.56, restSeconds: 105 },
@@ -46,7 +46,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['Skill practice takes priority over load expression.', 'Low set count leaves room to learn without manufacturing fatigue.']
   },
   reacclimation: {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'reacclimation', label: 'Reacclimation',
+    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'reacclimation', label: 'Rebuild',
     strategy: 'Restore tolerance through familiar movements, conservative loading, and no catch-up volume.',
     primary: { sets: 2, reps: 6, rir: 4, intensity: 0.65, restSeconds: 165 },
     secondary: { sets: 2, reps: 8, rir: 3, intensity: 0.60, restSeconds: 120 },
@@ -55,7 +55,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['Past skill is preserved while current tolerance is re-established.', 'Volume is intentionally below a normal development route.']
   },
   'bridge-calibration': {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'bridge-calibration', label: 'Bridge and Calibration',
+    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'bridge-calibration', label: 'Calibration',
     strategy: 'Collect representative non-maximal performance while every exact movement establishes its own baseline.',
     primary: { sets: 3, reps: 6, rir: 3, intensity: 0.70, restSeconds: 180 },
     secondary: { sets: 2, reps: 8, rir: 3, intensity: 0.62, restSeconds: 120 },
@@ -64,7 +64,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['The session produces useful work and placement evidence at the same time.', 'Unknown exact movements keep zero-load calibration instead of borrowing another variation.']
   },
   'base-building': {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'base-building', label: 'Base-Building',
+    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'base-building', label: 'Base Building',
     strategy: 'Build repeatable work capacity through moderate repetitions, controlled effort, and stable exercise exposure.',
     primary: { sets: 3, reps: 8, rir: 3, intensity: 0.67, restSeconds: 165 },
     secondary: { sets: 3, reps: 10, rir: 3, intensity: 0.60, restSeconds: 105 },
@@ -73,7 +73,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['Moderate work builds tolerance before more specific loading.', 'The queue protects your main lifts while keeping fatigue recoverable.']
   },
   hypertrophy: {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'hypertrophy', label: 'Hypertrophy',
+    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'hypertrophy', label: 'Muscle Growth',
     strategy: 'Keep your main lifts practiced while allocating more recoverable sets to priority regions.',
     primary: { sets: 3, reps: 8, rir: 3, intensity: 0.67, restSeconds: 150 },
     secondary: { sets: 3, reps: 10, rir: 2, intensity: 0.62, restSeconds: 105 },
@@ -82,7 +82,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['Priority accessories receive the largest route-specific dose.', 'Anchor work stays present without consuming the whole fatigue budget.']
   },
   powerbuilding: {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'powerbuilding', label: 'Powerbuilding',
+    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'powerbuilding', label: 'Strength and Size',
     strategy: 'Protect specific strength practice first, then use secondary and accessory work to build the main lift and priority muscles.',
     primary: { sets: 4, reps: 5, rir: 2, intensity: 0.77, restSeconds: 180 },
     secondary: { sets: 3, reps: 8, rir: 2, intensity: 0.67, restSeconds: 135 },
@@ -109,7 +109,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['Submaximal loading preserves movement speed and intent.', 'Longer rest and lower accessory dose protect power quality.']
   },
   'event-specific': {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'event-specific', label: 'Event-Specific',
+    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'event-specific', label: 'Meet Prep',
     strategy: 'Prioritize your declared main lifts and event-relevant execution while retaining only useful support work.',
     primary: { sets: 4, reps: 3, rir: 2, intensity: 0.82, restSeconds: 210 },
     secondary: { sets: 3, reps: 5, rir: 3, intensity: 0.72, restSeconds: 150 },
@@ -118,7 +118,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['Specific practice on the main lift receives priority.', 'The route does not claim a complete peak without a validated event and taper plan.']
   },
   'pain-aware-modified': {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'pain-aware-modified', label: 'Pain-Aware Modified',
+    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'pain-aware-modified', label: 'Pain-Aware',
     strategy: 'Pause automatic generation until restrictions and movement choices are reviewed.',
     primary: { sets: 0, reps: 0, rir: 4, intensity: 0, restSeconds: 0 },
     secondary: { sets: 0, reps: 0, rir: 4, intensity: 0, restSeconds: 0 },

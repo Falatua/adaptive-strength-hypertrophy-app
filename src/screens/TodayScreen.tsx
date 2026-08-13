@@ -113,14 +113,14 @@ export function TodayScreen() {
   const whyReasons = nextSession?.generation
     ? [
         { title: `${routeLabel} route`, detail: nextSession.generation.strategy },
-        ...(nextSession.generation.movementPlacement ? [{ title: `${nextSession.generation.movementPlacement.exerciseName} has its own starting lane`, detail: `${nextSession.generation.movementPlacement.reasons[0]} Technique ${nextSession.generation.movementPlacement.movementSkill}/5, heavy-work tolerance ${nextSession.generation.movementPlacement.strengthTolerance}/5. Evidence sits at ${nextSession.generation.movementPlacement.dataConfidence}/5, counted from your logged sets rather than guessed.${nextSession.generation.movementPlacement.historyReview?.acceptedFields.includes('strengthTolerance') ? ` You accepted the heavy-work tolerance your ${nextSession.generation.movementPlacement.historyReview.evidence.recentSetCount} recent exact sets support.` : ''}` }] : []),
+        ...(nextSession.generation.movementPlacement ? [{ title: `${nextSession.generation.movementPlacement.exerciseName} can start differently`, detail: `${nextSession.generation.movementPlacement.reasons[0]} Repeatable technique ${nextSession.generation.movementPlacement.movementSkill}/5, heavy-work readiness ${nextSession.generation.movementPlacement.strengthTolerance}/5, and usable history ${nextSession.generation.movementPlacement.dataConfidence}/5. These ratings use your logged sets when available rather than borrowing proof from another lift.${nextSession.generation.movementPlacement.historyReview?.acceptedFields.includes('strengthTolerance') ? ` You accepted the heavy-work readiness supported by ${nextSession.generation.movementPlacement.historyReview.evidence.recentSetCount} recent sets of this lift.` : ''}` }] : []),
         ...(nextSession.generation.equipment ? [{ title: `Built for ${nextSession.generation.equipment.profileName}`, detail: `Every movement here is one you can actually load today. Jumps use this location's ${nextSession.generation.equipment.incrementUnit} increments, so the target is a weight you can really make.` }] : []),
         ...nextSession.generation.reasons.map((reason) => ({ title: 'Route evidence', detail: reason })),
         { title: progression.title, detail: progression.explanation }
       ]
     : [
-        { title: `${primaryExercise?.name ?? 'The primary movement'} is the lift that matters today`, detail: 'Everything else is built around it. Its last qualified exact exposure is the number you have to beat, and no similar-looking variation gets to stand in for it.' },
-        { title: 'Missing a day costs you nothing but the day', detail: 'There is no catch-up debt here and nothing gets added to punish you. You pick up at the next useful exposure, not at an invented deficit.' },
+        { title: `${primaryExercise?.name ?? 'The primary movement'} is the lift that matters today`, detail: 'Everything else is built around it. The last time you did this exact lift is the number you have to beat, and no similar-looking variation gets to stand in for it.' },
+        { title: 'Missing a day costs you nothing but the day', detail: 'There is no catch-up debt here and nothing gets added to punish you. You pick up at the next useful workout, not at an invented deficit.' },
         { title: `Built to finish inside ${settings.availableMinutes} minutes`, detail: 'Your main lift gets your best effort first. Accessory work is what gets trimmed when time runs short, because that is the part you can afford to lose.' },
         { title: progression.title, detail: progression.explanation }
       ]
@@ -169,7 +169,7 @@ export function TodayScreen() {
         <div>
           <p className="eyebrow">{today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
           <h1>Your next useful win.</h1>
-          <p>Built from completed exposures, not an untouched calendar.</p>
+          <p>Built from workouts you actually finished, not an untouched calendar.</p>
         </div>
         <div className="local-pill"><CloudOff size={16} /><span>Local first<strong>Saved on this device</strong></span></div>
       </header>
@@ -182,7 +182,7 @@ export function TodayScreen() {
 
       {pendingPlacementRecovery && <section className="placement-recovery-check" aria-label="Optional placement recovery check">
         <span className="placement-recovery-check__icon"><ShieldCheck size={20} /></span>
-        <div><p className="eyebrow">{pendingPlacementRecovery.movementPlacement ? `${pendingPlacementRecovery.movementPlacement.exerciseName} check` : 'Placement check'} {pendingPlacementRecovery.sequence} of 3 · optional</p><strong>How did you recover from {sessions.find((session) => session.id === pendingPlacementRecovery.sessionId)?.title ?? 'the last session'}?</strong><small>This completes the exact-lane route check. Skipping leaves recovery unknown and never blocks training.</small></div>
+        <div><p className="eyebrow">{pendingPlacementRecovery.movementPlacement ? `${pendingPlacementRecovery.movementPlacement.exerciseName} starting check` : 'Starting plan check'} {pendingPlacementRecovery.sequence} of 3 · optional</p><strong>How did you recover from {sessions.find((session) => session.id === pendingPlacementRecovery.sessionId)?.title ?? 'the last session'}?</strong><small>This helps ForgePath decide whether the starting work for this lift was recoverable. Skipping leaves recovery unknown and never blocks training.</small></div>
         <div className="placement-recovery-check__actions">
           <button onClick={() => resolvePlacementRecovery(pendingPlacementRecovery.id, 'recovered')}>Recovered</button>
           <button onClick={() => resolvePlacementRecovery(pendingPlacementRecovery.id, 'acceptable')}>Acceptable</button>
@@ -192,11 +192,11 @@ export function TodayScreen() {
       </section>}
 
       {placementExitActionable && <button className={`placement-exit-callout placement-exit-callout--${placementExit.recommendation}`} onClick={() => setNav('you')}>
-        <FileCheck2 size={20} /><span><small>Needs your review</small><strong>{placementExit.recommendation === 'confirm-current' ? 'Your current route has earned confirmation.' : placementExit.recommendation === 'hold-current' ? 'The current route should be reviewed and held.' : placementExit.recommendation === 'reassessment-required' ? 'Placement reassessment is required.' : 'Your placement route is ready for review.'}</strong><p>{placementExit.reasons[0]}</p></span><ChevronRight size={18} />
+        <FileCheck2 size={20} /><span><small>Starting plan review</small><strong>{placementExit.recommendation === 'confirm-current' ? 'Completed workouts support your current starting plan.' : placementExit.recommendation === 'hold-current' ? 'Review the current plan before progressing it.' : placementExit.recommendation === 'reassessment-required' ? 'Your starting plan needs another review.' : 'Your starting plan is ready for review.'}</strong><p>{placementExit.reasons[0]}</p></span><ChevronRight size={18} />
       </button>}
 
       {movementExit && <button className={`placement-exit-callout movement-exit-callout placement-exit-callout--${movementExit.recommendation}`} onClick={() => setNav('you')}>
-        <Dumbbell size={20} /><span><small>Movement review</small><strong>{movementExit.exerciseName} has an independent lane checkpoint.</strong><p>{movementExit.reasons[0]}</p></span><ChevronRight size={18} />
+        <Dumbbell size={20} /><span><small>Main-lift review</small><strong>Review what ForgePath learned about {movementExit.exerciseName}.</strong><p>{movementExit.reasons[0]}</p></span><ChevronRight size={18} />
       </button>}
 
       {latestScheduleChange && latestRebuiltSession && <section className={`schedule-rebuild-proof schedule-rebuild-proof--${latestScheduleChange.mode}`} aria-label="Latest schedule adaptation">
@@ -204,7 +204,7 @@ export function TodayScreen() {
         <div className="schedule-rebuild-proof__body">
           <p className="eyebrow">{latestScheduleChange.mode.replaceAll('-', ' ')}</p>
           <h2>Queue rebuilt from completed work.</h2>
-          <p><strong>{latestRebuiltSession.title}</strong> is next on {new Date(latestRebuiltSession.plannedDate).toLocaleDateString()} for {latestRebuiltSession.durationMinutes} minutes. {latestRebuiltPrimary?.name ?? 'Its protected primary'} has {latestScheduleChange.nextPrimaryDaysSinceExposure === null ? 'no completed exact baseline yet' : `${latestScheduleChange.nextPrimaryDaysSinceExposure} calendar days since its latest exact exposure`}.</p>
+          <p><strong>{latestRebuiltSession.title}</strong> is next on {new Date(latestRebuiltSession.plannedDate).toLocaleDateString()} for {latestRebuiltSession.durationMinutes} minutes. {latestRebuiltPrimary?.name ?? 'Its protected primary'} has {latestScheduleChange.nextPrimaryDaysSinceExposure === null ? 'no completed exact baseline yet' : `${latestScheduleChange.nextPrimaryDaysSinceExposure} calendar days since you last did it`}.</p>
           <div className="schedule-rebuild-proof__facts">
             <span><small>Completed sets</small><strong>{latestScheduleChange.completedSetCountBefore} → {latestScheduleChange.completedSetCountAfter}</strong></span>
             <span><small>Open planned sets</small><strong>{latestScheduleChange.openSetCountBefore} → {latestScheduleChange.openSetCountAfter}</strong></span>
@@ -226,7 +226,7 @@ export function TodayScreen() {
             <span className="status-chip"><Clock3 size={14} /> {settings.availableMinutes} min</span>
             <span className={`status-chip ${equipmentGaps.length ? 'status-chip--warning' : ''}`}><Dumbbell size={14} /> {activeEquipmentProfile.name}</span>
           </div>
-          <p className="eyebrow">Next best session · Exposure queue 01</p>
+          <p className="eyebrow">Next best session · Up next</p>
           <h2>{nextSession?.title}</h2>
           <p className="hero-workout__objective">{heroObjective}</p>
           {placementBlocked && <button className="placement-training-gate" onClick={() => setNav('you')}><AlertTriangle size={19} /><span><strong>Workout start paused for placement review</strong><small>{placementVerification.blocked ? 'A placement verification recorded pain that changed what could be trained.' : 'Your starting profile says pain or restriction changes what can be trained.'} Reassess the profile before starting. This is not medical clearance.</small></span><ChevronRight size={18} /></button>}
@@ -260,7 +260,7 @@ export function TodayScreen() {
         <StatCard label="Last time on this lift" value={`${lastVolume.toLocaleString()} ${settings.units}`} detail={`${recentPrimary.length} completed sets · exact movement`} icon={<Dumbbell size={18} />} />
         <StatCard label="Current continuity" value={athlete.continuity} detail="Calendar pressure reduced · exposure clocks preserved" icon={<CalendarClock size={18} />} tone="orange" />
         <StatCard label="Recent record" value={recentRecordValue} detail={recentRecord?.label ?? 'Complete work to create a record'} icon={<Trophy size={18} />} tone="purple" />
-        <StatCard label="Placement checks" value={`${placementVerification.resolved} resolved`} detail={`${placementLaneCount} exact lane${placementLaneCount === 1 ? '' : 's'} · ${placementVerification.state.replaceAll('-', ' ')}`} icon={<ShieldCheck size={18} />} tone="blue" />
+        <StatCard label="Starting plan checks" value={`${placementVerification.resolved} complete`} detail={`${placementLaneCount} main lift${placementLaneCount === 1 ? '' : 's'} observed · ${placementVerification.state.replaceAll('-', ' ')}`} icon={<ShieldCheck size={18} />} tone="blue" />
       </section>
 
       <div className="today-grid">
@@ -287,8 +287,9 @@ export function TodayScreen() {
           <div className="panel__header"><div><p className="eyebrow">Life-aware plan</p><h3>Schedule changed?</h3></div><RotateCcw size={19} /></div>
           <div className="life-card">
             <Footprints size={28} />
-            <div><strong>No volume debt.</strong><p>If children, sleep, work, or life moved the week, the next plan will protect important work without cramming missed accessories into today.</p></div>
+            <div><strong>Missed work is not work you owe.</strong><p>ForgePath records only what you completed. It can move important unfinished workouts to a realistic date, but it never doubles later sets or crams missed accessories into today.</p></div>
           </div>
+          <details className="life-aware-quick-explainer"><summary>How a missed workout changes future training</summary><ol><li><strong>Today:</strong> no completed sets or volume are invented.</li><li><strong>This training round:</strong> unfinished important work can move, the round can take longer, and targets usually hold until enough work is completed.</li><li><strong>Next training round:</strong> load, repetitions, or sets progress only if completed performance and recovery support it.</li><li><strong>Later training blocks:</strong> repeated schedule disruptions can lead ForgePath to suggest fewer weekly workouts, shorter sessions, or less recoverable volume for your approval.</li></ol></details>
           <button className="full-row-button" onClick={() => { setMissError(null); setMissedOpen(true) }}>I missed this opportunity <ChevronRight size={18} /></button>
           <button className="full-row-button" onClick={() => setNav('plan')}>Review the full plan <ChevronRight size={18} /></button>
         </section>
@@ -330,10 +331,10 @@ export function TodayScreen() {
         <div className="modal__actions"><button className="button button--primary" onClick={() => setWhyOpen(false)}>Understood</button></div>
       </Modal>
 
-      <Modal open={missedOpen} onClose={() => setMissedOpen(false)} title="Rebuild from what happened" description="Record the real interruption. ForgePath will move only open work and will never award missed exposure credit or create catch-up debt." wide>
+      <Modal open={missedOpen} onClose={() => setMissedOpen(false)} title="Rebuild from what happened" description="Record the real interruption. ForgePath moves only unfinished plans. It never pretends a missed workout happened or adds the missed sets to a later day." wide>
         <div className="missed-checkin">
         <fieldset className="missed-checkin__choices"><legend>Did any training happen?</legend>
-          <button type="button" aria-pressed={missReason.trainingOutcome === 'no-training'} onClick={() => setMissReason((current) => ({ ...current, trainingOutcome: 'no-training' }))}><span>{missReason.trainingOutcome === 'no-training' ? <CheckCircle2 size={16} /> : <Clock3 size={16} />}</span><strong>No training</strong><small>No exposure credit is created.</small></button>
+          <button type="button" aria-pressed={missReason.trainingOutcome === 'no-training'} onClick={() => setMissReason((current) => ({ ...current, trainingOutcome: 'no-training' }))}><span>{missReason.trainingOutcome === 'no-training' ? <CheckCircle2 size={16} /> : <Clock3 size={16} />}</span><strong>No training</strong><small>No sets, volume, or progression credit are created.</small></button>
           <button type="button" aria-pressed={missReason.trainingOutcome === 'different-training-unlogged'} onClick={() => setMissReason((current) => ({ ...current, trainingOutcome: 'different-training-unlogged' }))}><span>{missReason.trainingOutcome === 'different-training-unlogged' ? <CheckCircle2 size={16} /> : <Dumbbell size={16} />}</span><strong>Different training, not logged</strong><small>Record or import sets later before they count.</small></button>
         </fieldset>
         <div className="form-grid">
@@ -343,7 +344,7 @@ export function TodayScreen() {
         </select></label>
         <label><span className="field-label">Next realistic opportunity</span><input type="date" min={dateInputFor(0)} value={missReason.nextOpportunityAt} onChange={(event) => setMissReason((current) => ({ ...current, nextOpportunityAt: event.target.value }))} /></label>
         <label><span className="field-label">Minutes likely available</span><select id="next-time" value={missReason.nextMinutes} onChange={(event) => setMissReason((current) => ({ ...current, nextMinutes: Number(event.target.value) }))}>{[15, 30, 45, 60, 75, 90].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}</select></label>
-        <label><span className="field-label">Which session should lead?</span><select value={missReason.preferredNextSessionId ?? ''} onChange={(event) => setMissReason((current) => ({ ...current, preferredNextSessionId: event.target.value || null }))}><option value="">Recommend an executable session</option>{openScheduleEligibility.map(({ session, evidence }) => <option key={session.id} value={session.id} disabled={!evidence.eligibleToLead || placementBlocked}>Pin {session.title}{evidence.eligibleToLead ? evidence.fullyExecutable ? ' · ready here' : ` · ${evidence.supportReviewCount} support change${evidence.supportReviewCount === 1 ? '' : 's'}` : ` · unavailable: ${evidence.reasons[0]}`}</option>)}</select><small className="field-help">Checked against {activeEquipmentProfile.name} and current joint-response evidence. A valid pin controls only the first choice; exact exposure orders the remainder.</small></label>
+        <label><span className="field-label">Which session should lead?</span><select value={missReason.preferredNextSessionId ?? ''} onChange={(event) => setMissReason((current) => ({ ...current, preferredNextSessionId: event.target.value || null }))}><option value="">Recommend an executable session</option>{openScheduleEligibility.map(({ session, evidence }) => <option key={session.id} value={session.id} disabled={!evidence.eligibleToLead || placementBlocked}>Pin {session.title}{evidence.eligibleToLead ? evidence.fullyExecutable ? ' · ready here' : ` · ${evidence.supportReviewCount} support change${evidence.supportReviewCount === 1 ? '' : 's'}` : ` · unavailable: ${evidence.reasons[0]}`}</option>)}</select><small className="field-help">Checked against {activeEquipmentProfile.name} and how your joints have been responding. Pinning controls only the first session; the rest follow how recently you trained each lift.</small></label>
         </div>
         <fieldset className="missed-checkin__state"><legend>What is the disruption doing now?</legend>{([
           ['ended', 'Ended', 'Return to the normal queue with the declared time.'],
@@ -351,7 +352,7 @@ export function TodayScreen() {
           ['uncertain', 'Uncertain', 'Protect flexibility until the schedule is clearer.']
         ] as const).map(([value, title, detail]) => <button type="button" key={value} aria-pressed={missReason.constraintState === value} onClick={() => setMissReason((current) => ({ ...current, constraintState: value }))}><strong>{title}</strong><small>{detail}</small></button>)}</fieldset>
         <label><span className="field-label">Optional context</span><textarea maxLength={500} value={missReason.note} onChange={(event) => setMissReason((current) => ({ ...current, note: event.target.value }))} placeholder="Example: Kids were up most of the night. Friday morning should be realistic, but I only have 30 minutes." /></label>
-        <div className="missed-checkin__guardrail"><ShieldCheck size={18} /><span><strong>What the rebuild can do</strong><small>Move open sessions, rank executable exact primaries, use answered readiness evidence from the last 24 hours, and use rolling 28-day relative dose across your declared priority regions only when stronger queue factors are tied. It can reduce optional fatigue and fit the next time window, but it never prescribes catch-up volume. Skipped, missing, or stale readiness stays unknown. Completed sessions and completed sets are never changed.</small></span></div>
+        <div className="missed-checkin__guardrail"><ShieldCheck size={18} /><span><strong>What the rebuild can do</strong><small>Move unfinished workouts, choose an important main lift that is actually possible with your equipment and joints, use readiness answers from the last 24 hours, and consider which priority body parts have received less work over the last 28 days when stronger factors are tied. It may shorten optional work to fit your next time window. It never prescribes catch-up volume, treats a skipped answer as a bad answer, or changes completed workouts.</small></span></div>
         {missError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Plan not rebuilt</strong>{missError}</span></div>}
         </div>
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setMissedOpen(false)}>Cancel</button><button className="button button--primary" onClick={() => {

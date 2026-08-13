@@ -31,11 +31,11 @@ const regions: BodyRegion[] = ['chest', 'back', 'shoulders', 'quadriceps', 'hams
 const readable = (value: string) => value.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 
 const reviewChoices: { id: CycleReviewDecision; title: string; detail: string }[] = [
-  { id: 'continue-progress', title: 'Continue and progress', detail: 'Queue the next exposure round and let exact completed history earn the smallest load-first progression.' },
-  { id: 'continue-hold', title: 'Continue and hold', detail: 'Keep unresolved work or queue the next round at the same productive targets.' },
-  { id: 'extend', title: 'Extend this round', detail: 'Move unresolved protected work forward seven days without adding catch-up volume.' },
-  { id: 'recover', title: 'Recover next', detail: 'Expire unresolved work honestly and queue a conservative reacclimation round.' },
-  { id: 'complete', title: 'Complete mesocycle', detail: 'Close this mesocycle from completed exposure evidence and preserve its full history.' }
+  { id: 'continue-progress', title: 'Start the next training round and progress', detail: 'Build the next group of workouts. Completed results earn the smallest supported increase, with load considered before repetitions and sets.' },
+  { id: 'continue-hold', title: 'Continue at the same targets', detail: 'Keep unfinished work available or build the next group of workouts without increasing the targets.' },
+  { id: 'extend', title: 'Give this training round more time', detail: 'Move unfinished important workouts forward seven days without adding catch-up work.' },
+  { id: 'recover', title: 'Use a recovery round next', detail: 'Close unfinished planned work without pretending it happened, then build a conservative return round.' },
+  { id: 'complete', title: 'Complete this training block', detail: 'Close the multi-round training block from completed workout evidence and preserve its full history.' }
 ]
 
 export function PlanScreen() {
@@ -55,7 +55,7 @@ export function PlanScreen() {
     progressionModel: 'Progress load first, then repetitions, then a working set only when recovery and continuity support more dose.',
     targetMicrocycles: 4,
     minimumProductiveExposures: Math.max(6, athlete.strengthAnchors.length * 3),
-    successCriteria: 'Complete productive exposure rounds with stable technique, manageable pain, and recoverable fatigue.',
+    successCriteria: 'Complete productive training rounds with steady technique, manageable pain, and recoverable fatigue.',
     exitPlan: 'Review performance and recovery, then continue, recover, pivot, or enter a more specific phase.',
     weeklyOpportunities: athlete.weeklyOpportunities,
     defaultMinutes: athlete.defaultMinutes,
@@ -113,7 +113,7 @@ export function PlanScreen() {
 
   const submitReview = () => {
     const result = applyCycleReview(reviewDecision, reviewReason)
-    if (!result.ok) return setReviewError(result.error ?? 'The exposure round could not be reviewed.')
+    if (!result.ok) return setReviewError(result.error ?? 'That training round could not be reviewed.')
     setReviewOpen(false)
   }
 
@@ -162,20 +162,20 @@ export function PlanScreen() {
   return (
     <div className="screen">
       <header className="screen-header">
-        <div><p className="eyebrow">Exposure-based planning</p><h1>The plan bends. The goal stays visible.</h1><p>Required training roles complete the microcycle. Weekdays are planning tools, not progression authority.</p></div>
+        <div><p className="eyebrow">Life-aware planning</p><h1>The plan bends. The goal stays visible.</h1><p>A training round is the current group of workouts. A training block is several rounds aimed at one larger goal. Dates help schedule them, but only completed training earns progress.</p></div>
         <div className="header-actions">
           <button className="button button--secondary" onClick={() => setHistoryOpen(true)}><History size={17} /> Versions</button>
-          <button className="button button--primary" onClick={openEditor}><Edit3 size={17} /> Edit mesocycle</button>
+          <button className="button button--primary" onClick={openEditor}><Edit3 size={17} /> Edit training block</button>
         </div>
       </header>
 
       <section className="cycle-hero">
         <div className="cycle-hero__copy">
-          <span className="status-chip status-chip--orange">{cycleReview && cycleReview.evidence.unresolvedSessions === 0 ? 'Ready for review' : cycleReview?.targetPassed ? 'Review window open' : 'Exposure cycle active'}</span>
+          <span className="status-chip status-chip--orange">{cycleReview && cycleReview.evidence.unresolvedSessions === 0 ? 'Ready for review' : cycleReview?.targetPassed ? 'Review window open' : 'Cycle in progress'}</span>
           <p className="eyebrow">{activePlan ? `${activePlan.entryRoute ? readable(activePlan.entryRoute) : readable(activePlan.dominantAdaptation)} · Plan v${activePlan.version}` : 'Legacy plan · Create first version'}</p>
-          <h2>{activePlan?.title ?? 'Protect the next useful exposure.'}</h2>
+          <h2>{activePlan?.title ?? 'Protect the next useful workout.'}</h2>
           <p>{activePlan?.objective ?? athlete.goal}</p>
-          <div className="cycle-progress"><span><b style={{ width: `${Math.max(8, ((cycleReview?.evidence.qualifiedSessions ?? 0) / Math.max(1, cycleReview?.evidence.requiredSessions ?? 1)) * 100)}%` }} /></span><small>{cycleReview?.evidence.qualifiedSessions ?? 0} of {cycleReview?.evidence.requiredSessions ?? required} protected sessions qualified in exposure round {cycleReview?.microcycleNumber ?? 1}</small></div>
+          <div className="cycle-progress"><span><b style={{ width: `${Math.max(8, ((cycleReview?.evidence.qualifiedSessions ?? 0) / Math.max(1, cycleReview?.evidence.requiredSessions ?? 1)) * 100)}%` }} /></span><small>{cycleReview?.evidence.qualifiedSessions ?? 0} of {cycleReview?.evidence.requiredSessions ?? required} important workouts completed well enough in training round {cycleReview?.microcycleNumber ?? 1}</small></div>
         </div>
         <div className="cycle-map" aria-label="Training cycle map">
           <div className="cycle-node cycle-node--done"><Check size={18} /><span>Entry<small>Profile built</small></span></div>
@@ -216,12 +216,27 @@ export function PlanScreen() {
 
         <aside className="plan-aside">
           <section className="panel">
-            <div className="panel__header"><div><p className="eyebrow">Dual clocks</p><h3>Calendar vs. exposure</h3></div><CalendarDays size={19} /></div>
+            <div className="panel__header"><div><p className="eyebrow">Two ways to measure progress</p><h3>Dates versus completed training</h3></div><CalendarDays size={19} /></div>
             <div className="clock-comparison">
-              <div><span>Calendar estimate</span><strong>{activePlan?.targetMicrocycles ?? 4} rounds</strong><small>Planning and reporting</small></div>
-              <div><span>Exposure clock</span><strong>{completed} / {required}</strong><small>Progression authority</small></div>
+              <div><span>Planned length</span><strong>{activePlan?.targetMicrocycles ?? 4} rounds</strong><small>Expected schedule</small></div>
+              <div><span>Completed important workouts</span><strong>{completed} / {required}</strong><small>What can earn progress</small></div>
             </div>
-            <p className="callout-copy">A passed Wednesday does not become a completed bench exposure. Only completed qualified work advances the second clock.</p>
+            <p className="callout-copy">If Wednesday passes without benching, ForgePath records a schedule change, not a completed bench workout. The calendar moves forward; your training progress does not pretend the work happened.</p>
+          </section>
+          <section className="panel life-aware-explainer" aria-label="How the life-aware plan works">
+            <div className="panel__header"><div><p className="eyebrow">Life-aware plan</p><h3>What happens when you miss a workout</h3></div><RefreshCcw size={19} /></div>
+            <div className="life-aware-steps">
+              <article><span>1</span><div><strong>Record what actually happened</strong><p>Completed sets remain completed. A partial workout keeps only the sets you finished. A missed workout receives no sets, repetitions, load, volume, or progress credit.</p></div></article>
+              <article><span>2</span><div><strong>Rebuild only unfinished plans</strong><p>ForgePath moves or reorders open workouts around your next realistic date, available minutes, equipment, joint feedback, and current readiness. Past completed workouts never change.</p></div></article>
+              <article><span>3</span><div><strong>Create no volume debt</strong><p>Missed sets are not work you owe. ForgePath does not stack Monday's missed accessories onto Wednesday, double next week's sets, or ask you to compensate for a disrupted life.</p></div></article>
+              <article><span>4</span><div><strong>Let completed work shape the future</strong><p>The current training round may continue longer, hold the same targets, or move to recovery. The next round progresses only when enough important work was completed and recovery supports it.</p></div></article>
+            </div>
+            <div className="life-aware-horizons">
+              <div><small>Current training round</small><strong>Finish, extend, hold, or recover</strong><p>A round is usually about a week of workouts, but it can stretch when life interrupts it. Passing days alone never completes it.</p></div>
+              <div><small>Current training block</small><strong>Use the pattern, not one bad week</strong><p>A block contains several rounds. Repeated missed work can lower the realistic frequency, volume, or session length at the next athlete-approved review.</p></div>
+              <div><small>Long-term development</small><strong>Learn your sustainable plan</strong><p>ForgePath compares what was planned with what you repeatedly complete and recover from, then proposes a plan that fits your real life more accurately.</p></div>
+            </div>
+            <p className="life-aware-definition"><strong>Volume debt means missed planned work is treated as something you must repay later.</strong> ForgePath does not use volume debt. Missed work still matters because it leaves less evidence for progression, but it never becomes punishment or catch-up volume.</p>
           </section>
           {latestScheduleChange && <section className="panel schedule-change-card" aria-label="Latest missed opportunity decision">
             <div className="panel__header"><div><p className="eyebrow">Rebuild {activeScheduleChanges.length}</p><h3>Latest queue rebuild</h3></div><RefreshCcw size={19} /></div>
@@ -234,19 +249,19 @@ export function PlanScreen() {
             <details className="schedule-change-card__details"><summary>{latestScheduleChange.changes.length} moved session{latestScheduleChange.changes.length === 1 ? '' : 's'} · full replay</summary>{latestScheduleChange.changes.map((change) => <p key={change.sessionId}><strong>{sessions.find((session) => session.id === change.sessionId)?.title ?? change.sessionId}</strong><span>{new Date(change.fromPlannedAt).toLocaleDateString()} → {new Date(change.toPlannedAt).toLocaleDateString()} · {change.fromSetCount} → {change.toSetCount} planned sets</span></p>)}</details>
           </section>}
           {cycleReview && <section className="panel cycle-review-card">
-            <div className="panel__header"><div><p className="eyebrow">Exposure round {cycleReview.microcycleNumber}</p><h3>Criterion review</h3></div><span className={`status-chip status-chip--${cycleReview.maximumPassed ? 'orange' : 'default'}`}>{cycleReview.maximumPassed ? 'maximum passed' : cycleReview.targetPassed ? 'target passed' : 'inside target'}</span></div>
+            <div className="panel__header"><div><p className="eyebrow">Training round {cycleReview.microcycleNumber}</p><h3>Completed-work review</h3></div><span className={`status-chip status-chip--${cycleReview.maximumPassed ? 'orange' : 'default'}`}>{cycleReview.maximumPassed ? 'maximum passed' : cycleReview.targetPassed ? 'target passed' : 'inside target'}</span></div>
             <div className="review-dates"><div><small>Started</small><strong>{cycleReview.startedAt.toLocaleDateString()}</strong></div><div><small>Target review</small><strong>{cycleReview.targetDate.toLocaleDateString()}</strong></div><div><small>Maximum span</small><strong>{cycleReview.maximumDate.toLocaleDateString()}</strong></div></div>
             <div className="review-recommendation"><Sparkles size={18} /><span><small>Current recommendation</small><strong>{readable(cycleReview.recommendation)}</strong><p>{cycleReview.recommendationReasons[0]}</p></span></div>
-            <button className="button button--primary button--full" onClick={openReview}>Review exposure round</button>
+            <button className="button button--primary button--full" onClick={openReview}>Review this training round</button>
           </section>}
           <section className="panel">
             <div className="panel__header"><div><p className="eyebrow">Protected qualities</p><h3>Current contract</h3></div><Target size={19} /></div>
             <ul className="priority-list">
               <li><span>Main lifts</span><strong>{activeAnchors.join(', ') || 'Choose your main lifts'}</strong></li>
               <li><span>Entry route</span><strong>{activePlan?.entryRoute ? `${readable(activePlan.entryRoute)} · ${activePlan.generationRuleVersion}` : 'Manual adaptation rules'}</strong></li>
-              <li><span>Movement lanes</span><strong>{activePlan?.movementPlacements?.length ? `${activePlan.movementPlacements.length} main lifts placed independently${activePlan.movementPlacements.some((movement) => movement.historyReview) ? ` · ${activePlan.movementPlacements.filter((movement) => movement.historyReview).length} history reviewed` : ''}` : 'One route applies to every main lift'}</strong></li>
-              <li><span>Placement checkpoint</span><strong>{readable(placementExit.recommendation)} · {placementExit.resolved} resolved plan-route checks{placementExit.excludedDifferentRouteChecks ? ` · ${placementExit.excludedDifferentRouteChecks} different-lane excluded` : ''}</strong></li>
-              <li><span>Exact lane checkpoints</span><strong>{movementExits.filter((assessment) => assessment.recommendation !== 'collect-evidence').length} ready for review · {movementExits.reduce((total, assessment) => total + assessment.resolved, 0)} resolved exact-movement checks</strong></li>
+              <li><span>Main-lift starting plans</span><strong>{activePlan?.movementPlacements?.length ? `${activePlan.movementPlacements.length} main lifts can start differently${activePlan.movementPlacements.some((movement) => movement.historyReview) ? ` · ${activePlan.movementPlacements.filter((movement) => movement.historyReview).length} used logged history` : ''}` : 'The same starting plan applies to every main lift'}</strong></li>
+              <li><span>Overall starting-plan review</span><strong>{readable(placementExit.recommendation)} · {placementExit.resolved} completed checks</strong></li>
+              <li><span>Main lifts ready for review</span><strong>{movementExits.filter((assessment) => assessment.recommendation !== 'collect-evidence').length} ready · {movementExits.reduce((total, assessment) => total + assessment.resolved, 0)} completed lift checks</strong></li>
               <li><span>Generated for</span><strong>{activePlan?.generationEquipment ? `${activePlan.generationEquipment.profileName} · ${activePlan.generationEquipment.incrementUnit}` : 'Legacy or manual equipment context'}</strong></li>
               <li><span>Develop</span><strong>{(activePlan?.priorityRegions ?? athlete.priorityRegions).map(readable).join(', ')}</strong></li>
               <li><span>Maintain</span><strong>{(activePlan?.maintenanceRegions ?? []).map(readable).join(', ') || 'Set in next plan version'}</strong></li>
@@ -257,7 +272,7 @@ export function PlanScreen() {
         </aside>
       </div>
 
-      <Modal open={reviewOpen} onClose={() => setReviewOpen(false)} title={`Review exposure round ${cycleReview?.microcycleNumber ?? ''}`} description="The app proposes a criterion-based decision from completed work, calendar bounds, effort, and pain. You make the final call and record why." wide>
+      <Modal open={reviewOpen} onClose={() => setReviewOpen(false)} title={`Review training round ${cycleReview?.microcycleNumber ?? ''}`} description="ForgePath suggests what should happen next from completed workouts, elapsed time, effort, and pain. You make the final call and record why." wide>
         {cycleReview && <div className="cycle-review-modal">
           <section className="review-evidence">
             <div className="review-evidence__headline"><span><Sparkles size={19} /><small>What the rules suggest</small></span><strong>{readable(cycleReview.recommendation)}</strong>{cycleReview.recommendationReasons.map((reason) => <p key={reason}><Check size={14} />{reason}</p>)}</div>
@@ -272,29 +287,29 @@ export function PlanScreen() {
           </section>
           <fieldset className="review-choice-list"><legend>Choose this round's outcome</legend>{reviewChoices.map((choice) => {
             const enabled = cycleReview.eligible[choice.id]
-            return <button type="button" key={choice.id} aria-pressed={reviewDecision === choice.id} className={reviewDecision === choice.id ? 'selected' : ''} disabled={!enabled} onClick={() => setReviewDecision(choice.id)}><span>{reviewDecision === choice.id ? <Check size={16} /> : <CircleDashed size={16} />}</span><span><strong>{choice.title}</strong><small>{choice.detail}</small>{!enabled && <em>Not eligible from the current exposure evidence.</em>}</span></button>
+            return <button type="button" key={choice.id} aria-pressed={reviewDecision === choice.id} className={reviewDecision === choice.id ? 'selected' : ''} disabled={!enabled} onClick={() => setReviewDecision(choice.id)}><span>{reviewDecision === choice.id ? <Check size={16} /> : <CircleDashed size={16} />}</span><span><strong>{choice.title}</strong><small>{choice.detail}</small>{!enabled && <em>Not available from what you have completed so far.</em>}</span></button>
           })}</fieldset>
           <button className="pivot-choice" onClick={openPivot}><RefreshCcw size={18} /><span><strong>Pivot or change the training contract</strong><small>Open a new cycle version with different objectives, main lifts, dose, or adaptation.</small></span><ChevronRight size={17} /></button>
-          <label><span className="field-label">Why is this the right decision now?</span><textarea value={reviewReason} onChange={(event) => setReviewReason(event.target.value)} placeholder="Example: The round is complete, effort stayed recoverable, and my schedule can support another exposure round." /></label>
+          <label><span className="field-label">Why is this the right decision now?</span><textarea value={reviewReason} onChange={(event) => setReviewReason(event.target.value)} placeholder="Example: The round is complete, effort stayed recoverable, and my schedule can support another training round." /></label>
           {reviewError && <div className="import-error" role="alert"><AlertCircle size={17} /><span><strong>Review not saved</strong>{reviewError}</span></div>}
-          <p className="modal-note">Calendar time alone cannot complete the mesocycle. Planned work never enters completed volume, and this decision never rewrites prior sessions.</p>
+          <p className="modal-note">Calendar time alone cannot complete the training block. Planned work never enters completed volume, and this decision never rewrites prior workouts.</p>
         </div>}
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setReviewOpen(false)}>Cancel</button><button className="button button--primary" disabled={!reviewReason.trim()} onClick={submitReview}>Save review decision</button></div>
       </Modal>
 
-      <Modal open={editorOpen} onClose={() => setEditorOpen(false)} title={`Preview mesocycle version ${nextVersion}`} description="Adjust the training contract, inspect the generated exposure queue, then apply it. Completed work never changes." wide>
+      <Modal open={editorOpen} onClose={() => setEditorOpen(false)} title={`Preview training-block version ${nextVersion}`} description="Adjust the plan, inspect the generated workout queue, then apply it. Completed work never changes." wide>
         <div className="plan-editor">
           <div className="plan-editor__form">
             {activeSessionId && <div className="plan-editor__warning"><AlertCircle size={18} /><span><strong>Revision paused</strong>Finish or leave the active workout before applying a new plan.</span></div>}
             <div className="form-grid">
               <label><span className="field-label">Plan title</span><input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
-              <label><span className="field-label">Dominant adaptation</span><select value={draft.dominantAdaptation} onChange={(event) => setDraft({ ...draft, dominantAdaptation: event.target.value as MesocycleDraft['dominantAdaptation'], entryRoute: undefined, generationRuleVersion: undefined, placementCreatedAt: undefined, generationEquipment: undefined, movementPlacements: undefined })}><option value="powerbuilding">Powerbuilding</option><option value="strength">Strength</option><option value="hypertrophy">Hypertrophy</option><option value="reacclimation">Reacclimation</option></select></label>
+              <label><span className="field-label">Main goal for this block</span><select value={draft.dominantAdaptation} onChange={(event) => setDraft({ ...draft, dominantAdaptation: event.target.value as MesocycleDraft['dominantAdaptation'], entryRoute: undefined, generationRuleVersion: undefined, placementCreatedAt: undefined, generationEquipment: undefined, movementPlacements: undefined })}><option value="powerbuilding">Powerbuilding</option><option value="strength">Strength</option><option value="hypertrophy">Hypertrophy</option><option value="reacclimation">Reacclimation</option></select></label>
             </div>
             <label><span className="field-label">Objective</span><textarea value={draft.objective} onChange={(event) => setDraft({ ...draft, objective: event.target.value })} /></label>
             <div className="plan-editor__numbers">
               <label><span className="field-label">Opportunities / week</span><input type="number" min="2" max="5" value={draft.weeklyOpportunities} onChange={(event) => setDraft({ ...draft, weeklyOpportunities: Math.min(5, Math.max(2, Number(event.target.value))) })} /></label>
               <label><span className="field-label">Minutes / session</span><select value={draft.defaultMinutes} onChange={(event) => setDraft({ ...draft, defaultMinutes: Number(event.target.value) })}>{[30, 45, 60, 75, 90].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}</select></label>
-              <label><span className="field-label">Target exposure rounds</span><input type="number" min="3" max="8" value={draft.targetMicrocycles} onChange={(event) => setDraft({ ...draft, targetMicrocycles: Math.min(8, Math.max(3, Number(event.target.value))) })} /></label>
+              <label><span className="field-label">Number of training rounds</span><input type="number" min="3" max="8" value={draft.targetMicrocycles} onChange={(event) => setDraft({ ...draft, targetMicrocycles: Math.min(8, Math.max(3, Number(event.target.value))) })} /></label>
             </div>
 
             <fieldset className="plan-fieldset"><legend>Your main lifts</legend><div className="anchor-selects">{anchorGroups.map((group, index) => <label key={group.label}><span>{group.label}</span><select value={draft.strengthAnchors[index] ?? ''} onChange={(event) => updateAnchor(index, event.target.value)}>{group.options.map((exercise) => <option value={exercise.id} key={exercise.id}>{exercise.name}</option>)}</select></label>)}</div></fieldset>
@@ -308,7 +323,7 @@ export function PlanScreen() {
           </div>
 
           <aside className="plan-preview">
-            <div className="plan-preview__header"><div><p className="eyebrow">Preview</p><h3>Next exposure queue</h3></div><Sparkles size={19} /></div>
+            <div className="plan-preview__header"><div><p className="eyebrow">Preview</p><h3>What is coming up next</h3></div><Sparkles size={19} /></div>
             <div className="plan-preview__stats"><div><span>Required sessions</span><strong>{preview.requiredExposureCount}</strong></div><div><span>Projected sets</span><strong>{preview.projectedSets}</strong></div><div><span>Total minutes</span><strong>{preview.projectedMinutes}</strong></div></div>
             <div className="preview-session-list">{preview.sessions.map((session, index) => <article key={session.id}><span>{String(index + 1).padStart(2, '0')}</span><div><strong>{session.title}</strong><small>{session.durationMinutes} min · {session.exercises.length} movements</small><ul>{session.exercises.map((planned) => <li key={planned.id}><b>{planned.role}</b>{exercises.find((exercise) => exercise.id === planned.exerciseId)?.name} · {planned.sets.length} sets</li>)}</ul></div></article>)}</div>
             <div className="preview-rationale"><strong>Why this queue</strong>{preview.explanations.map((explanation) => <p key={explanation}><Check size={14} />{explanation}</p>)}</div>
@@ -318,15 +333,15 @@ export function PlanScreen() {
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setEditorOpen(false)}>Cancel</button><button className="button button--primary" disabled={Boolean(activeSessionId) || !draft.revisionReason.trim()} onClick={saveRevision}>Apply version {nextVersion}</button></div>
       </Modal>
 
-      <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title="Mesocycle revision history" description="Each version keeps its original objective, criteria, timing assumptions, and reason for change." wide>
+      <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title="Training-block revision history" description="Each version keeps its original objective, criteria, timing assumptions, and reason for change." wide>
         <div className="revision-list">
           {[...mesocycles].sort((a, b) => b.version - a.version).map((plan) => <article key={plan.id} className={plan.status === 'active' ? 'active' : ''}>
             <div className="revision-list__version"><span>v{plan.version}</span><small>{plan.status}</small></div>
             <div><div className="revision-list__title"><h3>{plan.title}</h3><span>{new Date(plan.effectiveAt).toLocaleDateString()}</span></div><p>{plan.objective}</p><div className="revision-list__meta"><span><Dumbbell size={14} /> {readable(plan.dominantAdaptation)}</span><span><CalendarDays size={14} /> {plan.targetMicrocycles} target rounds</span><span><Clock3 size={14} /> {plan.defaultMinutes} min</span></div><blockquote><strong>Why changed</strong>{plan.revisionReason}</blockquote></div>
           </article>)}
-          {mesocycles.length === 0 && <div className="empty-plan-history"><History size={26} /><strong>No versioned mesocycle yet</strong><p>Your current sessions are intact. Create the first plan version to begin the revision history.</p></div>}
+          {mesocycles.length === 0 && <div className="empty-plan-history"><History size={26} /><strong>No saved training-block version yet</strong><p>Your current sessions are intact. Create the first plan version to begin the revision history.</p></div>}
         </div>
-        {cycleReviews.length > 0 && <section className="cycle-review-history"><div className="panel__header"><div><p className="eyebrow">Append-only decisions</p><h3>Exposure-round reviews</h3></div><span>{activeCycleReviews.length} for current plan</span></div>{[...cycleReviews].reverse().map((review) => <article key={review.id}><span>R{review.microcycleNumber}</span><div><strong>{readable(review.decision)}</strong><small>{new Date(review.createdAt).toLocaleString()} · plan v{review.planVersion}</small><p>{review.reason}</p></div><div><small>Qualified</small><strong>{review.evidence.qualifiedSessions}/{review.evidence.requiredSessions}</strong></div></article>)}</section>}
+        {cycleReviews.length > 0 && <section className="cycle-review-history"><div className="panel__header"><div><p className="eyebrow">Append-only decisions</p><h3>Training-round reviews</h3></div><span>{activeCycleReviews.length} for current plan</span></div>{[...cycleReviews].reverse().map((review) => <article key={review.id}><span>R{review.microcycleNumber}</span><div><strong>{readable(review.decision)}</strong><small>{new Date(review.createdAt).toLocaleString()} · plan v{review.planVersion}</small><p>{review.reason}</p></div><div><small>Qualified</small><strong>{review.evidence.qualifiedSessions}/{review.evidence.requiredSessions}</strong></div></article>)}</section>}
       </Modal>
     </div>
   )

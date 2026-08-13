@@ -24,6 +24,19 @@ import { exerciseMuscleMappingError } from './muscle-dose'
 import { equipmentGenerationEvidenceError, equipmentProfileError } from './equipment-engine'
 import { equipmentProfiles as seedEquipmentProfiles } from './seed'
 import { legacyPlacementForAthlete, movementPlacementEvidenceError, placementAssessmentError, placementRouteLabels } from './placement-engine'
+
+const legacyPlacementRouteLabels = {
+  'introductory-skill': 'Introductory Skill Cycle',
+  reacclimation: 'Reacclimation and Productive Work',
+  'bridge-calibration': 'Bridge and Calibration Cycle',
+  'base-building': 'Base-Building Cycle',
+  hypertrophy: 'Direct Hypertrophy Development',
+  powerbuilding: 'Direct Powerbuilding Development',
+  strength: 'Direct Strength Development',
+  power: 'Direct Power Development',
+  'event-specific': 'Event-Specific Development',
+  'pain-aware-modified': 'Pain-Aware Modified Entry'
+} as const
 import { placementVerificationError } from './placement-verification-engine'
 import { movementPlacementExitReviewError, placementExitReviewError } from './placement-exit-engine'
 import { routeSessionGenerationError } from './route-session-engine'
@@ -32,7 +45,7 @@ import { movementNoteError } from './movement-note-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
 export const BACKUP_SCHEMA_VERSION = 25
-export const BACKUP_APP_VERSION = '0.52.0'
+export const BACKUP_APP_VERSION = '0.53.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -245,7 +258,10 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   if (!athleteLevel) errors.push('Athlete placement dimensions are missing.')
   else if (['experience', 'recentContinuity', 'movementSkill', 'strengthTolerance', 'volumeTolerance', 'scheduleStability', 'dataConfidence'].some((key) => !Number.isInteger(athleteLevel[key]) || Number(athleteLevel[key]) < 1 || Number(athleteLevel[key]) > 5)) errors.push('Athlete placement dimensions must all be integers from one to five.')
   if (placementDimensions && athleteLevel && stableStringify(placementDimensions) !== stableStringify(athleteLevel)) errors.push('Athlete placement dimensions do not match the stored assessment.')
-  if (placement && typeof placement.selectedRoute === 'string' && athlete.entryRoute !== placementRouteLabels[placement.selectedRoute as keyof typeof placementRouteLabels]) errors.push('Athlete entry route does not match the stored placement decision.')
+  if (placement && typeof placement.selectedRoute === 'string') {
+    const route = placement.selectedRoute as keyof typeof placementRouteLabels
+    if (athlete.entryRoute !== placementRouteLabels[route] && athlete.entryRoute !== legacyPlacementRouteLabels[route]) errors.push('Athlete entry route does not match the stored placement decision.')
+  }
 
   const exercises = candidate.exercises as unknown[]
   const equipmentProfiles = candidate.equipmentProfiles as unknown[]
