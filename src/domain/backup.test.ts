@@ -73,6 +73,15 @@ describe('versioned backup and restore', () => {
     expect(parsed.warnings).toEqual([])
   })
 
+  it('checksums the JSON actually exported when optional fields are explicitly undefined', () => {
+    const current = state()
+    current.history[0] = { ...current.history[0], benchAngleDeg: undefined }
+    const backup = createBackup(current, '2026-08-10T12:00:00.000Z')
+    const parsed = parseBackup(JSON.stringify(backup))
+    expect(parsed.backup.data.history[0]).not.toHaveProperty('benchAngleDeg')
+    expect(parsed.summary.completedSets).toBe(current.history.length)
+  })
+
   it('migrates a verified version 24 backup without inventing movement notes', () => {
     const prior: Omit<RestorableAppState, 'movementNotes'> & { movementNotes?: RestorableAppState['movementNotes'] } = state()
     delete prior.movementNotes

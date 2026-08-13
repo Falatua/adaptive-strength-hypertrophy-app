@@ -168,13 +168,26 @@ export function buildOngoingConfidenceModel(input: {
   const resolvedSessions = recentSessions.filter((session) => ['completed', 'partial-primary', 'partial-no-primary', 'expired', 'stopped'].includes(session.status))
   const recentMisses = input.missedOpportunityEvents.filter((event) => new Date(event.recordedAt).getTime() >= recentStart && new Date(event.recordedAt).getTime() <= assessedMs)
   const scheduleEvidenceCount = resolvedSessions.length + recentMisses.length
-  const scheduleStrength = clampEvidence(Number(scheduleEvidenceCount > 0) + Number(scheduleEvidenceCount >= 3) + Number(scheduleEvidenceCount >= 6) + Number(recentMisses.some((event) => event.input.nextMinutes > 0)) + Number(resolvedSessions.some((session) => Boolean(session.startedAt && session.completedAt))))
+  const scheduleStrength = clampEvidence(
+    Number(scheduleEvidenceCount > 0)
+    + Number(scheduleEvidenceCount >= 3)
+    + Number(scheduleEvidenceCount >= 6)
+    + Number(recentMisses.some((event) => event.input.nextMinutes > 0) || resolvedSessions.length >= 6)
+    + Number(resolvedSessions.some((session) => Boolean(session.startedAt && session.completedAt)))
+  )
 
   const postSurveys = input.surveys.filter((survey) => survey.type === 'post' && !survey.skipped && new Date(survey.completedAt).getTime() >= recentStart && new Date(survey.completedAt).getTime() <= assessedMs)
   const resolvedRecoveryChecks = input.placementVerifications.filter((event) => event.recoveryResponse !== 'pending' && event.recoveryResponse !== 'skipped')
-  const recoveryEvidenceCount = postSurveys.length + resolvedRecoveryChecks.length
-  const answeredRecoveryItems = postSurveys.reduce((total, survey) => total + (survey.answeredCount ?? survey.answers.filter((answer) => answer.status === 'answered').length), 0)
-  const recoveryStrength = clampEvidence(Number(recoveryEvidenceCount > 0) + Number(recoveryEvidenceCount >= 2) + Number(recoveryEvidenceCount >= 4) + Number(answeredRecoveryItems >= 6) + Number(resolvedRecoveryChecks.length >= 2))
+  const recoverySurveyAnswers = postSurveys.flatMap((survey) => survey.answers.filter((answer) => answer.status === 'answered' && answer.id.toLowerCase().includes('recovery')))
+  const recoverySurveyCount = postSurveys.filter((survey) => survey.answers.some((answer) => answer.status === 'answered' && answer.id.toLowerCase().includes('recovery'))).length
+  const recoveryEvidenceCount = recoverySurveyCount + resolvedRecoveryChecks.length
+  const recoveryStrength = clampEvidence(
+    Number(recoveryEvidenceCount > 0)
+    + Number(recoveryEvidenceCount >= 2)
+    + Number(recoveryEvidenceCount >= 4)
+    + Number(recoverySurveyAnswers.length >= 2 || resolvedRecoveryChecks.length >= 1)
+    + Number(recoverySurveyAnswers.length >= 4 || resolvedRecoveryChecks.length >= 2)
+  )
 
   const volumeFeedbackSurveys = postSurveys.filter((survey) => survey.answers.some((answer) => answer.status === 'answered' && ['pump', 'targetStimulus', 'endFatigue', 'difficulty', 'recovery'].some((token) => answer.id.includes(token))))
   const recentExposureDates = new Set(input.history.filter((workSet) => new Date(workSet.completedAt).getTime() >= recentStart && new Date(workSet.completedAt).getTime() <= assessedMs).map((workSet) => dateKey(workSet.completedAt))).size
@@ -195,7 +208,7 @@ export function buildOngoingConfidenceModel(input: {
     },
     {
       id: 'recovery-response', label: 'Recovery response', state: laneState(recoveryStrength), evidenceStrength: recoveryStrength, evidenceCount: recoveryEvidenceCount,
-      explanation: `${postSurveys.length} answered post-session check-in${postSurveys.length === 1 ? '' : 's'} and ${resolvedRecoveryChecks.length} resolved recovery check${resolvedRecoveryChecks.length === 1 ? '' : 's'} inform this lane. Skips remain unknown.`,
+      explanation: `${recoverySurveyCount} post-session recovery answer${recoverySurveyCount === 1 ? '' : 's'} and ${resolvedRecoveryChecks.length} resolved follow-up check${resolvedRecoveryChecks.length === 1 ? '' : 's'} inform this lane. Check-ins without a recovery answer and skips remain unknown.`,
       nextLearningNeed: recoveryEvidenceCount < 2 ? 'Answer one short post-session or next-day recovery check when convenient.' : 'Confirm whether the next progression recovered as expected.'
     },
     {

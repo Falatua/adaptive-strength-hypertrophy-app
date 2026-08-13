@@ -5,12 +5,23 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-13
 status: working-private-alpha
-app_version: 0.57.0
+app_version: 0.58.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.58.0 Longitudinal Replay Delta
+
+- Adds a deterministic 52-week athlete acceptance replay with stable load and repetition progression, occasional athlete-added work, and exact source evidence.
+- Covers missed family weeks, no volume debt, reacclimation, fatigue, pain, missing feedback, incline setup separation, incomplete rounds, and conservative recovery rounds.
+- Corrects recovery-response calibration so explicit recovery answers can earn confidence without requiring placement checks.
+- Corrects schedule-fit calibration so six resolved opportunities can earn confidence without requiring the athlete to miss training.
+- Makes backup checksums JSON-canonical so optional undefined fields cannot invalidate a newly exported or cloud-saved snapshot.
+- Adds a desktop and phone year-scale journey with 208 completed sets, 52 active dates, and 223,460 lb of reconciled volume load.
+- Expands the production rollback acceptance to a 74,375-byte JSON payload containing 52 weeks, 156 sessions, and 624 sets. Apply, replay, conflict, isolation, and normalized-write denial pass, followed by an independent zero-residue check.
+- Documents the full acceptance contract and honest remaining boundaries in `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`.
 
 ## Private Alpha 0.57.0 Feedback-Gated Progression Delta
 

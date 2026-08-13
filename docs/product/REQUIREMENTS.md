@@ -2547,7 +2547,60 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Known pain at the conservative cycle-review threshold disables the continue-progress outcome even when the round is complete. Hold and recovery remain available, and the app does not diagnose or imply medical clearance.
 - Detail: `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`
 
+### R-404 Deterministic Longitudinal Replay
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: The complete training decision stack must support deterministic replay across at least 52 weeks. Identical athlete history, feedback, rule versions, equipment, and dates must produce identical recommendations, analytics, records, and backup checksum.
+- Detail: `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`
+
+### R-405 Stable Progression Conservation
+- Status: implemented
+- Provenance: from-user
+- Requirement: A stable athlete replay must progress through the real load, repetition, and set gates without mutating completed history, skipping unearned stages, or using athlete-added work as overload evidence.
+- Detail: `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`
+
+### R-406 Irregular-Life Return Without Debt
+- Status: implemented
+- Provenance: from-user
+- Requirement: Multi-week family, time, sleep, illness, pain, or travel interruptions preserve earned history and records, rebuild only unfinished future work, never create catch-up volume, and resume through an athlete-approved hold, extension, reacclimation, recovery, or revised block.
+- Detail: `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`
+
+### R-407 Long-Horizon Safety and Setup Identity
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Long-term volume and progression replay must keep unknown feedback unknown, make pain and unrecovered fatigue outrank overload, and prevent different exercises or recorded incline angles from proving like-for-like improvement.
+- Detail: `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`
+
+### R-408 Ongoing Confidence Must Be Earnable Without Failure
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Repeated explicit recovery answers can establish recovery-response confidence without a separate placement workflow, and repeated resolved training opportunities can establish schedule-fit confidence without requiring a missed workout. Surveys that omit recovery do not count as recovery evidence.
+- Detail: `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`
+
+### R-409 JSON-Canonical Backup Integrity
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Backup and cloud checksums must be calculated from the same JSON-canonical structure that is transported. Optional undefined object properties cannot cause a freshly exported backup to fail its own integrity check.
+- Detail: `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`
+
+### R-410 Year-Scale Analytics and Responsive Rendering
+- Status: implemented
+- Provenance: from-user
+- Requirement: Phone and desktop Progress views must render at least one year of completed history without overflow, console errors, invented plan data, or aggregation loss. Completed-set count, active dates, volume load, records, exact movement history, and confidence must reconcile with source data.
+- Detail: `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`
+
+### R-411 Production Cloud Longitudinal Rollback Acceptance
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Release candidates must run a production Supabase rollback test with at least 52 synthetic weeks, 156 sessions, and 624 sets. It must prove authenticated apply, idempotent replay, stale-conflict preservation, cross-athlete isolation, normalized-write denial, and an independent zero-residue check across test auth and athlete tables.
+- Detail: `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`
+
 ## Thread Coverage Audit
+
+### 2026-08-13 Long-Term Product Simulation and Cloud Lifecycle Audit
+- Scope: JB requested months-long product use with dummy data to triple-check progression, Supabase persistence, and feedback-driven suggestions.
+- Result: Added R-404 through R-411 and Build Bible Chapter 85. Private alpha 0.58.0 adds a deterministic 52-week athlete replay, irregular-life and recovery paths, year-scale desktop and phone rendering, JSON-canonical backup integrity, confidence that can mature without requiring failure, and a 52-week production Supabase rollback fixture.
+- Status: Implemented with 390 deterministic tests, 80 desktop and phone browser journeys, a production 156-session and 624-set cloud transaction, and a separate zero-residue proof recorded in `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`.
 
 ### 2026-08-13 Feedback-Gated Progression and Volume Audit
 - Scope: JB requested a deep, repeated audit of progression suggestions and adjacent feedback-driven systems against the app's Mike Israetel and RP Hypertrophy research base.

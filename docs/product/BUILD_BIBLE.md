@@ -5,12 +5,22 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-13
 status: canonical-build-reference-and-active-implementation
-version: 1.53.0
+version: 1.54.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.54.0 Change Entry
+
+- Added R-404 through R-411 and Chapter 85 for long-term athlete simulation and cloud lifecycle acceptance.
+- Added a deterministic 52-week replay covering stable progression, athlete-added work, missed family weeks, reacclimation, fatigue, pain, setup changes, cycle extension, recovery, analytics, records, calibration, and backup.
+- Corrected recovery confidence so repeated explicit recovery answers can mature without a separate placement workflow.
+- Corrected schedule-fit confidence so consistent attendance can mature without requiring a missed workout.
+- Canonicalized backup checksums to the JSON actually transported, including optional undefined fields.
+- Expanded the production rollback test to 52 weeks, 156 sessions, and 624 sets with idempotence, conflict, isolation, and zero-residue proof.
+- Advanced the working application to private alpha 0.58.0 while preserving backup schema 25 and `progression-v2`, `volume-progression-v2`, `ongoing-confidence-v1`, and `cloud-sync-v1` rule identities.
 
 ## 0. Authority, Use, and Change Control
 
@@ -6447,6 +6457,44 @@ Every progression, volume, recovery, deload, or next-round output is a proposal.
 ### 84.6 Acceptance Gate
 
 Release requires adversarial tests for incomplete latest sessions, missing RIR, skipped technique and pain, athlete-added-only work, excessive equipment increments, hard-session feedback, protected readiness, the recovered set fallback, exact exercise and angle isolation, conflicting stimulus, poor recovery and declining performance below MEV, monotonic pain and deload changes, and zero-set final rounds. Full, quick, minimal, deferred, skipped, phone, desktop, cloud-boundary, and live Pages paths must also pass.
+
+## 85. Longitudinal Athlete Simulation and Cloud Lifecycle Contract
+
+### 85.1 Purpose
+
+ForgePath must prove that individually sensible rules remain sensible after months of accumulation. Release acceptance therefore includes a deterministic year-scale athlete replay using production domain functions, not a simplified test-only progression model. The replay preserves exact dates, sessions, completed sets, surveys, decision evidence, records, analytics, and serialized state.
+
+### 85.2 Stable Athlete Path
+
+The stable reference path begins with an owned baseline and runs 52 exact weekly exposures. It verifies the repetition-to-load cadence, executable increments, unchanged set count unless the recovered-set gate is independently satisfied, exact latest-exposure evidence, and append-only history. Athlete-added work is included periodically to prove it appears in completed dose while remaining excluded from automatic overload qualification.
+
+### 85.3 Irregular-Life and Return Path
+
+The disrupted path includes multiple missed family opportunities, an extended round, an expired maximum span, a recovery recommendation, and a three-week return gap. The acceptance result must preserve old records, remove no completed work, create no catch-up debt, and reduce only current targets through reacclimation. Stable progression may resume only after a new completed exposure confirms the smaller return prescription.
+
+### 85.4 Recovery, Pain, and Setup Path
+
+Unknown feedback holds volume rather than inventing recovery. Declining performance stacked with high fatigue or poor recovery reduces dose. Pain blocks overload and proposes a safer option without diagnosis. Different canonical exercises and recorded setups remain different performance lanes. A 45-degree incline exposure retains dose but cannot prove improvement over a 30-degree incline exposure.
+
+### 85.5 Confidence Maturity
+
+Confidence must be earnable through ordinary successful use. Four repeated explicit recovery answers can establish the recovery-response lane without requiring placement checks. Six resolved, time-stamped opportunities can establish schedule fit without requiring a missed workout. A missed-opportunity record remains useful constraint evidence. Surveys with no recovery answer and skipped questions remain unknown.
+
+### 85.6 Analytics and Backup Conservation
+
+The sum of every completed repetition multiplied by actual load must reconcile across daily, rolling, monthly, quarterly, yearly, and all-time projections. Record sources remain completed set identities. An identical replay produces an identical state and checksum. Checksum canonicalization follows transported JSON semantics, including omission of undefined object properties, so a newly exported file can always verify after serialization.
+
+### 85.7 Production Supabase Acceptance
+
+The rollback fixture represents 52 weeks, 156 sessions, and 624 completed sets in one whole-state snapshot. It must pass authenticated device registration, snapshot apply, idempotent replay, stale conflict preservation, normalized projection write denial, and second-athlete isolation. The final statement is `rollback`. A separate production query must return zero for the reserved test users, profiles, devices, events, conflicts, and snapshots before the release can be called clean.
+
+### 85.8 Responsive Acceptance
+
+Desktop and 390 by 844 phone journeys load a 52-week state, select All time, render yearly volume, expose exact movement history and all four confidence lanes, and preserve horizontal containment with no browser errors. The visual output must reconcile to the known fixture totals rather than merely display nonzero values.
+
+### 85.9 Honest Boundary
+
+This contract proves deterministic recommendation behavior, year-scale state, backup transport, whole-snapshot cloud persistence, Row Level Security, conflict preservation, and cleanup. It does not prove automatic entity merge, background synchronization, active-workout handoff, or real invited-athlete new-device recovery. Those require separate physical-device and account acceptance.
 
 ### Version 1.47.0 Change Entry
 

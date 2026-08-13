@@ -19,6 +19,32 @@ create temporary table forgepath_acceptance_results (
 ) on commit drop;
 grant select, insert, update on table forgepath_acceptance_results to authenticated;
 
+-- A 52-week, three-session-per-week, four-set-per-session payload exercises the same
+-- whole-state transport used by the private alpha without retaining a test athlete.
+create temporary table forgepath_longitudinal_payload as
+select jsonb_build_object(
+  'format', 'forgepath-backup',
+  'schemaVersion', 25,
+  'appVersion', '0.58.0',
+  'data', jsonb_build_object(
+    'syntheticWeeks', 52,
+    'syntheticSessions', 156,
+    'sets', (
+      select jsonb_agg(jsonb_build_object(
+        'id', format('longitudinal-set-%s', value),
+        'week', ((value - 1) / 12) + 1,
+        'session', ((value - 1) / 4) + 1,
+        'load', 175 + ((((value - 1) / 36)) * 5),
+        'reps', 4 + (((value - 1) / 12) % 3),
+        'rir', 2,
+        'qualityConfirmed', true
+      ) order by value)
+      from generate_series(1, 624) as value
+    )
+  )
+) as payload;
+grant select on table forgepath_longitudinal_payload to authenticated;
+
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
@@ -66,8 +92,8 @@ from (
   select public.push_forgepath_snapshot(
     '10000000-0000-4000-8000-000000000020',
     '10000000-0000-4000-8000-000000000010',
-    0, 1, 25, '0.39.1', 'cloud-sync-v1', '1234abcd', now(), 'America/Los_Angeles',
-    '{"format":"transactional-acceptance","value":1}'::jsonb
+    0, 1, 25, '0.58.0', 'cloud-sync-v1', '52aa52aa', now(), 'America/Los_Angeles',
+    (select payload from forgepath_longitudinal_payload)
   ) as result
 ) applied;
 
@@ -79,8 +105,8 @@ from (
   select public.push_forgepath_snapshot(
     '10000000-0000-4000-8000-000000000020',
     '10000000-0000-4000-8000-000000000010',
-    0, 1, 25, '0.39.1', 'cloud-sync-v1', '1234abcd', now(), 'America/Los_Angeles',
-    '{"format":"transactional-acceptance","value":1}'::jsonb
+    0, 1, 25, '0.58.0', 'cloud-sync-v1', '52aa52aa', now(), 'America/Los_Angeles',
+    (select payload from forgepath_longitudinal_payload)
   ) as result
 ) replayed;
 
@@ -92,10 +118,25 @@ from (
   select public.push_forgepath_snapshot(
     '10000000-0000-4000-8000-000000000021',
     '10000000-0000-4000-8000-000000000010',
-    0, 2, 25, '0.39.1', 'cloud-sync-v1', '5678abcd', now(), 'America/Los_Angeles',
+    0, 2, 25, '0.58.0', 'cloud-sync-v1', '52bb52bb', now(), 'America/Los_Angeles',
     '{"format":"transactional-acceptance","value":2}'::jsonb
   ) as result
 ) conflicted;
+
+insert into forgepath_acceptance_results
+select 'longitudinal_snapshot_payload',
+  (payload #>> '{data,syntheticWeeks}')::integer = 52
+    and (payload #>> '{data,syntheticSessions}')::integer = 156
+    and jsonb_array_length(payload #> '{data,sets}') = 624
+    and octet_length(payload::text) > 30000,
+  jsonb_build_object(
+    'weeks', payload #> '{data,syntheticWeeks}',
+    'sessions', payload #> '{data,syntheticSessions}',
+    'sets', jsonb_array_length(payload #> '{data,sets}'),
+    'payload_bytes', octet_length(payload::text),
+    'stored_bytes', pg_column_size(payload)
+  )
+from public.forgepath_state_snapshots;
 
 insert into forgepath_acceptance_results
 select 'snapshot_invariants',

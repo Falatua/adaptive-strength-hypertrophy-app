@@ -3,7 +3,7 @@
 This directory records the complete product and implementation specification in the public GitHub source repository so each release can be reviewed beside the code that implements it.
 
 - [Build Bible](BUILD_BIBLE.md): canonical behavior, architecture, decision rules, delivery phases, and release chapters.
-- [Requirements](REQUIREMENTS.md): all 387 numbered product requirements and their implementation notes.
+- [Requirements](REQUIREMENTS.md): all 411 numbered product requirements and their implementation notes.
 - [Traceability](TRACEABILITY.md): requirement-to-specification and verification mapping.
 - [Implementation Status](IMPLEMENTATION_STATUS.md): verified current release, boundaries, QA evidence, and next priorities.
 - [Cross-Device UX Audit](UX_AUDIT_2026-08-10.md): mobile and desktop heuristic findings, accessibility and performance evidence, corrections, and remaining priorities.
@@ -14,6 +14,7 @@ This directory records the complete product and implementation specification in 
 - [Life-Aware Plan](LIFE_AWARE_PLAN_2026-08-12.md): plain-language training rounds and blocks, missed-work handling, prohibited volume debt, and future-plan learning.
 - [Cloud Sync and Backend](CLOUD_SYNC_AND_BACKEND.md): phone-laptop parity, local-first storage, authenticated synchronization, workout handoff, conflicts, security, and recovery.
 - [Supabase Backend Runbook](SUPABASE_BACKEND_RUNBOOK.md): live project state, migration checksums, credential boundaries, repeatable acceptance gates, remaining invitation drill, and next backend slices.
+- [Longitudinal Product Simulation Audit](../research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md): 52-week recommendation replay, year-scale analytics and responsive UI, backup integrity, production cloud rollback, and zero-residue proof.
 
 JB's Dropbox-backed Obsidian vault remains the editable source of truth. These files are release snapshots and must be refreshed from Obsidian whenever a substantive app release changes the shared brain.
 

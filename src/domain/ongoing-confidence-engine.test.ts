@@ -64,4 +64,51 @@ describe('ongoing confidence model', () => {
     expect(model.lanes.find((lane) => lane.id === 'recovery-response')).toMatchObject({ state: 'uncalibrated', evidenceCount: 0 })
     expect(model.summary).toMatch(/Missing answers lower certainty only/i)
   })
+
+  it('can become well calibrated from repeated explicit recovery answers without requiring placement checks', () => {
+    const surveys = Array.from({ length: 4 }, (_, index) => ({
+      id: `recovery-survey-${index}`,
+      sessionId: `recovery-session-${index}`,
+      type: 'post' as const,
+      completedAt: `2026-08-${String(index + 7).padStart(2, '0')}T12:00:00.000Z`,
+      skipped: false,
+      answers: [{ id: 'recovery', value: 4, status: 'answered' as const }]
+    }))
+    const model = buildOngoingConfidenceModel({
+      strengthAnchorIds: [bench.id], exercises, history: [], sessions: [], surveys,
+      placementVerifications: [], missedOpportunityEvents: [], assessedAt
+    })
+    expect(model.lanes.find((lane) => lane.id === 'recovery-response')).toMatchObject({ state: 'well-calibrated', evidenceStrength: 5, evidenceCount: 4 })
+  })
+
+  it('does not count a post-session survey with no recovery answer as recovery evidence', () => {
+    const model = buildOngoingConfidenceModel({
+      strengthAnchorIds: [bench.id], exercises, history: [], sessions: [],
+      surveys: [{ id: 'stimulus-only', sessionId: 'session', type: 'post', completedAt: assessedAt, skipped: false, answers: [{ id: 'targetStimulus', value: 4, status: 'answered' }] }],
+      placementVerifications: [], missedOpportunityEvents: [], assessedAt
+    })
+    expect(model.lanes.find((lane) => lane.id === 'recovery-response')).toMatchObject({ state: 'uncalibrated', evidenceStrength: 0, evidenceCount: 0 })
+  })
+
+  it('can learn stable schedule fit without requiring the athlete to miss a workout', () => {
+    const sessions = Array.from({ length: 6 }, (_, index) => {
+      const startedAt = new Date(new Date('2026-07-06T12:00:00.000Z').getTime() + index * 7 * 86_400_000).toISOString()
+      return ({
+      id: `schedule-${index}`,
+      title: 'Schedule evidence',
+      objective: 'Verify stable attendance.',
+      dayLabel: `Week ${index + 1}`,
+      plannedDate: startedAt,
+      status: 'completed' as const,
+      durationMinutes: 45,
+      startedAt,
+      completedAt: new Date(new Date(startedAt).getTime() + 45 * 60_000).toISOString(),
+      exercises: []
+    })})
+    const model = buildOngoingConfidenceModel({
+      strengthAnchorIds: [], exercises, history: [], sessions, surveys: [], placementVerifications: [], missedOpportunityEvents: [],
+      assessedAt: '2026-08-13T12:00:00.000Z'
+    })
+    expect(model.lanes.find((lane) => lane.id === 'schedule-fit')).toMatchObject({ state: 'well-calibrated', evidenceStrength: 5, evidenceCount: 6 })
+  })
 })

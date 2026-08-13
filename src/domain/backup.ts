@@ -45,7 +45,7 @@ import { movementNoteError } from './movement-note-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
 export const BACKUP_SCHEMA_VERSION = 25
-export const BACKUP_APP_VERSION = '0.57.0'
+export const BACKUP_APP_VERSION = '0.58.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -151,7 +151,10 @@ const isValidDate = (value: unknown) =>
 const stableStringify = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
   if (isRecord(value)) {
-    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`
+    // JSON is the backup and cloud transport. Optional object properties with an undefined value are
+    // removed by JSON.stringify, so the checksum must omit them too or the exported file will fail its
+    // own integrity check when it is read back.
+    return `{${Object.keys(value).filter((key) => value[key] !== undefined).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`
   }
   return JSON.stringify(value)
 }
