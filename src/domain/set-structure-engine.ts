@@ -20,11 +20,8 @@ export const setStructureLabels: Record<SetGroupKind, string> = {
  * accumulating volume efficiently, not as ways to perform the main strength lift.
  */
 export function structureAllowedForRole(role: ExerciseRole, kind: SetGroupKind): StructureGate {
-  if (role === 'primary') {
-    return { allowed: false, reason: `${setStructureLabels[kind]}s are not used on the primary movement. Its exposures stay clean so progression and route evidence remain comparable.` }
-  }
-  if (role === 'secondary' && kind !== 'superset') {
-    return { allowed: false, reason: `${setStructureLabels[kind]}s are an accessory and tertiary tool. Secondary work still drives the primary, so it keeps straight sets.` }
+  if (role === 'primary' || role === 'secondary') {
+    return { allowed: false, reason: `${setStructureLabels[kind]}s are reserved for accessory and tertiary work. Primary and secondary builders keep straight sets so strength progression and fatigue remain comparable.` }
   }
   return { allowed: true, reason: `${setStructureLabels[kind]} is available here.` }
 }
@@ -38,19 +35,14 @@ export function canPairForSuperset(a: Exercise, b: Exercise): StructureGate {
   if (a.id === b.id) {
     return { allowed: false, reason: 'A movement cannot be supersetted with itself.' }
   }
-  if (a.primaryRegion === b.primaryRegion) {
-    return { allowed: false, reason: `Both movements train ${a.primaryRegion} first. Pairing the same muscle cuts the volume load you came for, so pair opposing work instead.` }
+  const mappedA = new Set([a.muscleMapping?.direct, ...(a.muscleMapping?.secondary ?? [])].filter(Boolean))
+  const mappedB = new Set([b.muscleMapping?.direct, ...(b.muscleMapping?.secondary ?? [])].filter(Boolean))
+  const sharedMappedMuscle = [...mappedA].some((muscle) => mappedB.has(muscle))
+  const sharedRegion = a.regions.some((region) => b.regions.includes(region))
+  if (a.primaryRegion === b.primaryRegion || sharedMappedMuscle || sharedRegion) {
+    return { allowed: false, reason: 'These movements share meaningful muscle work. ForgePath protects each exercise by pairing zero-overlap accessories instead.' }
   }
-  const push = new Set(['horizontal-push', 'vertical-push'])
-  const pull = new Set(['horizontal-pull', 'vertical-pull'])
-  const opposed = (push.has(a.pattern) && pull.has(b.pattern))
-    || (pull.has(a.pattern) && push.has(b.pattern))
-    || (a.pattern === 'squat' && b.pattern === 'hinge')
-    || (a.pattern === 'hinge' && b.pattern === 'squat')
-  if (opposed) {
-    return { allowed: true, reason: `${a.name} and ${b.name} oppose each other, so each rests while the other works.` }
-  }
-  return { allowed: true, reason: `${a.name} and ${b.name} train different primary muscles, so they can share a rest window.` }
+  return { allowed: true, reason: `${a.name} and ${b.name} have no catalogued muscle overlap, so they can share a rest window without turning either into compromised work.` }
 }
 
 const withGrouping = (
@@ -74,7 +66,7 @@ export function buildDropSet(input: {
   increment?: number
 }): SetPrescription[] {
   const dropCount = Math.max(1, Math.min(3, input.dropCount ?? 2))
-  const dropPercent = Math.min(0.5, Math.max(0.1, input.dropPercent ?? 0.2))
+  const dropPercent = Math.min(0.5, Math.max(0.1, input.dropPercent ?? 0.15))
   const increment = Math.max(1, input.increment ?? 5)
   // A top set with no load yet has nothing to strip from. Flooring at one increment would invent a
   // number for a movement the app has just admitted it cannot prescribe, so unknown stays unknown.
@@ -101,7 +93,7 @@ export function buildMyoReps(input: {
   miniReps?: number
 }): SetPrescription[] {
   const miniCount = Math.max(2, Math.min(5, input.miniCount ?? 3))
-  const miniReps = Math.max(2, Math.min(5, input.miniReps ?? 3))
+  const miniReps = Math.max(3, Math.min(10, input.miniReps ?? 5))
   const minis = Array.from({ length: miniCount }, (_, index) => withGrouping(
     { ...input.activationSet, id: `${input.activationSet.id}-mini-${index + 1}`, targetReps: miniReps, targetRir: 0, completed: false, completedLoad: undefined, completedReps: undefined, actualRir: undefined },
     input.groupId, 'myo-reps', 'mini', index + 2

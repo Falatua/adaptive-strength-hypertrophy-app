@@ -39,6 +39,15 @@ The interface should feel like an experienced training partner with the quiet de
 5. Earn delight through progress. Use pixel moments, micro wins, companion reactions, and world changes only when a real source-backed event justifies them.
 6. Build for JB-level scrutiny. Verify responsive behavior, accessibility, data conservation, exact identity, sprite quality, copy, and edge cases before delivery.
 
+## Athlete-Controlled Dose and Technique
+
+- Weekly volume and deload outputs are suggestions. The athlete explicitly approves any future-plan change; ForgePath never silently edits a session from an analysis screen.
+- Good-day extra work remains unrestricted while the workout is active and pain has not changed training. Every added set or movement is visibly athlete-authored, counts as completed dose, and can inform the next microcycle or mesocycle review without automatically earning more work.
+- Straight sets are the foundation. Primary movements and secondary builders remain straight-set work so their progression and fatigue stay comparable.
+- Drop sets, myo-reps, and supersets may be suggested only on stable accessory or tertiary work, no more than two technique blocks per session. Each suggestion states its purpose: time efficiency, a controlled late-session pump, or concentrated additional volume.
+- Supersets require zero catalogued muscle overlap. Myo-reps and drop sets belong late in a movement, with the leading set retaining the progression target while every completed mini-set or drop still counts toward dose.
+- A first-time athlete starts with a blank training record. Established-history scenarios are test fixtures, never user-facing demo data.
+
 ## Accessibility & Inclusion
 
 Target WCAG 2.2 AA for all core workflows. Support keyboard and touch input, screen readers, large text, sufficient contrast, non-color state labels, reduced motion, silent operation, optional haptics, focused-training mode, and a modern non-pixel typeface for numerical and explanatory content. Pixel art and game language are enhancement layers and can never be required to understand or complete training.

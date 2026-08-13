@@ -203,7 +203,7 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       nav: 'today',
       notice: null,
-      ...fresh(),
+      ...cleanTestingStart(),
       setNav: (nav) => set({ nav }),
       setNotice: (notice) => set({ notice }),
       completeOnboarding: (profile) => set((state) => {

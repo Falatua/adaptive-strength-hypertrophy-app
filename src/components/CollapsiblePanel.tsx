@@ -31,7 +31,7 @@ export function CollapsiblePanel({ className = 'panel', header, label, ariaLabel
           <ChevronDown size={18} />
         </button>
       </div>
-      <div id={bodyId} hidden={!open}>{children}</div>
+      <div id={bodyId} hidden={!open}>{open ? children : null}</div>
     </section>
   )
 }

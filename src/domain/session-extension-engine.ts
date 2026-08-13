@@ -35,7 +35,11 @@ export function sessionExtensionGate(input: {
       caution: `Readiness is ${input.readiness}. Today's plan was already reduced on purpose, so added work carries more recovery cost than usual.`
     }
   }
-  return { allowed: true, reason: 'Extra work is available.', caution: null }
+  return {
+    allowed: true,
+    reason: 'Extra work is available.',
+    caution: 'Extra work is unrestricted and recorded as athlete-added dose. It can inform the next microcycle or mesocycle review, but each added set also raises fatigue and does not guarantee an automatic progression.'
+  }
 }
 
 /**

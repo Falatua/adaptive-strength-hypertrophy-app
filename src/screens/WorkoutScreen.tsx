@@ -244,6 +244,16 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     ].some((value) => value.toLowerCase().includes(normalizedAddSearch)))
     .sort((a, b) => Number(b.favorite) - Number(a.favorite) || a.name.localeCompare(b.name))
 
+  const techniqueCandidateIds = new Set(session.exercises
+    .filter((planned) => ['accessory', 'tertiary'].includes(planned.role))
+    .filter((planned) => !planned.sets.some((workSet) => workSet.grouping) && !planned.sets.every((workSet) => workSet.completed))
+    .filter((planned) => {
+      const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)
+      return Boolean(exercise && exercise.equipment.some((item) => /machine|cable|dumbbell|bodyweight/i.test(item)) && (planned.sets[0]?.targetReps ?? 0) >= 8)
+    })
+    .slice(-2)
+    .map((planned) => planned.id))
+
   const bestEstimatedStrength = Math.max(0, ...session.exercises.flatMap((exercise) => exercise.sets
     .filter((set) => set.completed)
     .map((set) => estimatedOneRepMax(set.completedLoad ?? set.targetLoad, set.completedReps ?? set.targetReps))))
@@ -309,6 +319,13 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
             const exerciseAchievements = activeAchievementPreview.filter((event) => event.exerciseId === exercise.id)
             const currentMovementNote = movementNotes.find((note) => note.sessionId === session.id && note.plannedExerciseId === planned.id && note.exerciseId === exercise.id)
             const priorMovementNote = movementNotesForExercise(movementNotes, exercise.id).find((note) => note.id !== currentMovementNote?.id)
+            const techniqueSuggestion = techniqueCandidateIds.has(planned.id)
+              ? settings.availableMinutes <= 45
+                ? 'Time-saving option: review a zero-overlap superset, myo-reps, or a drop set. Use only if it preserves clean work on both movements.'
+                : planned.role === 'tertiary'
+                  ? 'Late-session volume option: myo-reps can concentrate a small amount of hard work on this stable movement.'
+                  : 'Late-session pump option: a standardized drop set can extend the final set without changing the primary progression target.'
+              : null
             return (
               <article className={`exercise-card exercise-card--${planned.role} ${equipmentFit.available ? '' : 'exercise-card--equipment-blocked'}`} key={planned.id}>
                 <div className="exercise-card__header">
@@ -329,6 +346,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   <button className="info-button" onClick={() => setDecisionInfo({ name: exercise.name, title: recommendation.title, action: recommendation.action, confidence: recommendation.confidence, explanation: recommendation.explanation })} aria-label={`More information about ${exercise.name}`} aria-haspopup="dialog"><Info size={17} /></button>
                 </div>
                 {planned.prescriptionNote && <div className="substitution-prescription"><RefreshCcw size={16} /><span><strong>{planned.prescriptionMethod === 'exact-history' ? 'Exact-history replacement' : 'Baseline calibration'}</strong>{planned.prescriptionNote}</span></div>}
+                {techniqueSuggestion && <div className="technique-prescription"><Layers size={16} /><span><strong>Purposeful technique suggestion</strong>{techniqueSuggestion}<small>Athlete approval required · maximum two technique blocks in this session</small></span><button type="button" onClick={() => { setStructureTarget(planned); setStructureError(null) }}>Review</button></div>}
                 <section className="movement-note-editor" aria-label={`${exercise.name} movement notebook`}>
                   <div className="movement-note-editor__heading"><BookOpen size={18} /><span><strong>Movement note</strong><small>Saved to this exact movement and workout</small></span></div>
                   {priorMovementNote && <div className="movement-note-recall"><span><b>Last note</b><small>{new Date(priorMovementNote.sessionDate).toLocaleDateString()}{priorMovementNote.microcycleNumber ? ` · Week ${priorMovementNote.microcycleNumber}` : ''} · {priorMovementNote.sessionTitle}</small></span><p>{priorMovementNote.body}</p></div>}
@@ -417,18 +435,18 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         <button className={`button ${completedSets === totalSets && totalSets > 0 ? 'button--primary' : 'button--secondary'}`} onClick={openFinishFlow}>Finish workout <CheckCircle2 size={18} /></button>
       </footer>
 
-      <Modal open={Boolean(structureTarget)} onClose={() => { setStructureTarget(null); setStructureError(null) }} title={structureTarget ? `Change how you perform ${exercises.find((item) => item.id === structureTarget.exerciseId)?.name ?? 'this movement'}` : 'Choose a technique'} description="Same work, less clock. These accumulate volume efficiently, so they belong on accessory and tertiary work rather than the lift your progression is measured on." wide>
+      <Modal open={Boolean(structureTarget)} onClose={() => { setStructureTarget(null); setStructureError(null) }} title={structureTarget ? `Choose a purposeful technique for ${exercises.find((item) => item.id === structureTarget.exerciseId)?.name ?? 'this movement'}` : 'Choose a technique'} description="These are optional prescriptions for stable accessory and tertiary work. Use one to save time, add a controlled late-session pump, or concentrate a small amount of volume. Straight sets remain the foundation." wide>
         {structureError && <p className="form-error" role="alert">{structureError}</p>}
         <div className="structure-options">
-          <button type="button" onClick={() => { const first = structureTarget?.sets.find((workSet) => !workSet.completed); if (structureTarget && first) applyStructure(structureTarget.id, first.id, 'drop-set') }}>
-            <span><strong>Drop set</strong><small>Take the set, strip roughly a fifth of the load, and keep going with no rest. Two drops are added. Equal growth to straight sets in a fraction of the time.</small></span>
+          <button type="button" onClick={() => { const unfinished = structureTarget?.sets.filter((workSet) => !workSet.completed).at(-1); if (structureTarget && unfinished) applyStructure(structureTarget.id, unfinished.id, 'drop-set') }}>
+            <span><strong>Drop set · time or late pump</strong><small>Take the final straight set, reduce load about 10 to 20%, and continue with minimal rest. Two drops are logged as real dose; the top set remains the progression anchor.</small></span>
           </button>
-          <button type="button" onClick={() => { const first = structureTarget?.sets.find((workSet) => !workSet.completed); if (structureTarget && first) applyStructure(structureTarget.id, first.id, 'myo-reps') }}>
-            <span><strong>Myo-reps</strong><small>One activation set close to failure, then three short sets of three after three to five deep breaths. Most of the growth stimulus lives in those last hard reps.</small></span>
+          <button type="button" onClick={() => { const unfinished = structureTarget?.sets.filter((workSet) => !workSet.completed).at(-1); if (structureTarget && unfinished) applyStructure(structureTarget.id, unfinished.id, 'myo-reps') }}>
+            <span><strong>Myo-reps · efficient added volume</strong><small>One activation set close to failure, then three short sets of five after three to five deep breaths. Best on stable machine, cable, or isolation work late in the session.</small></span>
           </button>
         </div>
         <div className="structure-pairing">
-          <p className="field-label">Or superset it with</p>
+          <p className="field-label">Or use a zero-overlap superset to save time</p>
           {supersetPartners.length === 0 && <p className="modal-note">No other movement in this session can pair with it yet.</p>}
           {supersetPartners.map(({ planned: partner, exercise: partnerExercise, pairing, blocked }) => (
             <button type="button" key={partner.id} disabled={!pairing.allowed || blocked} onClick={() => pairSuperset(partner.id)} className={pairing.allowed && !blocked ? '' : 'is-refused'}>

@@ -14,12 +14,12 @@ describe('structureAllowedForRole', () => {
     for (const kind of ['superset', 'drop-set', 'myo-reps'] as const) {
       const gate = structureAllowedForRole('primary', kind)
       expect(gate.allowed).toBe(false)
-      expect(gate.reason).toContain('primary movement')
+      expect(gate.reason).toContain('Primary and secondary')
     }
   })
 
-  it('allows only supersets on secondary work, which still drives the primary', () => {
-    expect(structureAllowedForRole('secondary', 'superset').allowed).toBe(true)
+  it('keeps every technique off secondary builders', () => {
+    expect(structureAllowedForRole('secondary', 'superset').allowed).toBe(false)
     expect(structureAllowedForRole('secondary', 'drop-set').allowed).toBe(false)
     expect(structureAllowedForRole('secondary', 'myo-reps').allowed).toBe(false)
   })
@@ -34,10 +34,10 @@ describe('structureAllowedForRole', () => {
 })
 
 describe('canPairForSuperset', () => {
-  it('refuses a pair that trains the same primary muscle, which cuts volume load', () => {
+  it('refuses a pair that trains the same primary muscle', () => {
     const gate = canPairForSuperset(movement('a', 'chest', 'horizontal-push'), movement('b', 'chest', 'vertical-push'))
     expect(gate.allowed).toBe(false)
-    expect(gate.reason).toContain('cuts the volume load')
+    expect(gate.reason).toContain('share meaningful muscle work')
   })
 
   it('refuses pairing a movement with itself', () => {
@@ -45,16 +45,16 @@ describe('canPairForSuperset', () => {
     expect(canPairForSuperset(bench, bench).allowed).toBe(false)
   })
 
-  it('recognises an opposing push and pull pair', () => {
+  it('allows different catalogued regions when no overlap is recorded', () => {
     const gate = canPairForSuperset(movement('press', 'chest', 'horizontal-push'), movement('row', 'back', 'horizontal-pull'))
     expect(gate.allowed).toBe(true)
-    expect(gate.reason).toContain('oppose each other')
+    expect(gate.reason).toContain('no catalogued muscle overlap')
   })
 
   it('allows different primary muscles that are not strict antagonists', () => {
     const gate = canPairForSuperset(movement('curl', 'biceps', 'isolation'), movement('calf', 'calves', 'isolation'))
     expect(gate.allowed).toBe(true)
-    expect(gate.reason).toContain('different primary muscles')
+    expect(gate.reason).toContain('no catalogued muscle overlap')
   })
 })
 

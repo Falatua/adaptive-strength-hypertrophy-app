@@ -1,6 +1,9 @@
 ---
 schemaVersion: 3
 product: ForgePath
+avatarProgression:
+  forms: [Apprentice, Forged, Champion, Apex]
+  marks: "Original angular Forge Marks increase at every form. They are invented geometry, not copied cultural tattoo language."
 northStar: The Pocket Training Field Guide
 tokens:
   colors:

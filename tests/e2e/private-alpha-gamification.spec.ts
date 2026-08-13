@@ -1,8 +1,26 @@
 import { expect, test, type Page } from '@playwright/test'
+import { history as establishedHistory, mesocycles as establishedMesocycles, records as establishedRecords, sessions as establishedSessions } from '../../src/domain/seed'
 
 async function enterRecommendedProfile(page: import('@playwright/test').Page) {
   await page.goto('/')
   await page.evaluate(() => localStorage.clear())
+  await page.reload()
+  // The product now starts genuinely blank. Most scenarios in this file intentionally exercise an
+  // established athlete, so load that test-only history before onboarding instead of leaking demo
+  // records into every real first run.
+  await page.evaluate(({ history, mesocycles, records, sessions }) => {
+    const key = 'forgepath-private-alpha-v1'
+    const persisted = JSON.parse(localStorage.getItem(key) ?? '{"state":{}}')
+    persisted.state = {
+      ...persisted.state,
+      history,
+      mesocycles,
+      records,
+      sessions,
+      activeMesocycleId: mesocycles[0]?.id ?? null
+    }
+    localStorage.setItem(key, JSON.stringify(persisted))
+  }, { history: establishedHistory, mesocycles: establishedMesocycles, records: establishedRecords, sessions: establishedSessions })
   await page.reload()
   await page.getByRole('button', { name: /Quick Start/ }).click()
   await expect(page.getByRole('heading', { name: 'Your next useful win.' })).toBeVisible()
@@ -421,6 +439,7 @@ test('honors minimal and off survey preferences without inventing answers', asyn
   await page.getByRole('button', { name: 'Finish workout' }).click()
   await expect(page.getByRole('heading', { name: 'PRs and micro wins' })).toBeVisible()
   await page.getByRole('button', { name: 'You' }).click()
+  await openPanel(page, 'survey preferences')
   await expect(page.getByLabel('Post-session feedback mode')).toHaveValue('off')
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
   const surveys = persisted?.state?.surveys ?? []
@@ -661,8 +680,8 @@ test('shows transparent individual muscle dose with overlap-safe area rollups an
   await sourceIdentifiers.click()
   await expect(page.locator('.muscle-dose-exercises code').first()).not.toBeEmpty()
   await expect(page.getByRole('heading', { name: 'What the plan asked for versus what you finished' })).toBeVisible()
-  await expect(page.getByLabel('arms planned muscle dose')).toContainText('Triceps')
   await openPanel(page, 'planned muscle work')
+  await expect(page.getByLabel('arms planned muscle dose')).toContainText('Triceps')
   await expect(page.getByText('Sets outside a saved plan are still real progress', { exact: false })).toBeVisible()
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
@@ -683,7 +702,8 @@ test('edits a custom movement without splitting history and blocks alias collisi
   await page.getByLabel('Movement name').fill('Ring Press Arc')
   await page.getByLabel('Custom movement equipment').fill('rings, cable')
   await page.getByRole('button', { name: 'Create separate history' }).click()
-  await page.getByRole('button', { name: 'Open movement' }).last().click()
+  await page.getByPlaceholder('Search a movement or its other names...').fill('Ring Press Arc')
+  await page.getByRole('button', { name: 'Open movement' }).click()
   await page.getByRole('button', { name: 'Edit catalog' }).click()
   await expect(page.getByRole('heading', { name: 'Edit custom movement' })).toBeVisible()
   const openModalDimensions = await page.getByRole('dialog').evaluate((dialog) => ({ scrollWidth: dialog.scrollWidth, clientWidth: dialog.clientWidth }))
@@ -1057,15 +1077,15 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
   await page.getByRole('button', { name: 'Schedule stability: 4' }).click()
   await page.getByRole('button', { name: /Continue/ }).click()
 
-  await expect(page.getByRole('heading', { name: 'Direct Strength Development', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bridge and Calibration Cycle', exact: true })).toBeVisible()
   await expect(page.getByText('high confidence', { exact: true })).toBeVisible()
   await expect(page.getByText('Long-term experience remains an asset', { exact: false })).toBeVisible()
   await expect(page.getByText('Your starting sessions will actually change')).toBeVisible()
-  await expect(page.getByText('4 × 4', { exact: true })).toBeVisible()
+  await expect(page.getByText('3 × 6', { exact: true })).toBeVisible()
   await expect(page.locator('.movement-placement-preview')).toContainText('Competition Back Squat')
   await expect(page.locator('.movement-placement-preview')).toContainText('Introductory Skill Cycle')
   await expect(page.locator('.movement-placement-preview')).toContainText('Competition Bench Press')
-  await expect(page.locator('.movement-placement-preview')).toContainText('Direct Strength Development')
+  await expect(page.locator('.movement-placement-preview')).toContainText('Bridge and Calibration Cycle')
   await expect(page.locator('.movement-placement-preview')).toContainText('Conventional Deadlift')
   await expect(page.locator('.movement-placement-preview')).toContainText('Bridge and Calibration Cycle')
   await page.getByText('Why not lower or higher?').click()
@@ -1077,17 +1097,17 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
   }
 
   await page.getByRole('button', { name: /Start more conservatively/ }).click()
-  await expect(page.getByRole('heading', { name: 'Base-Building Cycle' })).toBeVisible()
-  await expect(page.getByText('3 × 8', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Reacclimation and Productive Work' })).toBeVisible()
+  await expect(page.getByText('2 × 8', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: /This looks right.*Enter ForgePath/ }).click()
   await page.getByRole('button', { name: 'You' }).click()
-  await expect(page.getByText('Base-Building Cycle', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('Reacclimation and Productive Work', { exact: true }).first()).toBeVisible()
   await openPanel(page, 'your placement')
   await expect(page.getByText(/high confidence.*conservative/i)).toBeVisible()
   await expect(page.locator('.profile-movement-lanes')).toContainText('Competition Back Squat')
   await expect(page.locator('.profile-movement-lanes')).toContainText('Introductory Skill Cycle')
   await expect(page.locator('.profile-movement-lanes')).toContainText('Competition Bench Press')
-  await expect(page.locator('.profile-movement-lanes')).toContainText('Base-Building Cycle')
+  await expect(page.locator('.profile-movement-lanes')).toContainText('Reacclimation and Productive Work')
   await expect(page.locator('.profile-movement-lanes')).toContainText('Conventional Deadlift')
   await expect(page.locator('.profile-movement-lanes')).toContainText('Reacclimation and Productive Work')
   await page.getByText('Why and how this will be verified').click()
@@ -1095,15 +1115,15 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
   expect(persisted.version).toBe(25)
-  expect(persisted.state.athlete.placement).toMatchObject({ ruleVersion: 'placement-v3', recommendedRoute: 'strength', selectedRoute: 'base-building', confidence: 'high', decision: 'conservative' })
+  expect(persisted.state.athlete.placement).toMatchObject({ ruleVersion: 'placement-v3', recommendedRoute: 'bridge-calibration', selectedRoute: 'reacclimation', confidence: 'high', decision: 'conservative' })
   expect(persisted.state.athlete.placement.movementPlacements.map((movement: { exerciseId: string; selectedRoute: string }) => [movement.exerciseId, movement.selectedRoute])).toEqual([
-    ['competition-squat', 'introductory-skill'], ['competition-bench', 'base-building'], ['conventional-deadlift', 'reacclimation']
+    ['competition-squat', 'introductory-skill'], ['competition-bench', 'reacclimation'], ['conventional-deadlift', 'reacclimation']
   ])
   expect(persisted.state.athlete.level.movementSkill).toBe(5)
-  expect(persisted.state.mesocycles.find((plan: { id: string }) => plan.id === persisted.state.activeMesocycleId)).toMatchObject({ dominantAdaptation: 'reacclimation', title: 'Base-Building Cycle · Starting Cycle', entryRoute: 'base-building', generationRuleVersion: 'route-session-v3', generationEquipment: { profileId: 'equipment-commercial-gym' } })
-  expect(new Set(persisted.state.sessions.map((session: { generation?: { route: string } }) => session.generation?.route))).toEqual(new Set(['introductory-skill', 'base-building', 'reacclimation']))
-  expect(persisted.state.sessions.every((session: { generation?: { ruleVersion: string; planRoute?: string; equipment?: { profileId: string }; movementPlacement?: { exerciseId: string } }; exercises: Array<{ role: string; exerciseId: string }> }) => session.generation?.ruleVersion === 'route-session-v3' && session.generation.planRoute === 'base-building' && session.generation.equipment?.profileId === 'equipment-commercial-gym' && session.generation.movementPlacement?.exerciseId === session.exercises.find((exercise) => exercise.role === 'primary')?.exerciseId)).toBe(true)
-  expect(persisted.state.sessions[0].exercises[0].sets[0]).toMatchObject({ targetReps: 8, targetRir: 3 })
+  expect(persisted.state.mesocycles.find((plan: { id: string }) => plan.id === persisted.state.activeMesocycleId)).toMatchObject({ dominantAdaptation: 'reacclimation', title: 'Reacclimation and Productive Work · Starting Cycle', entryRoute: 'reacclimation', generationRuleVersion: 'route-session-v3', generationEquipment: { profileId: 'equipment-commercial-gym' } })
+  expect(new Set(persisted.state.sessions.map((session: { generation?: { route: string } }) => session.generation?.route))).toEqual(new Set(['introductory-skill', 'reacclimation']))
+  expect(persisted.state.sessions.every((session: { generation?: { ruleVersion: string; planRoute?: string; equipment?: { profileId: string }; movementPlacement?: { exerciseId: string } }; exercises: Array<{ role: string; exerciseId: string }> }) => session.generation?.ruleVersion === 'route-session-v3' && session.generation.planRoute === 'reacclimation' && session.generation.equipment?.profileId === 'equipment-commercial-gym' && session.generation.movementPlacement?.exerciseId === session.exercises.find((exercise) => exercise.role === 'primary')?.exerciseId)).toBe(true)
+  expect(persisted.state.sessions[0].exercises[0].sets[0]).toMatchObject({ targetReps: 8, targetRir: 4 })
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
   if (testInfo.project.name === 'mobile-chromium') await page.locator('.settings-main .panel').first().screenshot({ path: 'output/playwright/placement-profile-mobile.png' })

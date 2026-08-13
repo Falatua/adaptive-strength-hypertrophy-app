@@ -283,9 +283,9 @@ describe('forecastDeload', () => {
     expect(forecastDeload({ ...base, motivation: 1 }).reasons.some((reason) => reason.includes('Motivation'))).toBe(true)
   })
 
-  it('leaves the timing to the athlete until it is genuinely past due', () => {
+  it('always leaves the timing to the athlete, including a strong overdue signal', () => {
     expect(forecastDeload({ ...base, weeksSinceLastDeload: 6 }).athleteChoice).toBe(true)
-    expect(forecastDeload({ ...base, weeksSinceLastDeload: 9 }).athleteChoice).toBe(false)
+    expect(forecastDeload({ ...base, weeksSinceLastDeload: 9 }).athleteChoice).toBe(true)
   })
 })
 

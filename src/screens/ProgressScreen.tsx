@@ -296,16 +296,16 @@ export function ProgressScreen() {
         {muscleDose.unmappedSourceSetCount > 0 && <div className="muscle-unmapped" role="note"><strong>{muscleDose.unmappedSourceSetCount} unmapped {muscleDose.unmappedSourceSetCount === 1 ? 'set' : 'sets'}</strong><span>{muscleDose.unmappedExerciseNames.join(', ')}. These sets remain in completed volume but receive no inferred muscle credit.</span></div>}
         {deload && (
           <div className={`deload-forecast deload-forecast--${deload.urgency}`} aria-label="Deload forecast">
-            <div><p className="eyebrow">Recovery week</p><h4>{deload.urgency === 'not-yet' ? 'No deload needed yet' : deload.urgency === 'approaching' ? 'A deload is close' : deload.urgency === 'due' ? 'This is the week to deload' : 'Deload is past due'}</h4></div>
+            <div><p className="eyebrow">Recovery week suggestion</p><h4>{deload.urgency === 'not-yet' ? 'No deload suggestion yet' : deload.urgency === 'approaching' ? 'A deload review is close' : deload.urgency === 'due' ? 'Review a deload this week' : 'Strong deload review signal'}</h4></div>
             <ul>{deload.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
-            <small>{deload.athleteChoice ? 'You choose when to take it. Sets drop to the least that holds the adaptation, reps roughly halve, and load holds before halving for the back half of the week.' : 'The evidence says this one should not wait any longer.'}</small>
+            <small>You approve whether and when to take it. ForgePath never changes the plan automatically. If approved, sets fall to the least that holds adaptation, repetitions fall substantially, and load stays deliberately submaximal.</small>
           </div>
         )}
         {volumePlan.length > 0 && (
           <div className="volume-plan" aria-label="Weekly volume progression">
             <div className="volume-plan__heading">
               <div><p className="eyebrow">Next week's volume</p><h4>What next week should look like</h4></div>
-              <small>Weekly direct sets against the volume you can grow on and still recover from. Proposals only. Nothing changes until you apply it.</small>
+              <small>Weekly direct sets against a provisional recoverable range. Suggestions only. Review and approve them when building the next plan; this screen never changes future sessions.</small>
             </div>
             <div className="volume-plan__list">
               {volumePlan.map(({ point, decision, zone, attribution }) => (

@@ -25,6 +25,12 @@ export function PixelAvatar({ mood = 'ready', size = 'medium', form = 'apprentic
       role="img"
     >
       <img src={`${import.meta.env.BASE_URL}athlete-forms/${form}.png`} alt="" />
+      <svg className="pixel-avatar__forge-marks" viewBox="0 0 256 256" aria-hidden="true" shapeRendering="crispEdges">
+        <g className="forge-mark forge-mark--one"><path d="M71 132h18v5H71zm3 8h15v4H74zm4 7h12v4H78z" /></g>
+        <g className="forge-mark forge-mark--two"><path d="M169 126h17v5h-17zm-2 8h16v4h-16zm-3 7h14v4h-14z" /></g>
+        <g className="forge-mark forge-mark--three"><path d="M66 158h25v5H66zm5 8h22v4H71zm7 7h18v4H78z" /></g>
+        <g className="forge-mark forge-mark--four"><path d="M166 154h23v5h-23zm-4 8h22v4h-22zm-3 7h18v4h-18z" /></g>
+      </svg>
       {typeof level === 'number' && <span className="pixel-avatar__level" aria-hidden="true"><b>LV</b>{level}</span>}
     </div>
   )

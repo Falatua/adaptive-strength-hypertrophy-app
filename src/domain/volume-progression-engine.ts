@@ -321,8 +321,7 @@ export interface DeloadForecast {
  * with no training accumulated no fatigue, so they push the deload later rather than counting toward
  * it, and evidence of not recovering pulls it earlier.
  *
- * The result is an offer, not an instruction. The athlete chooses when to take it unless the evidence
- * says they are already past due.
+ * The result is an offer, not an instruction. The athlete always chooses whether and when to take it.
  */
 export function forecastDeload(input: {
   weeksSinceLastDeload: number
@@ -367,9 +366,9 @@ export function forecastDeload(input: {
   const urgency: DeloadUrgency = weeksUntilDue <= -1 ? 'overdue' : weeksUntilDue <= 0 ? 'due' : weeksUntilDue === 1 ? 'approaching' : 'not-yet'
 
   if (urgency === 'not-yet') reasons.push(`Week ${weeksTrained} of about ${effectiveLength}. Keep training.`)
-  if (urgency === 'approaching') reasons.push('One more hard week looks right, then take the deload before performance starts sliding.')
-  if (urgency === 'due') reasons.push('This is the week to deload. Taking it now costs one easy week instead of three bad ones.')
-  if (urgency === 'overdue') reasons.push('The deload is past due on the evidence recorded so far.')
+  if (urgency === 'approaching') reasons.push('A deload review is approaching. One more hard week may fit if the athlete agrees and recovery remains stable.')
+  if (urgency === 'due') reasons.push('The current evidence supports offering a deload for athlete approval this week.')
+  if (urgency === 'overdue') reasons.push('The current evidence strongly supports a deload review, but the athlete still approves the change.')
 
   return {
     ruleVersion: DELOAD_RULE,
@@ -378,7 +377,7 @@ export function forecastDeload(input: {
     weeksUntilDue,
     missedWeeks: input.missedWeeks,
     reasons,
-    athleteChoice: urgency !== 'overdue'
+    athleteChoice: true
   }
 }
 

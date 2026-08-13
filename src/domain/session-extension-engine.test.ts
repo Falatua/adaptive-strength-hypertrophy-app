@@ -20,7 +20,8 @@ describe('sessionExtensionGate', () => {
   it('allows extra work in an open session with normal readiness', () => {
     const gate = sessionExtensionGate({ sessionStatus: 'active', readiness: 'normal', painReported: false })
     expect(gate.allowed).toBe(true)
-    expect(gate.caution).toBeNull()
+    expect(gate.caution).toContain('unrestricted')
+    expect(gate.caution).toContain('microcycle or mesocycle')
   })
 
   it('refuses extra work when the session is not open', () => {

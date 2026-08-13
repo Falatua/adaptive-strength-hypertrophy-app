@@ -44,6 +44,7 @@ export function LibraryScreen() {
   const [pattern, setPattern] = useState<MovementPattern | 'all'>('all')
   const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(true)
+  const [visibleWindow, setVisibleWindow] = useState({ key: '', count: 48 })
   const [browseDimension, setBrowseDimension] = useState<BrowseDimension | null>(null)
   const filterPanelRef = useRef<HTMLDivElement>(null)
   const [selected, setSelected] = useState<Exercise | null>(null)
@@ -85,6 +86,8 @@ export function LibraryScreen() {
   }), [exercises, favoritesOnly, pattern, search, region])
 
   const activeExercises = useMemo(() => exercises.filter((exercise) => !exercise.retired), [exercises])
+  const filterWindowKey = `${search}\u0000${region}\u0000${pattern}\u0000${favoritesOnly}`
+  const visibleCount = visibleWindow.key === filterWindowKey ? visibleWindow.count : 48
   const placementEvidence = useMemo(() => athlete.strengthAnchors.flatMap((exerciseId) => {
     const exercise = exercises.find((candidate) => candidate.id === exerciseId)
     return exercise ? [buildPlacementHistoryEvidence({ exercise, history, assessedAt: placementEvidenceAssessedAt })] : []
@@ -312,7 +315,7 @@ export function LibraryScreen() {
         </div>}
         {filtered.length ? (
           <div className="exercise-grid">
-            {filtered.map((exercise) => {
+            {filtered.slice(0, visibleCount).map((exercise) => {
               const exactHistory = history.filter((set) => set.exerciseId === exercise.id)
               const latest = [...exactHistory].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0]
               const equipmentFit = exerciseEquipmentFit(exercise, activeEquipmentProfile)
@@ -330,6 +333,7 @@ export function LibraryScreen() {
             })}
           </div>
         ) : <div className="empty-state"><Search size={32} /><h3>Nothing matches this search yet.</h3><p>Try a different body part or movement type, or add your own movement. We will flag likely duplicates before saving it.</p><button className="button button--secondary" onClick={clearFilters}>View all movements</button></div>}
+        {filtered.length > visibleCount && <div className="library-load-more"><small>Showing {visibleCount} of {filtered.length} movements</small><button className="button button--secondary" onClick={() => setVisibleWindow({ key: filterWindowKey, count: Math.min(filtered.length, visibleCount + 48) })}>Load 48 more</button></div>}
       </section>
 
       <section className="panel placement-history-panel">
