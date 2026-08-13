@@ -11,6 +11,7 @@ import type {
   PlacementVerificationEvent
 } from './types'
 import { placementAssessmentError } from './placement-engine'
+import { sameJsonValue } from './stable-json'
 import { placementVerificationError } from './placement-verification-engine'
 
 export const placementExitRuleVersion = 'placement-exit-v1' as const
@@ -139,7 +140,7 @@ export function buildMovementPlacementExitAssessment(input: {
   const assessedAt = input.assessedAt ?? new Date().toISOString()
   if (Number.isNaN(new Date(assessedAt).getTime())) throw new Error('Movement placement exit assessment needs a valid assessment date.')
   const placementMovement = input.placement.movementPlacements?.find((movement) => movement.exerciseId === input.movementPlacement.exerciseId)
-  if (!placementMovement || JSON.stringify(placementMovement) !== JSON.stringify(input.movementPlacement)) throw new Error('Movement placement exit assessment needs the exact movement snapshot from its placement version.')
+  if (!placementMovement || !sameJsonValue(placementMovement, input.movementPlacement)) throw new Error('Movement placement exit assessment needs the exact movement snapshot from its placement version.')
   const placementEvents = input.verificationEvents
     .filter((event) => event.placementCreatedAt === input.placement.createdAt)
     .sort((left, right) => left.startedAt.localeCompare(right.startedAt) || left.sequence - right.sequence)
@@ -232,7 +233,7 @@ export function placementExitAssessmentError(value: unknown): string | null {
   if (assessment.placementCreatedAt !== sourcePlacement.createdAt || assessment.currentRoute !== sourcePlacement.selectedRoute) return 'Placement exit assessment does not match its source placement identity.'
   if (assessment.sourceVerificationEvents.some((event) => event.placementCreatedAt !== assessment.placementCreatedAt)) return 'Placement exit assessment includes evidence from another placement version.'
   const replay = buildPlacementExitAssessment({ placement: sourcePlacement, verificationEvents: assessment.sourceVerificationEvents, assessedAt: assessment.assessedAt })
-  if (JSON.stringify(replay) !== JSON.stringify(assessment)) return 'Placement exit assessment does not reconcile with its source evidence.'
+  if (!sameJsonValue(replay, assessment)) return 'Placement exit assessment does not reconcile with its source evidence.'
   return null
 }
 
@@ -254,13 +255,13 @@ export function movementPlacementExitAssessmentError(value: unknown): string | n
   if (assessment.ruleVersion !== movementPlacementExitRuleVersion || !isDate(assessment.placementCreatedAt) || !isDate(assessment.assessedAt) || typeof assessment.exerciseId !== 'string' || typeof assessment.exerciseName !== 'string') return 'Movement placement exit assessment has invalid rule, identity, or date provenance.'
   const placementError = placementAssessmentError(assessment.sourcePlacement)
   if (placementError) return `Movement placement exit source placement is invalid: ${placementError}`
-  if (!assessment.sourceMovementPlacement || JSON.stringify((assessment.sourcePlacement as AthletePlacementAssessment).movementPlacements?.find((movement) => movement.exerciseId === assessment.exerciseId)) !== JSON.stringify(assessment.sourceMovementPlacement)) return 'Movement placement exit assessment does not match its source movement placement.'
+  if (!assessment.sourceMovementPlacement || !sameJsonValue((assessment.sourcePlacement as AthletePlacementAssessment).movementPlacements?.find((movement) => movement.exerciseId === assessment.exerciseId), assessment.sourceMovementPlacement)) return 'Movement placement exit assessment does not match its source movement placement.'
   if (!Array.isArray(assessment.sourceVerificationEvents) || assessment.sourceVerificationEvents.some((event) => placementVerificationError(event))) return 'Movement placement exit assessment has invalid source verification evidence.'
   const sourcePlacement = assessment.sourcePlacement as AthletePlacementAssessment
   if (assessment.placementCreatedAt !== sourcePlacement.createdAt || assessment.currentRoute !== assessment.sourceMovementPlacement.selectedRoute || assessment.exerciseName !== assessment.sourceMovementPlacement.exerciseName) return 'Movement placement exit assessment does not match its source identity.'
   if (assessment.sourceVerificationEvents.some((event) => event.placementCreatedAt !== assessment.placementCreatedAt)) return 'Movement placement exit assessment includes evidence from another placement version.'
   const replay = buildMovementPlacementExitAssessment({ placement: sourcePlacement, movementPlacement: assessment.sourceMovementPlacement, verificationEvents: assessment.sourceVerificationEvents, assessedAt: assessment.assessedAt })
-  if (JSON.stringify(replay) !== JSON.stringify(assessment)) return 'Movement placement exit assessment does not reconcile with its source evidence.'
+  if (!sameJsonValue(replay, assessment)) return 'Movement placement exit assessment does not reconcile with its source evidence.'
   return null
 }
 

@@ -19,6 +19,12 @@ const stable = (value: unknown): string => {
   return JSON.stringify(value)
 }
 
+const reorderJsonObjectKeys = <T,>(value: T): T => {
+  if (Array.isArray(value)) return value.map((item) => reorderJsonObjectKeys(item)) as T
+  if (typeof value !== 'object' || value === null) return value
+  return Object.fromEntries(Object.entries(value).reverse().map(([key, item]) => [key, reorderJsonObjectKeys(item)])) as T
+}
+
 const state = (): RestorableAppState => ({
   athlete: structuredClone(athlete),
   settings: {
@@ -80,6 +86,15 @@ describe('versioned backup and restore', () => {
     const parsed = parseBackup(JSON.stringify(backup))
     expect(parsed.backup.data.history[0]).not.toHaveProperty('benchAngleDeg')
     expect(parsed.summary.completedSets).toBe(current.history.length)
+  })
+
+  it('restores an integrity-valid cloud snapshot after jsonb reorders object keys', () => {
+    const backup = reorderJsonObjectKeys(createBackup(state(), '2026-08-10T12:00:00.000Z'))
+    const parsed = parseBackup(JSON.stringify(backup))
+
+    expect(parsed.backup.data.athlete.placement.ruleVersion).toBe('placement-v3')
+    expect(parsed.backup.data.athlete.placement.selectedRoute).toBe('base-building')
+    expect(parsed.summary.completedSets).toBe(history.length)
   })
 
   it('migrates a verified version 24 backup without inventing movement notes', () => {

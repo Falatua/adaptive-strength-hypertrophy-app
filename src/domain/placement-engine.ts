@@ -9,6 +9,7 @@ import type {
   PlacementRoute
 } from './types'
 import { placementHistoryEvidenceError } from './placement-history-engine'
+import { sameJsonValue } from './stable-json'
 
 export const placementRuleVersion = 'placement-v3' as const
 export const previousPlacementRuleVersion = 'placement-v2' as const
@@ -324,7 +325,6 @@ export function placementAssessmentError(value: unknown): string | null {
     if (assessment.movementPlacements.some((movement) => movement.ruleVersion !== expectedMovementRule)) return 'Per-movement placement evidence uses the wrong rule version.'
   } else if (assessment.movementPlacements !== undefined || inputs.movementProfiles !== undefined) return 'Legacy placement cannot invent per-movement evidence.'
   const replay = applyPlacementDecision(buildPlacementAssessmentVersion(inputs as PlacementInputs, assessment.createdAt, assessment.ruleVersion), assessment.decision as PlacementDecision)
-  const sameList = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right)
-  if (!sameList(assessment.dimensions, replay.dimensions) || assessment.recommendedRoute !== replay.recommendedRoute || assessment.selectedRoute !== replay.selectedRoute || assessment.confidence !== replay.confidence || !sameList(assessment.reasons, replay.reasons) || !sameList(assessment.uncertainInputs, replay.uncertainInputs) || !sameList(assessment.verificationPlan, replay.verificationPlan) || assessment.whyNotLower !== replay.whyNotLower || assessment.whyNotHigher !== replay.whyNotHigher || !sameList(assessment.exitCriteria, replay.exitCriteria) || !sameList(assessment.movementPlacements, replay.movementPlacements)) return `Placement assessment does not reconcile with ${assessment.ruleVersion} input evidence.`
+  if (!sameJsonValue(assessment.dimensions, replay.dimensions) || assessment.recommendedRoute !== replay.recommendedRoute || assessment.selectedRoute !== replay.selectedRoute || assessment.confidence !== replay.confidence || !sameJsonValue(assessment.reasons, replay.reasons) || !sameJsonValue(assessment.uncertainInputs, replay.uncertainInputs) || !sameJsonValue(assessment.verificationPlan, replay.verificationPlan) || assessment.whyNotLower !== replay.whyNotLower || assessment.whyNotHigher !== replay.whyNotHigher || !sameJsonValue(assessment.exitCriteria, replay.exitCriteria) || !sameJsonValue(assessment.movementPlacements, replay.movementPlacements)) return `Placement assessment does not reconcile with ${assessment.ruleVersion} input evidence.`
   return null
 }

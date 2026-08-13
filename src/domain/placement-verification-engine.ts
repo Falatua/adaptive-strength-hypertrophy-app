@@ -8,6 +8,7 @@ import type {
   PlacementWarmupResponse
 } from './types'
 import { movementPlacementEvidenceError } from './placement-engine'
+import { sameJsonValue } from './stable-json'
 
 export const placementVerificationRuleVersion = 'placement-verification-v1' as const
 
@@ -227,6 +228,6 @@ export function placementVerificationError(value: unknown): string | null {
   }
   const valid = event as PlacementVerificationEvent
   const replay = replayPlacementVerification(valid)
-  if (JSON.stringify(replay) !== JSON.stringify(event)) return 'Placement verification does not reconcile with its source evidence.'
+  if (!sameJsonValue(replay, event)) return 'Placement verification does not reconcile with its source evidence.'
   return null
 }

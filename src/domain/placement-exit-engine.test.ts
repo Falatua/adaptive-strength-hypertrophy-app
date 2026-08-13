@@ -19,6 +19,12 @@ const sessionEvidence: PlacementVerificationSessionEvidence = {
   technique: 4, pain: 0, timeFit: 4, postSurveySkipped: false
 }
 
+const reorderJsonObjectKeys = <T,>(value: T): T => {
+  if (Array.isArray(value)) return value.map((item) => reorderJsonObjectKeys(item)) as T
+  if (typeof value !== 'object' || value === null) return value
+  return Object.fromEntries(Object.entries(value).reverse().map(([key, item]) => [key, reorderJsonObjectKeys(item)])) as T
+}
+
 function verifiedEvent(placement: ReturnType<typeof placementFor>, sequence: number, result: 'support' | 'review' | 'pain', movementIndex = 0): PlacementVerificationEvent {
   const movement = placement.movementPlacements?.[movementIndex]
   const exerciseId = movement?.exerciseId ?? 'plan'
@@ -39,6 +45,7 @@ describe('placement-exit-v1', () => {
     expect(assessment).toMatchObject({ recommendation: 'confirm-current', suggestedRoute: 'strength', collected: 2, resolved: 2, supports: 2, reassessmentRequired: false })
     expect(assessment.criteria.map((item) => item.state)).toEqual(['met', 'met', 'met', 'met'])
     expect(placementExitAssessmentError(assessment)).toBeNull()
+    expect(placementExitAssessmentError(reorderJsonObjectKeys(assessment))).toBeNull()
   })
 
   it('suggests athlete-reviewed advancement from a supported transitional route', () => {
@@ -96,6 +103,7 @@ describe('movement-placement-exit-v1', () => {
     expect(assessment).toMatchObject({ exerciseId: 'squat', currentRoute: 'bridge-calibration', recommendation: 'review-advance', suggestedRoute: 'base-building', collected: 2, supports: 2, excludedOtherMovementChecks: 1 })
     expect(assessment.criteria.map((item) => item.state)).toEqual(['met', 'met', 'met', 'met'])
     expect(movementPlacementExitAssessmentError(assessment)).toBeNull()
+    expect(movementPlacementExitAssessmentError(reorderJsonObjectKeys(assessment))).toBeNull()
   })
 
   it('does not let two supportive bench checks confirm the squat lane', () => {

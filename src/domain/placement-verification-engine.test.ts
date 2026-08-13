@@ -40,6 +40,12 @@ const begun = () => beginPlacementVerification({
   movementPlacement: placement.movementPlacements?.[0]
 })
 
+const reorderJsonObjectKeys = <T,>(value: T): T => {
+  if (Array.isArray(value)) return value.map((item) => reorderJsonObjectKeys(item)) as T
+  if (typeof value !== 'object' || value === null) return value
+  return Object.fromEntries(Object.entries(value).reverse().map(([key, item]) => [key, reorderJsonObjectKeys(item)])) as T
+}
+
 describe('placement-verification-v1', () => {
   it('cancels only the active exact-lane check when the protected primary is substituted', () => {
     const active = begun()
@@ -107,6 +113,7 @@ describe('placement-verification-v1', () => {
     const second = { ...one, id: 'verify-2', sessionId: 'session-2', sequence: 2 }
     expect(summarizePlacementVerification([one, second], placement.createdAt)).toMatchObject({ supports: 2, state: 'route-supported' })
     expect(placementVerificationError(one)).toBeNull()
+    expect(placementVerificationError(reorderJsonObjectKeys(one))).toBeNull()
     expect(placementVerificationError({ ...one, verdict: 'review-suggested' })).toMatch(/does not reconcile/i)
   })
 })

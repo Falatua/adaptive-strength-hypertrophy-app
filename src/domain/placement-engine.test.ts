@@ -3,6 +3,12 @@ import { applyPlacementDecision, buildPlacementAssessment, legacyPlacementForAth
 import { buildPlacementHistoryEvidence } from './placement-history-engine'
 import type { CompletedSetRecord, PlacementInputs } from './types'
 
+const reorderJsonObjectKeys = <T,>(value: T): T => {
+  if (Array.isArray(value)) return value.map((item) => reorderJsonObjectKeys(item)) as T
+  if (typeof value !== 'object' || value === null) return value
+  return Object.fromEntries(Object.entries(value).reverse().map(([key, item]) => [key, reorderJsonObjectKeys(item)])) as T
+}
+
 const inputs = (overrides: Partial<PlacementInputs> = {}): PlacementInputs => ({
   goal: 'strength', fixedEvent: null, trainingAge: 8, continuity: 'stable', movementSkill: 5,
   strengthTolerance: 4, volumeTolerance: 4, scheduleStability: 4, dataConfidence: 4,
@@ -63,6 +69,7 @@ describe('placement-v3 with placement-v1 and placement-v2 compatibility', () => 
   it('validates assessment provenance and dimensions', () => {
     const valid = buildPlacementAssessment(inputs())
     expect(placementAssessmentError(valid)).toBeNull()
+    expect(placementAssessmentError(reorderJsonObjectKeys(valid))).toBeNull()
     expect(placementAssessmentError({ ...valid, dimensions: { ...valid.dimensions, movementSkill: 7 } })).toMatch(/one to five/i)
     expect(placementAssessmentError({ ...valid, ruleVersion: 'placement-v0' })).toMatch(/rule version/i)
   })
