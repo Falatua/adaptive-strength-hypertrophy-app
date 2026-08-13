@@ -27,6 +27,7 @@ import { decideMuscleVolume, forecastDeload, summarizeMuscleFeedback, volumeZone
 import type { MuscleId, RecordCategory } from '../domain/types'
 import { buildCalendarMonth, buildExerciseExposureSequence, buildFixedEventCountdown, calendarDayKey } from '../domain/timeline-engine'
 import { buildOngoingConfidenceModel } from '../domain/ongoing-confidence-engine'
+import { currentMicrocycleNumber } from '../domain/cycle-review-engine'
 
 type TimelineAxis = 'calendar' | 'exposure'
 
@@ -100,7 +101,7 @@ export function ProgressScreen() {
           currentSets,
           volumeTolerance: athlete.placement?.dimensions?.volumeTolerance ?? null,
           feedback,
-          microcycleNumber: activePlan ? Math.max(1, sessions.filter((session) => session.mesocycleId === activePlan.id && session.status === 'completed').length) : 1,
+          microcycleNumber: activePlan ? currentMicrocycleNumber(activePlan, sessions) : 1,
           targetMicrocycles: activePlan?.targetMicrocycles ?? 4
         })
         return { point, decision, zone: volumeZone(currentSets, decision.landmarks), attribution: feedback.attribution ?? 'attributed' }

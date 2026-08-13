@@ -6,7 +6,7 @@ import type { CompletedSetRecord, Exercise, MuscleId, SurveyRecord } from './typ
 import { exercises as seedExercises } from './seed'
 
 const feedback = (over: Partial<MuscleFeedback> = {}): MuscleFeedback => ({
-  pump: 3, targetStimulus: 3, endFatigue: 3, pain: 0, performance: 'held', ...over
+  pump: 3, targetStimulus: 3, endFatigue: 3, recovery: 4, pain: 0, performance: 'held', ...over
 })
 
 const decide = (over: Partial<Parameters<typeof decideMuscleVolume>[0]> = {}) => decideMuscleVolume({
@@ -40,7 +40,19 @@ describe('decideMuscleVolume', () => {
     const result = decide({ currentSets: 4 })
     expect(result.action).toBe('add-sets')
     expect(result.nextSets).toBeGreaterThan(4)
-    expect(result.reasons[0]).toContain('reliably grows')
+    expect(result.reasons[0]).toContain('cautious increase')
+  })
+
+  it('does not let a low landmark count override poor recovery', () => {
+    const result = decide({ currentSets: 4, feedback: feedback({ recovery: 1, performance: 'held' }) })
+    expect(result.action).toBe('hold')
+    expect(result.nextSets).toBe(4)
+  })
+
+  it('does not let a low landmark count override declining performance', () => {
+    const result = decide({ currentSets: 4, feedback: feedback({ recovery: 4, performance: 'declined', endFatigue: 2 }) })
+    expect(result.action).toBe('hold')
+    expect(result.nextSets).toBe(4)
   })
 
   it('adds work when stimulus came back low and fatigue was manageable', () => {
@@ -59,6 +71,24 @@ describe('decideMuscleVolume', () => {
     const result = decide({ feedback: feedback({ performance: 'held', endFatigue: 2 }) })
     expect(result.action).toBe('add-sets')
     expect(result.setChange).toBe(1)
+  })
+
+  it('holds when between-session recovery was not complete', () => {
+    const result = decide({ feedback: feedback({ recovery: 1, performance: 'held', endFatigue: 2 }) })
+    expect(result.action).toBe('hold')
+    expect(result.reasons[0]).toContain('had not recovered')
+  })
+
+  it('holds when pump and target stimulus conflict instead of cherry-picking the low answer', () => {
+    const result = decide({ feedback: feedback({ pump: 5, targetStimulus: 1, recovery: 5, endFatigue: 1 }) })
+    expect(result.action).toBe('hold')
+    expect(result.confidence).toBe('low')
+  })
+
+  it('does not add sets without explicit between-session recovery evidence', () => {
+    const result = decide({ feedback: feedback({ pump: 1, targetStimulus: 1, recovery: null, endFatigue: 1 }) })
+    expect(result.action).not.toBe('add-sets')
+    expect(result.unknownInputs).toContain('between-session recovery')
   })
 
   it('cuts volume when performance declined under high fatigue', () => {
@@ -83,7 +113,19 @@ describe('decideMuscleVolume', () => {
   it('deloads on the final planned week of the block', () => {
     const result = decide({ microcycleNumber: 4, targetMicrocycles: 4 })
     expect(result.action).toBe('deload')
-    expect(result.reasons[0]).toContain('last planned week')
+    expect(result.reasons[0]).toContain('last planned round')
+  })
+
+  it('never turns a deload into added sets when the final week was already light', () => {
+    const result = decide({ currentSets: 4, microcycleNumber: 4, targetMicrocycles: 4 })
+    expect(result.action).toBe('deload')
+    expect(result.nextSets).toBeLessThanOrEqual(4)
+  })
+
+  it('does not manufacture a deload from a missed final round with zero completed sets', () => {
+    const result = decide({ currentSets: 0, microcycleNumber: 4, targetMicrocycles: 4, feedback: { pump: null, targetStimulus: null, endFatigue: null, recovery: null, pain: null, performance: 'unknown' } })
+    expect(result.action).toBe('insufficient-evidence')
+    expect(result.nextSets).toBe(0)
   })
 
   it('never climbs past the recoverable ceiling', () => {
@@ -98,8 +140,14 @@ describe('decideMuscleVolume', () => {
     expect(result.reasons[0]).toContain('not medical advice')
   })
 
+  it('never increases a low set count while labeling the decision a pain reduction', () => {
+    const result = decide({ currentSets: 2, feedback: feedback({ pain: 4 }) })
+    expect(result.action).toBe('reduce-sets')
+    expect(result.nextSets).toBeLessThanOrEqual(2)
+  })
+
   it('holds and says so when too little feedback was recorded', () => {
-    const result = decide({ feedback: { pump: null, targetStimulus: null, endFatigue: null, pain: null, performance: 'unknown' } })
+    const result = decide({ feedback: { pump: null, targetStimulus: null, endFatigue: null, recovery: null, pain: null, performance: 'unknown' } })
     expect(result.action).toBe('insufficient-evidence')
     expect(result.setChange).toBe(0)
     expect(result.confidence).toBe('low')
@@ -114,7 +162,7 @@ describe('decideMuscleVolume', () => {
   it('always explains itself and never returns a bare number', () => {
     const result = decide()
     expect(result.reasons.length).toBeGreaterThan(0)
-    expect(result.ruleVersion).toBe('volume-progression-v1')
+    expect(result.ruleVersion).toBe('volume-progression-v2')
   })
 })
 
@@ -182,12 +230,59 @@ describe('summarizeMuscleFeedback', () => {
     expect(result.pump).toBeNull()
   })
 
+  it('does not compare different exact movements as if a changed exercise proved muscle performance', () => {
+    const incline = seedExercises.find((exercise) => exercise.id === 'incline-db-press') as Exercise
+    const changed = {
+      ...setFor('now', 's1', '2026-08-09T12:00:00.000Z', 80),
+      exerciseId: incline.id,
+      exerciseName: incline.name,
+      family: incline.family,
+      primaryRegion: incline.primaryRegion
+    }
+    const result = summarizeMuscleFeedback({
+      muscle: 'pectorals', exercises: seedExercises,
+      history: [setFor('prior', 's0', '2026-08-04T12:00:00.000Z', 200), changed], surveys: [], ...windows
+    })
+    expect(result.performance).toBe('unknown')
+  })
+
+  it('keeps different recorded incline angles in separate performance lanes', () => {
+    const incline = seedExercises.find((exercise) => exercise.id === 'incline-db-press') as Exercise
+    const angleSet = (id: string, sessionId: string, completedAt: string, load: number, benchAngleDeg: number): CompletedSetRecord => ({
+      id, sessionId, exerciseId: incline.id, exerciseName: incline.name, family: incline.family,
+      primaryRegion: incline.primaryRegion, completedAt, reps: 10, load, rir: 2, technique: 4, pain: 0, setIndex: 0, benchAngleDeg
+    })
+    const result = summarizeMuscleFeedback({
+      muscle: 'pectorals', exercises: seedExercises,
+      history: [angleSet('prior', 's0', '2026-08-04T12:00:00.000Z', 60, 30), angleSet('now', 's1', '2026-08-09T12:00:00.000Z', 80, 45)], surveys: [], ...windows
+    })
+    expect(result.performance).toBe('unknown')
+  })
+
+  it('excludes athlete-added sets from the automatic performance signal', () => {
+    const history = [
+      setFor('prior', 's0', '2026-08-04T12:00:00.000Z', 200),
+      setFor('now', 's1', '2026-08-09T12:00:00.000Z', 200),
+      setFor('bonus', 's1', '2026-08-09T12:05:00.000Z', 300, { athleteAdded: true })
+    ]
+    expect(summarizeMuscleFeedback({ muscle: 'pectorals', exercises: seedExercises, history, surveys: [], ...windows }).performance).toBe('held')
+  })
+
   it('carries the worst pain recorded on that muscle rather than an average', () => {
     const history = [
-      setFor('a', 's1', '2026-08-09T12:00:00.000Z', 200, { pain: 1 }),
-      setFor('b', 's1', '2026-08-09T12:10:00.000Z', 200, { pain: 4 })
+      setFor('a', 's1', '2026-08-09T12:00:00.000Z', 200, { pain: 1, qualityConfirmed: true }),
+      setFor('b', 's1', '2026-08-09T12:10:00.000Z', 200, { pain: 4, qualityConfirmed: true })
     ]
     expect(summarizeMuscleFeedback({ muscle: 'pectorals', exercises: seedExercises, history, surveys: [], ...windows }).pain).toBe(4)
+  })
+
+  it('preserves an answered pain warning even when technique was skipped', () => {
+    const result = summarizeMuscleFeedback({
+      muscle: 'pectorals', exercises: seedExercises,
+      history: [setFor('a', 's1', '2026-08-09T12:00:00.000Z', 200, { technique: 0, pain: 0, qualityConfirmed: false })],
+      surveys: [survey('s1', { pain: 5 })], ...windows
+    })
+    expect(result.pain).toBe(5)
   })
 })
 

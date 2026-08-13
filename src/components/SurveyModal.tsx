@@ -8,16 +8,24 @@ export function SurveyModal({ open, mode, onClose, onSubmit, onSkip }: { open: b
   const [values, setValues] = useState<Record<string, number>>(() => Object.fromEntries(questions.map((question) => [question.id, question.defaultValue])))
   const [statuses, setStatuses] = useState<Record<string, SurveyAnswer['status']>>(() => Object.fromEntries(questions.map((question) => [question.id, 'not-answered'])))
 
-  const submit = () => onSubmit(questions.map((question) => ({
-    id: question.id,
-    value: statuses[question.id] === 'answered' ? values[question.id] : null,
-    status: statuses[question.id] ?? 'not-answered'
-  })))
+  const reset = () => {
+    setValues(Object.fromEntries(questions.map((question) => [question.id, question.defaultValue])))
+    setStatuses(Object.fromEntries(questions.map((question) => [question.id, 'not-answered'])))
+  }
+
+  const submit = () => {
+    onSubmit(questions.map((question) => ({
+      id: question.id,
+      value: statuses[question.id] === 'answered' ? values[question.id] : null,
+      status: statuses[question.id] ?? 'not-answered'
+    })))
+    reset()
+  }
 
   const setStatus = (id: string, status: SurveyAnswer['status']) => setStatuses((current) => ({ ...current, [id]: status }))
 
   return (
-    <Modal open={open} onClose={onClose} title={`${surveyModeLabel[mode]} readiness check`} description={`${questions.length} optional questions. This forms a best guess. How the warm-up actually goes matters more.`} wide>
+    <Modal open={open} onClose={() => { reset(); onClose() }} title={`${surveyModeLabel[mode]} readiness check`} description={`${questions.length} optional questions. This forms a best guess. How the warm-up actually goes matters more.`} wide>
       <div className="survey-grid">
         {questions.map((question, index) => (
           <fieldset className={`survey-question ${statuses[question.id] !== 'answered' ? 'is-unanswered' : ''}`} key={question.id}>
@@ -41,7 +49,7 @@ export function SurveyModal({ open, mode, onClose, onSubmit, onSkip }: { open: b
         ))}
       </div>
       <div className="modal__actions">
-        <button className="button button--ghost" onClick={onSkip}>Start workout now</button>
+        <button className="button button--ghost" onClick={() => { reset(); onSkip() }}>Start workout now</button>
         <button className="button button--primary" onClick={submit}>Use my check-in</button>
       </div>
     </Modal>

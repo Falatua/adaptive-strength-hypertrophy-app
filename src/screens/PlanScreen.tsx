@@ -40,7 +40,7 @@ const reviewChoices: { id: CycleReviewDecision; title: string; detail: string }[
 
 export function PlanScreen() {
   const {
-    sessions, exercises, athlete, history, mesocycles, cycleReviews, missedOpportunityEvents, placementVerifications, activeMesocycleId, activeSessionId, equipmentProfiles, settings,
+    sessions, exercises, athlete, history, surveys, mesocycles, cycleReviews, missedOpportunityEvents, placementVerifications, activeMesocycleId, activeSessionId, equipmentProfiles, settings,
     startSession, pinSession, applyMesocycleRevision, applyCycleReview, setNotice
   } = useAppStore()
   const activePlan = mesocycles.find((plan) => plan.id === activeMesocycleId)
@@ -96,7 +96,7 @@ export function PlanScreen() {
   const activeAnchors = (activePlan?.strengthAnchors ?? athlete.strengthAnchors)
     .map((id) => exercises.find((exercise) => exercise.id === id)?.name)
     .filter(Boolean)
-  const cycleReview = useMemo(() => activePlan ? buildCycleReview(activePlan, sessions, history) : null, [activePlan, sessions, history])
+  const cycleReview = useMemo(() => activePlan ? buildCycleReview(activePlan, sessions, history, new Date(), surveys) : null, [activePlan, sessions, history, surveys])
   const placementExit = useMemo(() => buildPlacementExitAssessment({ placement: athlete.placement, verificationEvents: placementVerifications, assessedAt: placementExitAssessedAt }), [athlete.placement, placementVerifications, placementExitAssessedAt])
   const movementExits = useMemo(() => (athlete.placement.movementPlacements ?? []).map((movementPlacement) => buildMovementPlacementExitAssessment({ placement: athlete.placement, movementPlacement, verificationEvents: placementVerifications, assessedAt: placementExitAssessedAt })), [athlete.placement, placementVerifications, placementExitAssessedAt])
   const activeCycleReviews = activePlan ? cycleReviews.filter((review) => review.mesocycleId === activePlan.id) : []
@@ -282,6 +282,8 @@ export function PlanScreen() {
               <div><small>Round volume</small><strong>{cycleReview.evidence.volumeLoad.toLocaleString()}</strong></div>
               <div><small>Average session RPE</small><strong>{cycleReview.evidence.averageSessionRpe?.toFixed(1) ?? 'Unknown'}</strong></div>
               <div><small>Maximum pain</small><strong>{cycleReview.evidence.maximumPain ?? 'Unknown'}</strong></div>
+              <div><small>Quality confirmed</small><strong>{cycleReview.evidence.qualityConfirmedSets ?? 0} / {cycleReview.evidence.completedSets}</strong></div>
+              <div><small>Average technique</small><strong>{cycleReview.evidence.averageTechnique?.toFixed(1) ?? 'Unknown'}</strong></div>
               <div><small>Calendar days</small><strong>{cycleReview.evidence.calendarDays}</strong></div>
             </div>
           </section>

@@ -2493,7 +2493,66 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Automated release checks must reject privileged browser credentials, persistent training outboxes, cloud-build training writes to browser storage, missing migration checksums, public reset execution, or account deletion without authenticated server administration.
 - Detail: [[ForgePath Supabase Backend Runbook]]
 
+### R-395 Latest Prescribed Exposure Integrity
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: A movement progression may use only the latest exact prescribed exposure. An incomplete latest exposure cannot borrow sets from older sessions, athlete-added work, or reduced-load technique blocks to earn load, repetitions, or sets.
+- Detail: `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`
+
+### R-396 Missing Feedback Is Unknown
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Skipped or unanswered RIR, technique, pain, stimulus, fatigue, recovery, difficulty, and session-comparison inputs remain unknown. They may lower confidence or hold a recommendation but cannot become failure, poor technique, zero pain, or good recovery.
+- Detail: `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`
+
+### R-397 Feedback and Safety Gate Ordering
+- Status: implemented
+- Provenance: from-user and research-translation
+- Requirement: Pain, return status, protected readiness, unowned targets, poor confirmed technique, near-failure effort, harder-than-expected work, excessive fatigue, poor between-session recovery, and declining exact comparable performance must be evaluated before any overload or landmark-driven increase.
+- Detail: `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`
+
+### R-398 Load, Repetitions, Then Recovered Sets
+- Status: implemented
+- Provenance: from-user and research-translation
+- Requirement: Proposed progression follows load, then repetitions, then sets. A set increase is eligible only after repetitions are capped, the smallest load increment is too large, at least three comparable prescribed exposures exist, and low stimulus, manageable fatigue, early recovery, stable continuity, normal readiness, and acceptable effort agree.
+- Detail: `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`
+
+### R-399 Exact Movement and Setup Performance
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Performance evidence for movement or muscle progression compares only common canonical movements and recorded setups, including incline angle. Different exercises or angles remain completed dose but cannot be interpreted as improvement or decline in the same evidence lane.
+- Detail: `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`
+
+### R-400 Athlete Response Outranks Volume Landmarks
+- Status: implemented
+- Provenance: from-user and research-translation
+- Requirement: Provisional MV, MEV, MAV, and MRV landmarks never override known pain, poor recovery, falling performance, conflicting stimulus, high fatigue, or insufficient evidence. Pain reduction and deload proposals must be monotonic and a zero-set missed round cannot manufacture a deload.
+- Detail: `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`
+
+### R-401 Athlete Approval and Decision Evidence
+- Status: implemented
+- Provenance: from-user
+- Requirement: Every progression, volume, deload, recovery, or next-round change remains a visible proposal requiring athlete approval. Each movement recommendation exposes rule version, source session and set identities, excluded athlete-added dose, confidence, reasons, and unknown inputs.
+- Detail: `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`
+
+### R-402 Usable Optional Feedback Capture
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Post-session feedback includes optional target stimulus, technique, pain, fatigue, between-session recovery, time fit, and numeric actual duration as appropriate to the chosen survey mode. Every question and the entire survey can be skipped without blocking training or inventing an answer.
+- Detail: `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`
+
+### R-403 Pain-Aware Cycle Choice Boundary
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Known pain at the conservative cycle-review threshold disables the continue-progress outcome even when the round is complete. Hold and recovery remain available, and the app does not diagnose or imply medical clearance.
+- Detail: `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`
+
 ## Thread Coverage Audit
+
+### 2026-08-13 Feedback-Gated Progression and Volume Audit
+- Scope: JB requested a deep, repeated audit of progression suggestions and adjacent feedback-driven systems against the app's Mike Israetel and RP Hypertrophy research base.
+- Result: Added R-395 through R-403 and Build Bible Chapter 84. Private alpha 0.57.0 adds latest-exposure integrity, explicit unknown semantics, feedback and safety gate ordering, a reachable recovered-set fallback, exact movement and setup performance comparison, athlete-response priority over landmarks, auditable recommendation evidence, usable optional recovery feedback, and a pain-aware cycle-choice boundary.
+- Status: Implemented with deterministic, browser, build, public-artifact, and live-release gates recorded in `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`.
 
 ### 2026-08-13 Cloud-Authoritative Accounts, Recovery, Reset, and Deletion
 - Scope: User requested moving ForgePath data out of local browser storage into Supabase, secure account-specific login and password recovery, and athlete-controlled reset and permanent deletion.
@@ -2783,6 +2842,8 @@ This is the canonical traceability index for every durable requirement JB states
 - Exact boundary and default setting for focused-training or low-decoration mode.
 
 ## Change Log
+
+- 2026-08-13: Added R-395 through R-403 for latest prescribed-exposure integrity, missing-is-unknown feedback, safety-first gate ordering, load-then-repetition-then-recovered-set progression, exact setup performance, response-first volume decisions, athlete approval and evidence, usable optional recovery capture, and pain-aware cycle choices. Private alpha 0.57.0 versions the corrected engines as `progression-v2` and `volume-progression-v2`.
 
 - 2026-08-13: Added R-388 through R-394 for cloud-authoritative athlete storage, invite-only password access and recovery, verified automatic snapshot hydration and save, account-preserving reset, permanent account deletion, recent reauthentication, and automated cloud data-boundary security checks. Private alpha 0.54.0 keeps normalized entity merge, durable offline workouts, device revocation, and active-workout handoff deferred.
 

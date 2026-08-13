@@ -27,7 +27,7 @@ async function enterRecommendedProfile(page: import('@playwright/test').Page) {
   await expect(page.locator('.skip-link')).toHaveCSS('top', '-80px')
   const fieldGuide = page.getByLabel('Current training field guide')
   await expect(fieldGuide).toContainText('Bridge Calibration')
-  await expect(fieldGuide).toContainText(/confidence · \d+ exact completed sets?/)
+  await expect(fieldGuide).toContainText(/confidence · \d+ prescribed sets? from the latest exact exposure/)
 }
 
 // Movement-specific placement questions only unlock once the movement they ask about is finished,
@@ -344,7 +344,7 @@ test('validates an athlete-controlled PR without changing the prescription', asy
   await expect(page.getByText('Provisional until the workout is finished and saved.').first()).toBeVisible()
 
   await page.getByRole('button', { name: 'Finish workout' }).click()
-  await page.getByRole('button', { name: /Full.*10 questions/ }).click()
+  await page.getByRole('button', { name: /Full.*Complete session and trained-muscle feedback/ }).click()
   await page.getByRole('button', { name: 'How consistent was your technique?: 4' }).click()
   await page.getByRole('button', { name: 'Did any movement create joint pain or irritation?: 0' }).click()
   await page.getByRole('button', { name: 'Save feedback & finish' }).click()
@@ -468,7 +468,7 @@ test('defers optional feedback without blocking training and replays quality evi
   await page.getByLabel('Set 1 load').first().fill('185')
   await page.getByRole('button', { name: 'Log set' }).first().click()
   await page.getByRole('button', { name: 'Finish workout' }).click()
-  await page.getByRole('button', { name: /Minimal.*3 essential questions/ }).click()
+  await page.getByRole('button', { name: /Minimal.*Difficulty, technique, and pain only/ }).click()
   await page.getByRole('button', { name: 'Remind me later' }).click()
   await expect(page.getByRole('heading', { name: 'PRs and micro wins' })).toBeVisible()
   await openPanel(page, 'the wins timeline')
@@ -1226,7 +1226,7 @@ test('turns warm-up, first-set, session, and recovery evidence into an auditable
   await page.getByRole('button', { name: 'As expected' }).click()
   await expect(page.getByText('Answer saved')).toBeVisible()
   await page.getByRole('button', { name: 'Finish workout' }).click()
-  await page.getByRole('button', { name: /Full.*10 questions/ }).click()
+  await page.getByRole('button', { name: /Full.*Complete session and trained-muscle feedback/ }).click()
   await page.getByRole('button', { name: 'How difficult was the session overall?: 7' }).click()
   await page.getByRole('button', { name: 'How consistent was your technique?: 4' }).click()
   await page.getByRole('button', { name: 'Did any movement create joint pain or irritation?: 0' }).click()
@@ -1301,7 +1301,7 @@ test('turns repeated productive checks into an athlete-reviewed placement checkp
     await expect(page.getByText(new RegExp(`check ${sequence} of 3$`))).toBeVisible()
     await page.getByRole('button', { name: 'As expected' }).click()
     await page.getByRole('button', { name: 'Finish workout' }).click()
-    await page.getByRole('button', { name: /Full.*10 questions/ }).click()
+    await page.getByRole('button', { name: /Full.*Complete session and trained-muscle feedback/ }).click()
     await page.getByRole('button', { name: 'How difficult was the session overall?: 7' }).click()
     await page.getByRole('button', { name: 'How consistent was your technique?: 4' }).click()
     await page.getByRole('button', { name: 'Did any movement create joint pain or irritation?: 0' }).click()
@@ -1381,7 +1381,7 @@ test('keeps productive checkpoints independent per exact movement and saves the 
     await expect(page.getByText(`Competition Bench Press starting check ${sequence} of 3`)).toBeVisible()
     await page.getByRole('button', { name: 'As expected' }).click()
     await page.getByRole('button', { name: 'Finish workout' }).click()
-    await page.getByRole('button', { name: /Full.*10 questions/ }).click()
+    await page.getByRole('button', { name: /Full.*Complete session and trained-muscle feedback/ }).click()
     await page.getByRole('button', { name: 'How difficult was the session overall?: 7' }).click()
     await page.getByRole('button', { name: 'How consistent was your technique?: 4' }).click()
     await page.getByRole('button', { name: 'Did any movement create joint pain or irritation?: 0' }).click()
@@ -1633,7 +1633,7 @@ test('turns session feedback into next week volume rather than storing it unused
     await logSets.first().click()
   }
   await page.getByRole('button', { name: 'Finish workout' }).click()
-  await page.getByRole('button', { name: /Full.*10 questions/ }).click()
+  await page.getByRole('button', { name: /Full.*Complete session and trained-muscle feedback/ }).click()
   // Pump and stimulus are asked per trained muscle, which is what the volume decision reads.
   const perMuscle = page.getByRole('button', { name: /How strong was the pump in your/ })
   await expect(perMuscle.first()).toBeVisible()
@@ -1642,7 +1642,9 @@ test('turns session feedback into next week volume rather than storing it unused
   await page.getByRole('button', { name: `How strong was the pump in your ${muscleName}?: 1` }).click()
   await page.getByRole('button', { name: `How well did your ${muscleName} actually get trained?: 2` }).click()
   await page.getByRole('button', { name: 'How fatigued were you at the end?: 2' }).click()
+  await page.getByRole('button', { name: 'Before today, how early had the target muscles recovered from their prior session?: 5' }).click()
   await page.getByRole('button', { name: 'Did any movement create joint pain or irritation?: 0' }).click()
+  await expect(page.getByRole('spinbutton', { name: 'How many minutes did this actually take?' })).toBeVisible()
   await page.getByRole('button', { name: /Save feedback/ }).click()
 
   await page.getByRole('button', { name: 'Progress', exact: true }).click()

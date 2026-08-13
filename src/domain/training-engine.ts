@@ -11,6 +11,7 @@ import type {
   SetPrescription,
   SurveyAnswer,
   SessionStatus,
+  SurveyRecord,
   TrainingSession,
   WeeklyVolumePoint
 } from './types'
@@ -49,6 +50,7 @@ export function readinessFromSurvey(answers: SurveyAnswer[], continuity: Continu
 
 interface ProgressionInput {
   history: CompletedSetRecord[]
+  surveys?: SurveyRecord[]
   targetLoad: number
   targetReps: number
   targetSets: number
@@ -63,10 +65,47 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
   // Drops and myo-rep mini sets are real completed work, but they are performed at a reduced load or a
   // truncated rep target. Comparing them as ordinary exposures would read a productive technique week
   // as a regression, so the progression signal comes only from comparable sets.
-  const history = input.history.filter((workSet) => isComparableExposure(workSet.grouping))
+  const comparable = input.history
+    .filter((workSet) => isComparableExposure(workSet.grouping))
+    .sort((a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime() || a.setIndex - b.setIndex || a.id.localeCompare(b.id))
+  const athleteAddedSetsExcluded = comparable.filter((workSet) => workSet.athleteAdded).length
+  const history = comparable.filter((workSet) => !workSet.athleteAdded)
+  const exposureGroups = new Map<string, CompletedSetRecord[]>()
+  history.forEach((workSet) => exposureGroups.set(workSet.sessionId, [...(exposureGroups.get(workSet.sessionId) ?? []), workSet]))
+  const exposures = [...exposureGroups.values()].sort((a, b) => new Date(a[0].completedAt).getTime() - new Date(b[0].completedAt).getTime())
+  const recent = exposures.at(-1) ?? []
+  const sourceSessionId = recent[0]?.sessionId ?? null
+  const feedback = [...(input.surveys ?? [])]
+    .filter((survey) => survey.type === 'post' && survey.sessionId === sourceSessionId)
+    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0]
+  const answer = (id: string) => {
+    const found = feedback?.answers.find((candidate) => candidate.id === id && candidate.status === 'answered')
+    return typeof found?.value === 'number' ? found.value : null
+  }
+  const knownRir = recent.filter((workSet) => workSet.rirKnown !== false)
+  const confirmedQuality = recent.filter((workSet) => workSet.qualityConfirmed === true)
+  const unknownInputs: string[] = []
+  if (!knownRir.length) unknownInputs.push('actual RIR')
+  if (!confirmedQuality.length) unknownInputs.push('technique and joint response')
+  if (!feedback) unknownInputs.push('session feedback')
+  const evidence: ProgressionDecision['evidence'] = {
+    sourceSessionId,
+    sourceSetIds: recent.map((workSet) => workSet.id),
+    comparableExposureCount: exposures.length,
+    athleteAddedSetsExcluded,
+    rirKnownSets: knownRir.length,
+    qualityConfirmedSets: confirmedQuality.length,
+    feedbackSourceId: feedback?.id ?? null,
+    unknownInputs
+  }
+  const result = (decision: Omit<ProgressionDecision, 'ruleVersion' | 'evidence'>): ProgressionDecision => ({
+    ruleVersion: 'progression-v2',
+    evidence,
+    ...decision
+  })
   const reasons: string[] = []
   if (history.length === 0) {
-    return {
+    return result({
       action: 'hold',
       title: 'Establish today’s baseline',
       explanation: 'You have not completed a comparable set of this lift yet. Finish the planned work before it can progress.',
@@ -74,19 +113,26 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
       nextReps: targetReps,
       nextSets: targetSets,
       confidence: 'low',
-      reasons: ['No comparable set completed yet']
-    }
+      reasons: [athleteAddedSetsExcluded ? 'Only athlete-added work exists; it counts as dose but cannot automatically earn progression' : 'No comparable prescribed set completed yet']
+    })
   }
 
-  const recent = history.slice(-targetSets)
-  const avgRir = recent.reduce((sum, set) => sum + set.rir, 0) / recent.length
-  const avgTechnique = recent.reduce((sum, set) => sum + set.technique, 0) / recent.length
-  const maxPain = Math.max(...recent.map((set) => set.pain))
-  const completedReps = recent.reduce((sum, set) => sum + set.reps, 0)
-  const expectedReps = targetReps * targetSets
+  const avgRir = knownRir.length ? knownRir.reduce((sum, set) => sum + set.rir, 0) / knownRir.length : null
+  const avgTechnique = confirmedQuality.length ? confirmedQuality.reduce((sum, set) => sum + set.technique, 0) / confirmedQuality.length : null
+  const maxPain = confirmedQuality.length ? Math.max(...confirmedQuality.map((set) => set.pain)) : null
+  const surveyPain = answer('pain')
+  const expectedComparison = answer('expectedComparison')
+  const difficulty = answer('difficulty')
+  const endFatigue = answer('endFatigue')
+  const targetStimulus = answer('targetStimulus')
+  const recovery = answer('recovery')
+  const latestPrescribed = recent.slice(0, targetSets)
+  const targetOwned = latestPrescribed.length >= targetSets && latestPrescribed.every((workSet) => workSet.load >= targetLoad && workSet.reps >= targetReps)
+  const sensibleLoadJump = targetLoad > 0 && increment / targetLoad <= 0.1
+  const hardFeedback = (expectedComparison !== null && expectedComparison >= 4) || (difficulty !== null && difficulty >= 9) || (endFatigue !== null && endFatigue >= 5)
 
-  if (readiness === 'pain-aware' || maxPain >= 4) {
-    return {
+  if (readiness === 'pain-aware' || (maxPain !== null && maxPain >= 4) || (surveyPain !== null && surveyPain >= 4)) {
+    return result({
       action: 'reduce',
       title: 'Protect the affected movement',
       explanation: 'Pain evidence blocks overload. Reduce or substitute this movement and reassess during warm-up.',
@@ -94,12 +140,12 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
       nextReps: targetReps,
       nextSets: Math.max(1, targetSets - 1),
       confidence: 'high',
-      reasons: ['Pain blocks progression', 'Safety outranks overload']
-    }
+      reasons: ['Reported pain blocks progression', 'Safety outranks overload']
+    })
   }
 
   if (continuity === 'returning' || readiness === 'reacclimate') {
-    return {
+    return result({
       action: 'reacclimate',
       title: 'Rebuild this lift',
       explanation: 'The recent gap makes your old numbers less certain. Take one easier session before progression resumes.',
@@ -108,11 +154,30 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
       nextSets: Math.max(2, targetSets - 1),
       confidence: 'high',
       reasons: ['Returning continuity state', 'Old capacity needs confirmation']
-    }
+    })
   }
 
-  if (avgTechnique < 3.5 || avgRir < 0.5 || completedReps < expectedReps - 2) {
-    return {
+  if (readiness === 'protect') {
+    return result({
+      action: 'hold',
+      title: 'Confirm today before progressing',
+      explanation: 'Several current readiness signals agree that optional fatigue should come down. Keep the existing target provisional and let completed, pain-free work decide what the next exposure earns.',
+      nextLoad: targetLoad,
+      nextReps: targetReps,
+      nextSets: targetSets,
+      confidence: 'high',
+      reasons: ['Current readiness is protected', 'One difficult day does not erase prior progress or earn more work']
+    })
+  }
+
+  if (!targetOwned || (avgTechnique !== null && avgTechnique < 3.5) || (avgRir !== null && avgRir < 0.5) || hardFeedback) {
+    const holdReasons = [
+      !targetOwned ? 'The latest prescribed exposure was not fully owned' : null,
+      avgTechnique !== null && avgTechnique < 3.5 ? 'Confirmed technique was below the progression threshold' : null,
+      avgRir !== null && avgRir < 0.5 ? 'The latest effort was too close to failure for another increase' : null,
+      hardFeedback ? 'The athlete reported that the session was harder or more fatiguing than the next increase allows' : null
+    ].filter((reason): reason is string => Boolean(reason))
+    return result({
       action: 'hold',
       title: 'Own the current target',
       explanation: 'Technique, effort, or completed repetitions do not support overload yet. Repeat the target and improve execution.',
@@ -120,60 +185,64 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
       nextReps: targetReps,
       nextSets: targetSets,
       confidence: 'high',
-      reasons: ['Progression gate not fully passed', 'Hold before adding dose']
-    }
+      reasons: [...holdReasons, 'Hold before adding load, repetitions, or dose']
+    })
   }
 
-  if (targetReps >= repRange[1] && avgRir >= 1.5 && readiness !== 'protect') {
+  if (targetReps >= repRange[1] && avgRir !== null && avgRir >= 1.5 && sensibleLoadJump) {
     reasons.push('Top of rep range reached', 'Target effort was owned', 'Load is the first progression priority')
-    return {
+    return result({
       action: 'load',
       title: `Add ${increment} next exposure`,
       explanation: 'You owned the top of the rep range with acceptable effort and technique. The smallest available load increase is earned.',
       nextLoad: targetLoad + increment,
       nextReps: repRange[0],
       nextSets: targetSets,
-      confidence: 'high',
+      confidence: confirmedQuality.length >= targetSets ? 'high' : 'medium',
       reasons
-    }
+    })
   }
 
-  if (targetReps < repRange[1] && completedReps >= expectedReps && avgRir >= 1) {
-    return {
+  if (targetReps < repRange[1] && avgRir !== null && avgRir >= 1) {
+    return result({
       action: 'reps',
       title: 'Add one repetition',
       explanation: 'The next load jump is not yet earned, so the next smallest useful win is one more repetition across the work sets.',
       nextLoad: targetLoad,
       nextReps: targetReps + 1,
       nextSets: targetSets,
-      confidence: 'high',
+      confidence: confirmedQuality.length >= targetSets ? 'high' : 'medium',
       reasons: ['Current load is productive', 'Repetition progression remains in range']
-    }
+    })
   }
 
-  if (history.length >= targetSets * 3 && avgRir >= 2 && readiness === 'normal' && continuity === 'stable') {
-    return {
+  const lowStimulus = targetStimulus !== null && targetStimulus <= 2
+  const recoveredEarly = recovery !== null && recovery >= 4
+  const manageableFatigue = endFatigue !== null && endFatigue <= 3
+  if (targetReps >= repRange[1] && !sensibleLoadJump && exposures.length >= 3 && avgRir !== null && avgRir >= 1 && readiness === 'normal' && continuity === 'stable' && lowStimulus && recoveredEarly && manageableFatigue) {
+    return result({
       action: 'sets',
       title: 'One recovered set is available',
-      explanation: 'Load and reps have held steady across several sessions while recovery is good. One added set can raise the dose for this block.',
+      explanation: 'The available load jump is too large, repetitions are at the top of the range, and repeated feedback shows low stimulus with early recovery. One added set is the next athlete-approved dose option.',
       nextLoad: targetLoad,
       nextReps: targetReps,
       nextSets: targetSets + 1,
       confidence: 'medium',
-      reasons: ['Several comparable sessions', 'Recovery supports more dose', 'Set increase remains goal-relevant']
-    }
+      reasons: ['Load jump exceeds ten percent', 'Repetitions are already at the top of the range', 'Low stimulus and early recovery support a cautious dose increase']
+    })
   }
 
-  return {
+  const missingEvidence = unknownInputs.length ? ` Missing evidence: ${unknownInputs.join(', ')}.` : ''
+  return result({
     action: 'hold',
     title: 'Confirm this target once more',
-    explanation: 'A bigger number is not clearly earned yet. Repeat the current work and use the result to improve confidence.',
+    explanation: `A bigger number is not clearly earned yet. Repeat the current work and use the result to improve confidence.${missingEvidence}`,
     nextLoad: targetLoad,
     nextReps: targetReps,
     nextSets: targetSets,
-    confidence: 'medium',
-    reasons: ['Insufficient evidence for a safe increase']
-  }
+    confidence: unknownInputs.length ? 'low' : 'medium',
+    reasons: [!sensibleLoadJump && targetReps >= repRange[1] ? 'The next load jump is too large and the separate dose gate is not fully supported' : 'Insufficient evidence for a safe increase']
+  })
 }
 
 // Secondary work drives the primary, accessories drive the secondary, and tertiary work is extra

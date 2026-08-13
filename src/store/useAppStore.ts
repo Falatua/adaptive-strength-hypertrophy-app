@@ -572,7 +572,7 @@ export const useAppStore = create<AppState>()(
         if (planned.role === 'primary' && !primaryOverrideConfirmed) return { ok: false, error: 'Confirm the protected-primary tradeoff before changing this anchor.' }
         const ranked = rankExerciseSubstitutions({
           planned, original, exercises: state.exercises, history: state.history, athlete: state.athlete,
-          readiness: session.readiness ?? 'confirm', reason, equipmentProfile
+          readiness: session.readiness ?? 'confirm', reason, equipmentProfile, surveys: state.surveys
         })
         const choice = ranked.find((item) => item.candidate.id === exerciseId)
         if (!choice) return { ok: false, error: 'Choose an eligible active movement.' }
@@ -1195,7 +1195,7 @@ export const useAppStore = create<AppState>()(
         const plan = state.mesocycles.find((candidate) => candidate.id === state.activeMesocycleId && candidate.status === 'active')
         if (!plan) return { ok: false, error: 'There is no active training block to review.' }
         const reviewedAt = new Date()
-        const summary = buildCycleReview(plan, state.sessions, state.history, reviewedAt)
+        const summary = buildCycleReview(plan, state.sessions, state.history, reviewedAt, state.surveys)
         if (!summary.eligible[decision]) return { ok: false, error: decision === 'extend' ? 'Extension becomes available after the target date and before the maximum span.' : 'Complete the important workouts in this training round before choosing that decision.' }
         const currentRoundSessions = state.sessions.filter((session) => session.mesocycleId === plan.id && (session.microcycleNumber ?? 1) === summary.microcycleNumber)
         const unresolvedIds = currentRoundSessions.filter((session) => ['planned', 'active', 'deferred'].includes(session.status)).map((session) => session.id)
@@ -1214,6 +1214,7 @@ export const useAppStore = create<AppState>()(
           }
           generated = buildNextMicrocycle({
             plan, sessions, history: state.history, exercises: state.exercises,
+            surveys: state.surveys,
             decision: decision as 'continue-progress' | 'continue-hold' | 'recover',
             nextMicrocycleNumber: summary.microcycleNumber + 1,
             startsAt: new Date(reviewedAt.getTime() + 86_400_000),

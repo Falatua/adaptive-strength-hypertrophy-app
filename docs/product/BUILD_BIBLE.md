@@ -3,9 +3,9 @@ type: product-build-bible
 aliases: [Adaptive Training App Build Bible, App Build Bible]
 tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
-updated: 2026-08-12
+updated: 2026-08-13
 status: canonical-build-reference-and-active-implementation
-version: 1.51.0
+version: 1.53.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
@@ -26,6 +26,15 @@ Use this source order when information conflicts:
 6. [[Living App Development Outline]] as a compact historical outline.
 
 Every material change must update the requirement register, this document or its linked specification, the project note, [[Hot Cache]], and [[Codex Session Log]]. Never silently overwrite a training rule. Version rule changes, calculation changes, exercise merges, plan revisions, and recommendation decisions so historical results remain explainable.
+
+### Version 1.53.0 Change Entry
+
+- Added R-395 through R-403 and Chapter 84 for feedback-gated progression and volume decisions.
+- Replaced cross-session set pooling with latest exact prescribed-exposure evidence.
+- Made missing RIR and quality feedback explicitly unknown and excluded athlete-added work from automatic overload qualification.
+- Required pain, readiness, recovery, fatigue, exact comparable performance, and target ownership to clear before load, repetitions, or sets can increase.
+- Added optional between-session recovery feedback and a usable numeric duration field.
+- Advanced the working application to private alpha 0.57.0 with `progression-v2` and `volume-progression-v2` while preserving backup schema 25.
 
 ### Version 1.51.0 Change Entry
 
@@ -6412,6 +6421,32 @@ Preferred movements receive a deterministic ranking benefit. Avoided movements a
 - Reorganized Library cards with stronger boundaries and a touch-safe bottom details control.
 - Added preferred, neutral, and avoid programming preferences with deterministic generation and substitution effects.
 - Advanced the working application to private alpha 0.53.0 with 345 deterministic tests; browser journeys remain pending in the current restricted local environment.
+
+## 84. Feedback-Gated Progression and Volume Contract
+
+### 84.1 Evidence Unit
+
+Movement progression evaluates the latest exact prescribed exposure as one unit. The unit cannot be completed with older sessions, athlete-added sets, drop-set reductions, or myo-rep mini-sets. The decision stores its source session, source set identities, comparable exposure count, excluded athlete-added sets, known RIR count, confirmed-quality count, feedback source, unknown inputs, confidence, reasons, and rule version.
+
+### 84.2 Ordered Movement Decision
+
+The order is pain, return or reacclimation, protected readiness, latest-target ownership, confirmed technique and effort, hard-session feedback, load, repetitions, recovered sets, then hold. Load is available at the top of the range when the smallest executable increment is no more than ten percent of the current target and effort is controlled. Repetitions advance below the top of the range. A set can be proposed only after repetitions are capped, the load jump is too large, three comparable prescribed exposures exist, continuity is stable, readiness is normal, effort is acceptable, stimulus is low, end fatigue is manageable, and between-session recovery finished early.
+
+### 84.3 Ordered Muscle-Volume Decision
+
+Pain, declining exact comparable performance under fatigue, poor between-session recovery, conflicting stimulus, and high fatigue are evaluated before provisional volume landmarks. A muscle below MEV receives no automatic increase unless exact comparable performance is preserved and recovery finished early. Athlete-added sets and reduced-load technique blocks count toward completed dose but are excluded from performance qualification. Deload and pain changes cannot increase sets, and an unperformed zero-set final round cannot create a deload.
+
+### 84.4 Missingness and Setup Identity
+
+Skipped or unanswered feedback is null evidence. It never becomes zero pain, poor technique, zero RIR, good recovery, or noncompliance. Muscle performance compares only shared canonical movement and setup keys. Incline angles remain separate keys. A change of movement or angle creates unknown comparable performance while retaining all completed dose.
+
+### 84.5 Athlete Authority
+
+Every progression, volume, recovery, deload, or next-round output is a proposal. The athlete approves future changes. A known pain threshold disables the continue-progress cycle choice. Hold and recovery remain available. Free-text notes never authorize change, and no output constitutes diagnosis or medical clearance.
+
+### 84.6 Acceptance Gate
+
+Release requires adversarial tests for incomplete latest sessions, missing RIR, skipped technique and pain, athlete-added-only work, excessive equipment increments, hard-session feedback, protected readiness, the recovered set fallback, exact exercise and angle isolation, conflicting stimulus, poor recovery and declining performance below MEV, monotonic pain and deload changes, and zero-set final rounds. Full, quick, minimal, deferred, skipped, phone, desktop, cloud-boundary, and live Pages paths must also pass.
 
 ### Version 1.47.0 Change Entry
 

@@ -3,7 +3,7 @@ type: product-traceability-matrix
 aliases: [App Build Bible Traceability, Requirement Coverage Matrix]
 tags: [fitness, app, requirements, traceability, build, qa]
 created: 2026-08-10
-updated: 2026-08-11
+updated: 2026-08-13
 status: canonical-build-reference
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
@@ -17,16 +17,16 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Coverage Summary
 
-- Total requirement headings: 387.
-- Sequential range: R-001 through R-387.
-- Missing IDs: none after the 2026-08-11 verification.
-- Duplicate IDs: none after the 2026-08-11 verification.
+- Total requirement headings: 403.
+- Sequential range: R-001 through R-403.
+- Missing IDs: none after the 2026-08-13 verification.
+- Duplicate IDs: none after the 2026-08-13 verification.
 - Primary implementation authority: [[Adaptive Strength and Hypertrophy App Build Bible]].
 - Requirement wording and provenance authority: [[App Requirements Register]].
 
 ## Current Implementation Evidence
 
-Private alpha 0.40.0 and Build Bible 1.50.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], [[Adaptive Strength and Hypertrophy App Build Bible#81. Clean Local Testing Reset Contract]], and [[Adaptive Strength and Hypertrophy App Build Bible#82. Deep Exercise Catalog and Full-Library Substitution]]. Verification includes 214 deterministic tests and sixty-two desktop and phone journeys, including clean reset and full-library leg-press substitution. The catalog contains 154 canonical movements and local persistence 24 merges new system identities without erasing athlete preferences or custom data. Checksum-locked Supabase migrations and the closed cloud gate remain unchanged. Backup schema remains 25. A real athlete invitation, physical phone-to-laptop restore, automatic entity sync, and active-workout handoff are not yet claimed.
+Private alpha 0.57.0 and Build Bible 1.53.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], and `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`. The current gate includes deterministic progression and volume decision matrices, desktop and phone browser journeys, Pages compilation, dependency and data-boundary checks, and live artifact verification. Backup schema remains 25. A real athlete invitation, physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
 
 ## Product and Training Traceability
 
@@ -99,6 +99,8 @@ Private alpha 0.40.0 and Build Bible 1.50.0 are the current boundary. Evidence i
 | R-377 to R-383 | Migration integrity, live database acceptance, strict browser configuration, durable retry, response validation, complete checkpoint coverage, and guarded cloud release | 19, 20, 21, 24, 27, 68, 78, 80 | [[ForgePath Supabase Backend Runbook]], `supabase/migrations/manifest.json`, both `supabase/audits/` scripts | 1A to 1B | Local checksum QC, live read-only audit, rolled-back two-identity RPC and RLS drill, rollback proof, unit retry and corruption cases, desktop and phone cloud UI, invitation, and physical cross-device recovery |
 | R-384 | Confirmed browser-local clean testing reset with zero retained training truth and no cloud mutation | 19, 21, 24, 27, 81 | [[Private Alpha Implementation 2026-08-10]], `tests/e2e/private-alpha-reset.spec.ts` | 1A | Destructive-copy review, populated-state reset journey, zero-data persistence assertions, retained catalog and equipment assertion, onboarding restart, and cloud non-interaction |
 | R-385 to R-387 | Deep canonical catalog, leg-press coverage, ranked plus full-library athlete choice, semantic search, and preservation-safe catalog migration | 6.7, 15, 20, 21, 24, 27, 82 | [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]], `src/domain/exercise-catalog-expansion.ts`, `tests/e2e/exercise-library-expansion.spec.ts` | 1A to 1B | Catalog identity and alias uniqueness, seeded-equipment merge, preference and custom-record preservation, deterministic muscle dose, squat-to-leg-press ranking, conservative prescription, protected-primary confirmation, desktop and phone full-library search, console, and containment tests |
+| R-388 to R-394 | Cloud-authoritative account data, invitation and recovery, verified hydration and save, reset, deletion, reauthentication, and browser data boundaries | 19, 20, 21, 24, 27, 68, 78, 80 | [[ForgePath Supabase Backend Runbook]], `supabase/audits/` | 1A to 1B | Migration checksums, forced RLS, self-only RPCs, cloud boundary checks, password and recovery journeys, reset and deletion checks |
+| R-395 to R-403 | Feedback-gated movement and volume progression, exact evidence, unknown semantics, athlete approval, usable recovery capture, and safety choices | 2, 10, 12, 13, 22, 84 | `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, [[Progression and Volume Model]] | 1B | Adversarial deterministic matrices, full and abbreviated survey journeys, desktop and phone regression, Pages build, and live artifact verification |
 
 ## Delivery Phase Key
 

@@ -1,4 +1,5 @@
 import { addDays, differenceInCalendarDays } from 'date-fns'
+import { comparableAngleHistory, supportsBenchAngle } from './bench-angle-engine'
 import { buildMesocyclePreview, draftFromPlan } from './mesocycle-engine'
 import { loadIncrementFor } from './equipment-engine'
 import { makeSets, recommendProgression } from './training-engine'
@@ -10,6 +11,7 @@ import type {
   Exercise,
   ContinuityState,
   MesocyclePlan,
+  SurveyRecord,
   TrainingSession
 } from './types'
 
@@ -37,7 +39,7 @@ export function sessionsForMicrocycle(plan: MesocyclePlan, sessions: TrainingSes
   return sessions.filter((session) => session.mesocycleId === plan.id && (session.microcycleNumber ?? 1) === microcycleNumber)
 }
 
-export function buildCycleReview(plan: MesocyclePlan, sessions: TrainingSession[], history: CompletedSetRecord[], now = new Date()): CycleReviewSummary {
+export function buildCycleReview(plan: MesocyclePlan, sessions: TrainingSession[], history: CompletedSetRecord[], now = new Date(), surveys: SurveyRecord[] = []): CycleReviewSummary {
   const microcycleNumber = currentMicrocycleNumber(plan, sessions)
   const roundSessions = sessionsForMicrocycle(plan, sessions, microcycleNumber)
   const startedAt = roundSessions.length
@@ -47,6 +49,14 @@ export function buildCycleReview(plan: MesocyclePlan, sessions: TrainingSession[
   const maximumDate = addDays(startedAt, 14)
   const sessionIds = new Set(roundSessions.map((session) => session.id))
   const sourceSets = history.filter((workSet) => sessionIds.has(workSet.sessionId))
+  const qualitySets = sourceSets.filter((workSet) => workSet.qualityConfirmed === true)
+  const roundPostSurveys = surveys.filter((survey) => survey.type === 'post' && sessionIds.has(survey.sessionId))
+  const surveyValues = (id: string) => roundPostSurveys.flatMap((survey) => {
+    const answer = survey.answers.find((candidate) => candidate.id === id && candidate.status === 'answered')
+    return typeof answer?.value === 'number' ? [answer.value] : []
+  })
+  const painValues = surveyValues('pain')
+  const techniqueValues = surveyValues('technique')
   const sessionRpes = roundSessions.flatMap((session) => typeof session.sessionRpe === 'number' ? [session.sessionRpe] : [])
   const evidence: CycleReviewEvidence = {
     requiredSessions: roundSessions.length,
@@ -56,7 +66,10 @@ export function buildCycleReview(plan: MesocyclePlan, sessions: TrainingSession[
     completedSets: sourceSets.length,
     volumeLoad: sourceSets.reduce((sum, workSet) => sum + workSet.reps * workSet.load, 0),
     averageSessionRpe: sessionRpes.length ? sessionRpes.reduce((sum, value) => sum + value, 0) / sessionRpes.length : null,
-    maximumPain: sourceSets.length ? Math.max(...sourceSets.map((workSet) => workSet.pain)) : null,
+    maximumPain: painValues.length ? Math.max(...painValues) : qualitySets.length ? Math.max(...qualitySets.map((workSet) => workSet.pain)) : null,
+    qualityConfirmedSets: qualitySets.length,
+    qualityCoverage: sourceSets.length ? qualitySets.length / sourceSets.length : 0,
+    averageTechnique: techniqueValues.length ? techniqueValues.reduce((sum, value) => sum + value, 0) / techniqueValues.length : qualitySets.length ? qualitySets.reduce((sum, workSet) => sum + workSet.technique, 0) / qualitySets.length : null,
     calendarDays: Math.max(0, differenceInCalendarDays(now, startedAt) + 1)
   }
   const complete = evidence.requiredSessions > 0 && evidence.qualifiedSessions >= evidence.requiredSessions
@@ -80,18 +93,24 @@ export function buildCycleReview(plan: MesocyclePlan, sessions: TrainingSession[
   } else if (microcycleNumber >= plan.targetMicrocycles) {
     recommendation = 'complete'
     recommendationReasons.push('The target number of productive exposure rounds is complete and the mesocycle is ready for an outcome decision.')
-  } else if ((evidence.averageSessionRpe ?? 8) <= 7.5 && (evidence.maximumPain ?? 0) <= 2) {
+  } else if (evidence.averageSessionRpe !== null && evidence.maximumPain !== null && (evidence.averageTechnique ?? 0) >= 3.5 && (evidence.qualityCoverage ?? 0) >= 0.7 && evidence.averageSessionRpe <= 7.5 && evidence.maximumPain <= 2) {
     recommendation = 'continue-progress'
-    recommendationReasons.push('The exposure round is complete with recoverable effort and no elevated pain signal.')
+    recommendationReasons.push('The exposure round is complete with recoverable effort, confirmed repeatable technique, and no elevated pain signal.')
   } else {
     recommendation = 'continue-hold'
-    recommendationReasons.push('The round is complete, but current effort supports repeating targets before another increase.')
+    if (evidence.averageSessionRpe === null || evidence.maximumPain === null || (evidence.averageTechnique ?? null) === null) {
+      recommendationReasons.push('The round is complete, but effort, technique, or joint-response feedback remains unknown. Repeat targets or approve a different outcome without treating missing feedback as failure.')
+    } else if ((evidence.averageTechnique ?? 0) < 3.5) {
+      recommendationReasons.push('The round is complete, but confirmed technique supports owning the current targets before another increase.')
+    } else {
+      recommendationReasons.push('The round is complete, but current effort or recovery supports repeating targets before another increase.')
+    }
   }
 
   return {
     microcycleNumber, startedAt, targetDate, maximumDate, targetPassed, maximumPassed, evidence, recommendation, recommendationReasons,
     eligible: {
-      'continue-progress': complete,
+      'continue-progress': complete && (evidence.maximumPain === null || evidence.maximumPain < 4),
       'continue-hold': true,
       extend: !complete && targetPassed && !maximumPassed,
       recover: true,
@@ -105,6 +124,7 @@ interface NextRoundInput {
   sessions: TrainingSession[]
   history: CompletedSetRecord[]
   exercises: Exercise[]
+  surveys?: SurveyRecord[]
   decision: Extract<CycleReviewDecision, 'continue-progress' | 'continue-hold' | 'recover'>
   nextMicrocycleNumber: number
   startsAt: Date
@@ -138,10 +158,12 @@ export function buildNextMicrocycle(input: NextRoundInput) {
     ...session,
     exercises: session.exercises.map((planned) => {
       const first = planned.sets[0]
-      const comparable = input.history.filter((workSet) => workSet.exerciseId === planned.exerciseId)
       const exercise = input.exercises.find((candidate) => candidate.id === planned.exerciseId)
+      const exactHistory = input.history.filter((workSet) => workSet.exerciseId === planned.exerciseId)
+      const comparable = exercise && supportsBenchAngle(exercise) ? comparableAngleHistory(exactHistory, planned) : exactHistory
       const decision = recommendProgression({
         history: comparable,
+        surveys: input.surveys,
         targetLoad: first.targetLoad,
         targetReps: first.targetReps,
         targetSets: planned.sets.length,

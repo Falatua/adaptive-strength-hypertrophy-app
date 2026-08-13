@@ -5,12 +5,22 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-13
 status: working-private-alpha
-app_version: 0.56.0
+app_version: 0.57.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.57.0 Feedback-Gated Progression Delta
+
+- Adds `progression-v2`, which uses only the latest exact prescribed exposure and excludes athlete-added and reduced-load technique work from automatic overload evidence.
+- Connects explicitly answered RIR, technique, joint response, session difficulty, expected difficulty, end fatigue, target stimulus, between-session recovery, readiness, and continuity to the load, repetition, set, hold, reduction, and reacclimation paths.
+- Restores a reachable but narrow set-progression path only after load and repetition options are unavailable and repeated low-stimulus, early-recovery evidence supports more dose.
+- Adds `volume-progression-v2`, which makes pain, comparable performance, fatigue, and recovery outrank provisional volume landmarks and prevents conflicting or missing answers from adding sets.
+- Keeps exercise and incline-angle identities separate, prevents athlete-added work from earning progression, makes pain and deload changes monotonic, and prevents zero-set missed rounds from manufacturing a deload.
+- Adds an optional between-session recovery question, a usable numeric duration input, independent answer skipping, and pain-aware cycle-choice eligibility.
+- Documents the full research translation and adversarial matrix in `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`.
 
 ## Private Alpha 0.56.0 Life-Aware Confidence Delta
 

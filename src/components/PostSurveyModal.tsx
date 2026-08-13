@@ -36,16 +36,25 @@ export function PostSurveyModal({
   const [statuses, setStatuses] = useState<Record<string, SurveyAnswer['status']>>(() => Object.fromEntries(questions.map((question) => [question.id, 'not-answered'])))
   const [note, setNote] = useState('')
 
+  const reset = () => {
+    setValues(Object.fromEntries(questions.map((question) => [question.id, question.defaultValue])))
+    setStatuses(Object.fromEntries(questions.map((question) => [question.id, 'not-answered'])))
+    setNote('')
+  }
+
   const setStatus = (id: string, status: SurveyAnswer['status']) => setStatuses((current) => ({ ...current, [id]: status }))
 
-  const submit = () => onSubmit(questions.map((question) => ({
-    id: question.id,
-    value: statuses[question.id] === 'answered' ? values[question.id] : null,
-    status: statuses[question.id] ?? 'not-answered'
-  })), note)
+  const submit = () => {
+    onSubmit(questions.map((question) => ({
+      id: question.id,
+      value: statuses[question.id] === 'answered' ? values[question.id] : null,
+      status: statuses[question.id] ?? 'not-answered'
+    })), note)
+    reset()
+  }
 
   return (
-    <Modal open={open} onClose={onClose} title={`${followUp ? 'Optional ' : ''}${surveyModeLabel[mode]} session feedback`} description={`${questions.length} optional questions. ${completedSets} of ${totalSets} sets are complete; unfinished sets will not be added to a later workout.`} wide>
+    <Modal open={open} onClose={() => { reset(); onClose() }} title={`${followUp ? 'Optional ' : ''}${surveyModeLabel[mode]} session feedback`} description={`${questions.length} optional questions. ${completedSets} of ${totalSets} sets are complete; unfinished sets will not be added to a later workout.`} wide>
       <div className="finish-summary">
         <div><small>Completed sets</small><strong>{completedSets}</strong></div>
         <div><small>Volume load</small><strong>{volume.toLocaleString()}</strong></div>
@@ -55,14 +64,19 @@ export function PostSurveyModal({
         {questions.map((question, index) => (
           <fieldset className={`survey-question ${statuses[question.id] !== 'answered' ? 'is-unanswered' : ''}`} key={question.id}>
             <legend><span>{String(index + 1).padStart(2, '0')}</span>{question.label}</legend>
-            <div className="scale-row">
+            {question.type === 'scale' ? <div className="scale-row">
               {Array.from({ length: question.max - question.min + 1 }, (_, offset) => question.min + offset).map((value) => (
                 <button key={value} type="button" aria-label={`${question.label}: ${value}${value === question.min && question.lowLabel ? `, ${question.lowLabel}` : value === question.max && question.highLabel ? `, ${question.highLabel}` : ''}`} className={values[question.id] === value && statuses[question.id] === 'answered' ? 'selected' : ''} onClick={() => {
                   setValues((current) => ({ ...current, [question.id]: value }))
                   setStatus(question.id, 'answered')
                 }}>{value}</button>
               ))}
-            </div>
+            </div> : <input aria-label={question.label} type="number" min={question.min} max={question.max} placeholder={String(question.defaultValue)} value={statuses[question.id] === 'answered' ? values[question.id] : ''} onChange={(event) => {
+              const raw = event.target.value
+              if (raw.trim() === '') return setStatus(question.id, 'not-answered')
+              setValues((current) => ({ ...current, [question.id]: Number(raw) }))
+              setStatus(question.id, 'answered')
+            }} />}
             {question.lowLabel && question.highLabel && (
               <div className="scale-anchors" aria-hidden="true"><small>{question.min} · {question.lowLabel}</small><small>{question.highLabel} · {question.max}</small></div>
             )}
@@ -73,8 +87,8 @@ export function PostSurveyModal({
       <label className="field-label" htmlFor="session-note">Anything the numbers missed? <span>Optional</span></label>
       <textarea id="session-note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Equipment issue, joint feel, interruption, unusual success..." />
       <div className="modal__actions">
-        <button className="button button--ghost" onClick={onSkip}>{followUp ? 'Dismiss feedback' : 'Finish without survey'}</button>
-        {onDefer && <button className="button button--secondary" onClick={onDefer}>Remind me later</button>}
+        <button className="button button--ghost" onClick={() => { reset(); onSkip() }}>{followUp ? 'Dismiss feedback' : 'Finish without survey'}</button>
+        {onDefer && <button className="button button--secondary" onClick={() => { reset(); onDefer() }}>Remind me later</button>}
         <button className="button button--primary" onClick={submit}>{followUp ? 'Save feedback' : 'Save feedback & finish'}</button>
       </div>
     </Modal>

@@ -37,6 +37,7 @@ export const postSurveyQuestions: SurveyQuestionDefinition[] = [
   { id: 'technique', label: 'How consistent was your technique?', type: 'scale', min: 1, max: 5, defaultValue: 4, lowLabel: 'Broke down', highLabel: 'Consistent throughout' },
   { id: 'pain', label: 'Did any movement create joint pain or irritation?', type: 'scale', min: 0, max: 5, defaultValue: 0, lowLabel: 'No pain', highLabel: 'Severe pain' },
   { id: 'endFatigue', label: 'How fatigued were you at the end?', type: 'scale', min: 1, max: 5, defaultValue: 3, lowLabel: 'Still fresh', highLabel: 'Completely spent' },
+  { id: 'recovery', label: 'Before today, how early had the target muscles recovered from their prior session?', type: 'scale', min: 1, max: 5, defaultValue: 3, lowLabel: 'Still sore or limited', highLabel: 'Recovered well ahead of time' },
   { id: 'timeFit', label: 'How well did the session fit the time you had?', type: 'scale', min: 1, max: 5, defaultValue: 4, lowLabel: 'Ran far over', highLabel: 'Fit the time well' },
   { id: 'productive', label: 'How productive did the session feel?', type: 'scale', min: 1, max: 5, defaultValue: 4, lowLabel: 'Unproductive', highLabel: 'Highly productive' },
   { id: 'enjoyment', label: 'How much did you enjoy today’s training?', type: 'scale', min: 1, max: 5, defaultValue: 4, lowLabel: 'Did not enjoy it', highLabel: 'Really enjoyed it' },
@@ -52,7 +53,7 @@ const idsByMode: Record<SurveyCadence, Record<EffectiveSurveyMode, string[]>> = 
   },
   post: {
     full: postSurveyQuestions.map((question) => question.id),
-    quick: ['difficulty', 'targetStimulus', 'technique', 'pain', 'timeFit', 'actualMinutes'],
+    quick: ['difficulty', 'targetStimulus', 'technique', 'pain', 'endFatigue', 'recovery', 'timeFit', 'actualMinutes'],
     minimal: ['difficulty', 'technique', 'pain'],
     off: []
   }

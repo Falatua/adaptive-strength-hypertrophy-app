@@ -3,7 +3,7 @@ import { muscleQuestionId } from './survey-engine'
 import { isComparableExposure } from './set-structure-engine'
 import type { CompletedSetRecord, Exercise, MuscleId, SurveyRecord } from './types'
 
-export const VOLUME_PROGRESSION_RULE = 'volume-progression-v1'
+export const VOLUME_PROGRESSION_RULE = 'volume-progression-v2'
 
 /**
  * Weekly working-set landmarks per muscle, in the Renaissance Periodization sense:
@@ -70,6 +70,8 @@ export interface MuscleFeedback {
   targetStimulus: number | null
   /** End-of-session fatigue, 1 to 5. Null when unanswered. */
   endFatigue: number | null
+  /** Whether the target muscle recovered before its next exposure, 1 to 5. Null when unanswered. */
+  recovery: number | null
   /** Highest joint pain recorded against this muscle's work, 0 to 5. Null when unanswered. */
   pain: number | null
   /** Whether comparable exposures improved, held, or declined across the round. */
@@ -98,11 +100,12 @@ export function decideMuscleVolume(input: {
   const landmarks = landmarksFor(input.muscle, input.volumeTolerance)
   const reasons: string[] = []
   const unknownInputs: string[] = []
-  const { pump, targetStimulus, endFatigue, pain, performance } = input.feedback
+  const { pump, targetStimulus, endFatigue, recovery = null, pain, performance } = input.feedback
 
   if (pump === null) unknownInputs.push('pump')
   if (targetStimulus === null) unknownInputs.push('target stimulus')
   if (endFatigue === null) unknownInputs.push('end fatigue')
+  if (recovery === null) unknownInputs.push('between-session recovery')
   if (performance === 'unknown') unknownInputs.push('comparable performance')
 
   const decision = (action: VolumeAction, nextSets: number, confidence: MuscleVolumeDecision['confidence']): MuscleVolumeDecision => {
@@ -124,17 +127,18 @@ export function decideMuscleVolume(input: {
   // Pain that changed training is a safety boundary, not a volume signal.
   if (pain !== null && pain >= 3) {
     reasons.push(`Joint pain reached ${pain} of 5 on this muscle's work. Volume is reduced toward maintenance until that settles, and this is not medical advice.`)
-    return decision('reduce-sets', Math.max(landmarks.mv, input.currentSets - 2), 'high')
+    return decision('reduce-sets', Math.min(input.currentSets, Math.max(landmarks.mv, input.currentSets - 2)), 'high')
   }
 
   // The last planned week of a mesocycle is the deload, and the ceiling forces one early.
   const atCeiling = input.currentSets >= landmarks.mrv
-  const finalWeek = input.microcycleNumber >= input.targetMicrocycles
+  const finalWeek = input.microcycleNumber >= input.targetMicrocycles && input.currentSets > 0
   if (atCeiling || finalWeek) {
+    const deloadSets = Math.min(input.currentSets, landmarks.mev)
     reasons.push(atCeiling
-      ? `Weekly sets reached the ${landmarks.mrv} you can still recover from. Volume resets to ${landmarks.mev} so the next block starts productive rather than buried.`
-      : `This is the last planned week of the block. Volume resets to ${landmarks.mev} so accumulated fatigue clears before the next one.`)
-    return decision('deload', landmarks.mev, 'high')
+      ? `Weekly sets reached the provisional ${landmarks.mrv} ceiling. The deload suggestion falls to ${deloadSets} sets so the next block starts productive rather than buried.`
+      : `This is the last planned round of the block. The deload suggestion falls to ${deloadSets} sets so accumulated fatigue can clear without adding work.`)
+    return decision('deload', deloadSets, 'high')
   }
 
   if (unknownInputs.length >= 3) {
@@ -142,17 +146,16 @@ export function decideMuscleVolume(input: {
     return decision('insufficient-evidence', input.currentSets, 'low')
   }
 
-  if (input.currentSets < landmarks.mev) {
-    reasons.push(`Weekly sets are below the ${landmarks.mev} that reliably grows this muscle, so volume climbs toward it.`)
-    return decision('add-sets', Math.min(landmarks.mev, input.currentSets + 2), 'medium')
-  }
-
   const highFatigue = endFatigue !== null && endFatigue >= 4
-  const lowStimulus = (pump !== null && pump <= 1) || (targetStimulus !== null && targetStimulus <= 2)
+  const poorRecovery = recovery !== null && recovery <= 2
+  const recoveredEarly = recovery !== null && recovery >= 4
+  const stimulusSignals = [pump, targetStimulus].filter((value): value is number => value !== null)
+  const lowStimulus = stimulusSignals.length > 0 && stimulusSignals.every((value) => value <= 2)
   const strongStimulus = (pump !== null && pump >= 4) || (targetStimulus !== null && targetStimulus >= 4)
+  const conflictingStimulus = stimulusSignals.some((value) => value <= 2) && stimulusSignals.some((value) => value >= 4)
 
-  if (performance === 'declined' && highFatigue) {
-    reasons.push('Comparable performance dropped while end fatigue stayed high, which is the signal that this volume is no longer being recovered from.')
+  if (performance === 'declined' && (highFatigue || poorRecovery)) {
+    reasons.push('Comparable performance dropped while fatigue or between-session recovery also worsened, which is the stacked signal that this volume is no longer being recovered from.')
     return decision('reduce-sets', Math.max(landmarks.mev, input.currentSets - 2), 'high')
   }
 
@@ -161,18 +164,38 @@ export function decideMuscleVolume(input: {
     return decision('hold', input.currentSets, 'medium')
   }
 
-  if (highFatigue && strongStimulus) {
-    reasons.push('The stimulus is clearly there and end fatigue is already high, so volume holds. More sets would buy fatigue rather than growth.')
+  if (poorRecovery) {
+    reasons.push('The target muscle had not recovered for the next exposure, so volume holds rather than turning soreness into more work.')
+    return decision('hold', input.currentSets, 'high')
+  }
+
+  if (conflictingStimulus) {
+    reasons.push('Pump and target-muscle stimulus disagree, so volume holds until another exposure clarifies the response.')
+    return decision('hold', input.currentSets, 'low')
+  }
+
+  if (highFatigue || (strongStimulus && recovery !== null && recovery <= 3)) {
+    reasons.push('The stimulus is already strong or fatigue is high without early recovery, so volume holds. More sets would buy fatigue rather than growth.')
     return decision('hold', input.currentSets, 'medium')
   }
 
-  if (lowStimulus && !highFatigue) {
-    reasons.push('Pump and target stimulus came back low while fatigue stayed manageable, which is the clearest case for more work.')
+  if (input.currentSets < landmarks.mev) {
+    if (recoveredEarly && performance !== 'unknown') {
+      const step = lowStimulus ? 2 : 1
+      reasons.push(`Weekly sets are below the provisional ${landmarks.mev} minimum-effective landmark, and preserved performance plus early recovery support a cautious increase toward it.`)
+      return decision('add-sets', Math.min(landmarks.mev, input.currentSets + step), 'medium')
+    }
+    reasons.push(`Weekly sets are below the provisional ${landmarks.mev} minimum-effective landmark, but the athlete's recovery and comparable performance do not yet support adding work.`)
+    return decision('hold', input.currentSets, 'low')
+  }
+
+  if (lowStimulus && !highFatigue && recoveredEarly && performance !== 'unknown') {
+    reasons.push('Pump and target stimulus were both low, performance was preserved, and the muscle recovered early. This is the clearest case for more work.')
     return decision('add-sets', Math.min(landmarks.mrv, input.currentSets + 2), 'medium')
   }
 
-  if (!highFatigue && (performance === 'improved' || performance === 'held')) {
-    reasons.push(`Performance is holding or improving and fatigue is manageable, so volume adds one set toward the ${landmarks.mav} productive band.`)
+  if (!highFatigue && recoveredEarly && !strongStimulus && (performance === 'improved' || performance === 'held')) {
+    reasons.push(`Performance is holding or improving, stimulus is not already high, and recovery finished early, so volume adds one set toward the ${landmarks.mav} productive band.`)
     return decision('add-sets', Math.min(landmarks.mrv, input.currentSets + 1), performance === 'improved' ? 'high' : 'medium')
   }
 
@@ -239,23 +262,38 @@ export function summarizeMuscleFeedback(input: {
     return exact.length ? { value: mean(exact), exact: true } : { value: mean(perSurvey(base)), exact: false }
   }
 
-  // Only comparable exposures decide whether performance moved. Drops and mini sets are real work but
-  // are performed at reduced load, so including them would read a technique week as a decline.
-  const comparableLoad = (sets: CompletedSetRecord[]) => mean(sets.filter((set) => isComparableExposure(set.grouping)).map((set) => set.load * set.reps))
-  const currentLoad = comparableLoad(currentSets)
-  const priorLoad = comparableLoad(priorSets)
-  const performance: MuscleFeedback['performance'] = currentLoad === null || priorLoad === null || priorLoad === 0
+  // Compare only common exact movement and setup identities. A switch from a leg press to a squat, or
+  // from one incline angle to another, changes the stimulus and cannot masquerade as a performance
+  // increase or decline for the muscle. Athlete-added work and reduced-load technique sets remain dose
+  // without automatically earning progression.
+  const setupKey = (set: CompletedSetRecord) => `${set.exerciseId}::${set.benchAngleDeg === undefined ? 'angle-untracked' : `angle-${set.benchAngleDeg}`}`
+  const comparableStrengthBySetup = (sets: CompletedSetRecord[]) => {
+    const values = new Map<string, number[]>()
+    sets.filter((set) => !set.athleteAdded && isComparableExposure(set.grouping)).forEach((set) => {
+      values.set(setupKey(set), [...(values.get(setupKey(set)) ?? []), set.load * (1 + set.reps / 30)])
+    })
+    return new Map([...values].map(([key, entries]) => [key, mean(entries)!]))
+  }
+  const currentPerformance = comparableStrengthBySetup(currentSets)
+  const priorPerformance = comparableStrengthBySetup(priorSets)
+  const sharedSetups = [...currentPerformance.keys()].filter((key) => priorPerformance.has(key) && (priorPerformance.get(key) ?? 0) > 0)
+  const performanceRatios = sharedSetups.map((key) => currentPerformance.get(key)! / priorPerformance.get(key)!)
+  const averageRatio = mean(performanceRatios)
+  const performance: MuscleFeedback['performance'] = averageRatio === null
     ? 'unknown'
-    : currentLoad > priorLoad * 1.02 ? 'improved'
-      : currentLoad < priorLoad * 0.98 ? 'declined' : 'held'
+    : averageRatio > 1.02 ? 'improved'
+      : averageRatio < 0.98 ? 'declined' : 'held'
 
-  const painValues = currentSets.map((set) => set.pain).filter((value) => Number.isFinite(value))
+  const confirmedSetPain = currentSets.filter((set) => set.qualityConfirmed === true).map((set) => set.pain).filter((value) => Number.isFinite(value))
+  const surveyPain = perSurvey('pain')
+  const painValues = [...confirmedSetPain, ...surveyPain]
   const pump = perMuscle('pump')
   const targetStimulus = perMuscle('targetStimulus')
   return {
     pump: pump.value,
     targetStimulus: targetStimulus.value,
     endFatigue: mean(perSurvey('endFatigue')),
+    recovery: mean(perSurvey('recovery')),
     pain: painValues.length ? Math.max(...painValues) : null,
     performance,
     attribution: pump.exact || targetStimulus.exact ? 'exact' : 'attributed'

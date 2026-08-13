@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { compressSession, duplicateCandidates, normalizeExerciseRole, readinessFromSurvey, recommendProgression, sessionCompletionStatus, volumeLoad } from './training-engine'
 import { exercises, sessions } from './seed'
-import type { CompletedSetRecord, SurveyAnswer } from './types'
+import type { CompletedSetRecord, SurveyAnswer, SurveyRecord } from './types'
 
 const set = (overrides: Partial<CompletedSetRecord> = {}): CompletedSetRecord => ({
   id: crypto.randomUUID(),
@@ -18,6 +18,15 @@ const set = (overrides: Partial<CompletedSetRecord> = {}): CompletedSetRecord =>
   pain: 0,
   setIndex: 0,
   ...overrides
+})
+
+const postSurvey = (sessionId: string, values: Record<string, number>): SurveyRecord => ({
+  id: `post-${sessionId}`,
+  sessionId,
+  type: 'post',
+  completedAt: new Date().toISOString(),
+  skipped: false,
+  answers: Object.entries(values).map(([id, value]) => ({ id, value, status: 'answered' as const }))
 })
 
 describe('volume load', () => {
@@ -67,6 +76,77 @@ describe('load-first progression hierarchy', () => {
     const decision = recommendProgression({ history: [set()], targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'returning', readiness: 'reacclimate' })
     expect(decision.action).toBe('reacclimate')
     expect(decision.nextLoad).toBeLessThan(175)
+  })
+
+  it('does not reinterpret skipped technique and pain as poor technique', () => {
+    const history = Array.from({ length: 4 }, (_, index) => set({ id: `unknown-${index}`, setIndex: index, technique: 0, pain: 0, qualityConfirmed: false }))
+    const decision = recommendProgression({ history, targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
+    expect(decision.action).toBe('load')
+    expect(decision.confidence).toBe('medium')
+    expect(decision.evidence.unknownInputs).toContain('technique and joint response')
+  })
+
+  it('uses only the latest exact prescribed exposure instead of pooling unfinished work with an older session', () => {
+    const history = [
+      ...Array.from({ length: 4 }, (_, index) => set({ id: `old-${index}`, sessionId: 'old', setIndex: index, completedAt: '2026-08-01T12:00:00.000Z' })),
+      set({ id: 'new-1', sessionId: 'new', setIndex: 0, completedAt: '2026-08-08T12:00:00.000Z' }),
+      set({ id: 'new-2', sessionId: 'new', setIndex: 1, completedAt: '2026-08-08T12:01:00.000Z' })
+    ]
+    const decision = recommendProgression({ history, targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
+    expect(decision.action).toBe('hold')
+    expect(decision.evidence.sourceSessionId).toBe('new')
+    expect(decision.evidence.sourceSetIds).toHaveLength(2)
+  })
+
+  it('counts athlete-added work as dose without letting it earn automatic progression', () => {
+    const history = Array.from({ length: 4 }, (_, index) => set({ id: `bonus-${index}`, setIndex: index, athleteAdded: true }))
+    const decision = recommendProgression({ history, targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
+    expect(decision.action).toBe('hold')
+    expect(decision.evidence.athleteAddedSetsExcluded).toBe(4)
+    expect(decision.reasons[0]).toContain('athlete-added')
+  })
+
+  it('holds when the athlete says the otherwise completed session was much harder than planned', () => {
+    const history = Array.from({ length: 4 }, (_, index) => set({ id: `hard-${index}`, setIndex: index, qualityConfirmed: true }))
+    const decision = recommendProgression({ history, surveys: [postSurvey('session', { expectedComparison: 5, difficulty: 9, endFatigue: 5 })], targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
+    expect(decision.action).toBe('hold')
+    expect(decision.reasons.join(' ')).toContain('reported')
+  })
+
+  it('keeps load first even when recovery feedback could support more dose', () => {
+    const history = Array.from({ length: 3 }, (_, exposure) => Array.from({ length: 3 }, (_, index) => set({
+      id: `load-${exposure}-${index}`, sessionId: `load-${exposure}`, setIndex: index, qualityConfirmed: true,
+      completedAt: `2026-08-${String(exposure + 1).padStart(2, '0')}T12:0${index}:00.000Z`
+    }))).flat()
+    const surveys = [postSurvey('load-2', { targetStimulus: 1, recovery: 5, endFatigue: 2 })]
+    const decision = recommendProgression({ history, surveys, targetLoad: 175, targetReps: 6, targetSets: 3, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
+    expect(decision.action).toBe('load')
+  })
+
+  it('offers one set only after load and repetitions are unavailable and recovery evidence supports dose', () => {
+    const history = Array.from({ length: 3 }, (_, exposure) => Array.from({ length: 3 }, (_, index) => set({
+      id: `set-${exposure}-${index}`, sessionId: `set-${exposure}`, setIndex: index, load: 10, qualityConfirmed: true,
+      completedAt: `2026-08-${String(exposure + 1).padStart(2, '0')}T12:0${index}:00.000Z`
+    }))).flat()
+    const surveys = [postSurvey('set-2', { targetStimulus: 1, recovery: 5, endFatigue: 2 })]
+    const decision = recommendProgression({ history, surveys, targetLoad: 10, targetReps: 6, targetSets: 3, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
+    expect(decision.action).toBe('sets')
+    expect(decision.nextSets).toBe(4)
+    expect(decision.reasons).toContain('Load jump exceeds ten percent')
+  })
+
+  it('does not add repetitions or load when actual RIR is unknown', () => {
+    const history = Array.from({ length: 4 }, (_, index) => set({ id: `rir-${index}`, setIndex: index, rir: 0, rirKnown: false, qualityConfirmed: true }))
+    const decision = recommendProgression({ history, targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
+    expect(decision.action).toBe('hold')
+    expect(decision.evidence.unknownInputs).toContain('actual RIR')
+  })
+
+  it('holds rather than escalating when multiple current readiness signals require protection', () => {
+    const history = Array.from({ length: 4 }, (_, index) => set({ id: `protect-${index}`, setIndex: index, qualityConfirmed: true }))
+    const decision = recommendProgression({ history, targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'protect' })
+    expect(decision.action).toBe('hold')
+    expect(decision.title).toContain('Confirm today')
   })
 })
 

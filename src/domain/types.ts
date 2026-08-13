@@ -485,6 +485,10 @@ export interface CycleReviewEvidence {
   volumeLoad: number
   averageSessionRpe: number | null
   maximumPain: number | null
+  /** Optional on older stored reviews. Unknown quality must not be interpreted as good quality. */
+  qualityConfirmedSets?: number
+  qualityCoverage?: number
+  averageTechnique?: number | null
   calendarDays: number
 }
 
@@ -612,6 +616,7 @@ export interface DeferredFeedbackRequest {
 }
 
 export interface ProgressionDecision {
+  ruleVersion: 'progression-v2'
   action: ProgressionAction
   title: string
   explanation: string
@@ -620,6 +625,16 @@ export interface ProgressionDecision {
   nextSets: number
   confidence: 'low' | 'medium' | 'high'
   reasons: string[]
+  evidence: {
+    sourceSessionId: string | null
+    sourceSetIds: string[]
+    comparableExposureCount: number
+    athleteAddedSetsExcluded: number
+    rirKnownSets: number
+    qualityConfirmedSets: number
+    feedbackSourceId: string | null
+    unknownInputs: string[]
+  }
 }
 
 export interface PersonalRecord {

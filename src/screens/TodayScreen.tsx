@@ -27,7 +27,7 @@ const dateInputFor = (offsetDays: number) => {
 }
 
 export function TodayScreen() {
-  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, mesocycles, activeSessionId, startSession, resumeActiveSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
+  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, surveys, mesocycles, activeSessionId, startSession, resumeActiveSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
   const athleteProgress = athleteLevel({ history, records, sessions })
   const [surveyOpen, setSurveyOpen] = useState(false)
   const [surveyChooserOpen, setSurveyChooserOpen] = useState(false)
@@ -95,6 +95,7 @@ export function TodayScreen() {
 
   const progression = recommendProgression({
     history: primaryHistory,
+    surveys,
     targetLoad: primaryPlan?.sets[0]?.targetLoad ?? 0,
     targetReps: primaryPlan?.sets[0]?.targetReps ?? 0,
     targetSets: primaryPlan?.sets.length ?? 0,
@@ -117,7 +118,7 @@ export function TodayScreen() {
     .sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime())
     .slice(0, 3)
     .map((session) => ({ id: session.id, title: session.title, completedAt: session.completedAt!, note: session.note!.trim() }))
-  const progressionEvidence = `${progression.confidence} confidence · ${primaryHistory.length} exact completed set${primaryHistory.length === 1 ? '' : 's'}`
+  const progressionEvidence = `${progression.confidence} confidence · ${progression.evidence.sourceSetIds.length} prescribed set${progression.evidence.sourceSetIds.length === 1 ? '' : 's'} from the latest exact exposure${progression.evidence.athleteAddedSetsExcluded ? ` · ${progression.evidence.athleteAddedSetsExcluded} athlete-added excluded from automatic progression` : ''}`
   const heroObjective = `${primaryExercise?.name ?? 'The primary movement'} leads today. ${progression.title}.`
   const whyReasons = nextSession?.generation
     ? [

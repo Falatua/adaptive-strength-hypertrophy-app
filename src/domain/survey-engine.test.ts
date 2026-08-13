@@ -8,8 +8,8 @@ describe('survey burden and missing evidence', () => {
     expect(questionsForSurvey('pre', 'quick')).toHaveLength(5)
     expect(questionsForSurvey('pre', 'minimal').map((question) => question.id)).toEqual(['energy', 'pain', 'time'])
     // The post budget gained a reported duration, which calibrates future time estimates.
-    expect(questionsForSurvey('post', 'full')).toHaveLength(11)
-    expect(questionsForSurvey('post', 'quick')).toHaveLength(6)
+    expect(questionsForSurvey('post', 'full')).toHaveLength(12)
+    expect(questionsForSurvey('post', 'quick')).toHaveLength(8)
     expect(questionsForSurvey('post', 'minimal').map((question) => question.id)).toEqual(['difficulty', 'technique', 'pain'])
     expect(questionsForSurvey('post', 'off')).toEqual([])
   })

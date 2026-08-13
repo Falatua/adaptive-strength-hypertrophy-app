@@ -48,6 +48,16 @@ The interface should feel like an experienced training partner with the quiet de
 - Supersets require zero catalogued muscle overlap. Myo-reps and drop sets belong late in a movement, with the leading set retaining the progression target while every completed mini-set or drop still counts toward dose.
 - A first-time athlete starts with a blank training record. Established-history scenarios are test fixtures, never user-facing demo data.
 
+## Feedback-Gated Progression
+
+- Every progression is a proposal. The athlete approves future-plan changes; completed work and the active session are never silently rewritten.
+- Progression follows the priority load, then repetitions, then sets. The latest exact prescribed exposure must own the current target before any increase is considered.
+- Older sessions cannot fill missing sets in an incomplete latest exposure. Athlete-added work and reduced-load technique work count as dose but cannot automatically earn overload.
+- Missing RIR, technique, pain, stimulus, fatigue, or recovery remains unknown. It may lower confidence or hold a decision, but it never becomes failure, zero pain, or poor compliance.
+- Harder-than-expected work, excessive fatigue, poor recovery, pain, or declining comparable performance outranks landmark math and blocks an increase.
+- A set increase is a last-resort recovered-dose option, not the default outcome of reaching a rep target. It requires repeated comparable evidence, low stimulus, manageable fatigue, early between-session recovery, and no available sensible load or repetition increase.
+- Muscle performance comparisons require the same canonical exercise and recorded setup. Different movements and different incline angles remain separate evidence lanes.
+
 ## Life-Aware Planning
 
 Athlete-facing language uses **training round** for a microcycle and **training block** for a mesocycle. Technical names may remain in schemas and research documents, but ordinary screens must define them before use and prefer the plain-language names.

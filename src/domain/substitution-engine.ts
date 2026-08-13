@@ -6,6 +6,7 @@ import type {
   PlannedExercise,
   ReadinessOutcome,
   SetPrescription,
+  SurveyRecord,
   SubstitutionCandidateSnapshot,
   SubstitutionReason,
   SubstitutionTier
@@ -43,8 +44,9 @@ function replacementPrescription(input: {
   athlete: AthleteProfile
   readiness: ReadinessOutcome
   equipmentProfile?: EquipmentProfile
+  surveys?: SurveyRecord[]
 }) {
-  const { planned, candidate, history, athlete, readiness, equipmentProfile } = input
+  const { planned, candidate, history, athlete, readiness, equipmentProfile, surveys } = input
   const exactHistory = history.filter((workSet) => workSet.exerciseId === candidate.id)
   const latest = latestExactSession(history, candidate.id)
   if (!latest.length) {
@@ -72,6 +74,7 @@ function replacementPrescription(input: {
   const increment = equipmentProfile ? loadIncrementFor(candidate, equipmentProfile).value : reference.load > 0 && reference.load < 100 ? 2.5 : 5
   const decision = recommendProgression({
     history: exactHistory,
+    surveys,
     targetLoad: reference.load,
     targetReps,
     targetSets,
@@ -107,8 +110,9 @@ export function rankExerciseSubstitutions(input: {
   readiness: ReadinessOutcome
   reason: SubstitutionReason
   equipmentProfile?: EquipmentProfile
+  surveys?: SurveyRecord[]
 }): RankedSubstitution[] {
-  const { planned, original, exercises, history, athlete, readiness, reason, equipmentProfile } = input
+  const { planned, original, exercises, history, athlete, readiness, reason, equipmentProfile, surveys } = input
   return exercises
     .filter((candidate) => candidate.id !== original.id && !candidate.retired && candidate.jointFeeling !== 'avoid' && !candidate.disliked)
     .filter((candidate) => !equipmentProfile || exerciseEquipmentFit(candidate, equipmentProfile).available)
@@ -148,7 +152,7 @@ export function rankExerciseSubstitutions(input: {
 
       score = Math.max(0, score)
 
-      const prescription = replacementPrescription({ planned, candidate, history, athlete, readiness, equipmentProfile })
+      const prescription = replacementPrescription({ planned, candidate, history, athlete, readiness, equipmentProfile, surveys })
       const samePurpose = candidate.pattern === original.pattern && candidate.regions.includes(original.primaryRegion)
       const snapshot: SubstitutionCandidateSnapshot = {
         exerciseId: candidate.id,

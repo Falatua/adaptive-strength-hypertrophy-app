@@ -28,7 +28,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, equipmentProfiles, history, movementNotes, settings, placementVerifications, updateSet, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
+  const { sessions, exercises, equipmentProfiles, history, surveys, movementNotes, settings, placementVerifications, updateSet, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
@@ -41,7 +41,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const [finishChooserOpen, setFinishChooserOpen] = useState(false)
   const [activePostMode, setActivePostMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
   const [clockNow, setClockNow] = useState(() => Date.now())
-  const [decisionInfo, setDecisionInfo] = useState<{ name: string; title: string; action: string; confidence: string; explanation: string } | null>(null)
+  const [decisionInfo, setDecisionInfo] = useState<{ name: string; title: string; action: string; confidence: string; explanation: string; reasons: string[]; sourceSets: number; unknownInputs: string[]; athleteAddedExcluded: number } | null>(null)
   const [addMovementOpen, setAddMovementOpen] = useState(false)
   const [addSearch, setAddSearch] = useState('')
   const [extensionError, setExtensionError] = useState<string | null>(null)
@@ -135,7 +135,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     athlete: useAppStore.getState().athlete,
     readiness: session.readiness ?? 'confirm',
     reason: swapReason,
-    equipmentProfile: activeEquipmentProfile
+      equipmentProfile: activeEquipmentProfile,
+      surveys
   }) : []
   const normalizedSwapSearch = swapSearch.trim().toLowerCase()
   const librarySwaps = normalizedSwapSearch ? rankedSwaps.filter(({ candidate }) => [
@@ -310,6 +311,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
             const lastVolume = volumeLoad(recent)
             const recommendation = recommendProgression({
               history: progressionHistory,
+              surveys,
               targetLoad: planned.sets[0]?.targetLoad ?? 0,
               targetReps: planned.sets[0]?.targetReps ?? 0,
               targetSets: planned.sets.length,
@@ -346,7 +348,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   <div><small>Last exact exposure</small><strong>{recent.length ? `${recent[0].load} × ${recent[0].reps}` : 'No exact history'}</strong><span>{lastVolume.toLocaleString()} volume load</span></div>
                   <div><small>Engine decision</small><strong>{recommendation.title}</strong><span>{recommendation.confidence} confidence · {recommendation.action}</span></div>
                   <div><small>Joint response</small><strong className={`joint joint--${exercise.jointFeeling}`}>{exercise.jointFeeling}</strong><span>{exercise.favorite ? 'Preferred movement' : 'Neutral preference'}</span></div>
-                  <button className="info-button" onClick={() => setDecisionInfo({ name: exercise.name, title: recommendation.title, action: recommendation.action, confidence: recommendation.confidence, explanation: recommendation.explanation })} aria-label={`More information about ${exercise.name}`} aria-haspopup="dialog"><Info size={17} /></button>
+                  <button className="info-button" onClick={() => setDecisionInfo({ name: exercise.name, title: recommendation.title, action: recommendation.action, confidence: recommendation.confidence, explanation: recommendation.explanation, reasons: recommendation.reasons, sourceSets: recommendation.evidence.sourceSetIds.length, unknownInputs: recommendation.evidence.unknownInputs, athleteAddedExcluded: recommendation.evidence.athleteAddedSetsExcluded })} aria-label={`More information about ${exercise.name}`} aria-haspopup="dialog"><Info size={17} /></button>
                 </div>
                 {planned.prescriptionNote && <div className="substitution-prescription"><RefreshCcw size={16} /><span><strong>{planned.prescriptionMethod === 'exact-history' ? 'Exact-history replacement' : 'Baseline calibration'}</strong>{planned.prescriptionNote}</span></div>}
                 {techniqueSuggestion && <div className="technique-prescription"><Layers size={16} /><span><strong>Purposeful technique suggestion</strong>{techniqueSuggestion}<small>Athlete approval required · maximum two technique blocks in this session</small></span><button type="button" onClick={() => { setStructureTarget(planned); setStructureError(null) }}>Review</button></div>}
@@ -537,7 +539,11 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
           <div><small>Decision</small><strong>{decisionInfo.title}</strong></div>
           <div><small>Progression action</small><strong>{decisionInfo.action}</strong></div>
           <div><small>Evidence confidence</small><strong>{decisionInfo.confidence}</strong></div>
+          <div><small>Latest prescribed evidence</small><strong>{decisionInfo.sourceSets} set{decisionInfo.sourceSets === 1 ? '' : 's'}</strong></div>
           <p>{decisionInfo.explanation}</p>
+          <ul>{decisionInfo.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+          {decisionInfo.unknownInputs.length > 0 && <p><strong>Still unknown:</strong> {decisionInfo.unknownInputs.join(', ')}.</p>}
+          {decisionInfo.athleteAddedExcluded > 0 && <p>{decisionInfo.athleteAddedExcluded} athlete-added set{decisionInfo.athleteAddedExcluded === 1 ? '' : 's'} counted as completed dose but did not automatically raise this target.</p>}
           <p className="modal-note">This explains the current prescription. It does not add work, borrow another movement's history, or override pain and readiness gates.</p>
         </div>}
       </Modal>
