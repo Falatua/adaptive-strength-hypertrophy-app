@@ -229,6 +229,8 @@ test('organizes the exercise library and saves programming preferences', async (
   await expect(page.getByText('Avoided movements are excluded')).toBeVisible()
   await page.getByRole('button', { name: 'Close Conventional Deadlift' }).click()
   await page.reload()
+  await page.getByRole('button', { name: 'Library', exact: true }).click()
+  await page.getByRole('button', { name: 'Show filters' }).click()
   await page.locator('#library-filter-panel').getByRole('button', { name: 'Avoid', exact: true }).click()
   await expect(page.locator('.library-card').filter({ has: page.getByRole('heading', { name: 'Conventional Deadlift', exact: true }) })).toBeVisible()
   await page.locator('#library-filter-panel').getByRole('button', { name: 'Reset' }).click()
