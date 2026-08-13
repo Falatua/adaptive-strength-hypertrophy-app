@@ -1,6 +1,6 @@
 # ForgePath Life-Aware Plan
 
-Status: product contract for private alpha 0.53.0
+Status: product contract for private alpha 0.56.0
 
 ## The athlete promise
 
@@ -71,6 +71,32 @@ Passing a calendar date does not earn load, repetitions, sets, experience points
 - Learn realistic schedule capacity by season and context without labeling the athlete unmotivated.
 - Preserve earned strength and exercise history through irregular periods.
 - Increase ambition when the athlete repeatedly completes and recovers from the plan; reduce friction when the plan repeatedly exceeds real capacity.
+
+## Interruption classification
+
+ForgePath must identify which problem it is solving before proposing a change:
+
+| Evidence | Meaning | Permitted response |
+| --- | --- | --- |
+| Family, work, travel, time | Calendar and opportunity changed | Move, reorder, compress, extend, or expire open work |
+| Equipment or location | Some work is not executable | Substitute or select another eligible priority |
+| Poor sleep, stress, fatigue, low energy | Readiness is less certain | Confirm with warm-up or the first work set; remove optional fatigue only when multiple current signals support it |
+| Pain or illness | Ordinary overload may be inappropriate | Safety review, recovery, or a return exposure; never diagnosis |
+| Long exact-exposure gap | Old performance is less current | Non-maximal re-entry confirmation; preserve historical achievement |
+
+A family interruption does not prove lost strength. A sleep answer is not a load-reduction formula. Pain is not just another fatigue score.
+
+## Plan-fit review evidence
+
+The engine reports a rolling 28-day view of planned opportunities, productive opportunities, missed opportunities, completed linked and unlinked sets, protected main-lift coverage, and any lower-priority sets intentionally removed from the latest rebuild. These facts are not an adherence grade.
+
+- One disruption normally changes the local schedule only.
+- Repeated time constraints may propose shorter required sessions.
+- Repeatedly completing fewer opportunities than planned may propose fewer required weekly sessions.
+- Repeated removal of optional work may propose a lower baseline volume.
+- Continuing pain or illness may propose a recovery-centered block review.
+
+Every threshold is a versioned product heuristic. Every block proposal requires athlete approval.
 
 ## Example
 

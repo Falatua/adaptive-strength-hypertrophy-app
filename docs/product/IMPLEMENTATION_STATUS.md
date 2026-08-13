@@ -5,12 +5,22 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-13
 status: working-private-alpha
-app_version: 0.55.0
+app_version: 0.56.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.56.0 Life-Aware Confidence Delta
+
+- Adds `life-aware-review-v1`, which separates external schedule disruption, readiness uncertainty, pain or illness, and stale exact exposure before proposing a response.
+- Shows separate decisions for today, the current training round, and the next athlete-approved training-block review.
+- Reports transparent rolling 28-day plan-fit evidence without an adherence score or volume debt.
+- Adds `ongoing-confidence-v1` with independent main-lift, schedule-fit, recovery-response, and volume-tolerance lanes.
+- Shows exact protected-movement evidence, recency, effort and quality coverage, comparable training dates, recorded setup contexts, and the smallest optional next learning need.
+- Keeps confidence categorical and source-backed. The visible five-mark indicator is ordinal evidence strength, never a probability or athlete-ability grade.
+- Adds a research and validation contract at `docs/research/LIFE_AWARE_AND_ONGOING_CONFIDENCE_RESEARCH_2026-08-13.md`.
 
 ## Private Alpha 0.55.0 Angle-Aware Incline Delta
 

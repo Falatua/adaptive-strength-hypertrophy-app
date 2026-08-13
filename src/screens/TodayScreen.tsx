@@ -17,6 +17,7 @@ import { summarizePlacementVerification } from '../domain/placement-verification
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from '../domain/placement-exit-engine'
 import { scheduleSessionEligibility } from '../domain/schedule-adaptation-engine'
 import { playForgeSound } from '../services/sound-engine'
+import { buildLifeAwareAssessment } from '../domain/life-aware-engine'
 
 const timeOptions = [15, 30, 45, 60, 75]
 const dateInputFor = (offsetDays: number) => {
@@ -26,7 +27,7 @@ const dateInputFor = (offsetDays: number) => {
 }
 
 export function TodayScreen() {
-  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, activeSessionId, startSession, resumeActiveSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
+  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, mesocycles, activeSessionId, startSession, resumeActiveSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
   const athleteProgress = athleteLevel({ history, records, sessions })
   const [surveyOpen, setSurveyOpen] = useState(false)
   const [surveyChooserOpen, setSurveyChooserOpen] = useState(false)
@@ -66,6 +67,14 @@ export function TodayScreen() {
   const pendingPlacementRecovery = placementVerification.events.find((event) => event.status === 'awaiting-recovery')
   const placementLaneCount = new Set(placementVerification.events.map((event) => event.movementPlacement?.exerciseId ?? 'plan')).size
   const placementBlocked = athlete.placement.selectedRoute === 'pain-aware-modified' || placementVerification.blocked
+  const lifeAware = useMemo(() => buildLifeAwareAssessment({
+    sessions,
+    history,
+    missedOpportunityEvents,
+    activePlan: mesocycles.find((plan) => plan.status === 'active'),
+    priorityRegions: athlete.priorityRegions,
+    assessedAt: placementExitAssessedAt
+  }), [athlete.priorityRegions, history, mesocycles, missedOpportunityEvents, placementExitAssessedAt, sessions])
   const recentPrimary = primaryHistory.slice(-Math.max(1, primaryPlan?.sets.length ?? 1))
   const lastVolume = volumeLoad(recentPrimary)
   const recentRecord = records[0]
@@ -287,9 +296,14 @@ export function TodayScreen() {
           <div className="panel__header"><div><p className="eyebrow">Life-aware plan</p><h3>Schedule changed?</h3></div><RotateCcw size={19} /></div>
           <div className="life-card">
             <Footprints size={28} />
-            <div><strong>Missed work is not work you owe.</strong><p>ForgePath records only what you completed. It can move important unfinished workouts to a realistic date, but it never doubles later sets or crams missed accessories into today.</p></div>
+            <div><strong>{lifeAware.today.title}.</strong><p>{lifeAware.today.reason}</p></div>
           </div>
-          <details className="life-aware-quick-explainer"><summary>How a missed workout changes future training</summary><ol><li><strong>Today:</strong> no completed sets or volume are invented.</li><li><strong>This training round:</strong> unfinished important work can move, the round can take longer, and targets usually hold until enough work is completed.</li><li><strong>Next training round:</strong> load, repetitions, or sets progress only if completed performance and recovery support it.</li><li><strong>Later training blocks:</strong> repeated schedule disruptions can lead ForgePath to suggest fewer weekly workouts, shorter sessions, or less recoverable volume for your approval.</li></ol></details>
+          <div className="life-aware-horizon-preview" aria-label="Life-aware plan horizons">
+            <div><small>Today</small><strong>{lifeAware.today.action.replaceAll('-', ' ')}</strong></div>
+            <div><small>This round</small><strong>{lifeAware.round.action.replaceAll('-', ' ')}</strong></div>
+            <div><small>Block review</small><strong>{lifeAware.block.action.replaceAll('-', ' ')}</strong></div>
+          </div>
+          <details className="life-aware-quick-explainer"><summary>See what changes now and later</summary><ol><li><strong>Today:</strong> {lifeAware.today.reason}</li><li><strong>This training round:</strong> {lifeAware.round.reason}</li><li><strong>Next training round:</strong> load, repetitions, or sets progress only if completed performance and recovery support it.</li><li><strong>Training-block review:</strong> {lifeAware.block.reason} You approve every structural change.</li></ol><p><strong>No volume debt:</strong> {lifeAware.metrics.notCarriedForwardSets ? `${lifeAware.metrics.notCarriedForwardSets} lower-priority planned set${lifeAware.metrics.notCarriedForwardSets === 1 ? '' : 's'} were not carried into the latest rebuilt opportunity.` : 'No unfinished set is treated as work you owe.'}</p></details>
           <button className="full-row-button" onClick={() => { setMissError(null); setMissedOpen(true) }}>I missed this opportunity <ChevronRight size={18} /></button>
           <button className="full-row-button" onClick={() => setNav('plan')}>Review the full plan <ChevronRight size={18} /></button>
         </section>

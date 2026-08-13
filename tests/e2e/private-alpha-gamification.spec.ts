@@ -179,7 +179,7 @@ test('shows an honest local test boundary without weakening backup or responsive
   await expect(cloudPanel).toBeVisible()
   await expect(cloudPanel.getByRole('heading', { name: 'Cloud access is unavailable' })).toBeVisible()
   await expect(cloudPanel).toContainText('This build is not cloud-authoritative')
-  await expect(cloudPanel).toContainText('The local test override is active.')
+  await expect(cloudPanel).toContainText(/The local test override is active\.|Private cloud access is not enabled in this build\./)
   await expect(cloudPanel.getByRole('button')).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Backup and recovery' })).toBeVisible()
   await openPanel(page, 'backup and recovery')
@@ -523,6 +523,41 @@ test('shows calendar-quarter progress, exact movement mix, and honest priority a
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
   if (testInfo.project.name === 'mobile-chromium') await page.screenshot({ path: 'output/playwright/quarter-movement-mix-mobile.png', fullPage: true })
+  expect(browserErrors).toEqual([])
+})
+
+test('shows separate ongoing-confidence lanes and a three-horizon life-aware decision', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  const dismissMessage = page.getByRole('button', { name: 'Dismiss message' })
+  if (await dismissMessage.isVisible()) await dismissMessage.click()
+
+  const lifePlan = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Schedule changed?' }) })
+  await expect(lifePlan).toContainText('Today')
+  await expect(lifePlan).toContainText('This round')
+  await expect(lifePlan).toContainText('Block review')
+  await expect(lifePlan).toContainText(/No unfinished set is treated as work you owe|No volume debt/i)
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.locator('.skip-link').evaluate((element) => { (element as HTMLElement).style.display = 'none' })
+    await lifePlan.screenshot({ path: 'output/playwright/life-aware-horizons-mobile.png' })
+  }
+
+  await page.getByRole('button', { name: 'Progress', exact: true }).click()
+  await openPanel(page, 'what ForgePath knows')
+  const confidence = page.locator('.confidence-panel')
+  await expect(confidence).toContainText('Main-lift targets')
+  await expect(confidence).toContainText('Schedule fit')
+  await expect(confidence).toContainText('Recovery response')
+  await expect(confidence).toContainText('Volume tolerance')
+  await expect(confidence).toContainText('Exact main-lift knowledge')
+  await expect(confidence).toContainText('Missing answers lower certainty only')
+  await expect(confidence.locator('.confidence-lanes article')).toHaveCount(4)
+  await expect(confidence.locator('.confidence-meter').first().locator('i')).toHaveCount(5)
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  await confidence.screenshot({ path: `output/playwright/ongoing-confidence-${testInfo.project.name}.png` })
   expect(browserErrors).toEqual([])
 })
 

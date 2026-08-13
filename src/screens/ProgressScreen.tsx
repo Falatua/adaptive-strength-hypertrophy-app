@@ -26,11 +26,12 @@ import { filterMuscleDose, filterPlannedMuscleDose, muscleDoseFor, plannedMuscle
 import { decideMuscleVolume, forecastDeload, summarizeMuscleFeedback, volumeZone } from '../domain/volume-progression-engine'
 import type { MuscleId, RecordCategory } from '../domain/types'
 import { buildCalendarMonth, buildExerciseExposureSequence, buildFixedEventCountdown, calendarDayKey } from '../domain/timeline-engine'
+import { buildOngoingConfidenceModel } from '../domain/ongoing-confidence-engine'
 
 type TimelineAxis = 'calendar' | 'exposure'
 
 export function ProgressScreen() {
-  const { history, records, athlete, settings, sessions, surveys, mesocycles, missedOpportunityEvents, exercises: exerciseCatalog } = useAppStore()
+  const { history, records, athlete, settings, sessions, surveys, mesocycles, missedOpportunityEvents, placementVerifications, exercises: exerciseCatalog } = useAppStore()
   const athleteProgress = athleteLevel({ history, records, sessions })
   const [range, setRange] = useState<ProgressRange>('28d')
   const [bodyLens, setBodyLens] = useState<BodyLens>('region')
@@ -141,6 +142,16 @@ export function ProgressScreen() {
   }, [athlete.strengthAnchors, exerciseCatalog, history])
   const exposureSequence = useMemo(() => buildExerciseExposureSequence(history, selectedExposureExerciseId), [history, selectedExposureExerciseId])
   const fixedEvent = useMemo(() => buildFixedEventCountdown(athlete.placement.inputs.fixedEvent), [athlete.placement.inputs.fixedEvent])
+  const ongoingConfidence = useMemo(() => buildOngoingConfidenceModel({
+    strengthAnchorIds: athlete.strengthAnchors,
+    exercises: exerciseCatalog,
+    history,
+    sessions,
+    surveys,
+    placementVerifications,
+    missedOpportunityEvents,
+    assessedAt: new Date(nowMs).toISOString()
+  }), [athlete.strengthAnchors, exerciseCatalog, history, missedOpportunityEvents, nowMs, placementVerifications, sessions, surveys])
   const trend = summary.comparisonPercent
   const trendLabel = trend === null ? 'No matched prior window' : `${trend >= 0 ? '+' : ''}${trend.toFixed(1)}% vs prior matched window`
   const rangeDates = summary.start
@@ -185,6 +196,27 @@ export function ProgressScreen() {
         <StatCard label="Most trained" value={topExercise?.name ?? 'No movement'} detail={topExercise ? `${topExercise.volume.toLocaleString()} exact volume load` : 'No completed sets yet'} icon={<Target size={18} />} tone="blue" />
         <StatCard label="Validated wins" value={validatedAchievements.length.toString()} detail={`${validatedAchievements.filter((event) => event.kind === 'personal-record').length} PRs · ${validatedAchievements.filter((event) => event.kind === 'micro-win').length} micro wins${numericOnlyAchievements.length ? ` · ${numericOnlyAchievements.length} numeric-only` : ''}`} icon={<Trophy size={18} />} tone="purple" />
       </section>
+
+      <CollapsiblePanel className="panel confidence-panel" label="what ForgePath knows" header={<div className="panel__header"><div><p className="eyebrow">Ongoing calibration</p><h3>{ongoingConfidence.headline}</h3></div><BrainCircuit size={20} /></div>}>
+        <p className="confidence-panel__summary">{ongoingConfidence.summary}</p>
+        <div className="confidence-lanes" aria-label="Confidence by programming decision">
+          {ongoingConfidence.lanes.map((lane) => <article key={lane.id}>
+            <div><span><strong>{lane.label}</strong><small>{lane.state.replaceAll('-', ' ')} · {lane.evidenceCount} source event{lane.evidenceCount === 1 ? '' : 's'}</small></span><span className={`confidence-state confidence-state--${lane.state}`}>{lane.state.replaceAll('-', ' ')}</span></div>
+            <div className="confidence-meter" aria-label={`${lane.evidenceStrength} of 5 evidence dimensions established`}>{[1, 2, 3, 4, 5].map((step) => <i key={step} className={step <= lane.evidenceStrength ? 'filled' : ''} />)}</div>
+            <p>{lane.explanation}</p><small><b>Learn next:</b> {lane.nextLearningNeed}</small>
+          </article>)}
+        </div>
+        {ongoingConfidence.movements.length > 0 && <div className="movement-confidence-list" aria-label="Exact main-lift calibration">
+          <h4>Exact main-lift knowledge</h4>
+          {ongoingConfidence.movements.map((movement) => <details key={movement.exerciseId}>
+            <summary><span><strong>{movement.exerciseName}</strong><small>{movement.exactSetCount} exact sets · {movement.exposureDateCount} dates · {movement.daysSinceLatest === null ? 'no current baseline' : `${movement.daysSinceLatest} days since latest`}</small></span><span className={`confidence-state confidence-state--${movement.state}`}>{movement.state.replaceAll('-', ' ')}</span></summary>
+            <p>{movement.explanation}</p>
+            <dl><div><dt>Effort coverage</dt><dd>{movement.rirCoverage === null ? 'Unknown' : `${Math.round(movement.rirCoverage * 100)}%`}</dd></div><div><dt>Quality coverage</dt><dd>{movement.qualityCoverage === null ? 'Unknown' : `${Math.round(movement.qualityCoverage * 100)}%`}</dd></div><div><dt>Comparable dates</dt><dd>{movement.comparableExposureDateCount}</dd></div><div><dt>Recorded setups</dt><dd>{movement.recordedAngleContexts.join(', ') || 'None'}</dd></div></dl>
+            <small><b>Learn next:</b> {movement.nextLearningNeed}</small>
+          </details>)}
+        </div>}
+        <p className="chart-note">The five marks describe evidence strength, not a probability and not athlete ability. A skipped answer leaves a lane less certain; it never becomes a negative readiness or adherence score.</p>
+      </CollapsiblePanel>
 
       <section className="period-facts" aria-label={`${summary.label} training summary`}>
         <div><CalendarDays size={17} /><span><small>Active days</small><strong>{summary.activeDays}</strong></span></div>

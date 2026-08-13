@@ -62,6 +62,27 @@ Athlete-facing language uses **training round** for a microcycle and **training 
 - One disrupted round does not erase earned progress or automatically lower the plan. Repeated differences between planned and completed training become evidence at the next athlete-approved training-block review. The proposal may reduce weekly frequency, session length, or planned volume to match sustainable reality.
 - Every future-plan change is a suggestion with a plain-language reason. The athlete approves it. Life-aware adaptation is never silent and never punitive.
 
+Life-aware decisions separate the cause of interruption before changing training:
+
+- Family, work, travel, time, and equipment are schedule evidence. They can move, reorder, compress, substitute, or expire open work without asserting that fitness was lost.
+- Sleep, stress, fatigue, and low energy are readiness evidence. They can require warm-up or first-set confirmation and can remove optional fatigue when several current signals agree, but one answer never creates an automatic percentage reduction.
+- Pain and illness use a distinct safety and return path. The app can adjust programming and suggest professional review, but it cannot diagnose or imply medical clearance.
+- A long gap makes old exact performance less current. ForgePath preserves the achievement and requests a non-maximal re-entry confirmation instead of demoting the athlete or assuming a universal detraining curve.
+
+The engine explains decisions at three horizons: what to do today, what happens to the current training round, and what repeated evidence may propose at the next athlete-approved training-block review.
+
+## Ongoing Calibration and Confidence
+
+Calibration is a permanent learning loop, not a one-time onboarding gate. Confidence describes how much relevant evidence ForgePath has for one decision, never how capable or compliant the athlete is.
+
+- Keep separate confidence for exact main-lift targets, schedule fit, recovery response, and volume tolerance. These areas may legitimately disagree.
+- Use the states uncalibrated, early evidence, developing, well calibrated, and stale. Do not present an unsupported probability.
+- Exact exercise and recorded setup identity, including incline angle where applicable, outrank neighboring movement history.
+- Repeated completed exposures, recency, RIR coverage, quality and joint feedback, recovery evidence, and context match can increase confidence.
+- Missing or skipped answers reduce certainty only. They never become negative readiness, motivation, recovery, pain, or adherence evidence.
+- Goal, equipment, movement, setup, pain, schedule, or continuity changes trigger a focused refresh of the affected decision. They do not reset the athlete's entire history.
+- Every confidence lane states its sources, limitations, and the smallest optional `Learn next` action that would reduce uncertainty.
+
 ## Exercise Preferences
 
 - Every movement has one programming preference: preferred, neutral, or avoid. The Library presents these as clear thumbs-up and thumbs-down controls with written labels.
