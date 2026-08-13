@@ -10,7 +10,7 @@ test('clean test-mode reset removes all local training truth and restarts onboar
   await page.getByRole('button', { name: 'Clear local test data' }).click()
 
   const resetDialog = page.getByRole('dialog', { name: 'Clear all local test data' })
-  await expect(resetDialog).toContainText('completed sets, sessions, plans, surveys, notes, records, feedback, and testing history')
+  await expect(resetDialog).toContainText("This removes this browser's development data, then restarts onboarding.")
   await resetDialog.getByRole('button', { name: 'Clear and restart' }).click()
 
   await expect(page.getByRole('heading', { name: /Build the athlete/i })).toBeVisible()

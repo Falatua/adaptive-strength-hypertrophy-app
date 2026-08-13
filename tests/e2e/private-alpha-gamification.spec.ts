@@ -184,7 +184,7 @@ test('shows an honest local test boundary without weakening backup or responsive
   await expect(page.getByRole('heading', { name: 'Backup and recovery' })).toBeVisible()
   await openPanel(page, 'backup and recovery')
   await expect(page.getByRole('button', { name: 'Export verified backup' })).toBeEnabled()
-  await expect(page.getByText('Local v25 · cloud event v1')).toBeVisible()
+  await expect(page.getByText('Local test state v25')).toBeVisible()
 
   await cloudPanel.screenshot({ path: `output/playwright/cloud-foundation-${testInfo.project.name === 'mobile-chromium' ? 'mobile' : 'desktop'}.png` })
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
