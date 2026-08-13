@@ -84,7 +84,7 @@ function CloudAuth({ recovery, onRecoveryComplete }: { recovery: boolean; onReco
     {error && <AuthError message={error} />}
   </AuthFrame>
 
-  return <AuthFrame title={mode === 'signin' ? 'Welcome back' : mode === 'forgot' ? 'Recover your account' : 'Finish your invitation'} detail={mode === 'signin' ? 'Sign in to load your private ForgePath training data from Supabase.' : mode === 'forgot' ? 'We will send a private recovery link if this email belongs to an account.' : 'Use the exact email that was invited. This cannot create a public account.'}>
+  return <AuthFrame title={mode === 'signin' ? 'Welcome back' : mode === 'forgot' ? 'Recover your account' : 'Finish your invitation'} detail={mode === 'signin' ? 'Sign in to ForgePath.' : mode === 'forgot' ? 'We will send a private recovery link if this email belongs to an account.' : 'Use the exact email that was invited. This cannot create a public account.'}>
     <label className="cloud-auth__field"><span>Email</span><span><Mail size={17} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></span></label>
     {mode === 'signin' && <PasswordField value={password} onChange={setPassword} />}
     <button className="button button--primary button--full" disabled={busy || !email.trim() || (mode === 'signin' && !password)} onClick={() => run(async () => {
