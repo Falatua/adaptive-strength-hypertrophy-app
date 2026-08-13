@@ -36,7 +36,8 @@ if (manifestSource) {
 }
 
 if (!serviceWorker.includes('index.html')) failures.push('The service worker is missing its navigation fallback.')
-if (!javascript.includes('Demo Athlete')) failures.push('The public artifact is missing the neutral new-visitor seed.')
+if (!javascript.includes('Build my starting profile')) failures.push('The public artifact is missing the clean new-athlete onboarding path.')
+if (javascript.includes('Demo Athlete') || javascript.includes('Local demo data restored.')) failures.push('The public artifact still contains demo-athlete runtime state.')
 if (/\bname\s*:\s*["']JB["']/.test(javascript)) failures.push('The public artifact contains the JB-named personal seed.')
 
 if (failures.length) {

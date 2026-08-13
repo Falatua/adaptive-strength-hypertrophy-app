@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
-import { athlete as seedAthlete, equipmentProfiles as seedEquipmentProfiles, exercises as seedExercises, history as seedHistory, mesocycles as seedMesocycles, sessions as seedSessions } from '../domain/seed'
+import { athlete as seedAthlete, equipmentProfiles as seedEquipmentProfiles, exercises as seedExercises, mesocycles as seedMesocycles } from '../domain/seed'
 import { compressSession, normalizeExerciseRole, readinessFromSurvey, sessionCompletionStatus } from '../domain/training-engine'
 import { backupStateFrom, type RestorableAppState } from '../domain/backup'
 import { buildMesocyclePreview, createMesocyclePlan, draftFromPlan, replaceFuturePlan } from '../domain/mesocycle-engine'
@@ -134,7 +134,6 @@ interface AppState {
   applyCycleReview: (decision: CycleReviewDecision, reason: string) => { ok: boolean; error?: string }
   restoreBackup: (data: RestorableAppState) => void
   undoLastRestore: () => void
-  resetDemo: () => void
   resetForTesting: () => void
 }
 
@@ -166,35 +165,16 @@ const initialSettings: AppSettings = {
   activeEquipmentProfileId: 'equipment-commercial-gym'
 }
 
-const fresh = () => ({
+const cleanTestingStart = () => ({
   athlete: structuredClone(seedAthlete),
   settings: structuredClone(initialSettings),
   equipmentProfiles: structuredClone(seedEquipmentProfiles),
-  exercises: structuredClone(seedExercises),
-  sessions: structuredClone(seedSessions),
-  history: structuredClone(seedHistory),
-  movementNotes: [] as MovementNoteRecord[],
-  surveys: [] as SurveyRecord[],
-  deferredFeedback: [] as DeferredFeedbackRequest[],
-  records: derivePersonalRecords(seedHistory),
-  mesocycles: structuredClone(seedMesocycles),
-  historyMutations: [] as HistoryMutationEvent[],
-  cycleReviews: [] as CycleReviewEvent[],
-  substitutionEvents: [] as ExerciseSubstitutionEvent[],
-  placementVerifications: [] as PlacementVerificationEvent[],
-  placementExitReviews: [] as PlacementExitReviewEvent[],
-  movementPlacementExitReviews: [] as MovementPlacementExitReviewEvent[],
-  missedOpportunityEvents: [] as MissedOpportunityEvent[],
-  activeMesocycleId: seedMesocycles[0]?.id ?? null,
-  activeSessionId: null,
-  workoutVisible: true,
-  onboardingComplete: false,
-  onboardingStartStep: 0 as 0 | 1,
-  recoverySnapshot: null as RestorableAppState | null
-})
-
-const cleanTestingStart = () => ({
-  ...fresh(),
+  exercises: structuredClone(seedExercises).map((exercise) => ({
+    ...exercise,
+    favorite: false,
+    disliked: false,
+    jointFeeling: 'neutral' as const
+  })),
   sessions: [] as TrainingSession[],
   history: [] as CompletedSetRecord[],
   movementNotes: [] as MovementNoteRecord[],
@@ -1260,7 +1240,6 @@ export const useAppStore = create<AppState>()(
         nav: 'you',
         notice: 'The previous local state has been restored.'
       }) : ({ notice: 'No restore point is available.' })),
-      resetDemo: () => set({ nav: 'today', notice: 'Local demo data restored.', ...fresh() }),
       resetForTesting: () => set({ nav: 'today', notice: null, ...cleanTestingStart() })
     }),
     {
@@ -1321,8 +1300,8 @@ export const useAppStore = create<AppState>()(
               movementSkill: persisted.athlete?.level?.movementSkill ?? persisted.athlete?.level?.strengthTolerance ?? seedAthlete.level.movementSkill
             }
           },
-          mesocycles: persisted.mesocycles?.length ? persisted.mesocycles : structuredClone(seedMesocycles),
-          activeMesocycleId: persisted.activeMesocycleId ?? seedMesocycles[0]?.id ?? null,
+          mesocycles: persisted.mesocycles ?? [],
+          activeMesocycleId: persisted.activeMesocycleId ?? null,
           historyMutations: (persisted.historyMutations ?? []).map((event) => ({
             ...event,
             recordsBefore: derivePersonalRecords(event.before.history),

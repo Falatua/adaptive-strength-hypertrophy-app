@@ -37,7 +37,7 @@ Any failure prevents the deployment job from starting. A manually copied branch 
 - The GitHub source repository is public and shareable.
 - The artifact repository and Pages URL are public and shareable.
 - The source repository publicly exposes its tracked source, tests, and project-document snapshots. The artifact repository still receives only compiled files and `source-version.txt`. Obsidian vault material, local exports, and untracked files are not published.
-- A new browser receives a neutral Demo Athlete seed and enters onboarding.
+- A new browser receives empty training history, no plan or workout, neutral exercise preferences, and enters onboarding.
 - Each hosted browser currently stores its own state locally because the ForgePath cloud release switch is intentionally closed.
 - The compiled client contains a dormant invite-only authentication and explicit snapshot-sync foundation. Cloud configuration is browser-safe and optional; no project URL or publishable key was shipped in this release.
 - The live ForgePath database exists and passes its migration, RLS, RPC, replay, conflict, and simulated isolation gates, but cloud backup, phone-to-laptop recovery, background hydration, device revocation UI, automatic merge, and active-workout handoff are not active on the hosted preview.

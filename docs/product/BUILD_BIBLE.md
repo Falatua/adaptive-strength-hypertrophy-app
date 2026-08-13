@@ -6140,7 +6140,7 @@ The hosted path is `/adaptive-strength-hypertrophy-app-pages/`, not the domain r
 
 ### 75.4 Public Preview and Local Data Boundary
 
-The source GitHub repository, artifact repository, and Pages preview are public. The source repository exposes tracked source, tests, and project-document snapshots; the artifact repository contains no editable source, project documentation, tests, or vault material. New visitors receive a neutral Demo Athlete seed and complete onboarding in their own browser. No JB-named seed, credential, API key, private health record, or personal workout export may be compiled into the public artifact.
+The source GitHub repository, artifact repository, and Pages preview are public. The source repository exposes tracked source, tests, and project-document snapshots; the artifact repository contains no editable source, project documentation, tests, or vault material. New athletes receive an empty training state, neutral movement preferences, and onboarding before any plan or workout is created. No demo athlete, completed sample set, personal preference, JB-named seed, credential, API key, private health record, or personal workout export may be compiled into the public artifact.
 
 Pages hosting does not provide authentication, a shared database, cloud backup, phone-to-laptop synchronization, active-workout handoff, or access control. Workout state remains unencrypted browser-local storage. The interface and documentation must state this honestly, and users should not enter sensitive information on a shared device.
 

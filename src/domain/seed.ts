@@ -168,7 +168,7 @@ export const mesocycles: MesocyclePlan[] = [{
 }]
 
 export const athlete: AthleteProfile = {
-  name: 'Demo Athlete',
+  name: 'Athlete',
   trainingAge: 8,
   goal: 'Powerbuilding: improve squat, bench, and deadlift while growing chest, back, and arms',
   entryRoute: 'Building a Base',
