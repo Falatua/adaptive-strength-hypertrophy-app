@@ -231,6 +231,7 @@ test('organizes the exercise library and saves programming preferences', async (
   await page.reload()
   await page.locator('#library-filter-panel').getByRole('button', { name: 'Avoid', exact: true }).click()
   await expect(page.locator('.library-card').filter({ hasText: 'Conventional Deadlift' })).toBeVisible()
+  await page.locator('#library-filter-panel').getByRole('button', { name: 'Reset' }).click()
 
   // Every movement carries its own drawing rather than one shared arrow.
   await expect(page.locator('.library-card .movement-art').first()).toBeVisible()
