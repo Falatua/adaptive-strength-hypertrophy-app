@@ -220,6 +220,18 @@ test('opens touch-safe workout reasoning and preserves an active workout across 
   await expect(clock).toBeInViewport()
   await expect(clock).toContainText(/\d\d:\d\d/)
 
+  // Stopping the clock holds the reading and survives a reload, because a stop is stored on the
+  // session rather than in screen state.
+  await page.getByRole('button', { name: 'Stop the workout clock' }).click()
+  await expect(clock).toContainText('Stopped')
+  const stopped = String(await clock.textContent()).match(/\d\d:\d\d/)?.[0]
+  await page.waitForTimeout(1500)
+  await expect(clock).toContainText(String(stopped))
+  await page.reload()
+  await expect(page.getByRole('timer', { name: 'Time elapsed in this workout' })).toContainText(String(stopped))
+  await page.getByRole('button', { name: 'Start the workout clock' }).click()
+  await expect(page.getByRole('timer', { name: 'Time elapsed in this workout' })).toContainText('Elapsed')
+
   // A rep or load cell clears to empty instead of snapping back to a zero the athlete has to delete.
   const reps = page.locator('.set-row input[inputmode="numeric"]').first()
   await reps.fill('')

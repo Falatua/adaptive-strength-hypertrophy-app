@@ -408,6 +408,10 @@ export interface TrainingSession {
   readinessConfidence?: EvidenceConfidence
   startedAt?: string
   completedAt?: string
+  /** Total milliseconds the athlete has held the session clock stopped, excluding any open stop. */
+  clockPausedMs?: number
+  /** When the clock is currently stopped, the moment it was stopped. Null or absent while running. */
+  clockPausedAt?: string | null
   sessionRpe?: number
   note?: string
   mesocycleId?: string

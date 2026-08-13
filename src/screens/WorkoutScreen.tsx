@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Layers, Plus, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, TrendingUp, Trophy } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Layers, Pause, Play, Plus, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, TrendingUp, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
@@ -17,6 +17,7 @@ import { muscleCreditsFor, muscleDefinitions } from '../domain/muscle-dose'
 import { playForgeSound } from '../services/sound-engine'
 import { MOVEMENT_NOTE_MAX_LENGTH, movementNotesForExercise } from '../domain/movement-note-engine'
 import { sessionExtensionGate } from '../domain/session-extension-engine'
+import { sessionClockState } from '../domain/session-clock'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary movement',
@@ -26,7 +27,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, equipmentProfiles, history, movementNotes, settings, placementVerifications, updateSet, updateMovementNote, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession } = useAppStore()
+  const { sessions, exercises, equipmentProfiles, history, movementNotes, settings, placementVerifications, updateSet, updateMovementNote, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
@@ -119,8 +120,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const placementCheckUnlocked = placementVerification?.warmupResponse !== 'not-answered' || (placementCheckMovement
     ? placementCheckMovement.sets.length > 0 && placementCheckMovement.sets.every((workSet) => workSet.completed)
     : totalSets > 0 && completedSets === totalSets)
-  const sessionStart = session.startedAt ? new Date(session.startedAt).getTime() : clockNow
-  const elapsed = Math.max(0, Math.floor((clockNow - sessionStart) / 1000))
+  const clock = sessionClockState(session, clockNow)
+  const elapsed = Math.floor(clock.elapsedMs / 1000)
   const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0')
   const seconds = String(elapsed % 60).padStart(2, '0')
 
@@ -257,7 +258,10 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         <div className="workout-header__stats">
           <div><small>Sets</small><strong>{completedSets}/{totalSets}</strong></div>
           <div><small>Volume</small><strong>{currentVolume.toLocaleString()}</strong></div>
-          <div className="workout-clock" role="timer" aria-label="Time elapsed in this workout"><Clock3 size={16} /><span><small>Elapsed</small><strong>{minutes}:{seconds}</strong></span></div>
+          <div className={`workout-clock ${clock.running ? '' : 'workout-clock--stopped'}`}>
+            <span role="timer" aria-label="Time elapsed in this workout"><Clock3 size={16} /><span><small>{clock.running ? 'Elapsed' : 'Stopped'}</small><strong>{minutes}:{seconds}</strong></span></span>
+            <button type="button" className="workout-clock__toggle" onClick={() => setSessionClockRunning(session.id, !clock.running)} aria-label={clock.running ? 'Stop the workout clock' : 'Start the workout clock'}>{clock.running ? <Pause size={15} /> : <Play size={15} />}{clock.running ? 'Stop' : 'Start'}</button>
+          </div>
         </div>
         <div className="workout-progress"><span style={{ transform: `scaleX(${progress / 100})` }} /></div>
       </header>

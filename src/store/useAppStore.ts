@@ -10,6 +10,7 @@ import { buildCycleReview, buildNextMicrocycle } from '../domain/cycle-review-en
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
 import { buildDeferredFeedbackRequest, expireDeferredFeedbackRequests, summarizeSurveyEvidence } from '../domain/survey-engine'
 import { mergeSystemEquipmentProfiles, mergeSystemExerciseCatalog, projectExerciseCatalogEdit, type ExerciseCatalogInput } from '../domain/catalog-engine'
+import { sessionTrainedMinutes, startSessionClock, stopSessionClock } from '../domain/session-clock'
 import { equipmentGenerationEvidence, equipmentProfileError, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad, normalizedEquipmentProfile } from '../domain/equipment-engine'
 import { legacyPlacementForAthlete, placementRouteLabels } from '../domain/placement-engine'
 import { beginPlacementVerification, cancelPlacementVerificationForPrimarySubstitution, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery, revisePlacementSessionEvidence, summarizePlacementVerification } from '../domain/placement-verification-engine'
@@ -94,6 +95,7 @@ interface AppState {
   updateSet: (sessionId: string, plannedExerciseId: string, setId: string, data: { reps?: number; load?: number; rir?: number }) => void
   updateMovementNote: (sessionId: string, plannedExerciseId: string, body: string) => void
   toggleSetComplete: (sessionId: string, plannedExerciseId: string, setId: string) => void
+  setSessionClockRunning: (sessionId: string, running: boolean) => void
   setPlacementWarmup: (sessionId: string, response: Exclude<PlacementWarmupResponse, 'not-answered'>) => void
   resolvePlacementRecovery: (eventId: string, response: Exclude<PlacementRecoveryResponse, 'pending'>) => void
   recordPlacementExitReview: (decision: PlacementExitDecision, reason: string) => { ok: boolean; error?: string }
@@ -420,6 +422,16 @@ export const useAppStore = create<AppState>()(
         if (!session || !plannedExercise || !exercise) return { notice: 'That workout movement is no longer available for notes.' }
         return { movementNotes: upsertMovementNote({ notes: state.movementNotes, session, plannedExercise, exercise, body }) }
       }),
+      // Stopping the clock is a real training fact, so it is stored on the session rather than held in
+      // screen state. It survives navigation, reload, and process death like every other session event.
+      setSessionClockRunning: (sessionId, running) => set((state) => {
+        const now = new Date().toISOString()
+        return {
+          sessions: state.sessions.map((session) => session.id === sessionId
+            ? (running ? startSessionClock(session, now) : stopSessionClock(session, now))
+            : session)
+        }
+      }),
       toggleSetComplete: (sessionId, plannedExerciseId, setId) => set((state) => {
         const session = state.sessions.find((candidate) => candidate.id === sessionId)
         const planned = session?.exercises.find((candidate) => candidate.id === plannedExerciseId)
@@ -625,7 +637,7 @@ export const useAppStore = create<AppState>()(
         const prescribedSets = session.exercises.flatMap((plannedExercise) => plannedExercise.sets).filter((workSet) => !workSet.athleteAdded)
         const plannedSets = prescribedSets.length
         const completedPrescribedSets = prescribedSets.filter((workSet) => workSet.completed).length
-        const actualMinutes = Math.max(1, Math.round((new Date(completedAt).getTime() - new Date(session.startedAt ?? completedAt).getTime()) / 60_000))
+        const actualMinutes = sessionTrainedMinutes(session, completedAt)
         const completedPlacementEvent = placementEvent ? completePlacementVerification(placementEvent, {
           firstSet: firstPrimarySet && firstSourceSet && primary && primaryExercise ? {
             sourceSetId: firstSourceSet.id,
