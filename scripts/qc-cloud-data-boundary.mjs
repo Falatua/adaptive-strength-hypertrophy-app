@@ -22,6 +22,8 @@ if (!sync.includes("key === CLOUD_OUTBOX_STORAGE_KEY ? cloudPayloadMemory.set(ke
   failures.push('the automatic cloud outbox can write a training payload to browser storage')
 }
 if (!root.includes('window.localStorage.removeItem(LEGACY_APP_STORAGE_KEY)')) failures.push('the verified one-time migration does not remove the legacy training copy')
+if (!root.includes("window.addEventListener('beforeunload', protectUnsavedCloudChange)") || !root.includes("saveState !== 'saving' && saveState !== 'error'")) failures.push('the browser can close without warning while a cloud change is pending or failed')
+if (!root.includes('if (saveTimer.current) {') || !root.includes('await saveNow()') || !root.includes('await flushPendingSave()') || !root.includes('if (lastSaveFailure.current) throw lastSaveFailure.current')) failures.push('sign-out can bypass or swallow a cloud save that is still waiting in the debounce timer')
 if (!root.includes('await fetchCloudSnapshot()') || !root.includes('await pushCloudSnapshot(currentState)')) failures.push('cloud bootstrap does not prove a remote source of truth')
 if (!sync.includes('CLOUD_ACCOUNT_STORAGE_KEY') || !sync.includes('prepareCloudStorageForAccount(session.user.id')) failures.push('cloud device and version metadata are not isolated by signed-in account')
 if (!sync.includes("select('payload,version,updated_at,checksum,schema_version,app_version')")) failures.push('cloud restore does not compare snapshot projection metadata with its verified backup envelope')

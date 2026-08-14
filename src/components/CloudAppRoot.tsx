@@ -134,6 +134,7 @@ export function CloudAppRoot() {
   const saveTimer = useRef<number | null>(null)
   const saveChain = useRef(Promise.resolve())
   const lastBackupChecksum = useRef<string | null>(null)
+  const lastSaveFailure = useRef<Error | null>(null)
   const passwordMode = passwordModeFor(session, recovery)
 
   useEffect(() => {
@@ -195,6 +196,7 @@ export function CloudAppRoot() {
 
   const saveNow = async () => {
     if (!session || !ready) return
+    lastSaveFailure.current = null
     setSaveState('saving')
     setError(null)
     const currentState = backupStateFrom(useAppStore.getState())
@@ -218,7 +220,9 @@ export function CloudAppRoot() {
       if (saveTimer.current) window.clearTimeout(saveTimer.current)
       setSaveState('saving')
       saveTimer.current = window.setTimeout(() => {
+        saveTimer.current = null
         saveChain.current = saveChain.current.then(saveNow).catch((cause) => {
+          lastSaveFailure.current = cause instanceof Error ? cause : new Error('Your latest change has not reached Supabase yet.')
           setSaveState('error')
           setError(messageFrom(cause, 'Your latest change has not reached Supabase yet.'))
         })
@@ -229,11 +233,32 @@ export function CloudAppRoot() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user.id, ready])
 
+  useEffect(() => {
+    if (!session || (saveState !== 'saving' && saveState !== 'error')) return
+    const protectUnsavedCloudChange = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', protectUnsavedCloudChange)
+    return () => window.removeEventListener('beforeunload', protectUnsavedCloudChange)
+  }, [session, saveState])
+
+  const flushPendingSave = async () => {
+    if (saveTimer.current) {
+      window.clearTimeout(saveTimer.current)
+      saveTimer.current = null
+      await saveNow()
+      return
+    }
+    await saveChain.current
+    if (lastSaveFailure.current) throw lastSaveFailure.current
+  }
+
   const runtime: CloudRuntimeValue | null = session ? {
     session, saveState, lastSavedAt, error,
     retrySave: async () => { await saveNow() },
     signOut: async () => {
-      if (saveState === 'saving') await saveChain.current
+      if (saveState === 'saving') await flushPendingSave()
       if (saveState === 'error') throw new Error('Retry the unsaved change before signing out.')
       await signOutCloud()
       setSession(null)
