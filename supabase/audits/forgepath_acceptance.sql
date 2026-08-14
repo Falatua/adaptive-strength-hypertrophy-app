@@ -5,7 +5,8 @@ with expected(version, name, statement_count, content_sha256) as (
   values
     ('20260811000100'::text, 'forgepath_cloud_foundation'::text, 1, 'c18793b38bfcfa6b45b483bc1be0c4a9051cc50649efd4c8c38946559331813c'::text),
     ('20260811000200'::text, 'forgepath_training_core'::text, 1, '50484d39e0ef86cbe49cce813357586d185fa23b1e7c3847a88b9bc45ceef5c8'::text),
-    ('20260813000100'::text, 'forgepath_account_controls'::text, 1, '18a316cb8c7657f15a0ffc6e8cf556e388de411cde9695499f9f01d96d2ebfd8'::text)
+    ('20260813000100'::text, 'forgepath_account_controls'::text, 1, '18a316cb8c7657f15a0ffc6e8cf556e388de411cde9695499f9f01d96d2ebfd8'::text),
+    ('20260814000100'::text, 'forgepath_snapshot_contract'::text, 1, '991c5a3d60b236c383aabdc93e85555e46b6397e2320f1f41b56455152ab79c1'::text)
 ), actual as (
   select
     version,
@@ -116,6 +117,41 @@ from pg_proc p
 join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public'
   and p.proname = 'push_forgepath_snapshot'
+
+union all
+
+select
+  'snapshot_envelope_constraints' as check_name,
+  count(*) = 2 and bool_and(c.convalidated) as passed,
+  jsonb_build_object(
+    'constraints', coalesce(jsonb_agg(jsonb_build_object('name', c.conname, 'validated', c.convalidated) order by c.conname), '[]'::jsonb)
+  ) as evidence
+from pg_constraint c
+where c.conname in ('forgepath_state_snapshots_envelope_contract', 'forgepath_sync_events_envelope_contract')
+
+union all
+
+select
+  'stored_snapshot_envelopes' as check_name,
+  count(*) filter (where
+    payload ->> 'format' = 'forgepath-backup'
+    and jsonb_typeof(payload -> 'data') = 'object'
+    and payload #>> '{integrity,algorithm}' = 'fnv1a32'
+    and checksum = payload #>> '{integrity,value}'
+    and schema_version::text = payload ->> 'schemaVersion'
+    and app_version = payload ->> 'appVersion'
+  ) = count(*) as passed,
+  jsonb_build_object(
+    'snapshot_count', count(*),
+    'valid_count', count(*) filter (where
+      payload ->> 'format' = 'forgepath-backup'
+      and jsonb_typeof(payload -> 'data') = 'object'
+      and payload #>> '{integrity,algorithm}' = 'fnv1a32'
+      and checksum = payload #>> '{integrity,value}'
+      and schema_version::text = payload ->> 'schemaVersion'
+      and app_version = payload ->> 'appVersion')
+  ) as evidence
+from public.forgepath_state_snapshots
 
 union all
 

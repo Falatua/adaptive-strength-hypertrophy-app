@@ -10,7 +10,6 @@ import {
   CLOUD_LAST_SYNC_STORAGE_KEY,
   CLOUD_OUTBOX_STORAGE_KEY,
   CLOUD_VERSION_STORAGE_KEY,
-  acceptCloudSnapshot,
   deleteCloudAccount,
   fetchCloudSnapshot,
   getCloudClient,
@@ -18,6 +17,7 @@ import {
   requestPasswordRecovery,
   requestPrivateSignIn,
   resetCloudData,
+  restoreVerifiedCloudSnapshot,
   signInWithPassword,
   signOutCloud,
   updateCloudPassword,
@@ -168,8 +168,7 @@ export function CloudAppRoot() {
       await waitForStoreHydration()
       const snapshot = await fetchCloudSnapshot()
       if (snapshot) {
-        acceptCloudSnapshot(snapshot.serverVersion)
-        useAppStore.getState().restoreBackup(snapshot.backup.data)
+        restoreVerifiedCloudSnapshot(snapshot, (state) => useAppStore.getState().restoreBackup(state))
         lastBackupChecksum.current = snapshot.backup.integrity.value
         setLastSavedAt(snapshot.updatedAt)
       } else {

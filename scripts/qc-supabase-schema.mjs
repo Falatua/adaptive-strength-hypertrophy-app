@@ -5,14 +5,16 @@ import { resolve } from 'node:path'
 const manifestPath = resolve('supabase/migrations/manifest.json')
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
 const migrationDirectory = resolve('supabase/migrations')
-const [foundationEntry, trainingCoreEntry, accountControlsEntry] = manifest.migrations
+const [foundationEntry, trainingCoreEntry, accountControlsEntry, snapshotContractEntry] = manifest.migrations
 const foundationPath = resolve(migrationDirectory, foundationEntry.file)
 const trainingCorePath = resolve(migrationDirectory, trainingCoreEntry.file)
 const accountControlsPath = resolve(migrationDirectory, accountControlsEntry.file)
+const snapshotContractPath = resolve(migrationDirectory, snapshotContractEntry.file)
 const foundation = readFileSync(foundationPath, 'utf8')
 const trainingCore = readFileSync(trainingCorePath, 'utf8')
 const accountControls = readFileSync(accountControlsPath, 'utf8')
-const migration = `${foundation}\n${trainingCore}\n${accountControls}`
+const snapshotContract = readFileSync(snapshotContractPath, 'utf8')
+const migration = `${foundation}\n${trainingCore}\n${accountControls}\n${snapshotContract}`
 const requiredTables = [
   'forgepath_profiles',
   'forgepath_devices',
@@ -31,7 +33,7 @@ const requiredTables = [
 ]
 const failures = []
 
-if (manifest.schemaVersion !== 1 || manifest.migrations.length !== 3) failures.push('migration manifest shape is invalid')
+if (manifest.schemaVersion !== 1 || manifest.migrations.length !== 4) failures.push('migration manifest shape is invalid')
 for (const entry of manifest.migrations) {
   if (`${entry.version}_${entry.name}.sql` !== entry.file) failures.push(`${entry.file} does not match its version and name`)
   const contents = readFileSync(resolve(migrationDirectory, entry.file))
@@ -49,6 +51,17 @@ for (const table of requiredTables) {
 
 for (const evidence of ['auth.uid()', 'pg_advisory_xact_lock', 'Idempotent replay accepted', "'conflict'", 'octet_length(p_payload::text) > 26214400']) {
   if (!foundation.includes(evidence)) failures.push(`snapshot sync safety evidence is missing: ${evidence}`)
+}
+
+for (const evidence of [
+  'forgepath_state_snapshots_envelope_contract',
+  'forgepath_sync_events_envelope_contract',
+  "p_payload #>> '{integrity,value}' is distinct from p_checksum",
+  'v_existing_device_sequence is distinct from p_device_sequence',
+  'v_existing_payload is distinct from p_payload',
+  'Event ID was reused with different content or ownership'
+]) {
+  if (!snapshotContract.includes(evidence)) failures.push(`snapshot envelope safety evidence is missing: ${evidence}`)
 }
 
 for (const evidence of [
@@ -111,10 +124,10 @@ for (const entry of manifest.migrations) {
 }
 
 const transactionalAudit = readFileSync(resolve('supabase/audits/forgepath_transactional_sync_test.sql'), 'utf8')
-for (const evidence of ['normalized_projection_write_denied', 'snapshot_apply', 'snapshot_idempotent_replay', 'snapshot_conflict_preserved', 'snapshot_invariants', 'cross_athlete_isolation', 'rollback;']) {
+for (const evidence of ['normalized_projection_write_denied', 'snapshot_apply', 'snapshot_idempotent_replay', 'idempotent_replay_metadata_rejected', 'snapshot_envelope_rejected', 'snapshot_conflict_preserved', 'snapshot_invariants', 'cross_athlete_isolation', 'rollback;']) {
   if (!transactionalAudit.includes(evidence)) failures.push(`transactional production audit is missing ${evidence}`)
 }
-for (const evidence of ['migration_ledger', 'table_rls', 'normalized_browser_mutation_grants', 'ownership_mutation_grants', 'volume_view_security', 'snapshot_rpc']) {
+for (const evidence of ['migration_ledger', 'table_rls', 'normalized_browser_mutation_grants', 'ownership_mutation_grants', 'volume_view_security', 'snapshot_rpc', 'snapshot_envelope_constraints', 'stored_snapshot_envelopes']) {
   if (!acceptanceAudit.includes(`'${evidence}'`)) failures.push(`production acceptance audit is missing ${evidence}`)
 }
 

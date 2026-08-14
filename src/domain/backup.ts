@@ -24,6 +24,7 @@ import { exerciseMuscleMappingError } from './muscle-dose'
 import { equipmentGenerationEvidenceError, equipmentProfileError } from './equipment-engine'
 import { equipmentProfiles as seedEquipmentProfiles } from './seed'
 import { legacyPlacementForAthlete, movementPlacementEvidenceError, placementAssessmentError, placementRouteLabels } from './placement-engine'
+import { stableJsonStringify } from './stable-json'
 
 const legacyPlacementRouteLabels = {
   'introductory-skill': 'Introductory Skill Cycle',
@@ -148,16 +149,7 @@ const isFiniteNonNegative = (value: unknown) =>
 const isValidDate = (value: unknown) =>
   typeof value === 'string' && !Number.isNaN(new Date(value).getTime())
 
-const stableStringify = (value: unknown): string => {
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
-  if (isRecord(value)) {
-    // JSON is the backup and cloud transport. Optional object properties with an undefined value are
-    // removed by JSON.stringify, so the checksum must omit them too or the exported file will fail its
-    // own integrity check when it is read back.
-    return `{${Object.keys(value).filter((key) => value[key] !== undefined).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`
-  }
-  return JSON.stringify(value)
-}
+const stableStringify = stableJsonStringify
 
 export const fnv1a32 = (value: string) => {
   let hash = 0x811c9dc5

@@ -26,9 +26,18 @@ select jsonb_build_object(
   'format', 'forgepath-backup',
   'schemaVersion', 25,
   'appVersion', '0.58.0',
+  'exportedAt', '2026-08-14T00:00:00.000Z',
+  'integrity', jsonb_build_object('algorithm', 'fnv1a32', 'value', '52aa52aa'),
   'data', jsonb_build_object(
     'syntheticWeeks', 52,
     'syntheticSessions', 156,
+    'athlete', jsonb_build_object(
+      'placement', jsonb_build_object(
+        'ruleVersion', 'placement-v3',
+        'dimensions', jsonb_build_object('experience', 4, 'recentContinuity', 3, 'movementSkill', 4),
+        'selectedRoute', 'powerbuilding'
+      )
+    ),
     'sets', (
       select jsonb_agg(jsonb_build_object(
         'id', format('longitudinal-set-%s', value),
@@ -110,6 +119,46 @@ from (
   ) as result
 ) replayed;
 
+do $test$
+begin
+  begin
+    perform public.push_forgepath_snapshot(
+      '10000000-0000-4000-8000-000000000020',
+      '10000000-0000-4000-8000-000000000010',
+      0, 99, 25, '0.58.0', 'cloud-sync-v1', '52aa52aa', now(), 'America/Los_Angeles',
+      (select payload from forgepath_longitudinal_payload)
+    );
+    insert into forgepath_acceptance_results values (
+      'idempotent_replay_metadata_rejected', false, '{"reason":"mutated replay was accepted"}'
+    );
+  exception when sqlstate '22000' then
+    insert into forgepath_acceptance_results values (
+      'idempotent_replay_metadata_rejected', true, '{"sqlstate":"22000"}'
+    );
+  end;
+end
+$test$;
+
+do $test$
+begin
+  begin
+    perform public.push_forgepath_snapshot(
+      '10000000-0000-4000-8000-000000000022',
+      '10000000-0000-4000-8000-000000000010',
+      1, 3, 25, '0.58.0', 'cloud-sync-v1', '52bb52bb', now(), 'America/Los_Angeles',
+      (select payload from forgepath_longitudinal_payload)
+    );
+    insert into forgepath_acceptance_results values (
+      'snapshot_envelope_rejected', false, '{"reason":"mismatched envelope was accepted"}'
+    );
+  exception when invalid_parameter_value then
+    insert into forgepath_acceptance_results values (
+      'snapshot_envelope_rejected', true, '{"sqlstate":"22023"}'
+    );
+  end;
+end
+$test$;
+
 insert into forgepath_acceptance_results
 select 'snapshot_conflict_preserved',
   result ->> 'status' = 'conflict' and (result ->> 'server_version')::bigint = 1,
@@ -118,8 +167,8 @@ from (
   select public.push_forgepath_snapshot(
     '10000000-0000-4000-8000-000000000021',
     '10000000-0000-4000-8000-000000000010',
-    0, 2, 25, '0.58.0', 'cloud-sync-v1', '52bb52bb', now(), 'America/Los_Angeles',
-    '{"format":"transactional-acceptance","value":2}'::jsonb
+    0, 2, 25, '0.58.0', 'cloud-sync-v1', '52aa52aa', now(), 'America/Los_Angeles',
+    (select payload from forgepath_longitudinal_payload)
   ) as result
 ) conflicted;
 
@@ -128,6 +177,8 @@ select 'longitudinal_snapshot_payload',
   (payload #>> '{data,syntheticWeeks}')::integer = 52
     and (payload #>> '{data,syntheticSessions}')::integer = 156
     and jsonb_array_length(payload #> '{data,sets}') = 624
+    and payload #>> '{data,athlete,placement,ruleVersion}' = 'placement-v3'
+    and checksum = payload #>> '{integrity,value}'
     and octet_length(payload::text) > 30000,
   jsonb_build_object(
     'weeks', payload #> '{data,syntheticWeeks}',
@@ -167,8 +218,10 @@ select 'cross_athlete_isolation',
     'visible_devices', (select count(*) from public.forgepath_devices)
   );
 
-select check_name, passed, evidence
-from forgepath_acceptance_results
-order by check_name;
+select
+  count(*) as check_count,
+  bool_and(passed) as all_passed,
+  jsonb_object_agg(check_name, jsonb_build_object('passed', passed, 'evidence', evidence) order by check_name) as checks
+from forgepath_acceptance_results;
 
 rollback;

@@ -20,6 +20,7 @@ import { buildMissedOpportunityReplan } from '../domain/schedule-adaptation-engi
 import { projectMovementNoteMerge, upsertMovementNote } from '../domain/movement-note-engine'
 import { buildAddedMovement, buildAddedSet, sessionExtensionGate } from '../domain/session-extension-engine'
 import { buildDropSet, buildMyoReps, canPairForSuperset, structureAllowedForRole } from '../domain/set-structure-engine'
+import { sameJsonValue } from '../domain/stable-json'
 import type {
   AppSettings,
   AthleteProfile,
@@ -988,7 +989,7 @@ export const useAppStore = create<AppState>()(
           const exercises = state.exercises.map((exercise) => exercise.id === exerciseId ? projection.exercise : exercise)
           const affectedSetIds = state.history.filter((workSet) => workSet.exerciseId === exerciseId).map((workSet) => workSet.id)
           const priorExercise = state.exercises.find((exercise) => exercise.id === exerciseId)
-          const mappingChanged = JSON.stringify(priorExercise?.muscleMapping ?? null) !== JSON.stringify(projection.exercise.muscleMapping ?? null)
+          const mappingChanged = !sameJsonValue(priorExercise?.muscleMapping ?? null, projection.exercise.muscleMapping ?? null)
           const event: HistoryMutationEvent = {
             id: nanoid(), type: 'exercise-edited', createdAt: new Date().toISOString(), reason: reason.trim(),
             description: mappingChanged

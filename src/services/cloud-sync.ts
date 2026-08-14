@@ -7,6 +7,7 @@ export { cloudConfiguration, evaluateCloudConfiguration }
 export type { CloudConfiguration }
 
 export const CLOUD_RULE_VERSION = 'cloud-sync-v1'
+export const CLOUD_ACCOUNT_STORAGE_KEY = 'forgepath-cloud-account-v1'
 export const CLOUD_DEVICE_STORAGE_KEY = 'forgepath-cloud-device-v1'
 export const CLOUD_OUTBOX_STORAGE_KEY = 'forgepath-cloud-outbox-v1'
 export const CLOUD_VERSION_STORAGE_KEY = 'forgepath-cloud-server-version-v1'
@@ -89,6 +90,19 @@ function localServerVersion(storage: Storage) {
 }
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+export function prepareCloudStorageForAccount(userId: string, storage: Storage) {
+  if (!uuidPattern.test(userId)) throw new Error('The signed-in cloud account has an invalid identity.')
+  const priorAccount = storage.getItem(CLOUD_ACCOUNT_STORAGE_KEY)
+  if (priorAccount === userId) return false
+  storage.removeItem(CLOUD_DEVICE_STORAGE_KEY)
+  storage.removeItem(`${CLOUD_DEVICE_STORAGE_KEY}:sequence`)
+  storage.removeItem(CLOUD_VERSION_STORAGE_KEY)
+  storage.removeItem(CLOUD_LAST_SYNC_STORAGE_KEY)
+  storage.removeItem(CLOUD_OUTBOX_STORAGE_KEY)
+  storage.setItem(CLOUD_ACCOUNT_STORAGE_KEY, userId)
+  return true
+}
 
 const validIsoDate = (value: unknown) => typeof value === 'string' && !Number.isNaN(new Date(value).getTime())
 
@@ -193,6 +207,7 @@ async function sendPending(client: ForgePathCloudClient, session: Session, pendi
 export async function pushCloudSnapshot(state: RestorableAppState): Promise<CloudPushResult> {
   const storage = cloudAuthoritativeStorage()
   const { client, session } = await requireAuthenticatedClient()
+  prepareCloudStorageForAccount(session.user.id, storage)
   return pushCloudSnapshotUsing(state, client, session, storage)
 }
 
@@ -219,15 +234,18 @@ export async function pushCloudSnapshotUsing(state: RestorableAppState, client: 
   return sendPending(client, session, queueCloudSnapshot(currentBackup, storage), storage)
 }
 
-export async function fetchCloudSnapshot(): Promise<CloudSnapshot | null> {
-  const { client } = await requireAuthenticatedClient()
-  const { data, error } = await client
-    .from('forgepath_state_snapshots')
-    .select('payload,version,updated_at')
-    .maybeSingle()
-  if (error) throw error
-  if (!data) return null
+export function parseCloudSnapshotRow(data: {
+  payload: Json
+  version: unknown
+  updated_at: unknown
+  checksum: unknown
+  schema_version: unknown
+  app_version: unknown
+}): CloudSnapshot {
   const preview = parseBackup(JSON.stringify(data.payload))
+  if (String(data.checksum ?? '') !== preview.backup.integrity.value) throw new Error('The cloud copy checksum does not match its verified backup.')
+  if (Number(data.schema_version) !== preview.backup.schemaVersion) throw new Error('The cloud copy schema metadata does not match its verified backup.')
+  if (String(data.app_version ?? '') !== preview.backup.appVersion) throw new Error('The cloud copy app metadata does not match its verified backup.')
   const serverVersion = Number(data.version)
   if (!Number.isSafeInteger(serverVersion) || serverVersion < 1) throw new Error('The cloud copy has an invalid version.')
   const updatedAt = String(data.updated_at)
@@ -235,11 +253,29 @@ export async function fetchCloudSnapshot(): Promise<CloudSnapshot | null> {
   return { backup: preview.backup, serverVersion, updatedAt }
 }
 
+export async function fetchCloudSnapshot(): Promise<CloudSnapshot | null> {
+  const { client, session } = await requireAuthenticatedClient()
+  const storage = cloudAuthoritativeStorage()
+  prepareCloudStorageForAccount(session.user.id, storage)
+  const { data, error } = await client
+    .from('forgepath_state_snapshots')
+    .select('payload,version,updated_at,checksum,schema_version,app_version')
+    .maybeSingle()
+  if (error) throw error
+  if (!data) return null
+  return parseCloudSnapshotRow(data)
+}
+
 export function acceptCloudSnapshot(serverVersion: number, storage = requireBrowserStorage()) {
   if (!Number.isSafeInteger(serverVersion) || serverVersion < 1) throw new Error('The accepted cloud version is invalid.')
   storage.setItem(CLOUD_VERSION_STORAGE_KEY, String(serverVersion))
   storage.setItem(CLOUD_LAST_SYNC_STORAGE_KEY, new Date().toISOString())
   storage.removeItem(CLOUD_OUTBOX_STORAGE_KEY)
+}
+
+export function restoreVerifiedCloudSnapshot(snapshot: CloudSnapshot, restoreState: (state: RestorableAppState) => void, storage = requireBrowserStorage()) {
+  restoreState(snapshot.backup.data)
+  acceptCloudSnapshot(snapshot.serverVersion, storage)
 }
 
 export function localCloudMetadata(storage = typeof window === 'undefined' ? null : window.localStorage) {

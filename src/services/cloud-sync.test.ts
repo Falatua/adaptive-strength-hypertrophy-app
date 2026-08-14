@@ -4,19 +4,25 @@ import { createBackup, type RestorableAppState } from '../domain/backup'
 import { athlete, equipmentProfiles, exercises, history, mesocycles, records, sessions } from '../domain/seed'
 import {
   CLOUD_LAST_SYNC_STORAGE_KEY,
+  CLOUD_ACCOUNT_STORAGE_KEY,
+  CLOUD_DEVICE_STORAGE_KEY,
   CLOUD_OUTBOX_STORAGE_KEY,
   CLOUD_VERSION_STORAGE_KEY,
   acceptCloudSnapshot,
   evaluateCloudConfiguration,
   parseCloudPushResult,
+  parseCloudSnapshotRow,
+  prepareCloudStorageForAccount,
   pushCloudSnapshotUsing,
   queueCloudSnapshot,
   readPendingSnapshot,
   recordCloudPushResult,
+  restoreVerifiedCloudSnapshot,
   updateCloudPasswordUsing,
   validateNewPassword,
   type ForgePathCloudClient
 } from './cloud-sync'
+import type { Json } from './supabase.types'
 
 const projectUrl = 'https://abcdefghijklmnopqrst.supabase.co'
 const publishableKey = `sb_publishable_${'a'.repeat(32)}`
@@ -118,6 +124,35 @@ describe('password policy', () => {
 })
 
 describe('durable snapshot outbox', () => {
+  it('isolates device, sequence, version, and pending data when the browser changes accounts', () => {
+    const firstAccount = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const secondAccount = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+    const { storage, values } = storageHarness([
+      [CLOUD_ACCOUNT_STORAGE_KEY, firstAccount],
+      [CLOUD_DEVICE_STORAGE_KEY, '11111111-1111-4111-8111-111111111111'],
+      [`${CLOUD_DEVICE_STORAGE_KEY}:sequence`, '8'],
+      [CLOUD_VERSION_STORAGE_KEY, '12'],
+      [CLOUD_LAST_SYNC_STORAGE_KEY, '2026-08-13T12:00:00.000Z'],
+      [CLOUD_OUTBOX_STORAGE_KEY, 'pending-private-state']
+    ])
+
+    expect(prepareCloudStorageForAccount(firstAccount, storage)).toBe(false)
+    expect(values.get(CLOUD_VERSION_STORAGE_KEY)).toBe('12')
+    expect(prepareCloudStorageForAccount(secondAccount, storage)).toBe(true)
+    expect(values.get(CLOUD_ACCOUNT_STORAGE_KEY)).toBe(secondAccount)
+    expect(values.has(CLOUD_DEVICE_STORAGE_KEY)).toBe(false)
+    expect(values.has(`${CLOUD_DEVICE_STORAGE_KEY}:sequence`)).toBe(false)
+    expect(values.has(CLOUD_VERSION_STORAGE_KEY)).toBe(false)
+    expect(values.has(CLOUD_LAST_SYNC_STORAGE_KEY)).toBe(false)
+    expect(values.has(CLOUD_OUTBOX_STORAGE_KEY)).toBe(false)
+  })
+
+  it('rejects invalid account identities before changing cloud metadata', () => {
+    const { storage, values } = storageHarness([[CLOUD_VERSION_STORAGE_KEY, '7']])
+    expect(() => prepareCloudStorageForAccount('not-a-user-id', storage)).toThrow(/invalid identity/i)
+    expect(values.get(CLOUD_VERSION_STORAGE_KEY)).toBe('7')
+  })
+
   it('queues an integrity-protected snapshot with a monotonic device sequence and known base version', () => {
     const { storage, values } = storageHarness([
       ['forgepath-cloud-device-v1', '11111111-1111-4111-8111-111111111111'],
@@ -252,11 +287,64 @@ describe('untrusted RPC response validation', () => {
 })
 
 describe('reviewed cloud restore', () => {
+  const reorderJsonObjects = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(reorderJsonObjects)
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value as Record<string, unknown>).reverse().map(([key, item]) => [key, reorderJsonObjects(item)]))
+    }
+    return value
+  }
+
+  it('accepts a PostgreSQL-style reordered backup only when row metadata matches the verified envelope', () => {
+    const backup = createBackup(state(), '2026-08-13T12:00:00.000Z')
+    const row = {
+      payload: reorderJsonObjects(backup) as Json,
+      version: 9,
+      updated_at: '2026-08-13T12:05:00.000Z',
+      checksum: backup.integrity.value,
+      schema_version: backup.schemaVersion,
+      app_version: backup.appVersion
+    }
+    expect(parseCloudSnapshotRow(row)).toMatchObject({ serverVersion: 9, updatedAt: row.updated_at })
+    expect(parseCloudSnapshotRow(row).backup.integrity.value).toBe(backup.integrity.value)
+  })
+
+  it('rejects snapshot projection metadata that disagrees with the verified backup', () => {
+    const backup = createBackup(state(), '2026-08-13T12:00:00.000Z')
+    const row = {
+      payload: backup as unknown as Json,
+      version: 9,
+      updated_at: '2026-08-13T12:05:00.000Z',
+      checksum: backup.integrity.value,
+      schema_version: backup.schemaVersion,
+      app_version: backup.appVersion
+    }
+    expect(() => parseCloudSnapshotRow({ ...row, checksum: '00000000' })).toThrow(/checksum/i)
+    expect(() => parseCloudSnapshotRow({ ...row, schema_version: backup.schemaVersion - 1 })).toThrow(/schema metadata/i)
+    expect(() => parseCloudSnapshotRow({ ...row, app_version: '0.0.0' })).toThrow(/app metadata/i)
+  })
+
   it('accepts a reviewed cloud version and clears the stale local outbox', () => {
     const { storage, values } = storageHarness([[CLOUD_OUTBOX_STORAGE_KEY, 'pending']])
     acceptCloudSnapshot(7, storage)
     expect(values.get(CLOUD_VERSION_STORAGE_KEY)).toBe('7')
     expect(values.has(CLOUD_OUTBOX_STORAGE_KEY)).toBe(false)
+  })
+
+  it('records a cloud version only after the verified state restore succeeds', () => {
+    const backup = createBackup(state(), '2026-08-13T12:00:00.000Z')
+    const snapshot = { backup, serverVersion: 7, updatedAt: '2026-08-13T12:05:00.000Z' }
+    const failed = storageHarness([[CLOUD_OUTBOX_STORAGE_KEY, 'pending']])
+    expect(() => restoreVerifiedCloudSnapshot(snapshot, () => { throw new Error('restore failed') }, failed.storage)).toThrow(/restore failed/i)
+    expect(failed.values.has(CLOUD_VERSION_STORAGE_KEY)).toBe(false)
+    expect(failed.values.get(CLOUD_OUTBOX_STORAGE_KEY)).toBe('pending')
+
+    const restored = storageHarness([[CLOUD_OUTBOX_STORAGE_KEY, 'pending']])
+    const restoreState = vi.fn()
+    restoreVerifiedCloudSnapshot(snapshot, restoreState, restored.storage)
+    expect(restoreState).toHaveBeenCalledWith(backup.data)
+    expect(restored.values.get(CLOUD_VERSION_STORAGE_KEY)).toBe('7')
+    expect(restored.values.has(CLOUD_OUTBOX_STORAGE_KEY)).toBe(false)
   })
 
   it('rejects an impossible cloud version without changing local state', () => {

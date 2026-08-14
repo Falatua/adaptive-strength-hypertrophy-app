@@ -36,6 +36,9 @@ export type ForgePathDatabase = {
           payload: Json
           version: number
           updated_at: string
+          checksum: string
+          schema_version: number
+          app_version: string
         }
         Insert: never
         Update: never
