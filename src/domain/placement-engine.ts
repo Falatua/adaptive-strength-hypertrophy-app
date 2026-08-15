@@ -30,6 +30,21 @@ export const placementRouteLabels: Record<PlacementRoute, string> = {
   'pain-aware-modified': 'Working Around Pain'
 }
 
+// Route copy was renamed on 2026-08-12 without a rule-version bump, so placement evidence saved
+// before that rename replays against this earlier vocabulary instead of the current labels.
+export const legacyPlacementRouteLabels: Record<PlacementRoute, string> = {
+  'introductory-skill': 'Introductory Skill Cycle',
+  reacclimation: 'Reacclimation and Productive Work',
+  'bridge-calibration': 'Bridge and Calibration Cycle',
+  'base-building': 'Base-Building Cycle',
+  hypertrophy: 'Direct Hypertrophy Development',
+  powerbuilding: 'Direct Powerbuilding Development',
+  strength: 'Direct Strength Development',
+  power: 'Direct Power Development',
+  'event-specific': 'Event-Specific Development',
+  'pain-aware-modified': 'Pain-Aware Modified Entry'
+}
+
 const clampDimension = (value: number | null, fallback = 3) => Math.max(1, Math.min(5, value ?? fallback))
 
 const continuityScore = (continuity: PlacementInputs['continuity']) => continuity === 'stable' ? 5 : continuity === 'interrupted' ? 3 : continuity === 'returning' ? 1 : 3
@@ -123,7 +138,7 @@ function movementRouteFor(input: MovementPlacementInput, planRoute: PlacementRou
   return planRoute
 }
 
-function movementPlacementFor(input: MovementPlacementInput, planRoute: PlacementRoute, placementInputs: PlacementInputs, ruleVersion: MovementPlacementAssessment['ruleVersion']): MovementPlacementAssessment {
+function movementPlacementFor(input: MovementPlacementInput, planRoute: PlacementRoute, placementInputs: PlacementInputs, ruleVersion: MovementPlacementAssessment['ruleVersion'], routeLabels: Record<PlacementRoute, string>): MovementPlacementAssessment {
   const uncertainInputs = [
     ...(input.movementSkill === null ? ['movement skill'] : []),
     ...(input.strengthTolerance === null ? ['current intensity tolerance'] : []),
@@ -135,7 +150,7 @@ function movementPlacementFor(input: MovementPlacementInput, planRoute: Placemen
   else if (recommendedRoute === 'bridge-calibration') reasons.push(`${input.exerciseName} needs exact-movement calibration before it shares the cycle's more specific loading.`)
   else if (recommendedRoute === 'reacclimation') reasons.push(`${input.exerciseName} preserves past skill while recent tolerance is re-established.`)
   else if (recommendedRoute === 'pain-aware-modified') reasons.push(`${input.exerciseName} remains behind the current restriction review gate.`)
-  else reasons.push(`${input.exerciseName} has enough current skill, tolerance, and evidence to use the cycle's ${placementRouteLabels[planRoute]}.`)
+  else reasons.push(`${input.exerciseName} has enough current skill, tolerance, and evidence to use the cycle's ${routeLabels[planRoute]}.`)
   if (ruleVersion === movementPlacementRuleVersion && input.historyReview?.acceptedFields.length) reasons.push(`Athlete-reviewed exact history informed ${input.historyReview.acceptedFields.map((field) => field === 'dataConfidence' ? 'evidence confidence' : 'heavy-work tolerance').join(' and ')} without inferring movement skill or pain.`)
   reasons.push(`${input.family} is the movement-family context, while ${input.exerciseName} keeps its own history and starting route.`)
   return {
@@ -155,7 +170,7 @@ function movementPlacementFor(input: MovementPlacementInput, planRoute: Placemen
   }
 }
 
-function buildPlacementAssessmentVersion(inputs: PlacementInputs, createdAt: string, ruleVersion: AthletePlacementAssessment['ruleVersion']): AthletePlacementAssessment {
+function buildPlacementAssessmentVersion(inputs: PlacementInputs, createdAt: string, ruleVersion: AthletePlacementAssessment['ruleVersion'], routeLabels: Record<PlacementRoute, string> = placementRouteLabels): AthletePlacementAssessment {
   const dimensions = {
     experience: experienceScore(inputs.trainingAge),
     recentContinuity: continuityScore(inputs.continuity),
@@ -176,7 +191,7 @@ function buildPlacementAssessmentVersion(inputs: PlacementInputs, createdAt: str
     : []
   const uncertainInputs = [...new Set([...uncertaintyFor(inputs), ...movementUncertainty])]
   const movementPlacements = hasMovementPlacement
-    ? (inputs.movementProfiles ?? []).map((input) => movementPlacementFor(input, recommendedRoute, inputs, ruleVersion === placementRuleVersion ? movementPlacementRuleVersion : previousMovementPlacementRuleVersion))
+    ? (inputs.movementProfiles ?? []).map((input) => movementPlacementFor(input, recommendedRoute, inputs, ruleVersion === placementRuleVersion ? movementPlacementRuleVersion : previousMovementPlacementRuleVersion, routeLabels))
     : undefined
   return {
     ruleVersion,
@@ -324,7 +339,10 @@ export function placementAssessmentError(value: unknown): string | null {
     const expectedMovementRule = assessment.ruleVersion === placementRuleVersion ? movementPlacementRuleVersion : previousMovementPlacementRuleVersion
     if (assessment.movementPlacements.some((movement) => movement.ruleVersion !== expectedMovementRule)) return 'Per-movement placement evidence uses the wrong rule version.'
   } else if (assessment.movementPlacements !== undefined || inputs.movementProfiles !== undefined) return 'Legacy placement cannot invent per-movement evidence.'
-  const replay = applyPlacementDecision(buildPlacementAssessmentVersion(inputs as PlacementInputs, assessment.createdAt, assessment.ruleVersion), assessment.decision as PlacementDecision)
-  if (!sameJsonValue(assessment.dimensions, replay.dimensions) || assessment.recommendedRoute !== replay.recommendedRoute || assessment.selectedRoute !== replay.selectedRoute || assessment.confidence !== replay.confidence || !sameJsonValue(assessment.reasons, replay.reasons) || !sameJsonValue(assessment.uncertainInputs, replay.uncertainInputs) || !sameJsonValue(assessment.verificationPlan, replay.verificationPlan) || assessment.whyNotLower !== replay.whyNotLower || assessment.whyNotHigher !== replay.whyNotHigher || !sameJsonValue(assessment.exitCriteria, replay.exitCriteria) || !sameJsonValue(assessment.movementPlacements, replay.movementPlacements)) return `Placement assessment does not reconcile with ${assessment.ruleVersion} input evidence.`
+  const reconcilesWith = (routeLabels: Record<PlacementRoute, string>) => {
+    const replay = applyPlacementDecision(buildPlacementAssessmentVersion(inputs as PlacementInputs, assessment.createdAt as string, assessment.ruleVersion as AthletePlacementAssessment['ruleVersion'], routeLabels), assessment.decision as PlacementDecision)
+    return sameJsonValue(assessment.dimensions, replay.dimensions) && assessment.recommendedRoute === replay.recommendedRoute && assessment.selectedRoute === replay.selectedRoute && assessment.confidence === replay.confidence && sameJsonValue(assessment.reasons, replay.reasons) && sameJsonValue(assessment.uncertainInputs, replay.uncertainInputs) && sameJsonValue(assessment.verificationPlan, replay.verificationPlan) && assessment.whyNotLower === replay.whyNotLower && assessment.whyNotHigher === replay.whyNotHigher && sameJsonValue(assessment.exitCriteria, replay.exitCriteria) && sameJsonValue(assessment.movementPlacements, replay.movementPlacements)
+  }
+  if (!reconcilesWith(placementRouteLabels) && !reconcilesWith(legacyPlacementRouteLabels)) return `Placement assessment does not reconcile with ${assessment.ruleVersion} input evidence.`
   return null
 }

@@ -23,21 +23,8 @@ import { summarizeSurveyEvidence } from './survey-engine'
 import { exerciseMuscleMappingError } from './muscle-dose'
 import { equipmentGenerationEvidenceError, equipmentProfileError } from './equipment-engine'
 import { equipmentProfiles as seedEquipmentProfiles } from './seed'
-import { legacyPlacementForAthlete, movementPlacementEvidenceError, placementAssessmentError, placementRouteLabels } from './placement-engine'
+import { legacyPlacementForAthlete, legacyPlacementRouteLabels, movementPlacementEvidenceError, placementAssessmentError, placementRouteLabels } from './placement-engine'
 import { stableJsonStringify } from './stable-json'
-
-const legacyPlacementRouteLabels = {
-  'introductory-skill': 'Introductory Skill Cycle',
-  reacclimation: 'Reacclimation and Productive Work',
-  'bridge-calibration': 'Bridge and Calibration Cycle',
-  'base-building': 'Base-Building Cycle',
-  hypertrophy: 'Direct Hypertrophy Development',
-  powerbuilding: 'Direct Powerbuilding Development',
-  strength: 'Direct Strength Development',
-  power: 'Direct Power Development',
-  'event-specific': 'Event-Specific Development',
-  'pain-aware-modified': 'Pain-Aware Modified Entry'
-} as const
 import { placementVerificationError } from './placement-verification-engine'
 import { movementPlacementExitReviewError, placementExitReviewError } from './placement-exit-engine'
 import { routeSessionGenerationError } from './route-session-engine'

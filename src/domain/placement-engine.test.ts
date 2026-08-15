@@ -120,6 +120,20 @@ describe('placement-v3 with placement-v1 and placement-v2 compatibility', () => 
     expect(placementAssessmentError(prior)).toBeNull()
   })
 
+  it('accepts placement-v3 evidence saved before the route copy was renamed', () => {
+    const result = applyPlacementDecision(buildPlacementAssessment(inputs({
+      goal: 'powerbuilding',
+      movementProfiles: [{ exerciseId: 'competition-bench', exerciseName: 'Competition Bench Press', family: 'Bench Press', movementSkill: 5, strengthTolerance: 5, dataConfidence: 5 }]
+    })), 'confirmed')
+    expect(result.movementPlacements?.[0].reasons[0]).toContain('Strength and Size')
+    const saved = structuredClone(result)
+    saved.movementPlacements![0].reasons[0] = saved.movementPlacements![0].reasons[0].replace('Strength and Size', 'Direct Powerbuilding Development')
+    expect(placementAssessmentError(saved)).toBeNull()
+    const forged = structuredClone(saved)
+    forged.movementPlacements![0].reasons[0] = 'Competition Bench Press is cleared for anything.'
+    expect(placementAssessmentError(forged)).toMatch(/does not reconcile/i)
+  })
+
   it('preserves explicitly accepted exact-history suggestions without inferring skill', () => {
     const history = [1, 2, 3, 4].map((index): CompletedSetRecord => ({
       id: `set-${index}`, sessionId: `session-${Math.ceil(index / 2)}`, exerciseId: 'competition-bench', exerciseName: 'Competition Bench Press',
