@@ -18,7 +18,7 @@ vi.mock('../services/cloud-sync', async (importOriginal) => ({
 }))
 
 import { passwordModeFor } from '../services/cloud-auth-policy'
-import { CloudAuth } from './CloudAppRoot'
+import { CloudAuth, CloudLoading } from './CloudAppRoot'
 
 const user = (passwordReady: boolean) => ({
   id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -81,5 +81,33 @@ describe('cloud account gate', () => {
     render(<CloudAuth passwordMode="recovery" onPasswordComplete={vi.fn()} />)
     expect(screen.getByRole('heading', { name: 'Choose a new password' })).toBeInTheDocument()
     expect(screen.getByText(/recovery link is verified/i)).toBeInTheDocument()
+  })
+})
+
+describe('cloud load failure recovery', () => {
+  afterEach(cleanup)
+
+  it('offers a stale-build repair and a way out instead of retry alone', () => {
+    const retry = vi.fn()
+    const refresh = vi.fn()
+    const signOut = vi.fn()
+    render(<CloudLoading error="Athlete placement is invalid." retry={retry} refresh={refresh} signOut={signOut} />)
+
+    expect(screen.getByRole('heading', { name: 'Cloud data did not load' })).toBeInTheDocument()
+    expect(screen.getByText(/older copy of ForgePath/i)).toBeInTheDocument()
+    expect(screen.getByText(/saved training is not touched/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Update ForgePath' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    expect(retry).toHaveBeenCalledTimes(1)
+    expect(refresh).toHaveBeenCalledTimes(1)
+    expect(signOut).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the plain loading state free of recovery controls', () => {
+    render(<CloudLoading />)
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.getByRole('heading', { name: /Opening your private training journal/i })).toBeInTheDocument()
   })
 })

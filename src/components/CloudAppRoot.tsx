@@ -23,6 +23,7 @@ import {
   updateCloudPassword,
   validateNewPassword
 } from '../services/cloud-sync'
+import { checkForAppUpdate, reloadWithFreshAppShell } from '../services/app-shell'
 import { CloudRuntimeContext, type CloudRuntimeValue, type SaveState } from './cloud-runtime-context'
 
 function messageFrom(cause: unknown, fallback: string) {
@@ -118,8 +119,8 @@ function AuthError({ message }: { message: string }) {
   return <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Account action stopped</strong>{message}</span></div>
 }
 
-function CloudLoading({ error, retry }: { error?: string | null; retry?: () => void }) {
-  return <main className="cloud-auth"><section className="cloud-auth__card cloud-auth__loading">{error ? <><AlertTriangle size={28} /><h1>Cloud data did not load</h1><p>{error}</p>{retry && <button className="button button--primary" onClick={retry}>Try again</button>}</> : <><LoaderCircle className="spin" size={28} /><h1>Loading your private training data</h1><p>ForgePath is verifying the latest Supabase copy before opening the app.</p></>}</section></main>
+export function CloudLoading({ error, retry, refresh, signOut }: { error?: string | null; retry?: () => void; refresh?: () => void; signOut?: () => void }) {
+  return <main className="cloud-auth"><section className="cloud-auth__card cloud-auth__loading">{error ? <><AlertTriangle size={28} /><h1>Cloud data did not load</h1><p>{error}</p>{retry && <button className="button button--primary" onClick={retry}>Try again</button>}{refresh && <p className="cloud-auth__hint">If trying again keeps failing, this device is probably still running an older copy of ForgePath. Updating reinstalls the newest app files. Your saved training is not touched.</p>}<div className="cloud-auth__links">{refresh && <button type="button" onClick={refresh}>Update ForgePath</button>}{signOut && <button type="button" onClick={signOut}>Sign out</button>}</div></> : <><LoaderCircle className="spin" size={28} /><h1>Opening your private training journal</h1><p>ForgePath is verifying the newest saved copy before opening the app.</p></>}</section></main>
 }
 
 export function CloudAppRoot() {
@@ -165,6 +166,8 @@ export function CloudAppRoot() {
     setReady(false)
     setSaveState('loading')
     setError(null)
+    // A stale cached build is the one failure retrying cannot clear, so look for a newer one first.
+    void checkForAppUpdate().catch(() => undefined)
     try {
       await waitForStoreHydration()
       const snapshot = await fetchCloudSnapshot()
@@ -295,6 +298,11 @@ export function CloudAppRoot() {
     setSession((current) => current ? { ...current, user } : current)
     setRecovery(false)
   }} />
-  if (!ready) return <CloudLoading error={error} retry={() => setRetryToken((value) => value + 1)} />
+  if (!ready) return <CloudLoading
+    error={error}
+    retry={() => setRetryToken((value) => value + 1)}
+    refresh={() => { void reloadWithFreshAppShell() }}
+    signOut={() => { void signOutCloud().catch(() => undefined).then(() => setSession(null)) }}
+  />
   return <CloudRuntimeContext.Provider value={runtime as CloudRuntimeValue}><App /></CloudRuntimeContext.Provider>
 }
