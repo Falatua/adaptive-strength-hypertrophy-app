@@ -17,11 +17,11 @@ export function TrainingFieldGuide({ route, nextWin, evidence, onOpen }: Trainin
       <dl className="training-field-guide__list">
         <div><dt>Path</dt><dd>{route}</dd></div>
         <div><dt>Next win</dt><dd>{nextWin}</dd></div>
-        <div><dt>Evidence</dt><dd>{evidence}</dd></div>
+        <div><dt>Based on</dt><dd>{evidence}</dd></div>
       </dl>
       <button className="training-field-guide__action" onClick={onOpen}>
         <span className="training-field-guide__selector" aria-hidden="true" />
-        Open route notes
+        Why this session?
         <ChevronRight size={16} aria-hidden="true" />
       </button>
     </section>

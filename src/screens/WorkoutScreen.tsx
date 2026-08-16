@@ -369,7 +369,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                       <span className="sr-only">{exercise.name} workout note</span>
                       <textarea aria-label={`${exercise.name} workout note`} maxLength={MOVEMENT_NOTE_MAX_LENGTH} value={currentMovementNote?.body ?? ''} onChange={(event) => updateMovementNote(session.id, planned.id, event.target.value)} placeholder="Angle, tempo, setup, cue, joint feel, or what changed today..." />
                     </label>
-                    <div className="movement-note-editor__meta"><small>Autosaved as you type. Notes provide context and never change progression by themselves.</small><small>{currentMovementNote?.body.length ?? 0}/{MOVEMENT_NOTE_MAX_LENGTH}</small></div>
+                    <div className="movement-note-editor__meta"><small>Autosaved as you type. Notes are for context. They never change your targets on their own.</small><small>{currentMovementNote?.body.length ?? 0}/{MOVEMENT_NOTE_MAX_LENGTH}</small></div>
                   </div>
                 </details>
                 {(() => {
@@ -435,7 +435,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                     <Trophy size={17} />
                     <span>{opportunities.length
                       ? <><strong>{opportunities[0].eligible ? opportunities[0].title : 'Record prompt paused'}:</strong> {opportunities[0].eligible ? opportunities[0].explanation : opportunities[0].gateReason} <small>{opportunities[0].eligible ? 'This is already prescribed. Do not add work to chase it.' : 'Training continues without a gamification target.'}</small></>
-                      : <><strong>Productive hold:</strong> Today's prescribed target does not cross an all-time exact-movement record. A useful session does not need a PR.</>}
+                      : <><strong>Productive hold:</strong> Today's target does not cross an all-time record on this exact lift. A useful session does not need a PR.</>}
                     </span>
                   </div>
                 )}
@@ -452,7 +452,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
             <Plus size={19} />
             <span>
               <strong>Feeling good today?</strong>
-              <small>Add sets to any movement above, or add another movement. Extra work is recorded as yours, separately from what was prescribed, so today's plan stays an honest record of what the engine asked for.</small>
+              <small>Add sets to any movement above, or add another movement. Extra work is recorded as yours, kept separate from what was prescribed, so today's plan stays an honest record of what the engine asked for.</small>
             </span>
           </div>
           {extensionGate.caution && <p className="extra-work__caution"><AlertTriangle size={16} /> {extensionGate.caution}</p>}
@@ -467,7 +467,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
       </main>
 
       <footer className="workout-footer">
-        <div><TimerReset size={18} /><span><strong>{completedSets} of {totalSets} sets complete.</strong><small>Only completed work enters volume and progression.</small></span></div>
+        <div><TimerReset size={18} /><span><strong>{completedSets} of {totalSets} sets complete.</strong><small>Only work you actually complete counts toward your volume and next targets.</small></span></div>
         <div className="workout-footer__actions">
           {completedSets < totalSets && <button className="button button--primary workout-footer__next" onClick={focusNextSet}>Continue to {nextIncompleteExercise?.name ?? 'next set'} <span>{totalSets - completedSets} left</span></button>}
           <button className={`button ${completedSets === totalSets && totalSets > 0 ? 'button--primary' : 'button--secondary'} workout-footer__finish`} onClick={openFinishFlow}>{completedSets === totalSets && totalSets > 0 ? 'Finish workout' : 'Finish workout early'} <CheckCircle2 size={18} /></button>
@@ -495,7 +495,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         </div>
       </Modal>
 
-      <Modal open={addMovementOpen} onClose={() => { setAddMovementOpen(false); setAddSearch('') }} title="Add a movement to today" description="Extra work you choose because you feel good. It is added as optional accessory work, never as the session's primary movement, so it cannot become the evidence a route decision rests on." wide>
+      <Modal open={addMovementOpen} onClose={() => { setAddMovementOpen(false); setAddSearch('') }} title="Add a movement to today" description="Extra work you choose because you feel good. It is added as optional accessory work, never as the session's primary movement, so it cannot be what a plan decision rests on." wide>
         <label className="add-movement-search">
           <span className="field-label">Search every movement available at {activeEquipmentProfile.name}</span>
           <input className="swap-library-search" type="search" value={addSearch} onChange={(event) => setAddSearch(event.target.value)} placeholder="Name, muscle, pattern, or equipment" aria-label="Search movements to add" />
@@ -524,7 +524,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
           <label><span className="field-label">Why are you changing this movement? <small>Optional</small></span><select aria-label="Substitution reason" value={swapReason} onChange={(event) => { setSwapReason(event.target.value as SubstitutionReason); setSwapError(null) }}>
             <option value="none">No reason</option><option value="pain">Pain or joint irritation</option><option value="equipment">Equipment unavailable</option><option value="time">Short on time</option><option value="fatigue">Fatigue is high</option><option value="target-feel">Not feeling the target</option><option value="variety">Want variety</option><option value="preference">Prefer something else</option><option value="harder">Need a harder option</option><option value="easier">Need an easier option</option><option value="other">Other</option>
           </select></label>
-          {swapTarget?.role === 'primary' && <label className="primary-override"><input type="checkbox" checked={primaryOverrideConfirmed} onChange={(event) => { setPrimaryOverrideConfirmed(event.target.checked); setSwapError(null) }} /><span><strong>Confirm main-lift change</strong><small>The replacement may preserve purpose, but it owns a separate progression clock and changes movement specificity.</small></span></label>}
+          {swapTarget?.role === 'primary' && <label className="primary-override"><input type="checkbox" checked={primaryOverrideConfirmed} onChange={(event) => { setPrimaryOverrideConfirmed(event.target.checked); setSwapError(null) }} /><span><strong>Confirm main-lift change</strong><small>The replacement may serve the same purpose, but it builds its own history and changes movement specificity.</small></span></label>}
         </div>
         {swapError && <p className="form-error" role="alert">{swapError}</p>}
         <div className="swap-library-nav">
@@ -548,17 +548,17 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         <p className="modal-note">Candidates satisfy every equipment item in {activeEquipmentProfile.name}. The selected movement receives a prescription from its own exact history or a conservative calibration, using the profile's executable load increment. The original exact-movement progression clock remains frozen.</p>
       </Modal>
 
-      <Modal open={Boolean(decisionInfo)} onClose={() => setDecisionInfo(null)} title={decisionInfo ? `${decisionInfo.name} progression decision` : 'Progression decision'} description="The recommendation follows fixed rules and uses this exact movement's completed history.">
+      <Modal open={Boolean(decisionInfo)} onClose={() => setDecisionInfo(null)} title={decisionInfo ? `${decisionInfo.name} target for this lift` : 'Progression decision'} description="The recommendation follows fixed rules and uses this exact movement's completed history.">
         {decisionInfo && <div className="decision-info">
           <div><small>Decision</small><strong>{decisionInfo.title}</strong></div>
           <div><small>What changes today</small><strong>{progressionActionLabels[decisionInfo.action]}</strong></div>
           <div><small>Past evidence</small><strong>{evidenceStrengthLabels[decisionInfo.confidence]}</strong></div>
-          <div><small>Latest prescribed evidence</small><strong>{decisionInfo.sourceSets} set{decisionInfo.sourceSets === 1 ? '' : 's'}</strong></div>
+          <div><small>What this is based on</small><strong>{decisionInfo.sourceSets} set{decisionInfo.sourceSets === 1 ? '' : 's'}</strong></div>
           <p>{decisionInfo.explanation}</p>
           <ul>{decisionInfo.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
           {decisionInfo.unknownInputs.length > 0 && <p><strong>Still unknown:</strong> {decisionInfo.unknownInputs.join(', ')}.</p>}
           {decisionInfo.athleteAddedExcluded > 0 && <p>{decisionInfo.athleteAddedExcluded} athlete-added set{decisionInfo.athleteAddedExcluded === 1 ? '' : 's'} counted as completed dose but did not automatically raise this target.</p>}
-          <p className="modal-note">This explains the current prescription. It does not add work, borrow another movement's history, or override pain and readiness gates.</p>
+          <p className="modal-note">This explains today's target. It does not add work, borrow another movement's history, or override pain and readiness gates.</p>
         </div>}
       </Modal>
 

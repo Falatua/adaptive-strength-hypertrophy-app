@@ -19,6 +19,7 @@ import {
   Target
 } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
+import { checkInAgeLabels, scheduleChangeLabels, scheduleReadinessOutcomeLabels } from '../domain/readable-labels'
 import { Modal } from '../components/Modal'
 import { buildMesocyclePreview, draftFromPlan } from '../domain/mesocycle-engine'
 import { buildCycleReview } from '../domain/cycle-review-engine'
@@ -182,7 +183,7 @@ export function PlanScreen() {
           <MoveRight />
           <div className="cycle-node cycle-node--active"><CircleDashed size={18} /><span>Build<small>Active now</small></span></div>
           <MoveRight />
-          <div className="cycle-node"><Layers3 size={18} /><span>Review<small>Criteria based</small></span></div>
+          <div className="cycle-node"><Layers3 size={18} /><span>Review<small>When you hit your targets</small></span></div>
           <MoveRight />
           <div className="cycle-node"><Flag size={18} /><span>Next<small>Continue or pivot</small></span></div>
         </div>
@@ -240,11 +241,11 @@ export function PlanScreen() {
           </section>
           {latestScheduleChange && <section className="panel schedule-change-card" aria-label="Latest missed opportunity decision">
             <div className="panel__header"><div><p className="eyebrow">Rebuild {activeScheduleChanges.length}</p><h3>Latest queue rebuild</h3></div><RefreshCcw size={19} /></div>
-            <div className="schedule-change-card__headline"><strong>{latestScheduleChange.mode.replaceAll('-', ' ')}</strong><small>{latestScheduleChange.input.reason.replaceAll('-', ' ')} · {latestScheduleChange.input.constraintState} · next {new Date(latestScheduleChange.input.nextOpportunityAt).toLocaleDateString()}</small></div>
+            <div className="schedule-change-card__headline"><strong>{scheduleChangeLabels[latestScheduleChange.mode]}</strong><small>{latestScheduleChange.input.reason.replaceAll('-', ' ')} · {latestScheduleChange.input.constraintState} · next {new Date(latestScheduleChange.input.nextOpportunityAt).toLocaleDateString()}</small></div>
             <div className="clock-comparison"><div><span>Completed sets</span><strong>{latestScheduleChange.completedSetCountBefore} → {latestScheduleChange.completedSetCountAfter}</strong><small>Unchanged source truth</small></div><div><span>Open planned sets</span><strong>{latestScheduleChange.openSetCountBefore} → {latestScheduleChange.openSetCountAfter}</strong><small>No catch-up debt</small></div></div>
             <p className="callout-copy">{latestScheduleChange.reasons[0]}</p>
             {latestScheduleChange.eligibility && <p className="schedule-change-card__eligibility"><strong>{latestScheduleChange.eligibility.equipmentProfileName}</strong><span>{latestScheduleChange.eligibility.removedExerciseNames.length ? `${latestScheduleChange.eligibility.removedExerciseNames.join(', ')} removed from the first session because they were unavailable or joint-flagged.` : 'The first rebuilt session was fully executable at the recorded location.'}</span></p>}
-            {latestScheduleChange.readiness && <p className="schedule-change-card__eligibility"><strong>{latestScheduleChange.readiness.effectiveOutcome.replaceAll('-', ' ')} readiness · {latestScheduleChange.readiness.freshness}</strong><span>{latestScheduleChange.readiness.reason}</span></p>}
+            {latestScheduleChange.readiness && <p className="schedule-change-card__eligibility"><strong>{scheduleReadinessOutcomeLabels[latestScheduleChange.readiness.effectiveOutcome]} · {checkInAgeLabels[latestScheduleChange.readiness.freshness]}</strong><span>{latestScheduleChange.readiness.reason}</span></p>}
             {latestScheduleChange.priorityDose && <p className="schedule-change-card__eligibility"><strong>28-day priority dose · {latestScheduleChange.priorityDose.appliedAsTieBreak ? 'applied' : 'reviewed'}</strong><span>{latestScheduleChange.priorityDose.reason}</span></p>}
             <details className="schedule-change-card__details"><summary>{latestScheduleChange.changes.length} moved session{latestScheduleChange.changes.length === 1 ? '' : 's'} · full replay</summary>{latestScheduleChange.changes.map((change) => <p key={change.sessionId}><strong>{sessions.find((session) => session.id === change.sessionId)?.title ?? change.sessionId}</strong><span>{new Date(change.fromPlannedAt).toLocaleDateString()} → {new Date(change.toPlannedAt).toLocaleDateString()} · {change.fromSetCount} → {change.toSetCount} planned sets</span></p>)}</details>
           </section>}
@@ -258,7 +259,7 @@ export function PlanScreen() {
             <div className="panel__header"><div><p className="eyebrow">Protected qualities</p><h3>Current contract</h3></div><Target size={19} /></div>
             <ul className="priority-list">
               <li><span>Main lifts</span><strong>{activeAnchors.join(', ') || 'Choose your main lifts'}</strong></li>
-              <li><span>Entry route</span><strong>{activePlan?.entryRoute ? `${readable(activePlan.entryRoute)} · ${activePlan.generationRuleVersion}` : 'Manual adaptation rules'}</strong></li>
+              <li><span>Starting plan</span><strong>{activePlan?.entryRoute ? `${readable(activePlan.entryRoute)} · ${activePlan.generationRuleVersion}` : 'Manual adaptation rules'}</strong></li>
               <li><span>Main-lift starting plans</span><strong>{activePlan?.movementPlacements?.length ? `${activePlan.movementPlacements.length} main lifts can start differently${activePlan.movementPlacements.some((movement) => movement.historyReview) ? ` · ${activePlan.movementPlacements.filter((movement) => movement.historyReview).length} used logged history` : ''}` : 'The same starting plan applies to every main lift'}</strong></li>
               <li><span>Overall starting-plan review</span><strong>{readable(placementExit.recommendation)} · {placementExit.resolved} completed checks</strong></li>
               <li><span>Main lifts ready for review</span><strong>{movementExits.filter((assessment) => assessment.recommendation !== 'collect-evidence').length} ready · {movementExits.reduce((total, assessment) => total + assessment.resolved, 0)} completed lift checks</strong></li>
@@ -287,11 +288,11 @@ export function PlanScreen() {
               <div><small>Calendar days</small><strong>{cycleReview.evidence.calendarDays}</strong></div>
             </div>
           </section>
-          <fieldset className="review-choice-list"><legend>Choose this round's outcome</legend>{reviewChoices.map((choice) => {
+          <fieldset className="review-choice-list"><legend>How did this round go?</legend>{reviewChoices.map((choice) => {
             const enabled = cycleReview.eligible[choice.id]
             return <button type="button" key={choice.id} aria-pressed={reviewDecision === choice.id} className={reviewDecision === choice.id ? 'selected' : ''} disabled={!enabled} onClick={() => setReviewDecision(choice.id)}><span>{reviewDecision === choice.id ? <Check size={16} /> : <CircleDashed size={16} />}</span><span><strong>{choice.title}</strong><small>{choice.detail}</small>{!enabled && <em>Not available from what you have completed so far.</em>}</span></button>
           })}</fieldset>
-          <button className="pivot-choice" onClick={openPivot}><RefreshCcw size={18} /><span><strong>Pivot or change the training contract</strong><small>Open a new cycle version with different objectives, main lifts, dose, or adaptation.</small></span><ChevronRight size={17} /></button>
+          <button className="pivot-choice" onClick={openPivot}><RefreshCcw size={18} /><span><strong>Pivot or change the training contract</strong><small>Start a new version of this plan with different goals, main lifts, or amount of work.</small></span><ChevronRight size={17} /></button>
           <label><span className="field-label">Why is this the right decision now?</span><textarea value={reviewReason} onChange={(event) => setReviewReason(event.target.value)} placeholder="Example: The round is complete, effort stayed recoverable, and my schedule can support another training round." /></label>
           {reviewError && <div className="import-error" role="alert"><AlertCircle size={17} /><span><strong>Review not saved</strong>{reviewError}</span></div>}
           <p className="modal-note">Calendar time alone cannot complete the training block. Planned work never enters completed volume, and this decision never rewrites prior workouts.</p>
@@ -319,7 +320,7 @@ export function PlanScreen() {
             <fieldset className="plan-fieldset"><legend>Priority regions <small>Choose up to 3</small></legend><div className="region-chips">{regions.map((region) => <button type="button" key={region} aria-pressed={draft.priorityRegions.includes(region)} onClick={() => toggleRegion('priorityRegions', region)}>{readable(region)}</button>)}</div></fieldset>
             <fieldset className="plan-fieldset"><legend>Maintenance regions <small>Choose up to 3</small></legend><div className="region-chips region-chips--maintenance">{regions.map((region) => <button type="button" key={region} aria-pressed={draft.maintenanceRegions.includes(region)} onClick={() => toggleRegion('maintenanceRegions', region)}>{readable(region)}</button>)}</div></fieldset>
 
-            <details className="criteria-details"><summary>Entry, success, and exit criteria</summary><label><span className="field-label">Entry criteria</span><textarea value={draft.entryCriteria} onChange={(event) => setDraft({ ...draft, entryCriteria: event.target.value })} /></label><label><span className="field-label">Success criteria</span><textarea value={draft.successCriteria} onChange={(event) => setDraft({ ...draft, successCriteria: event.target.value })} /></label><label><span className="field-label">Recovery or exit plan</span><textarea value={draft.exitPlan} onChange={(event) => setDraft({ ...draft, exitPlan: event.target.value })} /></label></details>
+            <details className="criteria-details"><summary>What starts, finishes, and ends this plan</summary><label><span className="field-label">Entry criteria</span><textarea value={draft.entryCriteria} onChange={(event) => setDraft({ ...draft, entryCriteria: event.target.value })} /></label><label><span className="field-label">Success criteria</span><textarea value={draft.successCriteria} onChange={(event) => setDraft({ ...draft, successCriteria: event.target.value })} /></label><label><span className="field-label">Recovery or exit plan</span><textarea value={draft.exitPlan} onChange={(event) => setDraft({ ...draft, exitPlan: event.target.value })} /></label></details>
             <label><span className="field-label">Why are you changing the plan?</span><textarea value={draft.revisionReason} placeholder="Example: My schedule is stable again and I can protect three 60-minute sessions." onChange={(event) => setDraft({ ...draft, revisionReason: event.target.value })} /></label>
             {editorError && <div className="import-error" role="alert"><AlertCircle size={17} /><span><strong>Plan not changed</strong>{editorError}</span></div>}
           </div>
@@ -335,7 +336,7 @@ export function PlanScreen() {
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setEditorOpen(false)}>Cancel</button><button className="button button--primary" disabled={Boolean(activeSessionId) || !draft.revisionReason.trim()} onClick={saveRevision}>Apply version {nextVersion}</button></div>
       </Modal>
 
-      <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title="Training-block revision history" description="Each version keeps its original objective, criteria, timing assumptions, and reason for change." wide>
+      <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title="Training-block revision history" description="Each version keeps its original goal, targets, timing, and why it changed." wide>
         <div className="revision-list">
           {[...mesocycles].sort((a, b) => b.version - a.version).map((plan) => <article key={plan.id} className={plan.status === 'active' ? 'active' : ''}>
             <div className="revision-list__version"><span>v{plan.version}</span><small>{plan.status}</small></div>

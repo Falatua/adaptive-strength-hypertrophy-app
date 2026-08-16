@@ -13,12 +13,12 @@ import { sameJsonValue } from './stable-json'
 export const placementVerificationRuleVersion = 'placement-verification-v1' as const
 
 export const placementVerificationVerdictLabels = {
-  collecting: 'Collecting session evidence',
-  'pending-recovery': 'Waiting for recovery check',
-  'supports-route': 'Starting route supported',
-  'needs-more-evidence': 'More evidence needed',
-  'review-suggested': 'Placement review suggested',
-  'reassessment-required': 'Reassessment required before training'
+  collecting: 'Collecting your workouts',
+  'pending-recovery': 'Waiting on your day-after check',
+  'supports-route': 'Starting plan looks right',
+  'needs-more-evidence': 'Needs a few more workouts',
+  'review-suggested': 'Worth reviewing your starting plan',
+  'reassessment-required': 'Answer the starting questions again'
 } as const
 
 export function cancelPlacementVerificationForPrimarySubstitution(input: {

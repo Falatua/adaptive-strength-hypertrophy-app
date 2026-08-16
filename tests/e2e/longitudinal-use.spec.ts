@@ -68,12 +68,12 @@ test('renders and explains a full year of training on phone and desktop', async 
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}')?.state?.history?.length)).toBe(208)
   await page.reload()
   await page.getByRole('button', { name: 'Progress', exact: true }).click()
-  await page.getByRole('button', { name: 'All time' }).click()
+  await page.getByLabel('More progress ranges').selectOption('all')
 
   await expect(page.getByRole('heading', { name: 'Yearly volume load' })).toBeVisible()
   await expect(page.getByText('208 completed sets across 52 active days', { exact: false })).toBeVisible()
   await expect(page.getByText('Competition Bench Press', { exact: true }).first()).toBeVisible()
-  const volumeCard = page.locator('.stat-card').filter({ hasText: 'Volume load' }).first()
+  const volumeCard = page.getByLabel('What this period shows')
   await expect(volumeCard).toContainText('223,460')
 
   const confidenceToggle = page.getByRole('button', { name: /what ForgePath knows/i })

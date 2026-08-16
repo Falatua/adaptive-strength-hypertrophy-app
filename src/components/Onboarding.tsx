@@ -9,6 +9,7 @@ import { useAppStore } from '../store/useAppStore'
 import { trainingSplitFor } from '../domain/split-engine'
 import { LocationArt } from './LocationArt'
 import { PixelAvatar } from './PixelAvatar'
+import { ForgeGlyph } from './ForgeGlyph'
 
 const goals: Array<{ id: PlacementGoal; label: string }> = [
   { id: 'strength', label: 'Powerlifting' }, { id: 'hypertrophy', label: 'Hypertrophy' }
@@ -122,7 +123,7 @@ export function Onboarding() {
     })
     if (placement.selectedRoute === 'pain-aware-modified') {
       setNav('you')
-      setNotice('Pain-aware placement saved. Workout start is paused until you reassess the restriction state. This is not medical clearance.')
+      setNotice('Saved. Workouts are paused until you review what is limiting you. This is not medical clearance.')
     } else if (destination === 'library') {
       setNav('library')
       setNotice('Starting profile saved. Open Import history to add prior completed training before calibration.')
@@ -151,19 +152,19 @@ export function Onboarding() {
         <div className="onboarding__art-copy"><span className="eyebrow">Private Alpha · Local first</span><h1>Build the athlete.<br />Adapt the path.</h1><p>What you have done before, how you feel today, and what your week actually allows are three different things. The app makes its best guess to start, then learns from the work you finish.</p></div>
       </div>
       <main id="main-content" className="onboarding__panel" tabIndex={-1}>
-        <div className="onboarding__brand"><span className="brand__mark">F</span><strong>ForgePath</strong></div>
+        <div className="onboarding__brand"><span className="brand__mark"><ForgeGlyph name="mark" size={25} /></span><strong>ForgePath</strong></div>
         <div className="onboarding__steps" role="progressbar" aria-label="Onboarding progress" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step + 1} aria-valuetext={`Step ${step + 1} of 4`}>{[0, 1, 2, 3].map((item) => <span key={item} className={step >= item ? 'active' : ''} aria-hidden="true" />)}</div>
 
         {step === 0 && <section>
           <p className="eyebrow">01 · Direction and training history</p><h2>Build my starting profile</h2>
           <p className="muted">Answer what you know. Skip anything you are not sure about. Skipping just means the app is less certain to start with, and it will never make up an answer for you.</p>
-          <div className="onboarding-fast-routes"><button onClick={() => persistPlacement('quick-start', 'today', true)}><Sparkles size={18} /><span><strong>Quick Start</strong><small>Enter now with a low-confidence calibration route.</small></span></button></div>
+          <div className="onboarding-fast-routes"><button onClick={() => persistPlacement('quick-start', 'today', true)}><Sparkles size={18} /><span><strong>Quick Start</strong><small>Start now and let the first workouts set your weights.</small></span></button></div>
           <label className="field-label">Primary goal</label><div className="choice-grid placement-goals">{goals.map((item) => <button key={item.id} className={goal === item.id ? 'selected' : ''} onClick={() => setGoal(item.id)}>{goal === item.id && <Check size={16} />}{item.label}</button>)}<button className={goal === null ? 'selected' : ''} onClick={() => setGoal(null)}>Not sure yet</button></div>
           <label><span className="field-label">Years of structured training</span><input aria-label="Years of structured training" type="number" min="0" max="60" value={experience ?? ''} onChange={(event) => setExperience(event.target.value === '' ? null : Number(event.target.value))} placeholder="Skip if uncertain" /></label>
         </section>}
 
         {step === 1 && <section>
-          <p className="eyebrow">02 · Current training capacity</p><h2>Past experience is not current tolerance.</h2><p className="muted">Score what you can do now, not your best ever. Every answer can be skipped, and skipping lowers confidence instead of inventing a number.</p>
+          <p className="eyebrow">02 · Current training capacity</p><h2>Past experience is not current tolerance.</h2><p className="muted">Score what you can do now, not your best ever. Every answer can be skipped, and skipping just makes ForgePath less certain to start with. It never lowers confidence instead of inventing a number.</p>
           <div className="placement-picker-stack">
             <DimensionPicker label="Technique consistency / skill" hint="How repeatable your form is across sets on the main barbell lifts. Not how strong you are." value={movementSkill} onChange={setMovementSkill} low="Varies set to set" high="Same every rep" />
             <DimensionPicker label="Comfort with heavy weight" hint="How well you currently handle near-limit loads, not how much you once lifted." value={strengthTolerance} onChange={setStrengthTolerance} low="Needs calibration" high="Heavy work is familiar" />
@@ -201,7 +202,7 @@ export function Onboarding() {
           <div className="placement-explanation"><h3>Why the engine recommended {placementRouteLabels[selectedAssessment.recommendedRoute]}</h3><ul>{selectedAssessment.reasons.map((reason) => <li key={reason}><Check size={15} />{reason}</li>)}</ul></div>
           {selectedAssessment.uncertainInputs.length > 0 && <details><summary>Uncertain inputs · {selectedAssessment.uncertainInputs.length}</summary><p>{selectedAssessment.uncertainInputs.join(', ')}. These stay unknown and reduce confidence.</p></details>}
           <details><summary>Why not lower or higher?</summary><p><strong>Lower:</strong> {selectedAssessment.whyNotLower}</p><p><strong>Higher:</strong> {selectedAssessment.whyNotHigher}</p></details>
-          <details open><summary>First-session verification plan</summary><ul>{selectedAssessment.verificationPlan.map((item) => <li key={item}>{item}</li>)}</ul></details>
+          <details open><summary>How the first workouts check this</summary><ul>{selectedAssessment.verificationPlan.map((item) => <li key={item}>{item}</li>)}</ul></details>
           <div className="route-session-preview">
             <div><Sparkles size={18} /><span><strong>Your starting sessions will actually change</strong><small>{selectedRouteProfile.label}</small></span></div>
             {selectedAssessment.selectedRoute === 'pain-aware-modified' ? <p>Automatic session generation stays paused until you reassess movement restrictions. Existing completed work remains untouched.</p> : <><p>{selectedRouteProfile.strategy}</p><div className="route-session-preview__grid"><span><small>Primary</small><strong>{selectedRouteProfile.primary.sets} × {selectedRouteProfile.primary.reps}</strong><em>{selectedRouteProfile.primary.rir} RIR · {selectedRouteProfile.primary.restSeconds}s rest</em></span><span><small>Secondary</small><strong>{selectedRouteProfile.secondary.sets} × {selectedRouteProfile.secondary.reps}</strong><em>{selectedRouteProfile.secondary.rir} RIR · {selectedRouteProfile.secondary.restSeconds}s rest</em></span><span><small>Accessories</small><strong>{selectedRouteProfile.accessory.sets} × {selectedRouteProfile.accessory.reps}</strong><em>up to {selectedRouteProfile.maximumAccessories} · {selectedRouteProfile.accessory.rir} RIR</em></span></div></>}

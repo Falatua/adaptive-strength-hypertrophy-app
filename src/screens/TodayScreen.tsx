@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlarmClock, AlertTriangle, MessageSquare, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, FileCheck2, Footprints, HelpCircle, RotateCcw, ShieldCheck, Trophy } from 'lucide-react'
+import { AlarmClock, AlertTriangle, MessageSquare, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, FileCheck2, Footprints, RotateCcw, ShieldCheck, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import type { EffectiveSurveyMode, MissedOpportunityInput, SurveyAnswer } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
 import { athleteLevel } from '../domain/athlete-level-engine'
+import { checkInAgeLabels, continuityLabels, scheduleChangeLabels, scheduleReadinessActionLabels, scheduleReadinessOutcomeLabels } from '../domain/readable-labels'
+import { placementRouteLabels } from '../domain/placement-engine'
 import { PixelAvatar } from '../components/PixelAvatar'
-import { StatCard } from '../components/StatCard'
 import { SurveyModal } from '../components/SurveyModal'
 import { SurveyModeChooser } from '../components/SurveyModeChooser'
 import { PostSurveyModal } from '../components/PostSurveyModal'
@@ -18,6 +19,7 @@ import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } fr
 import { scheduleSessionEligibility } from '../domain/schedule-adaptation-engine'
 import { playForgeSound } from '../services/sound-engine'
 import { buildLifeAwareAssessment } from '../domain/life-aware-engine'
+import { ForgeGlyph } from '../components/ForgeGlyph'
 
 const timeOptions = [15, 30, 45, 60, 75]
 const dateInputFor = (offsetDays: number) => {
@@ -104,7 +106,7 @@ export function TodayScreen() {
     continuity: athlete.continuity,
     readiness: nextSession?.readiness ?? 'confirm'
   })
-  const routeLabel = nextSession?.generation?.route.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+  const routeLabel = nextSession?.generation?.route ? placementRouteLabels[nextSession.generation.route] : undefined
   const progressionTarget = progression.action === 'load'
     ? `${progression.nextLoad} ${settings.units}`
     : progression.action === 'reps'
@@ -120,6 +122,8 @@ export function TodayScreen() {
     .map((session) => ({ id: session.id, title: session.title, completedAt: session.completedAt!, note: session.note!.trim() }))
   const progressionEvidence = `${progression.confidence} confidence · ${progression.evidence.sourceSetIds.length} prescribed set${progression.evidence.sourceSetIds.length === 1 ? '' : 's'} from the latest exact exposure${progression.evidence.athleteAddedSetsExcluded ? ` · ${progression.evidence.athleteAddedSetsExcluded} athlete-added excluded from automatic progression` : ''}`
   const heroObjective = `${primaryExercise?.name ?? 'The primary movement'} leads today. ${progression.title}.`
+  const primaryLoad = primaryPlan?.sets[0]?.targetLoad ?? 0
+  const primaryLoadLabel = primaryLoad > 0 ? `${primaryLoad} ${settings.units}` : 'Load to establish'
   const whyReasons = nextSession?.generation
     ? [
         { title: `${routeLabel} route`, detail: nextSession.generation.strategy },
@@ -190,7 +194,7 @@ export function TodayScreen() {
         <div className="feedback-followup__actions"><button className="button button--small button--primary" onClick={() => setFeedbackOpen(true)}>Add feedback</button><button className="button button--small button--ghost" onClick={() => dismissDeferredFeedback(feedbackRequest.id)}>Dismiss</button></div>
       </section>}
 
-      {pendingPlacementRecovery && <section className="placement-recovery-check" aria-label="Optional placement recovery check">
+      {pendingPlacementRecovery && <section className="placement-recovery-check" aria-label="Optional day-after check">
         <span className="placement-recovery-check__icon"><ShieldCheck size={20} /></span>
         <div><p className="eyebrow">{pendingPlacementRecovery.movementPlacement ? `${pendingPlacementRecovery.movementPlacement.exerciseName} starting check` : 'Starting plan check'} {pendingPlacementRecovery.sequence} of 3 · optional</p><strong>How did you recover from {sessions.find((session) => session.id === pendingPlacementRecovery.sessionId)?.title ?? 'the last session'}?</strong><small>This helps ForgePath decide whether the starting work for this lift was recoverable. Skipping leaves recovery unknown and never blocks training.</small></div>
         <div className="placement-recovery-check__actions">
@@ -209,10 +213,10 @@ export function TodayScreen() {
         <Dumbbell size={20} /><span><small>Main-lift review</small><strong>Review what ForgePath learned about {movementExit.exerciseName}.</strong><p>{movementExit.reasons[0]}</p></span><ChevronRight size={18} />
       </button>}
 
-      {latestScheduleChange && latestRebuiltSession && <section className={`schedule-rebuild-proof schedule-rebuild-proof--${latestScheduleChange.mode}`} aria-label="Latest schedule adaptation">
+      {latestScheduleChange && latestRebuiltSession && <section className={`schedule-rebuild-proof schedule-rebuild-proof--${latestScheduleChange.mode}`} aria-label="Latest schedule change">
         <div className="schedule-rebuild-proof__icon"><RotateCcw size={22} /></div>
         <div className="schedule-rebuild-proof__body">
-          <p className="eyebrow">{latestScheduleChange.mode.replaceAll('-', ' ')}</p>
+          <p className="eyebrow">{scheduleChangeLabels[latestScheduleChange.mode]}</p>
           <h2>Queue rebuilt from completed work.</h2>
           <p><strong>{latestRebuiltSession.title}</strong> is next on {new Date(latestRebuiltSession.plannedDate).toLocaleDateString()} for {latestRebuiltSession.durationMinutes} minutes. {latestRebuiltPrimary?.name ?? 'Its protected primary'} has {latestScheduleChange.nextPrimaryDaysSinceExposure === null ? 'no completed exact baseline yet' : `${latestScheduleChange.nextPrimaryDaysSinceExposure} calendar days since you last did it`}.</p>
           <div className="schedule-rebuild-proof__facts">
@@ -221,8 +225,8 @@ export function TodayScreen() {
             <span><small>Continuity</small><strong>{latestScheduleChange.continuityBefore} → {latestScheduleChange.continuityAfter}</strong></span>
             <span><small>Miss sequence</small><strong>{latestScheduleChange.consecutiveMisses}</strong></span>
             {latestScheduleChange.eligibility && <span><small>Equipment eligibility</small><strong>{latestScheduleChange.eligibility.equipmentProfileName}</strong><em>{latestScheduleChange.eligibility.removedExerciseNames.length ? `${latestScheduleChange.eligibility.removedExerciseNames.length} support movement${latestScheduleChange.eligibility.removedExerciseNames.length === 1 ? '' : 's'} removed` : 'fully executable'}</em></span>}
-            {latestScheduleChange.readiness && <span><small>Readiness evidence</small><strong>{latestScheduleChange.readiness.effectiveOutcome.replaceAll('-', ' ')}</strong><em>{latestScheduleChange.readiness.freshness === 'current' ? `${latestScheduleChange.readiness.action.replaceAll('-', ' ')} · ${latestScheduleChange.readiness.ageHours ?? 0}h old` : latestScheduleChange.readiness.freshness === 'stale' ? 'stale · not applied' : 'unknown · no penalty'}</em></span>}
-            {latestScheduleChange.priorityDose && <span><small>Priority dose tie-break</small><strong>{latestScheduleChange.priorityDose.selectedGapRegions.length ? latestScheduleChange.priorityDose.selectedGapRegions.join(', ').replaceAll('-', ' ') : 'No relative gap'}</strong><em>{latestScheduleChange.priorityDose.appliedAsTieBreak ? `applied · ${latestScheduleChange.priorityDose.selectedGapScore} relative set${latestScheduleChange.priorityDose.selectedGapScore === 1 ? '' : 's'}` : 'reviewed · no override'}</em></span>}
+            {latestScheduleChange.readiness && <span><small>Your check-in</small><strong>{scheduleReadinessOutcomeLabels[latestScheduleChange.readiness.effectiveOutcome]}</strong><em>{latestScheduleChange.readiness.freshness === 'current' ? `${scheduleReadinessActionLabels[latestScheduleChange.readiness.action]} · ${latestScheduleChange.readiness.ageHours ?? 0}h ago` : latestScheduleChange.readiness.freshness === 'stale' ? `${checkInAgeLabels.stale} · plan unchanged` : `${checkInAgeLabels.missing} · nothing held against you`}</em></span>}
+            {latestScheduleChange.priorityDose && <span><small>Muscles chosen first</small><strong>{latestScheduleChange.priorityDose.selectedGapRegions.length ? latestScheduleChange.priorityDose.selectedGapRegions.join(', ').replaceAll('-', ' ') : 'No relative gap'}</strong><em>{latestScheduleChange.priorityDose.appliedAsTieBreak ? `applied · ${latestScheduleChange.priorityDose.selectedGapScore} relative set${latestScheduleChange.priorityDose.selectedGapScore === 1 ? '' : 's'}` : 'reviewed · no override'}</em></span>}
           </div>
           <details><summary>Why this order?</summary>{latestScheduleChange.reasons.map((reason) => <p key={reason}><CheckCircle2 size={14} />{reason}</p>)}</details>
         </div>
@@ -232,31 +236,30 @@ export function TodayScreen() {
       <section className="hero-workout">
         <div className="hero-workout__content">
           <div className="hero-workout__meta">
-            <span className="status-chip status-chip--lime"><BatteryCharging size={14} /> {athlete.continuity}</span>
+            <span className={`status-chip ${athlete.continuity === 'stable' ? 'status-chip--lime' : 'status-chip--default'}`}><BatteryCharging size={14} /> {continuityLabels[athlete.continuity]}</span>
             <span className="status-chip"><Clock3 size={14} /> {settings.availableMinutes} min</span>
             <span className={`status-chip ${equipmentGaps.length ? 'status-chip--warning' : ''}`}><Dumbbell size={14} /> {activeEquipmentProfile.name}</span>
           </div>
           <p className="eyebrow">Next best session · Up next</p>
           <h2>{nextSession?.title}</h2>
           <p className="hero-workout__objective">{heroObjective}</p>
-          {placementBlocked && <button className="placement-training-gate" onClick={() => setNav('you')}><AlertTriangle size={19} /><span><strong>Workout start paused for placement review</strong><small>{placementVerification.blocked ? 'A placement verification recorded pain that changed what could be trained.' : 'Your starting profile says pain or restriction changes what can be trained.'} Reassess the profile before starting. This is not medical clearance.</small></span><ChevronRight size={18} /></button>}
+          {placementBlocked && <button className="placement-training-gate" onClick={() => setNav('you')}><AlertTriangle size={19} /><span><strong>Workout start paused for your review</strong><small>{placementVerification.blocked ? 'A placement verification recorded pain that changed what could be trained.' : 'Your starting profile says pain or restriction changes what can be trained.'} Reassess the profile before starting. This is not medical clearance.</small></span><ChevronRight size={18} /></button>}
           {equipmentGaps.length > 0 && <button className="equipment-gate-callout" onClick={() => { setPendingStart(null); setEquipmentGateOpen(true) }}><AlertTriangle size={19} /><span><strong>{equipmentGaps.length} movement{equipmentGaps.length === 1 ? '' : 's'} need equipment review</strong><small>{activeEquipmentProfile.name} is missing required items. Unavailable sets cannot be logged until each movement is changed or the profile is corrected.</small></span><ChevronRight size={18} /></button>}
           <div className="anchor-prescription">
-            <div className="anchor-prescription__icon"><Dumbbell size={24} /></div>
-            <div><span>Primary movement</span><strong>{primaryExercise?.name}</strong><small>{primaryPlan?.sets.length} sets × {primaryPlan?.sets[0]?.targetReps} reps · {primaryPlan?.sets[0]?.targetLoad} {settings.units} · {primaryPlan?.sets[0]?.targetRir} RIR</small></div>
+            <div className="anchor-prescription__icon"><ForgeGlyph name="calibration" size={24} /></div>
+            <div><span>Primary movement</span><strong>{primaryExercise?.name}</strong><small>{primaryPlan?.sets.length} sets × {primaryPlan?.sets[0]?.targetReps} reps · {primaryLoadLabel} · {primaryPlan?.sets[0]?.targetRir} RIR</small></div>
             <div className="anchor-prescription__decision"><span>{progression.action}</span><strong>{progression.title}</strong></div>
           </div>
           <div className="hero-workout__actions">
             {activeSession ? <button className="button button--primary button--large" onClick={resumeActiveSession}>Resume active workout <ArrowRight size={18} /></button> : <>
               <button className="button button--primary button--large" disabled={placementBlocked} onClick={openPreferredCheckIn}>{placementBlocked ? 'Reassess before training' : checkInLabel} <ArrowRight size={18} /></button>
-              {settings.preSurveyMode !== 'off' && <button className="button button--secondary" disabled={placementBlocked} onClick={() => begin([], true, 'off')}>Start without check-in</button>}
+              {settings.preSurveyMode !== 'off' && <button className="button button--ghost hero-workout__skip" disabled={placementBlocked} onClick={() => begin([], true, 'off')}>Start without check-in</button>}
             </>}
-            <button className="button button--ghost" onClick={() => setWhyOpen(true)}><HelpCircle size={17} /> Why this session?</button>
           </div>
-          <div className="time-budget" aria-label="Available workout time">
-            <span>I have</span>
-            {timeOptions.map((minutes) => <button key={minutes} className={settings.availableMinutes === minutes ? 'selected' : ''} onClick={() => updateSettings({ availableMinutes: minutes })}>{minutes}m</button>)}
-          </div>
+          <details className="time-budget">
+            <summary><Clock3 size={15} /><strong>{settings.availableMinutes} minutes available</strong><span>Change</span></summary>
+            <div aria-label="Available workout time">{timeOptions.map((minutes) => <button key={minutes} className={settings.availableMinutes === minutes ? 'selected' : ''} onClick={() => updateSettings({ availableMinutes: minutes })}>{minutes}m</button>)}</div>
+          </details>
         </div>
         <div className="hero-workout__world">
           <div className="world-grid" aria-hidden="true" />
@@ -266,11 +269,11 @@ export function TodayScreen() {
         </div>
       </section>
 
-      <section className="stats-grid" aria-label="Current training snapshot">
-        <StatCard label="Last time on this lift" value={`${lastVolume.toLocaleString()} ${settings.units}`} detail={`${recentPrimary.length} completed sets · exact movement`} icon={<Dumbbell size={18} />} />
-        <StatCard label="Current continuity" value={athlete.continuity} detail="Calendar pressure reduced · exposure clocks preserved" icon={<CalendarClock size={18} />} tone="orange" />
-        <StatCard label="Recent record" value={recentRecordValue} detail={recentRecord?.label ?? 'Complete work to create a record'} icon={<Trophy size={18} />} tone="purple" />
-        <StatCard label="Starting plan checks" value={`${placementVerification.resolved} complete`} detail={`${placementLaneCount} main lift${placementLaneCount === 1 ? '' : 's'} observed · ${placementVerification.state.replaceAll('-', ' ')}`} icon={<ShieldCheck size={18} />} tone="blue" />
+      <section className="today-evidence-strip" aria-label="Where you stand now">
+        <div className="today-evidence-strip__lead"><ForgeGlyph name="evidence" size={20} /><span><small>Last exact exposure</small><strong>{recentPrimary.length ? `${lastVolume.toLocaleString()} ${settings.units} volume` : 'No completed baseline yet'}</strong><em>{recentPrimary.length} completed set{recentPrimary.length === 1 ? '' : 's'}</em></span></div>
+        <div><CalendarClock size={17} /><span><small>Recent training</small><strong>{continuityLabels[athlete.continuity]}</strong></span></div>
+        <div><Trophy size={17} /><span><small>Recent record</small><strong>{recentRecordValue}</strong><em>{recentRecord?.label ?? 'None yet'}</em></span></div>
+        <div><ShieldCheck size={17} /><span><small>Plan checks</small><strong>{placementVerification.resolved} complete</strong><em>{placementLaneCount} exact lift lane{placementLaneCount === 1 ? '' : 's'}</em></span></div>
       </section>
 
       <div className="today-grid">

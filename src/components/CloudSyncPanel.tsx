@@ -50,14 +50,15 @@ export function CloudSyncPanel() {
     <div className="cloud-boundary"><ShieldCheck size={23} /><div><strong>This build is not cloud-authoritative</strong><p>{cloudConfiguration.status === 'ready' ? 'The local test override is active.' : cloudConfiguration.reason}</p></div></div>
   </section>
 
-  const savedLabel = runtime.saveState === 'saved' ? 'Saved to Supabase' : runtime.saveState === 'saving' ? 'Saving to Supabase' : 'Cloud save needs attention'
+  const savedLabel = runtime.saveState === 'saved' ? 'Saved to your private cloud' : runtime.saveState === 'saving' ? 'Saving to your private cloud' : 'Cloud save needs attention'
 
   return <>
     <section className="panel cloud-panel" aria-label="Cloud account">
       <div className="panel__header"><div><p className="eyebrow">Private cloud</p><h3>Your account and data</h3></div><Cloud size={19} /></div>
       <div className="cloud-account"><CheckCircle2 size={22} /><span><small>Signed in securely</small><strong>{runtime.session.user.email ?? 'ForgePath athlete'}</strong></span><button className="text-button" disabled={Boolean(busy) || runtime.saveState === 'saving'} onClick={() => run('signout', runtime.signOut)}><LogOut size={14} /> Sign out</button></div>
       <div className={`cloud-save-state cloud-save-state--${runtime.saveState}`}><span>{runtime.saveState === 'saving' ? <LoaderCircle className="spin" size={19} /> : runtime.saveState === 'error' ? <AlertTriangle size={19} /> : <ShieldCheck size={19} />}</span><div><strong>{savedLabel}</strong><small>{runtime.lastSavedAt ? `Last confirmed ${new Date(runtime.lastSavedAt).toLocaleString()}` : 'Waiting for the first confirmed save'}</small></div>{runtime.saveState === 'error' && <button type="button" disabled={busy === 'retry'} onClick={() => run('retry', runtime.retrySave)}><RefreshCw size={15} /> Retry</button>}</div>
-      <p className="chart-note">Training history, plans, surveys, notes, and settings are stored in your private Supabase account. This browser keeps only the signed-in session and device metadata.</p>
+      <p className="chart-note">Training history, plans, surveys, notes, and settings live in your private ForgePath account. This browser keeps only the signed-in session and device metadata.</p>
+      <details className="cloud-technical-note"><summary>How your data is stored</summary><p>ForgePath uses Supabase with account-scoped Row Level Security. Your signed-in user ID is required for every training-data read or write.</p></details>
       <div className="data-actions">
         <button className="full-row-button" onClick={() => { clearSensitiveFields(); setPasswordOpen(true) }}><KeyRound size={17} /> Change password</button>
         <button className="full-row-button" onClick={() => { clearSensitiveFields(); setResetOpen(true) }}><RotateCcw size={17} /> Reset training data</button>
