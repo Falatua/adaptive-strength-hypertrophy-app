@@ -3,7 +3,8 @@ import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, C
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
-import type { CompletedSetRecord, EffectiveSurveyMode, PlannedExercise, SubstitutionReason } from '../domain/types'
+import type { CompletedSetRecord, EffectiveSurveyMode, EvidenceConfidence, PlannedExercise, ProgressionAction, SubstitutionReason } from '../domain/types'
+import { checkInDepthLabels, evidenceStrengthLabels, noCheckInPlanLabel, progressionActionLabels, readinessPlanLabels } from '../domain/readable-labels'
 import { useAppStore } from '../store/useAppStore'
 import { Modal } from '../components/Modal'
 import { NumberField } from '../components/NumberField'
@@ -41,7 +42,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const [finishChooserOpen, setFinishChooserOpen] = useState(false)
   const [activePostMode, setActivePostMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
   const [clockNow, setClockNow] = useState(() => Date.now())
-  const [decisionInfo, setDecisionInfo] = useState<{ name: string; title: string; action: string; confidence: string; explanation: string; reasons: string[]; sourceSets: number; unknownInputs: string[]; athleteAddedExcluded: number } | null>(null)
+  const [decisionInfo, setDecisionInfo] = useState<{ name: string; title: string; action: ProgressionAction; confidence: EvidenceConfidence; explanation: string; reasons: string[]; sourceSets: number; unknownInputs: string[]; athleteAddedExcluded: number } | null>(null)
   const [addMovementOpen, setAddMovementOpen] = useState(false)
   const [addSearch, setAddSearch] = useState('')
   const [extensionError, setExtensionError] = useState<string | null>(null)
@@ -110,6 +111,14 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const totalSets = session.exercises.flatMap((exercise) => exercise.sets).length
   const currentVolume = session.exercises.reduce((sum, planned) => sum + planned.sets.filter((workSet) => workSet.completed).reduce((setSum, workSet) => setSum + (workSet.completedLoad ?? workSet.targetLoad) * (workSet.completedReps ?? workSet.targetReps), 0), 0)
   const progress = totalSets ? Math.round((completedSets / totalSets) * 100) : 0
+  const nextIncomplete = session.exercises.flatMap((planned) => planned.sets.map((workSet) => ({ planned, workSet }))).find(({ workSet }) => !workSet.completed)
+  const nextIncompleteExercise = nextIncomplete ? exercises.find((exercise) => exercise.id === nextIncomplete.planned.exerciseId) : null
+  const focusNextSet = () => {
+    if (!nextIncomplete) return
+    const row = document.getElementById(`set-${nextIncomplete.workSet.id}`)
+    row?.scrollIntoView({ behavior: settings.reducedMotion ? 'auto' : 'smooth', block: 'center' })
+    row?.querySelector<HTMLElement>('input, select, button')?.focus({ preventScroll: true })
+  }
 
   // Movement-specific placement questions stay out of the way until the work they ask about is done.
   // A lane-scoped check waits for its own exact movement; a session-level check waits for every set.
@@ -297,7 +306,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
           </section>
         )}
 
-        <div className="workout-objective"><span className="status-chip status-chip--lime">{session.readiness ?? 'baseline plan'}</span><span className="status-chip">{session.readinessConfidence ?? 'low'} survey confidence</span><span className={`status-chip ${equipmentGaps.length ? 'status-chip--warning' : ''}`}>{activeEquipmentProfile.name} · {equipmentGaps.length ? `${equipmentGaps.length} to resolve` : 'equipment ready'}</span><p>{session.objective}</p><span><Clock3 size={15} /> {session.durationMinutes} minute version</span></div>
+        <div className="workout-objective"><span className="status-chip status-chip--lime">{session.readiness ? readinessPlanLabels[session.readiness] : noCheckInPlanLabel}</span><span className="status-chip">{checkInDepthLabels[session.readinessConfidence ?? 'low']}</span><span className={`status-chip ${equipmentGaps.length ? 'status-chip--warning' : ''}`}>{activeEquipmentProfile.name} · {equipmentGaps.length ? `${equipmentGaps.length} to resolve` : 'equipment ready'}</span><p>{session.objective}</p><span><Clock3 size={15} /> {session.durationMinutes} minute version</span></div>
 
         <div className="exercise-stack">
           {session.exercises.map((planned, exerciseIndex) => {
@@ -346,21 +355,23 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                 {!equipmentFit.available && <div className="equipment-block"><AlertTriangle size={18} /><span><strong>Unavailable at {activeEquipmentProfile.name}</strong><small>Missing {equipmentFit.missing.join(', ')}. Change this movement before logging a set. ForgePath will show only alternatives available in the active profile.</small></span><button onClick={() => openSwap(planned)}>Resolve</button></div>}
                 <div className="exercise-context">
                   <div><small>Last exact exposure</small><strong>{recent.length ? `${recent[0].load} × ${recent[0].reps}` : 'No exact history'}</strong><span>{lastVolume.toLocaleString()} volume load</span></div>
-                  <div><small>Engine decision</small><strong>{recommendation.title}</strong><span>{recommendation.confidence} confidence · {recommendation.action}</span></div>
+                  <div><small>How this was set</small><strong>{recommendation.title}</strong><span>{evidenceStrengthLabels[recommendation.confidence]} · {progressionActionLabels[recommendation.action]}</span></div>
                   <div><small>Joint response</small><strong className={`joint joint--${exercise.jointFeeling}`}>{exercise.jointFeeling}</strong><span>{exercise.favorite ? 'Preferred movement' : 'Neutral preference'}</span></div>
                   <button className="info-button" onClick={() => setDecisionInfo({ name: exercise.name, title: recommendation.title, action: recommendation.action, confidence: recommendation.confidence, explanation: recommendation.explanation, reasons: recommendation.reasons, sourceSets: recommendation.evidence.sourceSetIds.length, unknownInputs: recommendation.evidence.unknownInputs, athleteAddedExcluded: recommendation.evidence.athleteAddedSetsExcluded })} aria-label={`More information about ${exercise.name}`} aria-haspopup="dialog"><Info size={17} /></button>
                 </div>
                 {planned.prescriptionNote && <div className="substitution-prescription"><RefreshCcw size={16} /><span><strong>{planned.prescriptionMethod === 'exact-history' ? 'Exact-history replacement' : 'Baseline calibration'}</strong>{planned.prescriptionNote}</span></div>}
                 {techniqueSuggestion && <div className="technique-prescription"><Layers size={16} /><span><strong>Purposeful technique suggestion</strong>{techniqueSuggestion}<small>Athlete approval required · maximum two technique blocks in this session</small></span><button type="button" onClick={() => { setStructureTarget(planned); setStructureError(null) }}>Review</button></div>}
-                <section className="movement-note-editor" aria-label={`${exercise.name} movement notebook`}>
-                  <div className="movement-note-editor__heading"><BookOpen size={18} /><span><strong>Movement note</strong><small>Saved to this exact movement and workout</small></span></div>
-                  {priorMovementNote && <div className="movement-note-recall"><span><b>Last note</b><small>{new Date(priorMovementNote.sessionDate).toLocaleDateString()}{priorMovementNote.microcycleNumber ? ` · Week ${priorMovementNote.microcycleNumber}` : ''} · {priorMovementNote.sessionTitle}</small></span><p>{priorMovementNote.body}</p></div>}
-                  <label>
-                    <span className="sr-only">{exercise.name} workout note</span>
-                    <textarea aria-label={`${exercise.name} workout note`} maxLength={MOVEMENT_NOTE_MAX_LENGTH} value={currentMovementNote?.body ?? ''} onChange={(event) => updateMovementNote(session.id, planned.id, event.target.value)} placeholder="Angle, tempo, setup, cue, joint feel, or what changed today..." />
-                  </label>
-                  <div className="movement-note-editor__meta"><small>Autosaved as you type. Notes provide context and never change progression by themselves.</small><small>{currentMovementNote?.body.length ?? 0}/{MOVEMENT_NOTE_MAX_LENGTH}</small></div>
-                </section>
+                <details className="movement-note-editor" aria-label={`${exercise.name} movement notebook`}>
+                  <summary className="movement-note-editor__heading"><BookOpen size={18} /><span><strong>Movement note</strong><small>{currentMovementNote?.body ? 'Saved note for this workout' : priorMovementNote ? 'Prior note available' : 'Optional setup or joint context'}</small></span><ChevronDown size={17} /></summary>
+                  <div className="movement-note-editor__body">
+                    {priorMovementNote && <div className="movement-note-recall"><span><b>Last note</b><small>{new Date(priorMovementNote.sessionDate).toLocaleDateString()}{priorMovementNote.microcycleNumber ? ` · Week ${priorMovementNote.microcycleNumber}` : ''} · {priorMovementNote.sessionTitle}</small></span><p>{priorMovementNote.body}</p></div>}
+                    <label>
+                      <span className="sr-only">{exercise.name} workout note</span>
+                      <textarea aria-label={`${exercise.name} workout note`} maxLength={MOVEMENT_NOTE_MAX_LENGTH} value={currentMovementNote?.body ?? ''} onChange={(event) => updateMovementNote(session.id, planned.id, event.target.value)} placeholder="Angle, tempo, setup, cue, joint feel, or what changed today..." />
+                    </label>
+                    <div className="movement-note-editor__meta"><small>Autosaved as you type. Notes provide context and never change progression by themselves.</small><small>{currentMovementNote?.body.length ?? 0}/{MOVEMENT_NOTE_MAX_LENGTH}</small></div>
+                  </div>
+                </details>
                 {(() => {
                   const structureProgress = progressSetStructure({
                     groups: summarizeSetGroups(exactHistory, exercise.id),
@@ -404,7 +415,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                     // so the target stays blank and the effort dial carries the prescription instead.
                     const loadUnknown = !exactHistory.length && workSet.completedLoad === undefined
                     return (
-                    <div className={`set-row ${workSet.completed ? 'completed' : ''}`} role="row" key={workSet.id}>
+                    <div id={`set-${workSet.id}`} className={`set-row ${workSet.completed ? 'completed' : ''}`} role="row" key={workSet.id}>
                       <span className="set-number">{index + 1}{workSet.athleteAdded && <em title="Added by you today">+</em>}{workSet.grouping && <b className={`set-group set-group--${workSet.grouping.groupRole}`} title={`${setStructureLabels[workSet.grouping.groupKind]}: ${workSet.grouping.groupRole}`}>{workSet.grouping.groupRole === 'drop' ? '↓' : workSet.grouping.groupRole === 'mini' ? '·' : workSet.grouping.groupRole === 'paired' ? '⇄' : '★'}</b>}</span>
                       <label><span className="sr-only">Set {index + 1} load</span><NumberField disabled={!equipmentFit.available} inputMode="decimal" step={loadIncrementFor(exercise, activeEquipmentProfile).value} placeholder={loadUnknown ? 'Your call' : undefined} value={loadUnknown ? null : workSet.completedLoad ?? workSet.targetLoad} onCommit={(load) => updateSet(session.id, planned.id, workSet.id, { load })} /><small>{settings.units}</small></label>
                       <label><span className="sr-only">Set {index + 1} repetitions</span><NumberField disabled={!equipmentFit.available} inputMode="numeric" value={workSet.completedReps ?? workSet.targetReps} onCommit={(reps) => updateSet(session.id, planned.id, workSet.id, { reps })} /></label>
@@ -457,7 +468,10 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
 
       <footer className="workout-footer">
         <div><TimerReset size={18} /><span><strong>{completedSets} of {totalSets} sets complete.</strong><small>Only completed work enters volume and progression.</small></span></div>
-        <button className={`button ${completedSets === totalSets && totalSets > 0 ? 'button--primary' : 'button--secondary'}`} onClick={openFinishFlow}>Finish workout <CheckCircle2 size={18} /></button>
+        <div className="workout-footer__actions">
+          {completedSets < totalSets && <button className="button button--primary workout-footer__next" onClick={focusNextSet}>Continue to {nextIncompleteExercise?.name ?? 'next set'} <span>{totalSets - completedSets} left</span></button>}
+          <button className={`button ${completedSets === totalSets && totalSets > 0 ? 'button--primary' : 'button--secondary'} workout-footer__finish`} onClick={openFinishFlow}>{completedSets === totalSets && totalSets > 0 ? 'Finish workout' : 'Finish workout early'} <CheckCircle2 size={18} /></button>
+        </div>
       </footer>
 
       <Modal open={Boolean(structureTarget)} onClose={() => { setStructureTarget(null); setStructureError(null) }} title={structureTarget ? `Choose a purposeful technique for ${exercises.find((item) => item.id === structureTarget.exerciseId)?.name ?? 'this movement'}` : 'Choose a technique'} description="These are optional prescriptions for stable accessory and tertiary work. Use one to save time, add a controlled late-session pump, or concentrate a small amount of volume. Straight sets remain the foundation." wide>
@@ -537,8 +551,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
       <Modal open={Boolean(decisionInfo)} onClose={() => setDecisionInfo(null)} title={decisionInfo ? `${decisionInfo.name} progression decision` : 'Progression decision'} description="The recommendation follows fixed rules and uses this exact movement's completed history.">
         {decisionInfo && <div className="decision-info">
           <div><small>Decision</small><strong>{decisionInfo.title}</strong></div>
-          <div><small>Progression action</small><strong>{decisionInfo.action}</strong></div>
-          <div><small>Evidence confidence</small><strong>{decisionInfo.confidence}</strong></div>
+          <div><small>What changes today</small><strong>{progressionActionLabels[decisionInfo.action]}</strong></div>
+          <div><small>Past evidence</small><strong>{evidenceStrengthLabels[decisionInfo.confidence]}</strong></div>
           <div><small>Latest prescribed evidence</small><strong>{decisionInfo.sourceSets} set{decisionInfo.sourceSets === 1 ? '' : 's'}</strong></div>
           <p>{decisionInfo.explanation}</p>
           <ul>{decisionInfo.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>

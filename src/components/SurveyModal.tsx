@@ -25,7 +25,7 @@ export function SurveyModal({ open, mode, onClose, onSubmit, onSkip }: { open: b
   const setStatus = (id: string, status: SurveyAnswer['status']) => setStatuses((current) => ({ ...current, [id]: status }))
 
   return (
-    <Modal open={open} onClose={() => { reset(); onClose() }} title={`${surveyModeLabel[mode]} readiness check`} description={`${questions.length} optional questions. This forms a best guess. How the warm-up actually goes matters more.`} wide>
+    <Modal open={open} onClose={() => { reset(); onClose() }} title={`${surveyModeLabel[mode]} check-in`} description={`${questions.length} optional questions. This forms a best guess. How the warm-up actually goes matters more.`} wide>
       <div className="survey-grid">
         {questions.map((question, index) => (
           <fieldset className={`survey-question ${statuses[question.id] !== 'answered' ? 'is-unanswered' : ''}`} key={question.id}>

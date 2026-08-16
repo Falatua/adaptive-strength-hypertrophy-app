@@ -62,7 +62,7 @@ test('turns the current prescription into an original, evidence-backed field gui
     await page.locator('.skip-link').evaluate((element) => { (element as HTMLElement).style.display = 'none' })
     await page.locator('.hero-workout').screenshot({ path: 'output/playwright/training-field-guide-mobile.png' })
   }
-  await fieldGuide.getByRole('button', { name: 'Open route notes' }).click()
+  await fieldGuide.getByRole('button', { name: 'Why this session?' }).click()
   await expect(page.getByRole('dialog')).toContainText('Bridge Calibration route')
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
@@ -210,6 +210,7 @@ test('organizes the exercise library and saves programming preferences', async (
   await page.getByRole('button', { name: 'Show filters' }).click()
   await page.getByRole('button', { name: 'Reset' }).click()
   await expect(page.getByText('242 movements', { exact: true }).first()).toBeVisible()
+  await page.getByPlaceholder('Search a movement or its other names...').fill('Conventional Deadlift')
 
   const conventional = page.locator('.library-card').filter({ has: page.getByRole('heading', { name: 'Conventional Deadlift', exact: true }) }).first()
   await expect(conventional).toBeVisible()
@@ -223,6 +224,9 @@ test('organizes the exercise library and saves programming preferences', async (
   await page.getByRole('button', { name: 'Close Conventional Deadlift' }).click()
   await page.reload()
   await page.getByRole('button', { name: 'Library', exact: true }).click()
+  const filterToggle = page.getByRole('button', { name: /^(Show|Hide) filters$/ })
+  await filterToggle.waitFor({ state: 'visible' })
+  if (await filterToggle.getAttribute('aria-expanded') === 'false') await filterToggle.click()
   await page.locator('#library-filter-panel').getByRole('button', { name: 'Avoid', exact: true }).click()
   await expect(page.locator('.library-card').filter({ has: page.getByRole('heading', { name: 'Conventional Deadlift', exact: true }) })).toBeVisible()
   await page.locator('#library-filter-panel').getByRole('button', { name: 'Reset' }).click()
@@ -296,6 +300,7 @@ test('autosaves exact-movement workout notes and recalls them in the Exercise Li
   await page.getByRole('button', { name: 'Start without check-in' }).click()
 
   const note = 'Thirty-degree incline. Four-second eccentric. Keep feet farther forward.'
+  await page.getByLabel('Competition Bench Press movement notebook').locator('summary').click()
   const noteField = page.getByLabel('Competition Bench Press workout note')
   await noteField.fill(note)
   await expect(noteField).toHaveValue(note)
@@ -434,14 +439,14 @@ test('honors minimal and off survey preferences without inventing answers', asyn
   await page.getByLabel('Post-session feedback mode').selectOption('off')
   await page.getByRole('button', { name: 'Today' }).click()
   await page.getByRole('button', { name: 'Minimal check-in & start' }).click()
-  await expect(page.getByRole('heading', { name: 'Minimal readiness check' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Minimal check-in' })).toBeVisible()
   await expect(page.locator('.survey-question')).toHaveCount(3)
   if (testInfo.project.name === 'mobile-chromium') await page.screenshot({ path: 'output/playwright/minimal-readiness-mobile.png', fullPage: true })
   await page.locator('.survey-question').first().getByRole('button', { name: 'Not sure' }).click()
   await page.getByRole('button', { name: 'Any soreness, aches, or pain affecting movement?: 0' }).click()
   await page.getByLabel('How many minutes do you actually have?').fill('45')
   await page.getByRole('button', { name: 'Use my check-in' }).click()
-  await expect(page.getByText('low survey confidence')).toBeVisible()
+  await expect(page.getByText('Few check-in answers')).toBeVisible()
   await expect(page.getByText('45 minute version')).toBeVisible()
   await page.getByRole('button', { name: 'Log set' }).first().click()
   await page.getByRole('button', { name: 'Finish workout' }).click()
@@ -510,7 +515,7 @@ test('shows calendar-quarter progress, exact movement mix, and honest priority a
   page.on('pageerror', (error) => browserErrors.push(error.message))
   await enterRecommendedProfile(page)
   await page.getByRole('button', { name: 'Progress' }).click()
-  await page.getByRole('button', { name: 'Qtr' }).click()
+  await page.getByLabel('More progress ranges').selectOption('quarter')
   await expect(page.getByRole('heading', { name: 'Monthly volume load' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'What filled this window' })).toBeVisible()
   await openPanel(page, 'the movement mix')
@@ -519,7 +524,8 @@ test('shows calendar-quarter progress, exact movement mix, and honest priority a
   await expect(page.getByText('share of selected-period volume load, not share of hypertrophy stimulus or enjoyment', { exact: false })).toBeVisible()
   await openPanel(page, 'the plan comparison')
   await expect(page.getByText('neither one treats a light period as debt to make up', { exact: false })).toBeVisible()
-  await expect(page.locator('.progress-range button')).toHaveCount(7)
+  await expect(page.locator('.progress-range button')).toHaveCount(3)
+  await expect(page.getByLabel('More progress ranges')).toHaveValue('quarter')
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
   if (testInfo.project.name === 'mobile-chromium') await page.screenshot({ path: 'output/playwright/quarter-movement-mix-mobile.png', fullPage: true })
@@ -708,7 +714,7 @@ test('shows transparent individual muscle dose with overlap-safe area rollups an
   page.on('pageerror', (error) => browserErrors.push(error.message))
   await enterRecommendedProfile(page)
   await page.getByRole('button', { name: 'Progress' }).click()
-  await page.getByRole('button', { name: 'All time' }).click()
+  await page.getByLabel('More progress ranges').selectOption('all')
   await expect(page.getByRole('heading', { name: 'Direct work and assisting work' })).toBeVisible()
   await openPanel(page, 'muscle by muscle')
   await expect(page.getByText('These rows do not add up to a single total', { exact: false })).toBeVisible()
@@ -1671,21 +1677,21 @@ test('shows an earned athlete form and level that trace back to completed work',
   await enterRecommendedProfile(page)
   await page.getByRole('button', { name: 'You', exact: true }).click()
 
-  const levelPanel = page.getByLabel('Athlete level and form')
+  const levelPanel = page.getByLabel('ForgePath journal level and visual form')
   await expect(levelPanel).toBeVisible()
-  await expect(levelPanel).toContainText(/Level \d+ ·/)
+  await expect(levelPanel).toContainText(/Forge level \d+ ·/)
   // Points are only ever earned from work that happened, so the breakdown must be present.
   await expect(levelPanel.locator('.athlete-level__sources li').first()).toBeVisible()
-  await expect(levelPanel).toContainText('never fall and cannot be bought')
+  await expect(levelPanel).toContainText('not how experienced or capable you are')
 
   // The avatar carries the same level beside its head, and the form matches the level reached.
   const heroAvatar = page.locator('.profile-hero .pixel-avatar')
-  const levelText = String(await levelPanel.textContent()).match(/Level (\d+)/)?.[1]
-  await expect(heroAvatar.locator('.pixel-avatar__level')).toHaveText(`LV${levelText}`)
-  await expect(heroAvatar).toHaveAttribute('aria-label', new RegExp(`level ${levelText}`))
+  const levelText = String(await levelPanel.textContent()).match(/Forge level (\d+)/)?.[1]
+  await expect(heroAvatar.locator('.pixel-avatar__level')).toHaveText(`FL${levelText}`)
+  await expect(heroAvatar).toHaveAttribute('aria-label', new RegExp(`Forge level ${levelText}`))
   const form = String(await heroAvatar.getAttribute('class')).match(/pixel-avatar--(apprentice|forged|champion|apex)/)?.[1]
   expect(['apprentice', 'forged', 'champion', 'apex']).toContain(form)
-  await expect(levelPanel).toContainText(new RegExp(form!, 'i'))
+  await expect(levelPanel).toContainText(/Uncharted|Established|Well mapped|Long record/)
 
   expect(browserErrors).toEqual([])
 })
