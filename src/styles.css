@@ -1176,7 +1176,7 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .decision-info strong { margin-top: 6px; text-transform: capitalize; }
 .decision-info > p { grid-column: 1 / -1; }
 .set-table { padding: 10px 16px 15px; }
-.set-table__head, .set-row { display: grid; grid-template-columns: 48px 1fr .75fr .7fr 96px; gap: 8px; align-items: center; }
+.set-table__head, .set-row { display: grid; grid-template-columns: 48px 1fr .75fr .7fr 132px; gap: 8px; align-items: center; }
 .set-table__head { min-height: 34px; color: var(--dim); font: 700 .6rem/1 ui-monospace, monospace; text-transform: uppercase; }
 .set-row { min-height: 53px; border-top: 1px solid var(--line); }
 .set-row.completed { background: rgb(231 255 88 / 3%); }
@@ -1186,6 +1186,16 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .set-row label small { position: absolute; right: 7px; top: 12px; font-size: .55rem; }
 .complete-set { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 36px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-3); font-size: .68rem; font-weight: 760; }
 .complete-set[aria-pressed="true"] { border-color: var(--lime); background: var(--lime); color: #11140d; }
+.set-actions { display: flex; align-items: center; gap: 4px; }
+.set-actions .complete-set { flex: 1; }
+.skip-set { display: flex; align-items: center; justify-content: center; min-height: 36px; min-width: 30px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); }
+.skip-set--on { border-color: var(--blue); color: var(--blue); }
+.set-row:has(.skip-set--on) { opacity: .55; }
+.finish-review section { margin-bottom: 16px; }
+.finish-review h3 { margin: 0 0 4px; font-size: .82rem; }
+.finish-review p { margin: 0 0 8px; color: var(--muted); font-size: .74rem; line-height: 1.5; }
+.finish-review ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: .72rem; line-height: 1.7; }
+.finish-review__actions { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
 .pr-opportunity { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-top: 1px solid rgb(231 255 88 / 18%); background: rgb(231 255 88 / 5%); color: var(--muted); font-size: .68rem; }
 .pr-opportunity svg { flex: none; color: var(--lime); }
 .pr-opportunity strong { color: var(--text); }
@@ -2032,9 +2042,11 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .exercise-actions { grid-column: auto; }
   .exercise-actions button { justify-content: center; width: 44px; height: 44px; padding: 0; font-size: 0; }
   .set-table { padding: 7px 8px 12px; overflow: visible; }
-  .set-table__head, .set-row { min-width: 0; grid-template-columns: 26px minmax(100px, 1.45fr) minmax(54px, .72fr) minmax(54px, .72fr) 44px; gap: 5px; }
+  .set-table__head, .set-row { min-width: 0; grid-template-columns: 22px minmax(76px, 1.25fr) minmax(46px, .66fr) minmax(46px, .66fr) 78px; gap: 4px; }
   .set-row label, .set-row input, .set-row select { min-width: 0; width: 100%; }
   .complete-set { width: 44px; padding: 0; font-size: 0; }
+  .set-actions { gap: 3px; }
+  .skip-set { width: 30px; min-width: 30px; }
   .workout-footer { padding: 8px 16px; }
   .training-calendar { overflow-x: auto; }
   .calendar-weekdays, .calendar-grid { min-width: 340px; }

@@ -104,6 +104,7 @@ interface AppState {
   updateBenchAnglePlan: (sessionId: string, plannedExerciseId: string, angles: Array<number | undefined>) => void
   updateMovementNote: (sessionId: string, plannedExerciseId: string, body: string) => void
   toggleSetComplete: (sessionId: string, plannedExerciseId: string, setId: string) => void
+  skipSet: (sessionId: string, plannedExerciseId: string, setId: string, skipped: boolean) => void
   setSessionClockRunning: (sessionId: string, running: boolean) => void
   setPlacementWarmup: (sessionId: string, response: Exclude<PlacementWarmupResponse, 'not-answered'>) => void
   resolvePlacementRecovery: (eventId: string, response: Exclude<PlacementRecoveryResponse, 'pending'>) => void
@@ -410,7 +411,9 @@ export const useAppStore = create<AppState>()(
               ...workSet,
               completedReps: data.reps ?? workSet.completedReps,
               completedLoad: data.load ?? workSet.completedLoad,
-              actualRir: data.rir ?? workSet.actualRir
+              actualRir: data.rir ?? workSet.actualRir,
+              // Only the athlete typing a number counts as entered. Completing a set never sets this.
+              valuesEntered: workSet.valuesEntered || data.reps !== undefined || data.load !== undefined || data.rir !== undefined
             }, data.benchAngleDeg === null ? undefined : data.benchAngleDeg ?? workSet.benchAngleDeg) : workSet)
           })
         })
@@ -455,6 +458,7 @@ export const useAppStore = create<AppState>()(
             sets: exercise.sets.map((candidateSet) => candidateSet.id === setId ? {
               ...candidateSet,
               completed: !candidateSet.completed,
+              skipped: candidateSet.completed ? candidateSet.skipped : false,
               completedReps: candidateSet.completedReps ?? candidateSet.targetReps,
               completedLoad: candidateSet.completedLoad ?? candidateSet.targetLoad,
               actualRir: candidateSet.actualRir ?? candidateSet.targetRir
@@ -462,6 +466,17 @@ export const useAppStore = create<AppState>()(
           })
         }) }
       }),
+      // Deliberately skipping a set is an athlete decision worth keeping. Simply leaving a set
+      // unfinished is not a skip and records nothing.
+      skipSet: (sessionId, plannedExerciseId, setId, skipped) => set((state) => ({
+        sessions: state.sessions.map((session) => session.id !== sessionId ? session : {
+          ...session,
+          exercises: session.exercises.map((exercise) => exercise.id !== plannedExerciseId ? exercise : {
+            ...exercise,
+            sets: exercise.sets.map((workSet) => workSet.id !== setId ? workSet : { ...workSet, skipped, completed: skipped ? false : workSet.completed })
+          })
+        })
+      })),
       setPlacementWarmup: (sessionId, response) => set((state) => ({
         placementVerifications: state.placementVerifications.map((event) => event.sessionId === sessionId && event.placementCreatedAt === state.athlete.placement.createdAt
           ? recordPlacementWarmup(event, response, new Date().toISOString())
@@ -615,6 +630,9 @@ export const useAppStore = create<AppState>()(
             primaryRegion: exercise.primaryRegion, completedAt, reps: workSet.completedReps ?? workSet.targetReps,
             load: workSet.completedLoad ?? workSet.targetLoad, rir: workSet.actualRir ?? workSet.targetRir,
             technique, pain, qualityConfirmed, setIndex, plannedExerciseId: plannedExercise.id, benchAngleDeg: workSet.benchAngleDeg,
+            // A set completed without the athlete typing anything keeps the planned numbers, but it is
+            // recorded as not entered so records and progression never treat it as measured work.
+            numbersEntered: workSet.valuesEntered === true,
             athleteAdded: workSet.athleteAdded || plannedExercise.athleteAdded ? true : undefined,
             grouping: workSet.grouping,
             originalExerciseId: original?.id, originalExerciseName: original?.name, originalFamily: original?.family,

@@ -29,7 +29,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, equipmentProfiles, history, surveys, movementNotes, settings, placementVerifications, updateSet, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, setPlacementWarmup, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
+  const { sessions, exercises, equipmentProfiles, history, surveys, movementNotes, settings, placementVerifications, updateSet, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, skipSet, setPlacementWarmup, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
@@ -40,6 +40,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const [cancelledPlacementName, setCancelledPlacementName] = useState<string | null>(null)
   const [finishOpen, setFinishOpen] = useState(false)
   const [finishChooserOpen, setFinishChooserOpen] = useState(false)
+  const [finishReviewOpen, setFinishReviewOpen] = useState(false)
   const [activePostMode, setActivePostMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
   const [clockNow, setClockNow] = useState(() => Date.now())
   const [decisionInfo, setDecisionInfo] = useState<{ name: string; title: string; action: ProgressionAction; confidence: EvidenceConfidence; explanation: string; reasons: string[]; sourceSets: number; unknownInputs: string[]; athleteAddedExcluded: number } | null>(null)
@@ -187,7 +188,21 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     setFinishChooserOpen(false)
   }
 
+  // What the athlete would leave behind by finishing now. Sets they deliberately skipped are a
+  // decision, not a gap, so they are listed separately and never treated as a mistake.
+  const allSets = session.exercises.flatMap((planned) => planned.sets.map((workSet) => ({ planned, workSet })))
+  const unloggedSets = allSets.filter(({ workSet }) => !workSet.completed && !workSet.skipped)
+  const assumedSets = allSets.filter(({ workSet }) => workSet.completed && workSet.valuesEntered !== true)
+  const skippedSets = allSets.filter(({ workSet }) => workSet.skipped)
+  const needsReview = unloggedSets.length > 0 || assumedSets.length > 0
+  const nameFor = (exerciseId: string) => exercises.find((item) => item.id === exerciseId)?.name ?? 'this movement'
+
   const openFinishFlow = () => {
+    if (needsReview) return setFinishReviewOpen(true)
+    return startFinishFlow()
+  }
+
+  const startFinishFlow = () => {
     if (settings.postSurveyMode === 'off') return finishWithoutSurvey('off')
     if (settings.postSurveyMode === 'ask') return setFinishChooserOpen(true)
     setActivePostMode(settings.postSurveyMode)
@@ -420,7 +435,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                       <label><span className="sr-only">Set {index + 1} load</span><NumberField disabled={!equipmentFit.available} inputMode="decimal" step={loadIncrementFor(exercise, activeEquipmentProfile).value} placeholder={loadUnknown ? 'Your call' : undefined} value={loadUnknown ? null : workSet.completedLoad ?? workSet.targetLoad} onCommit={(load) => updateSet(session.id, planned.id, workSet.id, { load })} /><small>{settings.units}</small></label>
                       <label><span className="sr-only">Set {index + 1} repetitions</span><NumberField disabled={!equipmentFit.available} inputMode="numeric" value={workSet.completedReps ?? workSet.targetReps} onCommit={(reps) => updateSet(session.id, planned.id, workSet.id, { reps })} /></label>
                       <label><span className="sr-only">Set {index + 1} {effort.label === 'RPE' ? 'rate of perceived exertion' : 'repetitions in reserve'}</span><select disabled={!equipmentFit.available} value={effort.value} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { rir: effort.metric === 'rpe' ? rpeToRir(Number(event.target.value)) : Number(event.target.value) })}>{effort.options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
-                      <button className="complete-set" disabled={!equipmentFit.available && !workSet.completed} onClick={() => logSet(planned.id, workSet.id, workSet.completed)} aria-pressed={workSet.completed}>{workSet.completed ? <><Check size={18} /> Done</> : equipmentFit.available ? 'Log set' : 'Blocked'}</button>
+                      <div className="set-actions"><button className={`skip-set ${workSet.skipped ? 'skip-set--on' : ''}`} onClick={() => skipSet(session.id, planned.id, workSet.id, !workSet.skipped)} aria-pressed={Boolean(workSet.skipped)} aria-label={workSet.skipped ? `Set ${index + 1} skipped, undo` : `Skip set ${index + 1}`} title={workSet.skipped ? 'Skipped. Tap to undo.' : 'Skip this set'}><SkipForward size={16} /></button><button className="complete-set" disabled={!equipmentFit.available && !workSet.completed} onClick={() => logSet(planned.id, workSet.id, workSet.completed)} aria-pressed={workSet.completed}>{workSet.completed ? <><Check size={18} /> Done</> : equipmentFit.available ? 'Log set' : 'Blocked'}</button></div>
                     </div>
                     )
                   })}
@@ -579,6 +594,34 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
           setFinishOpen(false)
         }}
       />}
+      <Modal
+        open={finishReviewOpen}
+        onClose={() => setFinishReviewOpen(false)}
+        title="Before you finish"
+        description="Nothing here is a mistake. This is just what today's workout will save."
+      >
+        <div className="finish-review">
+          {unloggedSets.length > 0 && <section>
+            <h3>{unloggedSets.length} set{unloggedSets.length === 1 ? '' : 's'} not logged</h3>
+            <p>These will not be saved as training. If you did them, go back and log them.</p>
+            <ul>{unloggedSets.slice(0, 6).map(({ planned, workSet }, index) => <li key={workSet.id}>{nameFor(planned.exerciseId)} · set {planned.sets.indexOf(workSet) + 1}{index === 5 && unloggedSets.length > 6 ? ` and ${unloggedSets.length - 6} more` : ''}</li>)}</ul>
+          </section>}
+          {assumedSets.length > 0 && <section>
+            <h3>{assumedSets.length} set{assumedSets.length === 1 ? '' : 's'} without your numbers</h3>
+            <p>You marked these done without entering weight or reps. They will be saved with the planned numbers and kept out of your records, because ForgePath will not claim you lifted something you did not enter.</p>
+            <ul>{assumedSets.slice(0, 6).map(({ planned, workSet }) => <li key={workSet.id}>{nameFor(planned.exerciseId)} · set {planned.sets.indexOf(workSet) + 1} · planned {workSet.targetLoad} {settings.units} × {workSet.targetReps}</li>)}</ul>
+          </section>}
+          {skippedSets.length > 0 && <section>
+            <h3>{skippedSets.length} set{skippedSets.length === 1 ? '' : 's'} you skipped</h3>
+            <p>Saved as a decision you made. Nothing is owed and nothing is held against you.</p>
+          </section>}
+        </div>
+        <div className="finish-review__actions">
+          <button className="button button--primary" onClick={() => setFinishReviewOpen(false)}>Go back and fill them in</button>
+          <button className="button button--secondary" onClick={() => { setFinishReviewOpen(false); startFinishFlow() }}>Finish anyway</button>
+        </div>
+      </Modal>
+
       <SurveyModeChooser open={finishChooserOpen} cadence="post" onClose={() => setFinishChooserOpen(false)} onChoose={(mode) => { setActivePostMode(mode); setFinishChooserOpen(false); setFinishOpen(true) }} onSkip={() => finishWithoutSurvey('off')} />
     </div>
   )

@@ -44,7 +44,11 @@ const record = (input: Omit<PersonalRecord, 'scope' | 'ruleVersion'>): PersonalR
   ruleVersion: recordRuleVersion
 })
 
-export function derivePersonalRecords(history: CompletedSetRecord[]): PersonalRecord[] {
+export function derivePersonalRecords(entireHistory: CompletedSetRecord[]): PersonalRecord[] {
+  // A set the athlete never entered numbers for keeps its planned values as a record of the session,
+  // but it must never become a personal record, in any scope. Sets saved before version 26 carry no
+  // flag and stay trusted, so existing records are never rewritten.
+  const history = entireHistory.filter((workSet) => workSet.numbersEntered !== false)
   const byExercise = new Map<string, CompletedSetRecord[]>()
   history.forEach((workSet) => {
     const key = `${workSet.exerciseId}::${benchAngleKey(workSet)}`

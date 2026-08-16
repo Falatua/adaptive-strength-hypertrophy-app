@@ -1,5 +1,14 @@
 import { expect, test } from '@playwright/test'
 
+// Finishing now surfaces a review whenever work is unlogged or missing the athlete's numbers.
+// These journeys deliberately leave work unlogged, so they acknowledge the review and continue.
+async function finishWorkout(page: import('@playwright/test').Page, name: RegExp | string = 'Finish workout') {
+  await page.getByRole('button', { name }).click()
+  const confirm = page.getByRole('button', { name: 'Finish anyway' })
+  if (await confirm.isVisible().catch(() => false)) await confirm.click()
+}
+
+
 test('tracks an incline angle ladder without mixing setup-specific progress', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
@@ -32,8 +41,8 @@ test('tracks an incline angle ladder without mixing setup-specific progress', as
   for (let remaining = await incline.getByRole('button', { name: 'Log set' }).count(); remaining > 0; remaining = await incline.getByRole('button', { name: 'Log set' }).count()) {
     await incline.getByRole('button', { name: 'Log set' }).first().click()
   }
-  await page.getByRole('button', { name: 'Finish workout' }).click()
-  await page.getByRole('button', { name: 'Finish workout without survey' }).click()
+  await finishWorkout(page)
+  await finishWorkout(page, 'Finish workout without survey')
   await page.getByRole('button', { name: 'Library', exact: true }).click()
   await page.getByPlaceholder('Search a movement or its other names...').fill('Incline Dumbbell Press')
   await page.getByRole('button', { name: 'View details for Incline Dumbbell Press' }).click()

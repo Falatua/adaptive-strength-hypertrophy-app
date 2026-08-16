@@ -343,6 +343,10 @@ export interface SetPrescription {
   completedLoad?: number
   actualRir?: number
   completed: boolean
+  /** True only when the athlete typed a value. Undefined on sets saved before version 26. */
+  valuesEntered?: boolean
+  /** True when the athlete deliberately skipped this set. Simply not finishing a set is not a skip. */
+  skipped?: boolean
   athleteAdded?: boolean
   grouping?: SetGrouping
   /** Optional back-pad angle. Undefined means it was not tracked. */
@@ -531,6 +535,8 @@ export interface CompletedSetRecord {
   originalFamily?: string
   originalPrimaryRegion?: BodyRegion
   rirKnown?: boolean
+  /** False when the set was completed without the athlete entering its numbers. Undefined predates version 26. */
+  numbersEntered?: boolean
   importBatchId?: string
   importRow?: number
   importSourceName?: string

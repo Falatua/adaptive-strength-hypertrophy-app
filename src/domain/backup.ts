@@ -32,7 +32,7 @@ import { missedOpportunityEventError } from './schedule-adaptation-engine'
 import { movementNoteError } from './movement-note-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 25
+export const BACKUP_SCHEMA_VERSION = 26
 export const BACKUP_APP_VERSION = '0.58.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
@@ -421,6 +421,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
     if (workSet.benchAngleDeg !== undefined && (!Number.isFinite(workSet.benchAngleDeg) || Number(workSet.benchAngleDeg) < 0 || Number(workSet.benchAngleDeg) > 90)) errors.push('A completed set has an invalid bench angle.')
     if (workSet.qualityConfirmed !== undefined && typeof workSet.qualityConfirmed !== 'boolean') errors.push('A completed set has an invalid quality-confirmation state.')
     if (workSet.rirKnown !== undefined && typeof workSet.rirKnown !== 'boolean') errors.push('A completed set has an invalid RIR missingness state.')
+    if (workSet.numbersEntered !== undefined && typeof workSet.numbersEntered !== 'boolean') errors.push('A completed set has an invalid entered-numbers state.')
     const hasImportMetadata = ['importBatchId', 'importRow', 'importSourceName', 'importFingerprint', 'importUnits'].some((key) => workSet[key] !== undefined)
     if (hasImportMetadata && (typeof workSet.importBatchId !== 'string' || !Number.isInteger(workSet.importRow) || Number(workSet.importRow) < 2 || typeof workSet.importSourceName !== 'string' || typeof workSet.importFingerprint !== 'string' || !['lb', 'kg'].includes(String(workSet.importUnits)))) errors.push('An imported completed set has incomplete source provenance.')
   })
@@ -970,6 +971,18 @@ function migrateV23(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV25(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  validateState(candidate.data, true)
+  return {
+    data: candidate.data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 25 backup migrated safely. Sets recorded before this version stay trusted as entered, and the entered-numbers distinction begins with new work.'
+  }
+}
+
 function migrateV24(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
   if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
@@ -1092,6 +1105,10 @@ export function parseBackup(raw: string): BackupPreview {
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 24) {
     const migrated = migrateV24(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 25) {
+    const migrated = migrateV25(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {

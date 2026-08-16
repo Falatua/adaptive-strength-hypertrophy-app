@@ -1,6 +1,15 @@
 import { expect, test, type Page } from '@playwright/test'
 import { history as establishedHistory, mesocycles as establishedMesocycles, records as establishedRecords, sessions as establishedSessions } from '../../src/domain/seed'
 
+// Finishing now surfaces a review whenever work is unlogged or missing the athlete's numbers.
+// These journeys deliberately leave work unlogged, so they acknowledge the review and continue.
+async function finishWorkout(page: import('@playwright/test').Page, name: RegExp | string = 'Finish workout') {
+  await page.getByRole('button', { name }).click()
+  const confirm = page.getByRole('button', { name: 'Finish anyway' })
+  if (await confirm.isVisible().catch(() => false)) await confirm.click()
+}
+
+
 async function enterRecommendedProfile(page: import('@playwright/test').Page) {
   await page.goto('/')
   await page.evaluate(() => localStorage.clear())
@@ -348,7 +357,7 @@ test('validates an athlete-controlled PR without changing the prescription', asy
   await page.getByRole('button', { name: 'Log set' }).first().click()
   await expect(page.getByText('Provisional until the workout is finished and saved.').first()).toBeVisible()
 
-  await page.getByRole('button', { name: 'Finish workout' }).click()
+  await finishWorkout(page)
   await page.getByRole('button', { name: /Full.*Complete session and trained-muscle feedback/ }).click()
   await page.getByRole('button', { name: 'How consistent was your technique?: 4' }).click()
   await page.getByRole('button', { name: 'Did any movement create joint pain or irritation?: 0' }).click()
@@ -412,8 +421,8 @@ test('explains a protected-primary substitution and preserves its outcome eviden
   if (testInfo.project.name === 'mobile-chromium') await page.screenshot({ path: 'output/playwright/primary-substitution-verification-cancel-mobile.png', fullPage: true })
   await page.getByLabel('Set 1 load').first().fill('40')
   await page.getByRole('button', { name: 'Log set' }).first().click()
-  await page.getByRole('button', { name: 'Finish workout' }).click()
-  await page.getByRole('button', { name: 'Finish workout without survey' }).click()
+  await finishWorkout(page)
+  await finishWorkout(page, 'Finish workout without survey')
   await page.getByRole('button', { name: 'Library' }).click()
   await expect(page.getByRole('heading', { name: 'Swaps you have made' })).toBeVisible()
   await expect(page.getByText('Competition Bench Press', { exact: false }).last()).toBeVisible()
@@ -449,7 +458,7 @@ test('honors minimal and off survey preferences without inventing answers', asyn
   await expect(page.getByText('Few check-in answers')).toBeVisible()
   await expect(page.getByText('45 minute version')).toBeVisible()
   await page.getByRole('button', { name: 'Log set' }).first().click()
-  await page.getByRole('button', { name: 'Finish workout' }).click()
+  await finishWorkout(page)
   await expect(page.getByRole('heading', { name: 'PRs and micro wins' })).toBeVisible()
   await page.getByRole('button', { name: 'You' }).click()
   await openPanel(page, 'survey preferences')
@@ -472,7 +481,7 @@ test('defers optional feedback without blocking training and replays quality evi
   await page.getByRole('button', { name: 'Start without check-in' }).click()
   await page.getByLabel('Set 1 load').first().fill('185')
   await page.getByRole('button', { name: 'Log set' }).first().click()
-  await page.getByRole('button', { name: 'Finish workout' }).click()
+  await finishWorkout(page)
   await page.getByRole('button', { name: /Minimal.*Difficulty, technique, and pain only/ }).click()
   await page.getByRole('button', { name: 'Remind me later' }).click()
   await expect(page.getByRole('heading', { name: 'PRs and micro wins' })).toBeVisible()
@@ -850,8 +859,8 @@ test('separates linked plan completion from completed history with no stored pla
   await enterRecommendedProfile(page)
   await page.getByRole('button', { name: 'Start without check-in' }).click()
   await page.getByRole('button', { name: 'Log set' }).first().click()
-  await page.getByRole('button', { name: 'Finish workout' }).click()
-  await page.getByRole('button', { name: 'Finish workout without survey' }).click()
+  await finishWorkout(page)
+  await finishWorkout(page, 'Finish workout without survey')
   await page.getByRole('button', { name: 'Progress' }).click()
 
   const dosePanel = page.locator('.dose-panel')
@@ -1233,7 +1242,7 @@ test('turns warm-up, first-set, session, and recovery evidence into an auditable
   await expect(page.getByText('Competition Bench Press starting check 1 of 3')).toBeVisible()
   await page.getByRole('button', { name: 'As expected' }).click()
   await expect(page.getByText('Answer saved')).toBeVisible()
-  await page.getByRole('button', { name: 'Finish workout' }).click()
+  await finishWorkout(page)
   await page.getByRole('button', { name: /Full.*Complete session and trained-muscle feedback/ }).click()
   await page.getByRole('button', { name: 'How difficult was the session overall?: 7' }).click()
   await page.getByRole('button', { name: 'How consistent was your technique?: 4' }).click()
@@ -1277,8 +1286,8 @@ test('requires placement review after painful productive verification without di
   await page.getByRole('button', { name: 'Painful' }).click()
   await expect(page.getByText('Answer saved')).toBeVisible()
   await expect(page.getByText('painful', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Finish workout' }).click()
-  await page.getByRole('button', { name: 'Finish workout without survey' }).click()
+  await finishWorkout(page)
+  await finishWorkout(page, 'Finish workout without survey')
   await page.getByRole('button', { name: 'Today' }).click()
   await expect(page.getByText('Workout start paused for your review')).toBeVisible()
   await expect(page.getByText('A placement verification recorded pain that changed what could be trained.', { exact: false })).toBeVisible()
@@ -1308,7 +1317,7 @@ test('turns repeated productive checks into an athlete-reviewed placement checkp
     await completeFirstMovementSets(page)
     await expect(page.getByText(new RegExp(`check ${sequence} of 3$`))).toBeVisible()
     await page.getByRole('button', { name: 'As expected' }).click()
-    await page.getByRole('button', { name: 'Finish workout' }).click()
+    await finishWorkout(page)
     await page.getByRole('button', { name: /Full.*Complete session and trained-muscle feedback/ }).click()
     await page.getByRole('button', { name: 'How difficult was the session overall?: 7' }).click()
     await page.getByRole('button', { name: 'How consistent was your technique?: 4' }).click()
@@ -1388,7 +1397,7 @@ test('keeps productive checkpoints independent per exact movement and saves the 
     await completeFirstMovementSets(page)
     await expect(page.getByText(`Competition Bench Press starting check ${sequence} of 3`)).toBeVisible()
     await page.getByRole('button', { name: 'As expected' }).click()
-    await page.getByRole('button', { name: 'Finish workout' }).click()
+    await finishWorkout(page)
     await page.getByRole('button', { name: /Full.*Complete session and trained-muscle feedback/ }).click()
     await page.getByRole('button', { name: 'How difficult was the session overall?: 7' }).click()
     await page.getByRole('button', { name: 'How consistent was your technique?: 4' }).click()
@@ -1481,8 +1490,8 @@ test('lets the athlete add sets and movements on a good day without rewriting th
     await logSets.first().click()
   }
   await expect(footer).toContainText('13 of 13 sets complete.')
-  await page.getByRole('button', { name: 'Finish workout' }).click()
-  await page.getByRole('button', { name: 'Finish workout without survey' }).click()
+  await finishWorkout(page)
+  await finishWorkout(page, 'Finish workout without survey')
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
   const history = persisted.state.history as Array<{ exerciseName: string; athleteAdded?: boolean }>
@@ -1575,8 +1584,8 @@ test('performs accessory volume as drop sets and supersets while protecting the 
   for (let remaining = await logSets.count(); remaining > 0; remaining = await logSets.count()) {
     await logSets.first().click()
   }
-  await page.getByRole('button', { name: 'Finish workout' }).click()
-  await page.getByRole('button', { name: 'Finish workout without survey' }).click()
+  await finishWorkout(page)
+  await finishWorkout(page, 'Finish workout without survey')
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
   const history = persisted.state.history as Array<{ exerciseName: string; grouping?: { groupKind: string; groupRole: string; groupId: string } }>
@@ -1640,7 +1649,7 @@ test('turns session feedback into next week volume rather than storing it unused
   for (let remaining = await logSets.count(); remaining > 0; remaining = await logSets.count()) {
     await logSets.first().click()
   }
-  await page.getByRole('button', { name: 'Finish workout' }).click()
+  await finishWorkout(page)
   await page.getByRole('button', { name: /Full.*Complete session and trained-muscle feedback/ }).click()
   // Pump and stimulus are asked per trained muscle, which is what the volume decision reads.
   const perMuscle = page.getByRole('button', { name: /How strong was the pump in your/ })
@@ -1694,4 +1703,26 @@ test('shows an earned athlete form and level that trace back to completed work',
   await expect(levelPanel).toContainText(/Uncharted|Established|Well mapped|Long record/)
 
   expect(browserErrors).toEqual([])
+})
+
+test('warns before finishing with unlogged work and records a deliberate skip', async ({ page }) => {
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Today' }).click()
+  await page.getByRole('button', { name: /Start/ }).first().click()
+
+  // A deliberate skip is the athlete's decision and is kept as one.
+  await page.getByRole('button', { name: 'Skip set 3' }).click()
+  await expect(page.getByRole('button', { name: 'Set 3 skipped, undo' })).toBeVisible()
+
+  await page.getByRole('button', { name: /Finish workout/ }).click()
+  await expect(page.getByRole('heading', { name: 'Before you finish' })).toBeVisible()
+  await expect(page.getByText(/sets? not logged/)).toBeVisible()
+  await expect(page.getByText(/set you skipped|sets you skipped/)).toBeVisible()
+
+  // Nothing is forced: the athlete can go back, or finish and keep what they did.
+  await page.getByRole('button', { name: 'Go back and fill them in' }).click()
+  await expect(page.getByRole('heading', { name: 'Before you finish' })).toBeHidden()
+  await page.getByRole('button', { name: /Finish workout/ }).click()
+  await page.getByRole('button', { name: 'Finish anyway' }).click()
+  await expect(page.getByRole('heading', { name: 'Before you finish' })).toBeHidden()
 })
