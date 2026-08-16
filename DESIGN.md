@@ -2,7 +2,8 @@
 schemaVersion: 3
 product: ForgePath
 avatarProgression:
-  forms: [Apprentice, Forged, Champion, Apex]
+  journalForms: [Uncharted, Established, Well mapped, Long record]
+  assetForms: [apprentice, forged, champion, apex]
   marks: "Original angular Forge Marks increase at every form. They are invented geometry, not copied cultural tattoo language."
 northStar: The Pocket Training Field Guide
 tokens:
@@ -75,6 +76,7 @@ Avoid stacking multiple floating glass panels. Use blur only for persistent navi
 - Primary action: progress-lime fill, dark text, one-pixel lime border, four-pixel hard offset shadow, minimum 44-pixel target.
 - Secondary action: raised-panel fill, bone-text, one-pixel trail-line, no competing accent.
 - Navigation selection: filled progress-lime on desktop or a contained lime state on mobile, always paired with `aria-current`.
+- Forge glyph: original 16, 20, or 24-pixel SVG geometry for destinations, training states, body regions, and movement patterns. Standard safety and account controls may retain familiar labeled system icons.
 - Status chip: compact monospace label with icon and a written state, never color alone.
 - Evidence panel: field-panel or raised-panel, plain-language headline, source or rule label, and a next action only when one exists.
 - Training Field Guide: compact framed route, next-win, and evidence rows with one tactile selector that opens the full explanation.
@@ -83,6 +85,8 @@ Avoid stacking multiple floating glass panels. Use blur only for persistent navi
 - Modal: native dialog behavior, sticky header, visible close action, contained mobile width, and a single primary completion action.
 - Sound cue: original synthesized pocket-console feedback under 700 milliseconds, low-volume, meaningful rather than ambient, off by default, previewable, and always suppressed by quiet mode.
 - Loading moment: an original compact visual tied to a real wait state, with written status, a static reduced-motion fallback, no fake delay, and no effect on training logic.
+- Progressive disclosure: Today shows one dominant start path, Workout puts the current set before notes, Library collapses filters on compact screens, and Progress exposes three primary time ranges with the rest under More.
+- Forge level: describes recorded journal depth only. It must never rank athlete ability, training age, readiness, or identity.
 
 # Motion and Generated Visual Assets
 
@@ -103,6 +107,8 @@ Every animated state requires a still fallback under `prefers-reduced-motion`, a
 Do:
 
 - Keep the next useful training action obvious within one glance.
+- Put the current set controls immediately after the movement title and keep optional notes collapsed until requested.
+- Label movement art and exercise icons honestly as movement-family or pattern guidance when the visual is not exact to the variation.
 - Translate game inspiration into original interface craft, route language, and earned progress.
 - Show why a recommendation exists and what evidence it used.
 - Treat missed training as changed evidence, not failure or debt.
@@ -120,3 +126,4 @@ Don't:
 - Add decorative loading motion to fast local actions, hold a completed action for an animation, or require a live generation provider to use the app.
 - Shame irregular schedules, invent missing readiness, imply medical clearance, or rewrite history.
 - Make data labels pixel-styled, tiny, color-only, or dependent on hover.
+- Call an experienced athlete a novice because ForgePath has limited evidence.

@@ -96,10 +96,17 @@ Calibration is a permanent learning loop, not a one-time onboarding gate. Confid
 ## Exercise Preferences
 
 - Every movement has one programming preference: preferred, neutral, or avoid. The Library presents these as clear thumbs-up and thumbs-down controls with written labels.
+- Library body regions and movement patterns use original labeled ForgePath glyphs. A pattern or family icon is navigational guidance, not a claim that one generic drawing exactly depicts every exercise variation.
 - Preferred movements rank higher when ForgePath selects new secondary work, accessories, or substitutions. Preference never overrides pain, equipment availability, goal specificity, or completed-history truth.
 - Avoided movements are excluded from newly generated secondary work, accessories, and substitution recommendations.
 - Marking a current protected main lift as avoid does not silently remove or replace it. ForgePath keeps the current plan intact, explains the conflict, and waits for the athlete to approve a training-block revision.
 - Programming preference and joint response remain separate. "I do not like this" is not automatically recorded as pain, and an irritating joint response is not reduced to personal taste.
+
+## Forge Journal Progress
+
+- Forge levels and the Uncharted, Established, Well mapped, and Long record forms describe how much completed evidence this ForgePath journal has recorded.
+- Journal progress never labels the athlete as a beginner, novice, or apprentice and never overrides stated training age, movement skill, current readiness, or athlete judgment.
+- Points come only from completed work and source-backed records. They are a return-and-recall layer, not a skill score or compliance grade.
 
 ## Angle-Aware Incline Setups
 

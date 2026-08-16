@@ -203,7 +203,7 @@ export function MovementArt({ exercise, large }: { exercise: MovementArtSubject;
   const scene = movementSceneFor(exercise)
   return (
     <span className={`movement-art ${large ? 'movement-art--large ' : ''}movement-art--${scene}`}>
-      <svg viewBox="0 0 48 40" role="img" aria-label={`${sceneLabels[scene]} illustration`} focusable="false">{scenes[scene]}</svg>
+      <svg viewBox="0 0 48 40" role="img" aria-label={`${sceneLabels[scene]} movement-family illustration`} focusable="false">{scenes[scene]}</svg>
     </span>
   )
 }

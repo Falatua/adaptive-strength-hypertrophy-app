@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "product": "ForgePath",
   "northStar": "The Pocket Training Field Guide",
-  "generatedAt": "2026-08-10",
+  "generatedAt": "2026-08-13",
   "colors": {
     "nightTrail": { "value": "#0d0f0c", "role": "page background", "contrastWith": "boneText" },
     "fieldPanel": { "value": "#141712", "role": "primary surface", "contrastWith": "boneText" },
@@ -24,8 +24,8 @@
       "label": "ui-monospace, SFMono-Regular, Menlo, monospace"
     },
     "styles": {
-      "display": { "size": "clamp(2rem, 4vw, 3.65rem)", "weight": 800, "lineHeight": 1.04 },
-      "headline": { "size": "clamp(1.55rem, 3vw, 2.55rem)", "weight": 800, "lineHeight": 1.1 },
+      "display": { "size": "3.65rem", "compactSize": "2.35rem", "weight": 800, "lineHeight": 1.04 },
+      "headline": { "size": "2.55rem", "compactSize": "1.75rem", "weight": 800, "lineHeight": 1.1 },
       "title": { "size": "1.12rem", "weight": 760, "lineHeight": 1.22 },
       "body": { "size": "1rem", "weight": 400, "lineHeight": 1.62 },
       "label": { "size": "0.7rem", "weight": 700, "lineHeight": 1.35, "letterSpacing": "0.13em" }
@@ -63,6 +63,9 @@
     { "name": "QuestBubble", "anatomy": ["optional icon", "short coaching sentence"], "states": ["quiet", "celebratory"], "rule": "Every message must be supported by completed or current session evidence." },
     { "name": "DataInput", "anatomy": ["visible label", "native control", "optional help", "error"], "states": ["default", "focus-visible", "invalid", "disabled"], "rule": "Use familiar controls and never rely on placeholder text as the label." },
     { "name": "PrimaryNavigation", "anatomy": ["icon", "label", "current state"], "states": ["default", "hover", "current", "focus-visible"], "rule": "Desktop sidebar and mobile bottom navigation share the same five destinations." },
+    { "name": "ForgeGlyph", "anatomy": ["original geometry", "semantic accent", "accessible label from its control"], "states": ["default", "selected", "muted"], "rule": "Use the original glyph family for destinations, training states, body regions, and movement patterns; do not imply exact exercise anatomy from a family silhouette." },
+    { "name": "ForgeLevel", "anatomy": ["journal level", "journal form", "recorded-work sources"], "states": ["Uncharted", "Established", "Well mapped", "Long record"], "rule": "Describe ForgePath journal depth only, never athlete ability, experience, readiness, or rank." },
+    { "name": "ProgressiveDisclosure", "anatomy": ["primary task", "compact summary", "optional details"], "states": ["collapsed", "expanded"], "rule": "Keep the current training action first and collapse notes, secondary filters, and infrequent ranges until requested." },
     { "name": "Modal", "anatomy": ["header", "close", "body", "actions"], "states": ["closed", "open"], "rule": "Use native dialog behavior and keep the primary completion action explicit." },
     { "name": "SoundCue", "anatomy": ["semantic event", "original synthesized notes", "visual counterpart"], "states": ["silent default", "enabled", "quiet-mode suppressed", "unsupported browser fallback"], "rule": "Keep cues under 700 milliseconds, low-volume, optional, nonessential to comprehension, and independently ownable." },
     { "name": "LoadingMoment", "anatomy": ["written status", "original visual", "completion handoff", "static fallback"], "states": ["not needed", "real wait", "complete", "failed", "reduced motion"], "rule": "Use an optimized local asset for a real wait, never create fake delay, and keep the full task usable when media fails." }

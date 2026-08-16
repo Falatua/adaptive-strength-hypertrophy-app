@@ -17,10 +17,10 @@ export interface AthleteFormDefinition {
  * accumulated, so the art is a readout of training history rather than decoration.
  */
 export const athleteForms: AthleteFormDefinition[] = [
-  { form: 'apprentice', name: 'Apprentice', minimumLevel: 1, blurb: 'Learning the lifts and building the habit.' },
-  { form: 'forged', name: 'Forged', minimumLevel: 10, blurb: 'The work is consistent and the lifts are repeatable.' },
-  { form: 'champion', name: 'Champion', minimumLevel: 25, blurb: 'Heavy work is familiar and the record book is filling.' },
-  { form: 'apex', name: 'Apex', minimumLevel: 50, blurb: 'Years of accumulated work made visible.' }
+  { form: 'apprentice', name: 'Uncharted', minimumLevel: 1, blurb: 'ForgePath is beginning to map your completed work. Your experience outside this journal remains separate.' },
+  { form: 'forged', name: 'Established', minimumLevel: 10, blurb: 'Your journal now holds repeatable completed work and exact movement history.' },
+  { form: 'champion', name: 'Well mapped', minimumLevel: 25, blurb: 'Your journal spans many exact exposures and source-backed wins.' },
+  { form: 'apex', name: 'Long record', minimumLevel: 50, blurb: 'Years of completed work are visible in one durable training journal.' }
 ]
 
 export interface LevelSource {
