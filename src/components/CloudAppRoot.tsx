@@ -57,7 +57,7 @@ function PasswordField({ value, onChange, label = 'Password', autoComplete = 'cu
 }
 
 export function CloudAuth({ passwordMode, onPasswordComplete }: { passwordMode: CloudPasswordMode | null; onPasswordComplete: (user: User) => void }) {
-  const [mode, setMode] = useState<'signin' | 'forgot' | 'invite'>('signin')
+  const [mode, setMode] = useState<'signin' | 'forgot' | 'invite'>('invite')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
@@ -89,7 +89,7 @@ export function CloudAuth({ passwordMode, onPasswordComplete }: { passwordMode: 
     {error && <AuthError message={error} />}
   </AuthFrame>
 
-  return <AuthFrame title={mode === 'signin' ? 'Welcome back' : mode === 'forgot' ? 'Recover your account' : 'Finish your invitation'} detail={mode === 'signin' ? 'Sign in to ForgePath.' : mode === 'forgot' ? 'We will send a private recovery link if this email belongs to an account.' : 'Use the exact email that was invited. This cannot create a public account.'}>
+  return <AuthFrame title={mode === 'signin' ? 'Sign in with your password' : mode === 'forgot' ? 'Recover your account' : 'Welcome to ForgePath'} detail={mode === 'signin' ? 'For accounts that set a password. Most athletes just use the emailed link.' : mode === 'forgot' ? 'We will send a private recovery link if this email belongs to an account.' : 'Enter the email you were invited with and we will send you a link that signs you straight in. No password needed.'}>
     <label className="cloud-auth__field"><span>Email</span><span><Mail size={17} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></span></label>
     {mode === 'signin' && <PasswordField value={password} onChange={setPassword} />}
     <button className="button button--primary button--full" disabled={busy || !email.trim() || (mode === 'signin' && !password)} onClick={() => run(async () => {
@@ -99,14 +99,15 @@ export function CloudAuth({ passwordMode, onPasswordComplete }: { passwordMode: 
         setMessage('If that email belongs to a ForgePath account, a recovery link is on its way.')
       } else {
         await requestPrivateSignIn(email)
-        setMessage('If that email was invited, a secure setup link is on its way.')
+        setMessage('If that email was invited, a sign-in link is on its way. Open it on this device and you are in.')
       }
-    })}>{busy ? <LoaderCircle className="spin" size={17} /> : mode === 'signin' ? <LockKeyhole size={17} /> : <Mail size={17} />}{mode === 'signin' ? 'Sign in' : 'Send secure link'}</button>
+    })}>{busy ? <LoaderCircle className="spin" size={17} /> : mode === 'signin' ? <LockKeyhole size={17} /> : <Mail size={17} />}{mode === 'signin' ? 'Sign in' : mode === 'forgot' ? 'Send recovery link' : 'Email me a sign-in link'}</button>
     {message && <p className="cloud-auth__message" role="status">{message}</p>}
     {error && <AuthError message={error} />}
     <div className="cloud-auth__links">
-      {mode !== 'signin' && <button type="button" onClick={() => { setMode('signin'); setError(null); setMessage(null) }}>Back to sign in</button>}
-      {mode === 'signin' && <><button type="button" onClick={() => setMode('forgot')}>Forgot password?</button><button type="button" onClick={() => setMode('invite')}>I have an invitation</button></>}
+      {mode !== 'invite' && <button type="button" onClick={() => { setMode('invite'); setError(null); setMessage(null) }}>Use an emailed link instead</button>}
+      {mode === 'invite' && <button type="button" onClick={() => { setMode('signin'); setError(null); setMessage(null) }}>I have a password</button>}
+      {mode === 'signin' && <button type="button" onClick={() => { setMode('forgot'); setError(null); setMessage(null) }}>Forgot password?</button>}
     </div>
   </AuthFrame>
 }

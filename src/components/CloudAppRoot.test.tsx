@@ -35,9 +35,10 @@ describe('cloud account gate', () => {
 
   afterEach(cleanup)
 
-  it('keeps first-time invite sessions in setup and recovery sessions in recovery', () => {
+  it('opens the app straight from a verified invite and only asks for a password on recovery', () => {
     expect(passwordModeFor(null, false)).toBeNull()
-    expect(passwordModeFor(session(false), false)).toBe('setup')
+    // A verified invite link is proof enough. No password step stands between the athlete and training.
+    expect(passwordModeFor(session(false), false)).toBeNull()
     expect(passwordModeFor(session(true), false)).toBeNull()
     expect(passwordModeFor(session(true), true)).toBe('recovery')
   })
@@ -69,9 +70,8 @@ describe('cloud account gate', () => {
 
   it('keeps invitation email links non-signup and recovery messages account-neutral', async () => {
     render(<CloudAuth passwordMode={null} onPasswordComplete={vi.fn()} />)
-    fireEvent.click(screen.getByRole('button', { name: 'I have an invitation' }))
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: ' Athlete@Example.com ' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Send secure link' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Email me a sign-in link' }))
 
     await waitFor(() => expect(authMocks.requestPrivateSignIn).toHaveBeenCalledWith('Athlete@Example.com'))
     expect(screen.getByRole('status')).toHaveTextContent(/If that email was invited/i)
