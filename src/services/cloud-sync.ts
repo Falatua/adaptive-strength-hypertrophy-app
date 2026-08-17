@@ -242,10 +242,22 @@ export function parseCloudSnapshotRow(data: {
   schema_version: unknown
   app_version: unknown
 }): CloudSnapshot {
+  // The projection columns describe the payload as it was stored, so they must be compared with the
+  // stored envelope, not with the result of migrating it forward. Comparing against the migrated copy
+  // rejected every snapshot written before the current schema, which locks an athlete out of their own
+  // data the moment the schema moves. parseBackup still verifies the payload's own integrity.
+  const stored = data.payload as Record<string, unknown> | null
+  const storedEnvelope = stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : null
+  const storedIntegrity = storedEnvelope && typeof storedEnvelope.integrity === 'object' && storedEnvelope.integrity !== null
+    ? (storedEnvelope.integrity as Record<string, unknown>)
+    : null
+  const storedChecksum = String(storedIntegrity?.value ?? '')
+  const storedSchemaVersion = Number(storedEnvelope?.schemaVersion)
+  const storedAppVersion = String(storedEnvelope?.appVersion ?? '')
   const preview = parseBackup(JSON.stringify(data.payload))
-  if (String(data.checksum ?? '') !== preview.backup.integrity.value) throw new Error('The cloud copy checksum does not match its verified backup.')
-  if (Number(data.schema_version) !== preview.backup.schemaVersion) throw new Error('The cloud copy schema metadata does not match its verified backup.')
-  if (String(data.app_version ?? '') !== preview.backup.appVersion) throw new Error('The cloud copy app metadata does not match its verified backup.')
+  if (String(data.checksum ?? '') !== storedChecksum) throw new Error('The cloud copy checksum does not match its verified backup.')
+  if (Number(data.schema_version) !== storedSchemaVersion) throw new Error('The cloud copy schema metadata does not match its verified backup.')
+  if (String(data.app_version ?? '') !== storedAppVersion) throw new Error('The cloud copy app metadata does not match its verified backup.')
   const serverVersion = Number(data.version)
   if (!Number.isSafeInteger(serverVersion) || serverVersion < 1) throw new Error('The cloud copy has an invalid version.')
   const updatedAt = String(data.updated_at)

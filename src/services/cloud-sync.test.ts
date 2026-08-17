@@ -309,6 +309,37 @@ describe('reviewed cloud restore', () => {
     expect(parseCloudSnapshotRow(row).backup.integrity.value).toBe(backup.integrity.value)
   })
 
+  it('loads a snapshot written before the current schema, which is what the live accounts hold', () => {
+    const backup = createBackup(state(), '2026-08-13T12:00:00.000Z')
+    // Integrity covers the data, not the envelope, so this is byte-for-byte how a row saved by the
+    // previous schema still sits in Postgres today.
+    const storedEarlier = { ...JSON.parse(JSON.stringify(backup)), schemaVersion: backup.schemaVersion - 1 }
+    const row = {
+      payload: storedEarlier as Json,
+      version: 19,
+      updated_at: '2026-08-16T01:02:21.480Z',
+      checksum: backup.integrity.value,
+      schema_version: backup.schemaVersion - 1,
+      app_version: backup.appVersion
+    }
+    const snapshot = parseCloudSnapshotRow(row)
+    expect(snapshot.serverVersion).toBe(19)
+    expect(snapshot.backup.schemaVersion).toBe(backup.schemaVersion)
+  })
+
+  it('refuses a snapshot written by a newer schema rather than silently downgrading it', () => {
+    const backup = createBackup(state(), '2026-08-13T12:00:00.000Z')
+    const fromTheFuture = { ...JSON.parse(JSON.stringify(backup)), schemaVersion: backup.schemaVersion + 5 }
+    expect(() => parseCloudSnapshotRow({
+      payload: fromTheFuture as Json,
+      version: 9,
+      updated_at: '2026-08-13T12:05:00.000Z',
+      checksum: backup.integrity.value,
+      schema_version: backup.schemaVersion + 5,
+      app_version: backup.appVersion
+    })).toThrow(/unsupported backup format or schema/i)
+  })
+
   it('rejects snapshot projection metadata that disagrees with the verified backup', () => {
     const backup = createBackup(state(), '2026-08-13T12:00:00.000Z')
     const row = {
