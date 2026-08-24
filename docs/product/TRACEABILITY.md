@@ -3,7 +3,7 @@ type: product-traceability-matrix
 aliases: [App Build Bible Traceability, Requirement Coverage Matrix]
 tags: [fitness, app, requirements, traceability, build, qa]
 created: 2026-08-10
-updated: 2026-08-13
+updated: 2026-08-24
 status: canonical-build-reference
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
@@ -26,7 +26,7 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Current Implementation Evidence
 
-Private alpha 0.58.0 and Build Bible 1.54.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current gate includes a 52-week deterministic athlete replay, progression and volume decision matrices, desktop and phone browser journeys, JSON-canonical backup recovery, production Supabase rollback acceptance, Pages compilation, dependency and data-boundary checks, and live artifact verification. Backup schema remains 25. A real athlete invitation, physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
+Private alpha 0.58.0 and Build Bible 1.54.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current gate includes 427 deterministic tests, 82 desktop and phone browser journeys, a rolling 52-week athlete replay, progression and volume decision matrices, JSON-canonical backup recovery, production Supabase rollback acceptance, Pages compilation, dependency and data-boundary checks, and live artifact verification. Backup schema remains 25. Real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
 
 ## Product and Training Traceability
 
@@ -101,7 +101,7 @@ Private alpha 0.58.0 and Build Bible 1.54.0 are the current boundary. Evidence i
 | R-385 to R-387 | Deep canonical catalog, leg-press coverage, ranked plus full-library athlete choice, semantic search, and preservation-safe catalog migration | 6.7, 15, 20, 21, 24, 27, 82 | [[Product Navigation Dashboard Exercise Library and Time-Aware Programming]], `src/domain/exercise-catalog-expansion.ts`, `tests/e2e/exercise-library-expansion.spec.ts` | 1A to 1B | Catalog identity and alias uniqueness, seeded-equipment merge, preference and custom-record preservation, deterministic muscle dose, squat-to-leg-press ranking, conservative prescription, protected-primary confirmation, desktop and phone full-library search, console, and containment tests |
 | R-388 to R-394 | Cloud-authoritative account data, invitation and recovery, verified hydration and save, reset, deletion, reauthentication, and browser data boundaries | 19, 20, 21, 24, 27, 68, 78, 80 | [[ForgePath Supabase Backend Runbook]], `supabase/audits/` | 1A to 1B | Migration checksums, forced RLS, self-only RPCs, cloud boundary checks, password and recovery journeys, reset and deletion checks |
 | R-395 to R-403 | Feedback-gated movement and volume progression, exact evidence, unknown semantics, athlete approval, usable recovery capture, and safety choices | 2, 10, 12, 13, 22, 84 | `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, [[Progression and Volume Model]] | 1B | Adversarial deterministic matrices, full and abbreviated survey journeys, desktop and phone regression, Pages build, and live artifact verification |
-| R-404 to R-411 | Longitudinal deterministic replay, life-aware return, confidence maturity, backup integrity, year-scale UI, and production cloud lifecycle | 2, 7, 10, 12, 14, 20, 22, 24, 68, 80, 85 | `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`, [[Lifelong Athlete Model and Adaptive Questioning]], [[Progression and Volume Model]] | 1B | 52-week replay, 390 deterministic tests, 80 phone and desktop journeys, JSON backup round trip, 624-set production rollback, and zero-residue proof |
+| R-404 to R-411 | Longitudinal deterministic replay, life-aware return, confidence maturity, backup integrity, year-scale UI, and production cloud lifecycle | 2, 7, 10, 12, 14, 20, 22, 24, 68, 80, 85 | `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`, [[Lifelong Athlete Model and Adaptive Questioning]], [[Progression and Volume Model]] | 1B | Rolling 52-week replay, 427 deterministic tests, 82 phone and desktop journeys, JSON backup round trip, 624-set production rollback, and zero-residue proof |
 
 ## Delivery Phase Key
 

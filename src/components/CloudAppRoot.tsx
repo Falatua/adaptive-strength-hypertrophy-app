@@ -269,7 +269,7 @@ export function CloudAppRoot() {
     },
     resetData: async (password) => {
       if (!session.user.email) throw new Error('This account has no verified email.')
-      await signInWithPassword(session.user.email, password)
+      if (password) await signInWithPassword(session.user.email, password)
       await resetCloudData()
       clearCloudVersionStorage()
       useAppStore.getState().resetForTesting()
@@ -282,7 +282,7 @@ export function CloudAppRoot() {
     },
     deleteAccount: async (password) => {
       if (!session.user.email) throw new Error('This account has no verified email.')
-      await signInWithPassword(session.user.email, password)
+      if (password) await signInWithPassword(session.user.email, password)
       await deleteCloudAccount()
       const client = await getCloudClient()
       await client?.auth.signOut({ scope: 'local' })

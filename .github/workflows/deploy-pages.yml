@@ -3,6 +3,8 @@ name: Test and deploy GitHub Pages
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -16,9 +18,9 @@ jobs:
   verify-and-build:
     runs-on: ubuntu-latest
     env:
-      FORGEPATH_CLOUD_RELEASE_ENABLED: ${{ vars.FORGEPATH_CLOUD_RELEASE_ENABLED }}
-      VITE_SUPABASE_URL: ${{ vars.FORGEPATH_CLOUD_RELEASE_ENABLED == 'true' && secrets.FORGEPATH_SUPABASE_URL || '' }}
-      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.FORGEPATH_CLOUD_RELEASE_ENABLED == 'true' && secrets.FORGEPATH_SUPABASE_PUBLISHABLE_KEY || '' }}
+      FORGEPATH_CLOUD_RELEASE_ENABLED: ${{ github.event_name != 'pull_request' && vars.FORGEPATH_CLOUD_RELEASE_ENABLED || 'false' }}
+      VITE_SUPABASE_URL: ${{ github.event_name != 'pull_request' && vars.FORGEPATH_CLOUD_RELEASE_ENABLED == 'true' && secrets.FORGEPATH_SUPABASE_URL || '' }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ github.event_name != 'pull_request' && vars.FORGEPATH_CLOUD_RELEASE_ENABLED == 'true' && secrets.FORGEPATH_SUPABASE_PUBLISHABLE_KEY || '' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -40,6 +42,7 @@ jobs:
       - name: Build and verify the GitHub Pages artifact
         run: npm run check:pages
       - name: Configure artifact-repository deploy key
+        if: github.event_name != 'pull_request'
         env:
           PAGES_DEPLOY_KEY: ${{ secrets.PAGES_DEPLOY_KEY }}
         run: |
@@ -48,6 +51,7 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan github.com >> ~/.ssh/known_hosts
       - name: Publish verified artifact
+        if: github.event_name != 'pull_request'
         env:
           SOURCE_SHA: ${{ github.sha }}
         run: |

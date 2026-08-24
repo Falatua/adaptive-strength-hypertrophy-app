@@ -3,7 +3,7 @@ type: implementation-status
 aliases: [ForgePath Private Alpha, Adaptive Training App Private Alpha]
 tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
-updated: 2026-08-13
+updated: 2026-08-24
 status: working-private-alpha
 app_version: 0.58.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
@@ -11,6 +11,15 @@ confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## 2026-08-24 Cloud and Release Reconciliation
+
+- Reconciled the eleven source commits made after the original 2026-08-13 cloud-hardening baseline, including old-schema snapshot loading, first-save coverage, stale installed-app repair, deliberate set skipping, athlete-facing language, and passwordless invited-account access.
+- Corrected the passwordless account path so an emailed-link athlete can set a first password and can reach reset or deletion without supplying a password that does not exist. The authenticated reset RPC and deletion function still enforce their own five-minute recent-sign-in boundary.
+- Replaced the fixed-date year-scale browser fixture with a rolling 52-week fixture. The former fixture began failing as its latest sessions aged outside the 42-day confidence window even though the product was correctly lowering stale confidence.
+- Added the complete deterministic, browser, and Pages gate to pull requests while preventing pull requests from receiving production cloud secrets or publishing an artifact.
+- Updated the hosted-release documentation to the actual invite-only, Supabase-authoritative boundary and integrated the current routine package updates plus the Node 24 Gitleaks action.
+- Current local acceptance is 427 deterministic tests and 82 desktop and phone browser journeys, plus the Pages build gate. Live checks confirm healthy Auth, disabled public signup and anonymous users, denied anonymous snapshot/reset access, authenticated-only deletion, and a source-version marker tied to the published source commit.
 
 ## Private Alpha 0.58.0 Longitudinal Replay Delta
 

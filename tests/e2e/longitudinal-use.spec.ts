@@ -10,7 +10,10 @@ const buildYear = () => {
   const history: CompletedSetRecord[] = []
   const sessions: TrainingSession[] = []
   const surveys: SurveyRecord[] = []
-  const start = new Date('2025-08-18T16:00:00.000Z').getTime()
+  // Keep the year-scale fixture current enough to exercise the strong-evidence state. A fixed
+  // calendar start silently aged out of the 42-day calibration window and made this release gate
+  // fail even though the product was correctly treating old schedule and recovery evidence as stale.
+  const start = Date.now() - 51 * WEEK_MS - 86_400_000
   for (let week = 0; week < 52; week += 1) {
     const sessionId = `browser-year-${week + 1}`
     const completedAt = new Date(start + week * WEEK_MS).toISOString()
