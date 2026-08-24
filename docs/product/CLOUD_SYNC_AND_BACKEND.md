@@ -30,7 +30,9 @@ The browser may retain the renewable Supabase Auth session and harmless device a
 
 ## Cloud-Authoritative Account Slice, 2026-08-13
 
-Private alpha 0.59.0 uses an authenticated cloud gate and automatic whole-state snapshot persistence. An invited athlete enters only the invited email and opens the private time-limited link Supabase sends. The athlete product has no password setup, password sign-in, or password recovery route. The request disables account creation, returns a generic response that does not reveal invitation membership, and routes verified links back to ForgePath. Public signup remains disabled.
+Private alpha 0.60.0 uses an authenticated cloud gate and automatic whole-state snapshot persistence. An invited athlete enters only the invited email and opens the private time-limited link Supabase sends. The athlete product has no password setup, password sign-in, or password recovery route. The request disables account creation, returns a generic response that does not reveal invitation membership, and routes verified links back to ForgePath. Public signup remains disabled.
+
+Every open page compares the exact installed source with the uncached published marker on startup, once per visible minute, and after focus or reconnection. A confirmed newer release stays visibly announced until the athlete refreshes. The refresh action flushes pending Supabase work first and refuses to navigate if that save fails.
 
 On authenticated launch, ForgePath verifies and hydrates the latest Supabase snapshot before opening training. When no remote copy exists, it uploads the current state once. A legacy browser copy is read only for this one migration and is deleted only after Supabase confirms the save. Afterward, the Zustand persistence writer is disabled for cloud builds, and the retry payload exists only in memory. Automatic saves are serialized, checksum-deduplicated, versioned, and conflict-preserving.
 

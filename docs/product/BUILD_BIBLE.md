@@ -5,12 +5,20 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-24
 status: canonical-build-reference-and-active-implementation
-version: 1.55.0
+version: 1.56.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.56.0 Change Entry
+
+- Added R-412 and Chapter 86 for persistent, accessible update-ready notification.
+- Advanced the working application to private alpha 0.60.0 while preserving backup schema 25 and every training-rule identity.
+- Checks the exact public source marker immediately, once per visible minute, and after focus or reconnection.
+- Saves pending cloud changes before refresh, refuses to navigate after a failed save, and keeps the notice visible until the athlete updates.
+- Changed PWA activation to prompt mode and limited repair cleanup to ForgePath's worker and named caches so another Pages app on the shared origin cannot be disrupted.
 
 ### Version 1.55.0 Change Entry
 
@@ -6263,7 +6271,7 @@ Every normalized table enables and forces Row Level Security. Authenticated clie
 
 Completed sets retain entered load and unit, normalized kilograms, repetitions, exact exercise identity, movement family, exclusive primary region, non-additive involved regions, source device, source event, version, and completion time. `volume_load_kg` is a stored generated value equal to normalized load multiplied by repetitions. Security-invoker views produce source-set facts and daily, weekly, monthly, and yearly rollups for total training and exclusive primary-region scopes. Survey answers store `answered`, `skipped`, `not-sure`, `prefer-not`, and `not-answered` explicitly, and only an answered row may contain a value.
 
-The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the public source repository. Four committed migrations are checksum-locked and represented by the repaired remote migration ledger. A live catalog audit confirmed fourteen of fourteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as GitHub Actions secrets outside the public source tree, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The private cloud release is enabled, while real invited-athlete physical phone-to-laptop recovery remains an open acceptance gate. App version 0.59.0 and backup schema 25 preserve the cloud-authoritative snapshot boundary without claiming normalized entity merge or active-workout handoff.
+The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the public source repository. Four committed migrations are checksum-locked and represented by the repaired remote migration ledger. A live catalog audit confirmed fourteen of fourteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as GitHub Actions secrets outside the public source tree, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The private cloud release is enabled, while real invited-athlete physical phone-to-laptop recovery remains an open acceptance gate. App version 0.60.0 and backup schema 25 preserve the cloud-authoritative snapshot boundary without claiming normalized entity merge or active-workout handoff.
 
 ## 79. Exact-Movement Workout Notes and Longitudinal Recall
 
@@ -6504,6 +6512,28 @@ Desktop and 390 by 844 phone journeys load a 52-week state, select All time, ren
 ### 85.9 Honest Boundary
 
 This contract proves deterministic recommendation behavior, year-scale state, backup transport, whole-snapshot cloud persistence, Row Level Security, conflict preservation, and cleanup. It does not prove automatic entity merge, background synchronization, active-workout handoff, or real invited-athlete new-device recovery. Those require separate physical-device and account acceptance.
+
+## 86. Persistent Release Notification and Safe Refresh Contract
+
+### 86.1 Detection
+
+Every open ForgePath page compares its exact compiled source identity with the uncached public `source-version.txt` marker. It checks on startup, once per minute while visible, and whenever the page regains focus, becomes visible, or reconnects. A missing, offline, malformed, or local-only marker never creates a false update state.
+
+### 86.2 Athlete Notice
+
+A confirmed source mismatch displays one persistent, responsive, screen-reader-announced `Update ready` notice across authentication, loading, onboarding, primary navigation, and active workouts. It clearly asks the athlete to refresh and provides one `Refresh now` action. It has no dismiss control, because every athlete must remain aware that the loaded build is no longer current.
+
+### 86.3 Training Conservation
+
+For an authenticated open journal, refresh first serializes any pending cloud save. A save failure stops navigation, leaves the notice visible, and explains that the latest change has not reached Supabase. The release prompt never silently discards an active workout or treats an unconfirmed save as complete.
+
+### 86.4 PWA and Shared-Origin Isolation
+
+The service worker uses prompt activation rather than silently replacing the page. Refresh unregisters only the worker controlling the current ForgePath scope, removes only ForgePath-named caches, and opens a cache-busted ForgePath URL. It must never unregister Roman TD or another GitHub Pages application's worker or remove another application's cache merely because both share one origin.
+
+### 86.5 Acceptance
+
+Deterministic tests cover exact marker comparison, worker update request, scope-limited repair, cache isolation, the persistent action, no-update silence, and save-failure retention. Desktop and 390 by 844 phone journeys prove the notice wording, refresh action, non-dismissibility, and horizontal containment. Pages verification proves the published marker matches the tested source.
 
 ### Version 1.47.0 Change Entry
 

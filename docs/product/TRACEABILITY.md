@@ -17,8 +17,8 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Coverage Summary
 
-- Total requirement headings: 411.
-- Sequential range: R-001 through R-411.
+- Total requirement headings: 412.
+- Sequential range: R-001 through R-412.
 - Missing IDs: none after the 2026-08-13 verification.
 - Duplicate IDs: none after the 2026-08-13 verification.
 - Primary implementation authority: [[Adaptive Strength and Hypertrophy App Build Bible]].
@@ -26,7 +26,7 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Current Implementation Evidence
 
-Private alpha 0.59.0 and Build Bible 1.55.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current gate includes 427 deterministic tests, 84 desktop and phone browser journeys, a rolling 52-week athlete replay, a 10,000-set persistence stress case, progression and volume decision matrices, JSON-canonical backup recovery, production Supabase rollback acceptance, Pages compilation, dependency and data-boundary checks, and live artifact verification. Backup schema remains 25. Real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
+Private alpha 0.60.0 and Build Bible 1.56.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current gate includes 430 deterministic tests, 86 desktop and phone browser journeys, persistent exact-source update notification, a rolling 52-week athlete replay, a 10,000-set persistence stress case, progression and volume decision matrices, JSON-canonical backup recovery, production Supabase rollback acceptance, Pages compilation, dependency and data-boundary checks, and live artifact verification. Backup schema remains 25. Real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
 
 ## Product and Training Traceability
 
@@ -102,6 +102,7 @@ Private alpha 0.59.0 and Build Bible 1.55.0 are the current boundary. Evidence i
 | R-388 to R-394 | Cloud-authoritative account data, invitation-only email-link access, verified hydration and save, reset, deletion, recent-link reauthentication, and browser data boundaries | 19, 20, 21, 24, 27, 68, 78, 80 | [[ForgePath Supabase Backend Runbook]], `supabase/audits/` | 1A to 1B | Migration checksums, forced RLS, self-only RPCs, non-enumerating passwordless journeys, reset and deletion checks |
 | R-395 to R-403 | Feedback-gated movement and volume progression, exact evidence, unknown semantics, athlete approval, usable recovery capture, and safety choices | 2, 10, 12, 13, 22, 84 | `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, [[Progression and Volume Model]] | 1B | Adversarial deterministic matrices, full and abbreviated survey journeys, desktop and phone regression, Pages build, and live artifact verification |
 | R-404 to R-411 | Longitudinal deterministic replay, life-aware return, confidence maturity, backup integrity, year-scale UI, and production cloud lifecycle | 2, 7, 10, 12, 14, 20, 22, 24, 68, 80, 85 | `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`, [[Lifelong Athlete Model and Adaptive Questioning]], [[Progression and Volume Model]] | 1B | Rolling 52-week replay, 10,000-set persistence stress, 427 deterministic tests, 84 phone and desktop journeys, JSON backup round trip, 624-set production rollback, and zero-residue proof |
+| R-412 | Persistent exact-source update awareness, safe refresh, and shared-origin PWA isolation | 19, 24, 27, 75, 86 | [[Private Alpha Implementation 2026-08-10]], `src/components/AppUpdateNotice.tsx`, `src/services/app-shell.ts` | Ongoing | Marker polling, update action, save-failure retention, worker and cache isolation, desktop and phone containment, Pages source-marker match |
 
 ## Delivery Phase Key
 

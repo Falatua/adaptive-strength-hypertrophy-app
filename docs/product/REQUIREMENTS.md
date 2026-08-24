@@ -2595,7 +2595,18 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Release candidates must run a production Supabase rollback test with at least 52 synthetic weeks, 156 sessions, and 624 sets. It must prove authenticated apply, idempotent replay, stale-conflict preservation, cross-athlete isolation, normalized-write denial, and an independent zero-residue check across test auth and athlete tables.
 - Detail: `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`
 
+### R-412 Persistent New-Update Alert and Safe Refresh
+- Status: implemented
+- Provenance: from-user
+- Requirement: Whenever a newer ForgePath build is published, every open page must persistently alert the athlete that an update is ready and provide a direct page refresh action. The app must save pending training changes before refreshing, remain on the current page if the save fails, and avoid disturbing other applications that share the GitHub Pages origin.
+- Detail: [[Private Alpha Implementation 2026-08-10]] and Build Bible Chapter 86
+
 ## Thread Coverage Audit
+
+### 2026-08-24 Persistent Update-Ready Alert
+- Scope: JB requested the same clear new-build awareness used in Roman TD so ForgePath athletes always know when they should refresh.
+- Result: Added R-412 and Build Bible Chapter 86. Private alpha 0.60.0 adds exact-source polling, a persistent responsive notice, save-before-refresh behavior, prompt-style PWA activation, and ForgePath-only worker and cache cleanup.
+- Status: Implemented with 430 deterministic tests, 86 desktop and phone browser journeys, production build verification, and Pages release gates.
 
 ### 2026-08-13 Long-Term Product Simulation and Cloud Lifecycle Audit
 - Scope: JB requested months-long product use with dummy data to triple-check progression, Supabase persistence, and feedback-driven suggestions.
@@ -2895,6 +2906,8 @@ This is the canonical traceability index for every durable requirement JB states
 - Exact boundary and default setting for focused-training or low-decoration mode.
 
 ## Change Log
+
+- 2026-08-24: Added R-412 and Build Bible Chapter 86 for persistent update-ready awareness, a direct safe refresh action, save-failure retention, prompt-style PWA activation, and shared-origin isolation. Private alpha 0.60.0 preserves backup schema 25.
 
 - 2026-08-13: Added R-395 through R-403 for latest prescribed-exposure integrity, missing-is-unknown feedback, safety-first gate ordering, load-then-repetition-then-recovered-set progression, exact setup performance, response-first volume decisions, athlete approval and evidence, usable optional recovery capture, and pain-aware cycle choices. Private alpha 0.57.0 versions the corrected engines as `progression-v2` and `volume-progression-v2`.
 

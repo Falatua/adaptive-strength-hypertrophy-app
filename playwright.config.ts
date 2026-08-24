@@ -10,7 +10,7 @@ export default defineConfig({
     screenshot: 'only-on-failure'
   },
   webServer: {
-    command: 'VITE_FORGEPATH_LOCAL_E2E=true npm run dev -- --host 127.0.0.1',
+    command: 'VITE_FORGEPATH_LOCAL_E2E=true VITE_FORGEPATH_SOURCE_VERSION=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa npm run dev -- --host 127.0.0.1',
     url: 'http://127.0.0.1:5173',
     reuseExistingServer: true,
     timeout: 30_000

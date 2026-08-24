@@ -43,7 +43,7 @@ if (/VITE_.*(?:SECRET|SERVICE|PASSWORD|PRIVATE)/i.test(`${store}\n${sync}\n${roo
 if (!root.includes('void checkForAppUpdate()')) failures.push('cloud bootstrap does not look for a newer build before blaming the saved copy')
 if (!root.includes('await readAppVersionStatus()') || !root.includes('if (version.updateAvailable)')) failures.push('cloud bootstrap does not block an exact known old build before loading or saving')
 if (!root.includes('refresh={() => { void reloadWithFreshAppShell() }}') || !root.includes('signOut={() => { void signOutCloud()')) failures.push('a failed cloud load strands the athlete with retry as the only control')
-if (!shell.includes('registration.unregister()') || !shell.includes('caches.delete(key)') || !shell.includes('window.location.reload()')) failures.push('the app-shell repair does not replace the installed worker and cached app files')
+if (!shell.includes('registration?.unregister()') || !shell.includes("key.toLowerCase().includes('forgepath')") || !shell.includes('key.includes(appScope)') || !shell.includes('caches.delete(key)') || !shell.includes('window.location.replace(')) failures.push('the app-shell repair does not replace only the scoped ForgePath worker and cached app files')
 if (!shell.includes('source-version.txt') || !shell.includes("cache: 'no-store'") || !shell.includes('available !== normalizedInstalled')) failures.push('the installed app cannot compare its exact source version with the published build')
 if (/localStorage|CLOUD_|restoreBackup|resetForTesting/.test(shell)) failures.push('the app-shell repair reaches into training or cloud state')
 

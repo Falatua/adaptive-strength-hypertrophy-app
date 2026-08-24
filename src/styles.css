@@ -1372,6 +1372,13 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .toast { position: fixed; z-index: 100; right: 18px; bottom: 18px; display: flex; align-items: center; gap: 12px; max-width: 410px; padding: 13px 15px; border: 1px solid rgb(231 255 88 / 35%); border-radius: 11px; background: #1a1f17; color: #dfe6d7; box-shadow: var(--shadow); font-size: .78rem; }
 .screen-loading { display: grid; min-height: 60vh; place-items: center; padding: 30px; color: var(--lime); font: 800 .76rem/1.4 ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; }
 .toast button { margin-left: auto; border: 0; background: none; color: var(--muted); font-size: 1.2rem; }
+.app-update-notice { position: fixed; z-index: 120; top: max(14px, env(safe-area-inset-top)); right: 18px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; width: min(640px, calc(100vw - 36px)); padding: 13px; border: 1px solid rgb(231 255 88 / 48%); border-radius: 12px; background: #1a1f17; color: var(--text); box-shadow: 0 18px 60px rgb(0 0 0 / 48%); }
+.app-update-notice__icon { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid rgb(231 255 88 / 30%); border-radius: 9px; background: rgb(231 255 88 / 8%); color: var(--lime); }
+.app-update-notice__copy, .app-update-notice__copy strong, .app-update-notice__copy > span, .app-update-notice__copy small { display: block; }
+.app-update-notice__copy strong { margin-bottom: 3px; font-size: .82rem; }
+.app-update-notice__copy > span { color: var(--muted); font-size: .69rem; line-height: 1.45; }
+.app-update-notice__copy small { margin-top: 5px; color: var(--orange); font-size: .66rem; line-height: 1.45; }
+.app-update-notice .button { min-height: 42px; white-space: nowrap; }
 
 @media (max-width: 1180px) {
   .stats-grid { grid-template-columns: 1fr 1fr; }
@@ -1417,6 +1424,8 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 }
 
 @media (max-width: 620px) {
+  .app-update-notice { top: max(10px, env(safe-area-inset-top)); right: 10px; left: 10px; grid-template-columns: auto minmax(0, 1fr); width: auto; }
+  .app-update-notice .button { grid-column: 1 / -1; width: 100%; }
   .schedule-rebuild-proof { grid-template-columns: auto minmax(0, 1fr); }
   .schedule-rebuild-proof > .button { grid-column: 1 / -1; width: 100%; }
   .schedule-rebuild-proof__facts { grid-template-columns: 1fr 1fr; }

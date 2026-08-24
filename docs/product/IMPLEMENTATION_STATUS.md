@@ -5,12 +5,21 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-24
 status: working-private-alpha
-app_version: 0.59.0
+app_version: 0.60.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.60.0 Persistent Update-Ready Delta
+
+- Checks the uncached exact public source marker immediately, every minute while the page is visible, and again after focus, visibility restoration, or network reconnection.
+- Shows every signed-in, signed-out, loading, onboarding, and active-workout page a persistent accessible `Update ready` notice with a direct `Refresh now` action. The athlete cannot accidentally dismiss the release notice.
+- Flushes pending Supabase changes before refreshing. A failed cloud save keeps the notice open, reports the failure, and does not navigate away.
+- Uses prompt-style PWA activation so a waiting worker does not silently refresh an active workout.
+- Refreshes through a cache-busted URL while unregistering only the ForgePath-scoped worker and deleting only ForgePath-named caches. Other GitHub Pages applications on the shared origin remain untouched.
+- Current local acceptance is 430 deterministic tests and 86 desktop and phone browser journeys, with backup schema 25 unchanged.
 
 ## Private Alpha 0.59.0 Passwordless Cloud and Live Safety Delta
 

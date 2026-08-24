@@ -40,14 +40,20 @@ export async function checkForAppUpdate() {
   return true
 }
 
-export async function reloadWithFreshAppShell() {
+export async function reloadWithFreshAppShell(availableVersion: string | null = null) {
+  let appScope = typeof window === 'undefined' ? '' : new URL(import.meta.env.BASE_URL, window.location.origin).href
   if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-    const registrations = await navigator.serviceWorker.getRegistrations()
-    await Promise.all(registrations.map((registration) => registration.unregister()))
+    // Only remove the worker controlling this ForgePath scope. Other GitHub Pages apps can share
+    // the same origin and must keep their own workers and offline files.
+    const registration = await navigator.serviceWorker.getRegistration()
+    appScope = registration?.scope || appScope
+    await registration?.unregister()
   }
   if (typeof caches !== 'undefined') {
     const keys = await caches.keys()
-    await Promise.all(keys.map((key) => caches.delete(key)))
+    await Promise.all(keys.filter((key) => key.toLowerCase().includes('forgepath') || (appScope && key.includes(appScope))).map((key) => caches.delete(key)))
   }
-  window.location.reload()
+  const destination = new URL(window.location.href)
+  destination.searchParams.set('forgepath_update', availableVersion?.slice(0, 12) || String(Date.now()))
+  window.location.replace(destination.toString())
 }

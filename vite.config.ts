@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['forgepath-mark.svg'],
       manifest: {
         name: 'ForgePath Private Alpha',
@@ -30,6 +30,7 @@ export default defineConfig({
         ]
       },
       workbox: {
+        cacheId: 'forgepath',
         navigateFallback: 'index.html',
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}']
       }

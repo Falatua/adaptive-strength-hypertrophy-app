@@ -19,6 +19,7 @@ import {
   signOutCloud
 } from '../services/cloud-sync'
 import { checkForAppUpdate, readAppVersionStatus, reloadWithFreshAppShell } from '../services/app-shell'
+import { AppUpdateNotice } from './AppUpdateNotice'
 import { CloudRuntimeContext, type CloudRuntimeValue, type SaveState } from './cloud-runtime-context'
 
 function messageFrom(cause: unknown, fallback: string) {
@@ -216,6 +217,14 @@ export function CloudAppRoot() {
     if (lastSaveFailure.current) throw lastSaveFailure.current
   }
 
+  const refreshWithNewestBuild = async (availableVersion: string | null) => {
+    if (session && ready) {
+      if (saveState === 'error') await saveNow()
+      await flushPendingSave()
+    }
+    await reloadWithFreshAppShell(availableVersion)
+  }
+
   const runtime: CloudRuntimeValue | null = session ? {
     session, saveState, lastSavedAt, error,
     retrySave: async () => { await saveNow() },
@@ -250,14 +259,16 @@ export function CloudAppRoot() {
     }
   } : null
 
-  if (!cloudAuthoritativeBuild) return <App />
-  if (checking) return <CloudLoading />
-  if (!session) return <CloudAuth />
-  if (!ready) return <CloudLoading
+  const withUpdateNotice = (content: ReactNode) => <>{content}<AppUpdateNotice onRefresh={refreshWithNewestBuild} /></>
+
+  if (!cloudAuthoritativeBuild) return withUpdateNotice(<App />)
+  if (checking) return withUpdateNotice(<CloudLoading />)
+  if (!session) return withUpdateNotice(<CloudAuth />)
+  if (!ready) return withUpdateNotice(<CloudLoading
     error={error}
     retry={() => setRetryToken((value) => value + 1)}
     refresh={() => { void reloadWithFreshAppShell() }}
     signOut={() => { void signOutCloud().catch(() => undefined).then(() => setSession(null)) }}
-  />
-  return <CloudRuntimeContext.Provider value={runtime as CloudRuntimeValue}><App /></CloudRuntimeContext.Provider>
+  />)
+  return withUpdateNotice(<CloudRuntimeContext.Provider value={runtime as CloudRuntimeValue}><App /></CloudRuntimeContext.Provider>)
 }

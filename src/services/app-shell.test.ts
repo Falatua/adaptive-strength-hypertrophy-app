@@ -1,16 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { checkForAppUpdate, readAppVersionStatus, reloadWithFreshAppShell } from './app-shell'
 
-const withBrowser = (registrations: { unregister: () => Promise<boolean>; update: () => Promise<void> }[], cacheKeys: string[]) => {
+const withBrowser = (registrations: { scope?: string; unregister: () => Promise<boolean>; update: () => Promise<void> }[], cacheKeys: string[]) => {
   const deleted: string[] = []
-  const reload = vi.fn()
+  const replace = vi.fn()
   vi.stubGlobal('navigator', { serviceWorker: {
     getRegistration: async () => registrations[0],
-    getRegistrations: async () => registrations
   } })
   vi.stubGlobal('caches', { keys: async () => cacheKeys, delete: async (key: string) => { deleted.push(key); return true } })
-  vi.stubGlobal('window', { location: { reload } })
-  return { deleted, reload }
+  vi.stubGlobal('window', { location: { href: 'https://example.com/forgepath/', origin: 'https://example.com', replace } })
+  return { deleted, replace }
 }
 
 afterEach(() => vi.unstubAllGlobals())
@@ -46,12 +45,17 @@ describe('stale app shell recovery', () => {
     expect(await checkForAppUpdate()).toBe(false)
   })
 
-  it('removes every installed worker and cached app file, then reloads', async () => {
+  it('removes only this app worker and ForgePath caches, then opens a cache-busted URL', async () => {
     const unregister = vi.fn(async () => true)
-    const { deleted, reload } = withBrowser([{ unregister, update: async () => undefined }], ['forgepath-precache', 'forgepath-runtime'])
-    await reloadWithFreshAppShell()
+    const unrelatedUnregister = vi.fn(async () => true)
+    const { deleted, replace } = withBrowser([
+      { scope: 'https://example.com/forgepath/', unregister, update: async () => undefined },
+      { unregister: unrelatedUnregister, update: async () => undefined }
+    ], ['workbox-precache-forgepath', 'workbox-precache-v2-https://example.com/forgepath/', 'forgepath-runtime', 'roman-td-runtime'])
+    await reloadWithFreshAppShell('b'.repeat(40))
     expect(unregister).toHaveBeenCalledTimes(1)
-    expect(deleted).toEqual(['forgepath-precache', 'forgepath-runtime'])
-    expect(reload).toHaveBeenCalledTimes(1)
+    expect(unrelatedUnregister).not.toHaveBeenCalled()
+    expect(deleted).toEqual(['workbox-precache-forgepath', 'workbox-precache-v2-https://example.com/forgepath/', 'forgepath-runtime'])
+    expect(replace).toHaveBeenCalledWith('https://example.com/forgepath/?forgepath_update=bbbbbbbbbbbb')
   })
 })
