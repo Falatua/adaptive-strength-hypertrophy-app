@@ -1514,6 +1514,27 @@ test('lets the athlete add sets and movements on a good day without rewriting th
   expect(browserErrors).toEqual([])
 })
 
+test('keeps a live pain control available and immediately pauses added volume', async ({ page }) => {
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Today', exact: true }).click()
+  await page.getByRole('button', { name: 'Start without check-in' }).click()
+
+  const safety = page.getByLabel('Live pain safety check')
+  const extraWork = page.getByLabel('Add extra work')
+  await expect(safety).toBeVisible()
+  await expect(safety).toContainText('This control is always available')
+  await safety.getByRole('button', { name: 'Modify or stop' }).click()
+  await expect(extraWork).toContainText('recorded pain that changed training')
+  await expect(extraWork.getByRole('button', { name: 'Add a movement' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Add a set to/ })).toHaveCount(0)
+
+  const captured = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state.sessions.find((session: { status: string }) => session.status === 'active')?.painStatus)
+  expect(captured).toBe('changed-training')
+
+  await safety.getByRole('button', { name: 'Pain not affecting training' }).click()
+  await expect(extraWork.getByRole('button', { name: 'Add a movement' })).toBeVisible()
+})
+
 test('withholds a load target until the exact movement has logged history', async ({ page }) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })

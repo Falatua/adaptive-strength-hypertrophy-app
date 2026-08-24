@@ -1144,6 +1144,9 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .placement-session-check.is-captured { border-color: rgb(97 200 255 / 32%); background: rgb(97 200 255 / 6%); }
 .placement-session-check__saved { display: grid !important; grid-template-columns: auto minmax(0, 1fr); color: var(--blue); text-transform: capitalize; }
 .placement-session-check__saved small { color: var(--muted); }
+.live-pain-check { border-color: rgb(255 196 84 / 34%); background: rgb(255 196 84 / 7%); }
+.live-pain-check--active { border-color: rgb(255 99 99 / 48%); background: rgb(255 99 99 / 9%); }
+.live-pain-check button[aria-pressed="true"] { border-color: currentColor; box-shadow: inset 0 0 0 1px currentColor; }
 .placement-recovery-check { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 13px; margin-bottom: 18px; padding: 15px; border: 1px solid rgb(97 200 255 / 35%); border-radius: 12px; background: linear-gradient(135deg, rgb(97 200 255 / 10%), rgb(24 27 20 / 96%)); }
 .placement-recovery-check__icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 9px; background: rgb(97 200 255 / 12%); color: var(--blue); }
 .placement-recovery-check strong, .placement-recovery-check small { display: block; }

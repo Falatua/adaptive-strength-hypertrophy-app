@@ -33,7 +33,7 @@ import { movementNoteError } from './movement-note-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
 export const BACKUP_SCHEMA_VERSION = 26
-export const BACKUP_APP_VERSION = '0.58.0'
+export const BACKUP_APP_VERSION = '0.59.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -431,6 +431,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
       errors.push('A training session is invalid.')
       return
     }
+    if (session.painStatus !== undefined && !['no-change', 'changed-training'].includes(String(session.painStatus))) errors.push('A training session has an invalid live pain status.')
     if (session.generation !== undefined) {
       const generationError = routeSessionGenerationError(session.generation)
       if (generationError) errors.push(`A route-generated session is invalid: ${generationError}`)

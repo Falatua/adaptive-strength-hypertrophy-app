@@ -2457,10 +2457,10 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: In configured private releases, Supabase is the authoritative store for training history, plans, surveys, notes, preferences, and recovery state. Browser storage may contain only the renewable Auth session and harmless device or server-version metadata. A legacy training copy may be read once for migration and must be removed only after a verified cloud save.
 - Detail: [[Data Backend Storage and Learning Architecture#Cloud-Authoritative Account Slice, 2026-08-13]]
 
-### R-389 Secure Invite-Only Password Access and Recovery
+### R-389 Secure Invite-Only Email-Link Access
 - Status: implemented-first-slice
 - Provenance: from-user and product-decision
-- Requirement: Require an invited email and password before cloud training opens. Support invitation password setup, generic non-enumerating recovery responses, verified recovery redirects, and new passwords of at least twelve mixed characters. Keep public signup and anonymous sign-in disabled.
+- Requirement: Require an already-invited email and a private time-limited email link before cloud training opens. Never expose password setup, password sign-in, or password recovery in the athlete product. Keep `shouldCreateUser` false, public signup disabled, anonymous access denied, and all success responses non-enumerating.
 - Detail: [[ForgePath Supabase Backend Runbook]]
 
 ### R-390 Verified Cloud Bootstrap and Automatic Save
@@ -2472,19 +2472,19 @@ This is the canonical traceability index for every durable requirement JB states
 ### R-391 Account-Preserving Data Reset
 - Status: implemented
 - Provenance: from-user
-- Requirement: Let the athlete export first, re-enter the current password, type RESET, and transactionally delete every caller-owned ForgePath data row while preserving the Auth account. Restart onboarding only after the clean cloud state is confirmed.
+- Requirement: Let the athlete export first, open a fresh private email link, type RESET, and transactionally delete every caller-owned ForgePath data row while preserving the Auth account. Restart onboarding only after the clean cloud state is confirmed.
 - Detail: [[ForgePath Supabase Backend Runbook]]
 
 ### R-392 Permanent Account and Data Deletion
 - Status: implemented
 - Provenance: from-user
-- Requirement: Let the athlete export first, re-enter the current password, type DELETE, and permanently delete the caller's Auth account plus all cascaded ForgePath data through an authenticated server-only function. Never expose the privileged credential to the browser.
+- Requirement: Let the athlete export first, open a fresh private email link, type DELETE, and permanently delete the caller's Auth account plus all cascaded ForgePath data through an authenticated server-only function. Never expose the privileged credential to the browser.
 - Detail: [[ForgePath Supabase Backend Runbook]]
 
 ### R-393 Sensitive Account Action Reauthentication
 - Status: implemented
 - Provenance: product-decision
-- Requirement: Reset and permanent deletion require a fresh password sign-in and a JWT issued no more than five minutes earlier. The server must independently enforce caller identity, allowed origin where applicable, exact confirmation, and self-only scope.
+- Requirement: Reset and permanent deletion require a fresh email-link sign-in and a JWT issued no more than five minutes earlier. The server must independently enforce caller identity, allowed origin where applicable, exact confirmation, and self-only scope.
 - Detail: [[ForgePath Supabase Backend Runbook]]
 
 ### R-394 Cloud Data Boundary Verification

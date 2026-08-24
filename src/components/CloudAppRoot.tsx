@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { AlertTriangle, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
-import type { Session, User } from '@supabase/supabase-js'
+import { AlertTriangle, LoaderCircle, Mail } from 'lucide-react'
+import type { Session } from '@supabase/supabase-js'
 import App from '../App'
 import { backupStateFrom, createBackup } from '../domain/backup'
 import { useAppStore } from '../store/useAppStore'
 import { cloudAuthoritativeBuild, cloudConfiguration, LEGACY_APP_STORAGE_KEY } from '../services/cloud-config'
-import { passwordModeFor, type CloudPasswordMode } from '../services/cloud-auth-policy'
 import {
   CLOUD_LAST_SYNC_STORAGE_KEY,
   CLOUD_OUTBOX_STORAGE_KEY,
@@ -14,16 +13,12 @@ import {
   fetchCloudSnapshot,
   getCloudClient,
   pushCloudSnapshot,
-  requestPasswordRecovery,
   requestPrivateSignIn,
   resetCloudData,
   restoreVerifiedCloudSnapshot,
-  signInWithPassword,
-  signOutCloud,
-  updateCloudPassword,
-  validateNewPassword
+  signOutCloud
 } from '../services/cloud-sync'
-import { checkForAppUpdate, reloadWithFreshAppShell } from '../services/app-shell'
+import { checkForAppUpdate, readAppVersionStatus, reloadWithFreshAppShell } from '../services/app-shell'
 import { CloudRuntimeContext, type CloudRuntimeValue, type SaveState } from './cloud-runtime-context'
 
 function messageFrom(cause: unknown, fallback: string) {
@@ -51,16 +46,8 @@ function clearCloudVersionStorage() {
   window.localStorage.removeItem(CLOUD_OUTBOX_STORAGE_KEY)
 }
 
-function PasswordField({ value, onChange, label = 'Password', autoComplete = 'current-password' }: { value: string; onChange: (value: string) => void; label?: string; autoComplete?: string }) {
-  const [visible, setVisible] = useState(false)
-  return <label className="cloud-auth__field"><span>{label}</span><span><LockKeyhole size={17} /><input type={visible ? 'text' : 'password'} value={value} onChange={(event) => onChange(event.target.value)} autoComplete={autoComplete} /><button type="button" aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`} onClick={() => setVisible((current) => !current)}>{visible ? <EyeOff size={17} /> : <Eye size={17} />}</button></span></label>
-}
-
-export function CloudAuth({ passwordMode, onPasswordComplete }: { passwordMode: CloudPasswordMode | null; onPasswordComplete: (user: User) => void }) {
-  const [mode, setMode] = useState<'signin' | 'forgot' | 'invite'>('invite')
+export function CloudAuth() {
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmation, setConfirmation] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -72,43 +59,14 @@ export function CloudAuth({ passwordMode, onPasswordComplete }: { passwordMode: 
     try { await action() } catch (cause) { setError(messageFrom(cause, 'ForgePath could not complete that account request.')) } finally { setBusy(false) }
   }
 
-  if (passwordMode) return <AuthFrame
-    title={passwordMode === 'setup' ? 'Create your ForgePath password' : 'Choose a new password'}
-    detail={passwordMode === 'setup' ? 'Your email is verified. Set the password you will use on future visits.' : 'Your recovery link is verified. Set a new password to return to your training.'}
-  >
-    <PasswordField value={password} onChange={setPassword} label="New password" autoComplete="new-password" />
-    <PasswordField value={confirmation} onChange={setConfirmation} label="Confirm new password" autoComplete="new-password" />
-    <p className="cloud-auth__hint">Use 12 or more characters with uppercase, lowercase, a number, and a symbol.</p>
-    <button className="button button--primary button--full" disabled={busy || !password || !confirmation} onClick={() => run(async () => {
-      const passwordError = validateNewPassword(password)
-      if (passwordError) throw new Error(passwordError)
-      if (password !== confirmation) throw new Error('The passwords do not match.')
-      const user = await updateCloudPassword(password)
-      onPasswordComplete(user)
-    })}>{busy ? <LoaderCircle className="spin" size={17} /> : <ShieldCheck size={17} />} Save new password</button>
-    {error && <AuthError message={error} />}
-  </AuthFrame>
-
-  return <AuthFrame title={mode === 'signin' ? 'Sign in with your password' : mode === 'forgot' ? 'Recover your account' : 'Welcome to ForgePath'} detail={mode === 'signin' ? 'For accounts that set a password. Most athletes just use the emailed link.' : mode === 'forgot' ? 'We will send a private recovery link if this email belongs to an account.' : 'Enter the email you were invited with and we will send you a link that signs you straight in. No password needed.'}>
+  return <AuthFrame title="Welcome to ForgePath" detail="Enter the email address invited by the creator. ForgePath will send a private link that signs you in. No password needed.">
     <label className="cloud-auth__field"><span>Email</span><span><Mail size={17} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></span></label>
-    {mode === 'signin' && <PasswordField value={password} onChange={setPassword} />}
-    <button className="button button--primary button--full" disabled={busy || !email.trim() || (mode === 'signin' && !password)} onClick={() => run(async () => {
-      if (mode === 'signin') await signInWithPassword(email, password)
-      else if (mode === 'forgot') {
-        await requestPasswordRecovery(email)
-        setMessage('If that email belongs to a ForgePath account, a recovery link is on its way.')
-      } else {
-        await requestPrivateSignIn(email)
-        setMessage('If that email was invited, a sign-in link is on its way. Open it on this device and you are in.')
-      }
-    })}>{busy ? <LoaderCircle className="spin" size={17} /> : mode === 'signin' ? <LockKeyhole size={17} /> : <Mail size={17} />}{mode === 'signin' ? 'Sign in' : mode === 'forgot' ? 'Send recovery link' : 'Email me a sign-in link'}</button>
+    <button className="button button--primary button--full" disabled={busy || !email.trim()} onClick={() => run(async () => {
+      await requestPrivateSignIn(email)
+      setMessage('If that email was invited, a private sign-in link is on its way. Open it on this device to enter ForgePath.')
+    })}>{busy ? <LoaderCircle className="spin" size={17} /> : <Mail size={17} />} Email me a sign-in link</button>
     {message && <p className="cloud-auth__message" role="status">{message}</p>}
     {error && <AuthError message={error} />}
-    <div className="cloud-auth__links">
-      {mode !== 'invite' && <button type="button" onClick={() => { setMode('invite'); setError(null); setMessage(null) }}>Use an emailed link instead</button>}
-      {mode === 'invite' && <button type="button" onClick={() => { setMode('signin'); setError(null); setMessage(null) }}>I have a password</button>}
-      {mode === 'signin' && <button type="button" onClick={() => { setMode('forgot'); setError(null); setMessage(null) }}>Forgot password?</button>}
-    </div>
   </AuthFrame>
 }
 
@@ -127,7 +85,6 @@ export function CloudLoading({ error, retry, refresh, signOut }: { error?: strin
 export function CloudAppRoot() {
   const [session, setSession] = useState<Session | null>(null)
   const [checking, setChecking] = useState(cloudAuthoritativeBuild)
-  const [recovery, setRecovery] = useState(false)
   const [ready, setReady] = useState(!cloudAuthoritativeBuild)
   const [saveState, setSaveState] = useState<SaveState>(cloudAuthoritativeBuild ? 'loading' : 'saved')
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
@@ -137,7 +94,6 @@ export function CloudAppRoot() {
   const saveChain = useRef(Promise.resolve())
   const lastBackupChecksum = useRef<string | null>(null)
   const lastSaveFailure = useRef<Error | null>(null)
-  const passwordMode = passwordModeFor(session, recovery)
 
   useEffect(() => {
     if (!cloudAuthoritativeBuild) return
@@ -145,10 +101,8 @@ export function CloudAppRoot() {
     let unsubscribe: (() => void) | undefined
     getCloudClient().then(async (client) => {
       if (!client || !mounted) return
-      const listener = client.auth.onAuthStateChange((event, nextSession) => {
+      const listener = client.auth.onAuthStateChange((_event, nextSession) => {
         if (!mounted) return
-        if (event === 'PASSWORD_RECOVERY') setRecovery(true)
-        if (event === 'SIGNED_OUT') setRecovery(false)
         setSession(nextSession)
         if (!nextSession) { setReady(false); setSaveState('loading') }
       })
@@ -170,6 +124,10 @@ export function CloudAppRoot() {
     // A stale cached build is the one failure retrying cannot clear, so look for a newer one first.
     void checkForAppUpdate().catch(() => undefined)
     try {
+      const version = await readAppVersionStatus()
+      if (version.updateAvailable) {
+        throw new Error(`This device is running ForgePath ${version.installed?.slice(0, 8)}, but ${version.available?.slice(0, 8)} is published. Update ForgePath before loading or saving training data.`)
+      }
       await waitForStoreHydration()
       const snapshot = await fetchCloudSnapshot()
       if (snapshot) {
@@ -193,10 +151,10 @@ export function CloudAppRoot() {
   }
 
   useEffect(() => {
-    if (session && !passwordMode) void Promise.resolve().then(bootstrap)
+    if (session) void Promise.resolve().then(bootstrap)
   // retryToken deliberately restarts the verified bootstrap after an explicit retry.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user.id, passwordMode, retryToken])
+  }, [session?.user.id, retryToken])
 
   const saveNow = async () => {
     if (!session || !ready) return
@@ -267,9 +225,11 @@ export function CloudAppRoot() {
       await signOutCloud()
       setSession(null)
     },
-    resetData: async (password) => {
+    sendVerificationLink: async () => {
       if (!session.user.email) throw new Error('This account has no verified email.')
-      if (password) await signInWithPassword(session.user.email, password)
+      await requestPrivateSignIn(session.user.email)
+    },
+    resetData: async () => {
       await resetCloudData()
       clearCloudVersionStorage()
       useAppStore.getState().resetForTesting()
@@ -280,9 +240,7 @@ export function CloudAppRoot() {
       setLastSavedAt(new Date().toISOString())
       setSaveState('saved')
     },
-    deleteAccount: async (password) => {
-      if (!session.user.email) throw new Error('This account has no verified email.')
-      if (password) await signInWithPassword(session.user.email, password)
+    deleteAccount: async () => {
       await deleteCloudAccount()
       const client = await getCloudClient()
       await client?.auth.signOut({ scope: 'local' })
@@ -294,11 +252,7 @@ export function CloudAppRoot() {
 
   if (!cloudAuthoritativeBuild) return <App />
   if (checking) return <CloudLoading />
-  if (!session) return <CloudAuth passwordMode={null} onPasswordComplete={() => undefined} />
-  if (passwordMode) return <CloudAuth passwordMode={passwordMode} onPasswordComplete={(user) => {
-    setSession((current) => current ? { ...current, user } : current)
-    setRecovery(false)
-  }} />
+  if (!session) return <CloudAuth />
   if (!ready) return <CloudLoading
     error={error}
     retry={() => setRetryToken((value) => value + 1)}

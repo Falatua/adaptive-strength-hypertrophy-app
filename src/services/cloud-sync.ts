@@ -301,69 +301,39 @@ export function localCloudMetadata(storage = typeof window === 'undefined' ? nul
 export async function requestPrivateSignIn(email: string) {
   const client = await getCloudClient()
   if (!client) throw new Error(cloudConfiguration.status === 'ready' ? 'The ForgePath cloud client could not start.' : cloudConfiguration.reason)
-  const normalized = email.trim().toLowerCase()
-  if (!/^\S+@\S+\.\S+$/.test(normalized)) throw new Error('Enter the email address invited to the private alpha.')
   const redirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).toString()
-  const { error } = await client.auth.signInWithOtp({ email: normalized, options: { shouldCreateUser: false, emailRedirectTo: redirectTo } })
-  if (error) throw error
+  await requestPrivateSignInUsing(client, email, redirectTo)
 }
 
-export async function signInWithPassword(email: string, password: string) {
-  const client = await getCloudClient()
-  if (!client) throw new Error(cloudConfiguration.status === 'ready' ? 'The ForgePath cloud client could not start.' : cloudConfiguration.reason)
-  const normalized = email.trim().toLowerCase()
-  if (!/^\S+@\S+\.\S+$/.test(normalized) || !password) throw new Error('Enter your invited email and password.')
-  const { data, error } = await client.auth.signInWithPassword({ email: normalized, password })
-  if (error) throw error
-  return data.session
-}
-
-export async function requestPasswordRecovery(email: string) {
-  const client = await getCloudClient()
-  if (!client) throw new Error(cloudConfiguration.status === 'ready' ? 'The ForgePath cloud client could not start.' : cloudConfiguration.reason)
-  const normalized = email.trim().toLowerCase()
-  if (!/^\S+@\S+\.\S+$/.test(normalized)) throw new Error('Enter your account email.')
-  const redirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).toString()
-  const { error } = await client.auth.resetPasswordForEmail(normalized, { redirectTo })
-  if (error) throw error
-}
-
-export function validateNewPassword(password: string) {
-  if (password.length < 12) return 'Use at least 12 characters.'
-  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
-    return 'Include uppercase, lowercase, a number, and a symbol.'
+type PasswordlessClient = {
+  auth: {
+    signInWithOtp: (credentials: { email: string; options: { shouldCreateUser: false; emailRedirectTo: string } }) => Promise<{ error: { code?: string; message?: string } | null }>
   }
-  return null
 }
 
-export async function updateCloudPassword(password: string, currentPassword?: string) {
-  const passwordError = validateNewPassword(password)
-  if (passwordError) throw new Error(passwordError)
-  const client = await getCloudClient()
-  if (!client) throw new Error('The ForgePath cloud client could not start.')
-  return updateCloudPasswordUsing(client, password, currentPassword)
+function isUninvitedEmailError(error: { code?: string; message?: string }) {
+  const code = error.code?.toLowerCase() ?? ''
+  const message = error.message?.toLowerCase() ?? ''
+  return code === 'signup_disabled' || code === 'user_not_found' || /signups? not allowed|user not found|not registered/.test(message)
 }
 
-export async function updateCloudPasswordUsing(client: ForgePathCloudClient, password: string, currentPassword?: string) {
-  const passwordError = validateNewPassword(password)
-  if (passwordError) throw new Error(passwordError)
-  if (currentPassword) {
-    const { data: currentUser, error: userError } = await client.auth.getUser()
-    if (userError) throw userError
-    if (!currentUser.user?.email) throw new Error('This account has no verified email.')
-    const { error: signInError } = await client.auth.signInWithPassword({
-      email: currentUser.user.email,
-      password: currentPassword
-    })
-    if (signInError) throw new Error('The current password is incorrect.')
-  }
-  const { data, error } = await client.auth.updateUser({
-    password,
-    ...(currentPassword ? { current_password: currentPassword } : {}),
-    data: { forgepath_password_ready: true }
+function isEmailRateLimitError(error: { code?: string; message?: string }) {
+  const code = error.code?.toLowerCase() ?? ''
+  const message = error.message?.toLowerCase() ?? ''
+  return code.includes('rate_limit') || /rate limit|wait .*second|email.*recently/.test(message)
+}
+
+export async function requestPrivateSignInUsing(client: PasswordlessClient, email: string, redirectTo: string) {
+  const normalized = email.trim().toLowerCase()
+  if (!/^\S+@\S+\.\S+$/.test(normalized)) throw new Error('Enter the email address invited by the creator.')
+  const { error } = await client.auth.signInWithOtp({
+    email: normalized,
+    options: { shouldCreateUser: false, emailRedirectTo: redirectTo }
   })
-  if (error) throw error
-  return data.user
+  // Do not reveal whether an email is on the private invitation list.
+  if (!error || isUninvitedEmailError(error)) return
+  if (isEmailRateLimitError(error)) throw new Error('A sign-in email was requested recently. Wait a minute and try again.')
+  throw new Error('ForgePath could not send a private sign-in link. Check your connection and try again.')
 }
 
 export async function resetCloudData() {

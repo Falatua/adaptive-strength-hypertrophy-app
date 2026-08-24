@@ -106,6 +106,7 @@ interface AppState {
   toggleSetComplete: (sessionId: string, plannedExerciseId: string, setId: string) => void
   skipSet: (sessionId: string, plannedExerciseId: string, setId: string, skipped: boolean) => void
   setSessionClockRunning: (sessionId: string, running: boolean) => void
+  setSessionPainStatus: (sessionId: string, status: TrainingSession['painStatus']) => void
   setPlacementWarmup: (sessionId: string, response: Exclude<PlacementWarmupResponse, 'not-answered'>) => void
   resolvePlacementRecovery: (eventId: string, response: Exclude<PlacementRecoveryResponse, 'pending'>) => void
   recordPlacementExitReview: (decision: PlacementExitDecision, reason: string) => { ok: boolean; error?: string }
@@ -444,6 +445,12 @@ export const useAppStore = create<AppState>()(
             : session)
         }
       }),
+      setSessionPainStatus: (sessionId, status) => set((state) => ({
+        sessions: state.sessions.map((session) => session.id === sessionId ? { ...session, painStatus: status } : session),
+        notice: status === 'changed-training'
+          ? 'Pain that changed training is recorded. Added volume is paused. Modify or stop the affected movement and seek qualified care for new, severe, or unexplained pain.'
+          : 'No pain-related training change is recorded for this workout.'
+      })),
       toggleSetComplete: (sessionId, plannedExerciseId, setId) => set((state) => {
         const session = state.sessions.find((candidate) => candidate.id === sessionId)
         const planned = session?.exercises.find((candidate) => candidate.id === plannedExerciseId)

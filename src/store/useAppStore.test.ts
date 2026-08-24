@@ -24,4 +24,17 @@ describe('clean first-use state', () => {
     expect(backup.sessions).toEqual([])
     expect(backup.mesocycles).toEqual([])
   })
+
+  it('persists the athlete-controlled live pain signal on the active workout', () => {
+    const active = {
+      id: 'active-safety-session', title: 'Safety session', objective: 'Train within current capacity.', dayLabel: 'Today',
+      plannedDate: '2026-08-24T12:00:00.000Z', status: 'active' as const, durationMinutes: 45, exercises: []
+    }
+    useAppStore.setState({ sessions: [active], activeSessionId: active.id, workoutVisible: true })
+    useAppStore.getState().setSessionPainStatus(active.id, 'changed-training')
+    expect(useAppStore.getState().sessions[0].painStatus).toBe('changed-training')
+    expect(backupStateFrom(useAppStore.getState()).sessions[0].painStatus).toBe('changed-training')
+    useAppStore.getState().setSessionPainStatus(active.id, 'no-change')
+    expect(useAppStore.getState().sessions[0].painStatus).toBe('no-change')
+  })
 })

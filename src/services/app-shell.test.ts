@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { checkForAppUpdate, reloadWithFreshAppShell } from './app-shell'
+import { checkForAppUpdate, readAppVersionStatus, reloadWithFreshAppShell } from './app-shell'
 
 const withBrowser = (registrations: { unregister: () => Promise<boolean>; update: () => Promise<void> }[], cacheKeys: string[]) => {
   const deleted: string[] = []
@@ -16,6 +16,24 @@ const withBrowser = (registrations: { unregister: () => Promise<boolean>; update
 afterEach(() => vi.unstubAllGlobals())
 
 describe('stale app shell recovery', () => {
+  it('compares the exact installed source with a no-cache published marker', async () => {
+    const installed = 'a'.repeat(40)
+    const available = 'b'.repeat(40)
+    const fetcher = vi.fn(async () => new Response(`${available}\n`)) as unknown as typeof fetch
+    await expect(readAppVersionStatus(fetcher, installed, 'https://example.com', '/forgepath/')).resolves.toEqual({
+      installed,
+      available,
+      updateAvailable: true
+    })
+    expect(fetcher).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/forgepath/source-version.txt' }), { cache: 'no-store' })
+  })
+
+  it('does not block local builds or an unavailable marker', async () => {
+    expect(await readAppVersionStatus(vi.fn() as unknown as typeof fetch, '', 'https://example.com', '/')).toEqual({ installed: null, available: null, updateAvailable: false })
+    const fetcher = vi.fn(async () => { throw new Error('offline') }) as unknown as typeof fetch
+    expect(await readAppVersionStatus(fetcher, 'a'.repeat(40), 'https://example.com', '/')).toEqual({ installed: 'a'.repeat(40), available: null, updateAvailable: false })
+  })
+
   it('asks the installed worker for a newer build', async () => {
     const update = vi.fn(async () => undefined)
     withBrowser([{ unregister: async () => true, update }], [])

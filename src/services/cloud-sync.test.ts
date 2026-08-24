@@ -17,9 +17,8 @@ import {
   queueCloudSnapshot,
   readPendingSnapshot,
   recordCloudPushResult,
+  requestPrivateSignInUsing,
   restoreVerifiedCloudSnapshot,
-  updateCloudPasswordUsing,
-  validateNewPassword,
   type ForgePathCloudClient
 } from './cloud-sync'
 import type { Json } from './supabase.types'
@@ -81,45 +80,24 @@ describe('cloud configuration boundary', () => {
   })
 })
 
-describe('password policy', () => {
-  it('requires a long mixed-character password before sending an Auth update', () => {
-    expect(validateNewPassword('Short1!')).toMatch(/12 characters/i)
-    expect(validateNewPassword('alllowercase12!')).toMatch(/uppercase/i)
-    expect(validateNewPassword('ALLUPPERCASE12!')).toMatch(/lowercase/i)
-    expect(validateNewPassword('NoNumbersHere!')).toMatch(/number/i)
-    expect(validateNewPassword('NoSymbolsHere12')).toMatch(/symbol/i)
-    expect(validateNewPassword('PrivatePath12!')).toBeNull()
+describe('invitation-only email-link policy', () => {
+  it('normalizes the email, refuses account creation, and returns to the exact app base', async () => {
+    const signInWithOtp = vi.fn().mockResolvedValue({ error: null })
+    await requestPrivateSignInUsing({ auth: { signInWithOtp } }, ' Athlete@Example.com ', 'https://example.com/forgepath/')
+    expect(signInWithOtp).toHaveBeenCalledWith({
+      email: 'athlete@example.com',
+      options: { shouldCreateUser: false, emailRedirectTo: 'https://example.com/forgepath/' }
+    })
   })
 
-  it('reauthenticates with the current password before changing an existing password', async () => {
-    const getUser = vi.fn().mockResolvedValue({ data: { user: { email: 'athlete@example.com' } }, error: null })
-    const signInWithPassword = vi.fn().mockResolvedValue({ data: { session: {} }, error: null })
-    const updateUser = vi.fn().mockResolvedValue({ data: { user: { id: 'athlete-id' } }, error: null })
-    const client = { auth: { getUser, signInWithPassword, updateUser } } as unknown as ForgePathCloudClient
-
-    await updateCloudPasswordUsing(client, 'PrivatePath12!', 'CurrentPath12!')
-
-    expect(signInWithPassword).toHaveBeenCalledWith({ email: 'athlete@example.com', password: 'CurrentPath12!' })
-    expect(updateUser).toHaveBeenCalledWith(expect.objectContaining({
-      password: 'PrivatePath12!',
-      current_password: 'CurrentPath12!',
-      data: { forgepath_password_ready: true }
-    }))
-    expect(signInWithPassword.mock.invocationCallOrder[0]).toBeLessThan(updateUser.mock.invocationCallOrder[0])
+  it('does not reveal whether the email was invited', async () => {
+    const signInWithOtp = vi.fn().mockResolvedValue({ error: { code: 'signup_disabled', message: 'Signups not allowed for otp' } })
+    await expect(requestPrivateSignInUsing({ auth: { signInWithOtp } }, 'unknown@example.com', 'https://example.com/')).resolves.toBeUndefined()
   })
 
-  it('stops password changes when current-password reauthentication fails', async () => {
-    const updateUser = vi.fn()
-    const client = {
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { email: 'athlete@example.com' } }, error: null }),
-        signInWithPassword: vi.fn().mockResolvedValue({ data: {}, error: new Error('invalid credentials') }),
-        updateUser
-      }
-    } as unknown as ForgePathCloudClient
-
-    await expect(updateCloudPasswordUsing(client, 'PrivatePath12!', 'WrongCurrent12!')).rejects.toThrow(/current password is incorrect/i)
-    expect(updateUser).not.toHaveBeenCalled()
+  it('gives a neutral retry instruction when Supabase rate limits link delivery', async () => {
+    const signInWithOtp = vi.fn().mockResolvedValue({ error: { code: 'over_email_send_rate_limit', message: 'rate limit' } })
+    await expect(requestPrivateSignInUsing({ auth: { signInWithOtp } }, 'athlete@example.com', 'https://example.com/')).rejects.toThrow(/wait a minute/i)
   })
 })
 

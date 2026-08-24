@@ -29,7 +29,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, equipmentProfiles, history, surveys, movementNotes, settings, placementVerifications, updateSet, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, skipSet, setPlacementWarmup, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
+  const { sessions, exercises, equipmentProfiles, history, surveys, movementNotes, settings, placementVerifications, updateSet, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, skipSet, setPlacementWarmup, setSessionPainStatus, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
@@ -218,7 +218,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const extensionGate = sessionExtensionGate({
     sessionStatus: session.status,
     readiness: session.readiness,
-    painReported: placementVerification?.warmupResponse === 'painful'
+    painReported: session.painStatus === 'changed-training' || placementVerification?.warmupResponse === 'painful'
   })
 
   const addSet = (plannedExerciseId: string) => {
@@ -289,7 +289,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
       <header className="workout-header">
         <div className="workout-header__left">
           <button className="icon-button" onClick={leaveActiveSession} aria-label="Leave workout open"><ArrowLeft size={20} /></button>
-          <div><p className="eyebrow">Active workout · Local save</p><h1>{session.title}</h1></div>
+          <div><p className="eyebrow">Active workout · Auto-save on</p><h1>{session.title}</h1></div>
         </div>
         <div className="workout-header__stats">
           <div><small>Sets</small><strong>{completedSets}/{totalSets}</strong></div>
@@ -303,6 +303,13 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
       </header>
 
       <main className="workout-main">
+        <section className={`warmup-check live-pain-check ${session.painStatus === 'changed-training' ? 'live-pain-check--active' : ''}`} aria-label="Live pain safety check">
+          <div><AlertTriangle size={20} /><span><strong>Did pain change how you can train?</strong><small>This control is always available. It does not diagnose pain. Use it to pause added volume and make room to modify or stop the affected movement.</small></span></div>
+          <div role="group" aria-label="Pain effect on this workout">
+            <button aria-pressed={session.painStatus === 'no-change'} onClick={() => setSessionPainStatus(session.id, 'no-change')}>Pain not affecting training</button>
+            <button className="pain" aria-pressed={session.painStatus === 'changed-training'} onClick={() => { playForgeSound('warning', settings); setSessionPainStatus(session.id, 'changed-training') }}>Modify or stop</button>
+          </div>
+        </section>
         {cancelledPlacementName && (
           <section className="warmup-check placement-session-check is-captured" role="status" aria-live="polite">
             <div><AlertTriangle size={20} /><span><strong>{cancelledPlacementName} starting check cancelled</strong><small>Because you changed the main lift, this workout no longer tells ForgePath how {cancelledPlacementName} should progress. The replacement still builds its own training history.</small></span></div>

@@ -2,7 +2,7 @@
 type: backend-runbook
 tags: [fitness, app, supabase, postgres, auth, sync, operations]
 created: 2026-08-10
-updated: 2026-08-13
+updated: 2026-08-24
 status: cloud-account-controls-deployed-acceptance-pending
 confidence: verified-live-transactional
 ---
@@ -11,13 +11,13 @@ confidence: verified-live-transactional
 
 ## Current Boundary
 
-Private alpha 0.54.0 makes the validated version 25 snapshot cloud-authoritative for invited accounts. A dedicated remote project exists in a separate approved Supabase organization: `ForgePath`, project reference `kdavpkphvapnckenbuyg`, AWS `us-east-2`. JB-OS and Roman TD Global Leaderboard were not modified, paused, deleted, or reused.
+Private alpha 0.59.0 makes the validated version 25 snapshot cloud-authoritative for invited accounts. A dedicated remote project exists in a separate approved Supabase organization: `ForgePath`, project reference `kdavpkphvapnckenbuyg`, AWS `us-east-2`. JB-OS and Roman TD Global Leaderboard were not modified, paused, deleted, or reused.
 
 The local foundation includes:
 
 - three checksum-locked versioned migrations in `supabase/migrations`;
 - fourteen forced Row Level Security tables and two security-invoker volume views;
-- an invite-only email and password gate, invitation setup, and password recovery flow that does not create public accounts;
+- an invite-only email-link gate with account creation disabled, generic non-enumerating responses, and no athlete-facing password route;
 - stable device identity and version metadata;
 - a memory-only retry payload for cloud builds;
 - an idempotent authenticated snapshot function;

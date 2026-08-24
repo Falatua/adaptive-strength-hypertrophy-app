@@ -5,21 +5,31 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-24
 status: working-private-alpha
-app_version: 0.58.0
+app_version: 0.59.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
 
+## Private Alpha 0.59.0 Passwordless Cloud and Live Safety Delta
+
+- Makes the private emailed link the only athlete-facing sign-in route. Password setup, password sign-in, password recovery, and password settings are removed from the product.
+- Keeps invitation membership private by returning the same success state for invited and uninvited addresses while continuing to send `shouldCreateUser: false` to Supabase.
+- Lets a signed-in athlete request a fresh email verification link before reset or deletion. The reset RPC and deletion function still enforce the five-minute JWT issue-time boundary independently on the server.
+- Compares the exact installed source commit with the published `source-version.txt` before cloud hydration or save. A confirmed old build is blocked with both short commit identities and a safe update control.
+- Adds an always-available live pain control to every workout. Marking that pain changed training immediately blocks athlete-added sets and movements and persists with the session without claiming diagnosis or medical clearance.
+- Adds deterministic 10,000-set backup, checksum, identity, analytics, and volume conservation coverage.
+- Current local acceptance is 427 deterministic tests and 84 desktop and phone browser journeys, plus the Pages build and cloud/security gates.
+
 ## 2026-08-24 Cloud and Release Reconciliation
 
 - Reconciled the eleven source commits made after the original 2026-08-13 cloud-hardening baseline, including old-schema snapshot loading, first-save coverage, stale installed-app repair, deliberate set skipping, athlete-facing language, and passwordless invited-account access.
-- Corrected the passwordless account path so an emailed-link athlete can set a first password and can reach reset or deletion without supplying a password that does not exist. The authenticated reset RPC and deletion function still enforce their own five-minute recent-sign-in boundary.
+- Established emailed-link access as the default while preserving the then-existing optional password controls. Those controls are superseded by private alpha 0.59.0, which removes the athlete-facing password path entirely.
 - Replaced the fixed-date year-scale browser fixture with a rolling 52-week fixture. The former fixture began failing as its latest sessions aged outside the 42-day confidence window even though the product was correctly lowering stale confidence.
 - Added the complete deterministic, browser, and Pages gate to pull requests while preventing pull requests from receiving production cloud secrets or publishing an artifact.
 - Updated the hosted-release documentation to the actual invite-only, Supabase-authoritative boundary and integrated the current routine package updates plus the Node 24 Gitleaks action.
-- Current local acceptance is 427 deterministic tests and 82 desktop and phone browser journeys, plus the Pages build gate. Live checks confirm healthy Auth, disabled public signup and anonymous users, denied anonymous snapshot/reset access, authenticated-only deletion, and a source-version marker tied to the published source commit.
+- At this reconciliation checkpoint, local acceptance was 427 deterministic tests and 82 desktop and phone browser journeys. Private alpha 0.59.0 supersedes it with 84 browser journeys and the same 427-test deterministic gate.
 
 ## Private Alpha 0.58.0 Longitudinal Replay Delta
 

@@ -3,14 +3,23 @@ type: product-build-bible
 aliases: [Adaptive Training App Build Bible, App Build Bible]
 tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
-updated: 2026-08-13
+updated: 2026-08-24
 status: canonical-build-reference-and-active-implementation
-version: 1.54.0
+version: 1.55.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.55.0 Change Entry
+
+- Advanced the working application to private alpha 0.59.0 while preserving backup schema 25 and all training-rule identities.
+- Made the invited-email magic link the sole athlete-facing authentication path, with account creation disabled and non-enumerating responses.
+- Kept reset and deletion behind a fresh email-link JWT no more than five minutes old, exact typed confirmation, and server-side self-only enforcement.
+- Added exact installed-versus-published source comparison before cloud hydration or save.
+- Added an always-available athlete-controlled pain effect signal that blocks added volume when pain changed training.
+- Added deterministic 10,000-set persistence and analytics conservation coverage and expanded responsive browser acceptance to 84 journeys.
 
 ### Version 1.54.0 Change Entry
 
@@ -6254,7 +6263,7 @@ Every normalized table enables and forces Row Level Security. Authenticated clie
 
 Completed sets retain entered load and unit, normalized kilograms, repetitions, exact exercise identity, movement family, exclusive primary region, non-additive involved regions, source device, source event, version, and completion time. `volume_load_kg` is a stored generated value equal to normalized load multiplied by repetitions. Security-invoker views produce source-set facts and daily, weekly, monthly, and yearly rollups for total training and exclusive primary-region scopes. Survey answers store `answered`, `skipped`, `not-sure`, `prefer-not`, and `not-answered` explicitly, and only an answered row may contain a value.
 
-The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the public source repository. Both committed migrations were applied transactionally on 2026-08-11. The repaired remote migration ledger matches the exact committed files by SHA-256. A live catalog audit confirmed fourteen of fourteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed nine identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as GitHub Actions secrets outside the public source tree, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The variable remains unset until one approved athlete is invited and a real phone-to-laptop recovery drill passes. App version 0.39.1, backup schema 25, and local persistence 23 preserve the explicit snapshot save and reviewed restore boundary rather than claiming normalized entity sync.
+The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the public source repository. Four committed migrations are checksum-locked and represented by the repaired remote migration ledger. A live catalog audit confirmed fourteen of fourteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as GitHub Actions secrets outside the public source tree, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The private cloud release is enabled, while real invited-athlete physical phone-to-laptop recovery remains an open acceptance gate. App version 0.59.0 and backup schema 25 preserve the cloud-authoritative snapshot boundary without claiming normalized entity merge or active-workout handoff.
 
 ## 79. Exact-Movement Workout Notes and Longitudinal Recall
 

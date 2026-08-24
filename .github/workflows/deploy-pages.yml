@@ -21,6 +21,7 @@ jobs:
       FORGEPATH_CLOUD_RELEASE_ENABLED: ${{ github.event_name != 'pull_request' && vars.FORGEPATH_CLOUD_RELEASE_ENABLED || 'false' }}
       VITE_SUPABASE_URL: ${{ github.event_name != 'pull_request' && vars.FORGEPATH_CLOUD_RELEASE_ENABLED == 'true' && secrets.FORGEPATH_SUPABASE_URL || '' }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ github.event_name != 'pull_request' && vars.FORGEPATH_CLOUD_RELEASE_ENABLED == 'true' && secrets.FORGEPATH_SUPABASE_PUBLISHABLE_KEY || '' }}
+      VITE_FORGEPATH_SOURCE_VERSION: ${{ github.sha }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v7

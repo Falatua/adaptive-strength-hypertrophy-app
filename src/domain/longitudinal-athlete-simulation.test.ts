@@ -435,4 +435,30 @@ describe('longitudinal athlete acceptance replay', () => {
     expect(stale.movements[0].state).toBe('stale')
     expect(stale.movements[0].sourceSetIds).toHaveLength(first.history.filter((workSet) => workSet.exerciseId === bench.id).length)
   })
+
+  it('round-trips and analyzes ten thousand exact completed sets without losing identity or volume', () => {
+    const replay = replayStableYear()
+    const history = Array.from({ length: 10_000 }, (_, index): CompletedSetRecord => {
+      const source = replay.history[index % replay.history.length]
+      return {
+        ...source,
+        id: `stress-set-${String(index + 1).padStart(5, '0')}`,
+        completedAt: new Date(new Date('2016-01-01T12:00:00.000Z').getTime() + index * 8 * 60 * 60_000).toISOString(),
+        setIndex: index
+      }
+    })
+    const state = restorableYear(replay)
+    state.history = history
+    state.records = derivePersonalRecords(history)
+    const expectedVolume = volumeLoad(history)
+    const backup = createBackup(state, '2026-08-24T12:00:00.000Z')
+    const parsed = parseBackup(JSON.stringify(backup))
+    const analytics = buildAnalytics(parsed.backup.data.history, 'all', new Date('2026-08-24T12:00:00.000Z'))
+
+    expect(parsed.summary.completedSets).toBe(10_000)
+    expect(new Set(parsed.backup.data.history.map((workSet) => workSet.id)).size).toBe(10_000)
+    expect(analytics.setCount).toBe(10_000)
+    expect(analytics.totalVolume).toBe(expectedVolume)
+    expect(createBackup(parsed.backup.data, '2026-08-24T12:00:00.000Z').integrity.value).toBe(backup.integrity.value)
+  })
 })

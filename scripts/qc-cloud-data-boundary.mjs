@@ -4,6 +4,7 @@ import { resolve } from 'node:path'
 const store = readFileSync(resolve('src/store/useAppStore.ts'), 'utf8')
 const sync = readFileSync(resolve('src/services/cloud-sync.ts'), 'utf8')
 const root = readFileSync(resolve('src/components/CloudAppRoot.tsx'), 'utf8')
+const panel = readFileSync(resolve('src/components/CloudSyncPanel.tsx'), 'utf8')
 const config = readFileSync(resolve('src/services/cloud-config.ts'), 'utf8')
 const shell = readFileSync(resolve('src/services/app-shell.ts'), 'utf8')
 const failures = []
@@ -35,12 +36,15 @@ if (!root.includes('restoreVerifiedCloudSnapshot(snapshot') || restoreIndex < 0 
 if (/JSON\.stringify\([^\n]+\)\s*[!=]==?\s*JSON\.stringify\(/.test(jsonComparisonSources)) failures.push('domain or store logic compares JSON using order-sensitive JSON.stringify equality')
 if (!sync.includes('persistSession: true') || !sync.includes('autoRefreshToken: true')) failures.push('the browser auth session is not configured for secure renewal')
 if (!sync.includes('shouldCreateUser: false') || /\.auth\.signUp\s*\(/.test(sync) || /\.auth\.admin\b/.test(sync)) failures.push('the browser authentication service can escape the invite-only account boundary')
-if (!sync.includes("password.length < 12") || !sync.includes('current password is incorrect')) failures.push('the browser password service is missing the strong-password or current-password reauthentication boundary')
+if (!sync.includes('isUninvitedEmailError') || !sync.includes('Do not reveal whether an email is on the private invitation list')) failures.push('the passwordless login path can reveal invitation membership')
+if (/signInWithPassword|resetPasswordForEmail|updateCloudPassword|forgepath_password_ready|type=["']password["']/.test(`${sync}\n${root}\n${panel}`)) failures.push('a password authentication path remains in the athlete-facing product')
 if (!config.includes("loopback && import.meta.env.VITE_FORGEPATH_LOCAL_E2E === 'true'")) failures.push('the local test override is not restricted to loopback')
 if (/VITE_.*(?:SECRET|SERVICE|PASSWORD|PRIVATE)/i.test(`${store}\n${sync}\n${root}\n${config}`)) failures.push('browser source references a privileged Vite credential')
 if (!root.includes('void checkForAppUpdate()')) failures.push('cloud bootstrap does not look for a newer build before blaming the saved copy')
+if (!root.includes('await readAppVersionStatus()') || !root.includes('if (version.updateAvailable)')) failures.push('cloud bootstrap does not block an exact known old build before loading or saving')
 if (!root.includes('refresh={() => { void reloadWithFreshAppShell() }}') || !root.includes('signOut={() => { void signOutCloud()')) failures.push('a failed cloud load strands the athlete with retry as the only control')
 if (!shell.includes('registration.unregister()') || !shell.includes('caches.delete(key)') || !shell.includes('window.location.reload()')) failures.push('the app-shell repair does not replace the installed worker and cached app files')
+if (!shell.includes('source-version.txt') || !shell.includes("cache: 'no-store'") || !shell.includes('available !== normalizedInstalled')) failures.push('the installed app cannot compare its exact source version with the published build')
 if (/localStorage|CLOUD_|restoreBackup|resetForTesting/.test(shell)) failures.push('the app-shell repair reaches into training or cloud state')
 
 if (failures.length) {
@@ -48,4 +52,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log('Cloud data boundary QC passed: Supabase is authoritative, the snapshot outbox is memory-only, legacy training storage is removed after verification, a failed load can repair a stale build or sign out, and the local test override is loopback-only.')
+console.log('Cloud data boundary QC passed: Supabase is authoritative, authentication is invitation-only and passwordless, the snapshot outbox is memory-only, exact stale builds are blocked, and failed loads remain recoverable.')

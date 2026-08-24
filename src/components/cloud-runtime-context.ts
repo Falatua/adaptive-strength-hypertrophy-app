@@ -9,8 +9,9 @@ export type CloudRuntimeValue = {
   lastSavedAt: string | null
   error: string | null
   signOut: () => Promise<void>
-  resetData: (password?: string) => Promise<void>
-  deleteAccount: (password?: string) => Promise<void>
+  sendVerificationLink: () => Promise<void>
+  resetData: () => Promise<void>
+  deleteAccount: () => Promise<void>
   retrySave: () => Promise<void>
 }
 

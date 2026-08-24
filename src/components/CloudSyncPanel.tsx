@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { AlertTriangle, CheckCircle2, Cloud, CloudOff, KeyRound, LoaderCircle, LogOut, RefreshCw, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Cloud, CloudOff, LoaderCircle, LogOut, Mail, RefreshCw, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react'
 import { cloudConfiguration } from '../services/cloud-config'
-import { updateCloudPassword, validateNewPassword } from '../services/cloud-sync'
 import { useCloudRuntime } from './cloud-runtime-context'
 import { Modal } from './Modal'
 
-type BusyAction = 'signout' | 'password' | 'reset' | 'delete' | 'retry' | null
+type BusyAction = 'signout' | 'verify' | 'reset' | 'delete' | 'retry' | null
 
 function errorMessage(cause: unknown) {
   return cause instanceof Error ? cause.message : 'The account action could not be completed.'
@@ -16,12 +15,8 @@ export function CloudSyncPanel() {
   const [busy, setBusy] = useState<BusyAction>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [passwordOpen, setPasswordOpen] = useState(false)
   const [resetOpen, setResetOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [typedConfirmation, setTypedConfirmation] = useState('')
 
   const run = async (action: BusyAction, request: () => Promise<void>, done?: () => void) => {
@@ -38,19 +33,17 @@ export function CloudSyncPanel() {
     }
   }
 
-  const clearSensitiveFields = () => {
-    setCurrentPassword('')
-    setNewPassword('')
-    setConfirmPassword('')
-    setTypedConfirmation('')
-  }
+  const clearConfirmation = () => setTypedConfirmation('')
+
+  const sendFreshLink = () => run('verify', runtime!.sendVerificationLink, () => {
+    setMessage('A fresh private link was requested. Open it from your email on this device, then return here to confirm the action.')
+  })
 
   if (!runtime) return <section className="panel cloud-panel cloud-panel--pending" aria-label="Cloud account">
     <div className="panel__header"><div><p className="eyebrow">Private cloud</p><h3>Cloud access is unavailable</h3></div><CloudOff size={19} /></div>
     <div className="cloud-boundary"><ShieldCheck size={23} /><div><strong>This build is not cloud-authoritative</strong><p>{cloudConfiguration.status === 'ready' ? 'The local test override is active.' : cloudConfiguration.reason}</p></div></div>
   </section>
 
-  const hasPassword = runtime.session.user.user_metadata?.forgepath_password_ready === true
   const savedLabel = runtime.saveState === 'saved' ? 'Saved to your private cloud' : runtime.saveState === 'saving' ? 'Saving to your private cloud' : 'Cloud save needs attention'
 
   return <>
@@ -61,41 +54,26 @@ export function CloudSyncPanel() {
       <p className="chart-note">Training history, plans, surveys, notes, and settings live in your private ForgePath account. This browser keeps only the signed-in session and device metadata.</p>
       <details className="cloud-technical-note"><summary>How your data is stored</summary><p>ForgePath uses Supabase with account-scoped Row Level Security. Your signed-in user ID is required for every training-data read or write.</p></details>
       <div className="data-actions">
-        <button className="full-row-button" onClick={() => { clearSensitiveFields(); setPasswordOpen(true) }}><KeyRound size={17} /> {hasPassword ? 'Change password' : 'Set a password'}</button>
-        <button className="full-row-button" onClick={() => { clearSensitiveFields(); setResetOpen(true) }}><RotateCcw size={17} /> Reset training data</button>
-        <button className="full-row-button full-row-button--danger" onClick={() => { clearSensitiveFields(); setDeleteOpen(true) }}><Trash2 size={17} /> Delete account and data</button>
+        <button className="full-row-button" onClick={() => { clearConfirmation(); setResetOpen(true) }}><RotateCcw size={17} /> Reset training data</button>
+        <button className="full-row-button full-row-button--danger" onClick={() => { clearConfirmation(); setDeleteOpen(true) }}><Trash2 size={17} /> Delete account and data</button>
       </div>
       {(error || runtime.error) && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Cloud action stopped</strong>{error ?? runtime.error}</span></div>}
       {message && <div className="cloud-message" role="status"><CheckCircle2 size={17} /><span>{message}</span></div>}
     </section>
 
-    <Modal open={passwordOpen} onClose={() => setPasswordOpen(false)} title={hasPassword ? 'Change your password' : 'Set a password'} description={hasPassword ? 'Confirm your current password, then choose a new password that is unique to ForgePath.' : 'Your emailed sign-in link already verified this session. Add a password only if you want another way to sign in.'}>
-      <div className="cloud-sensitive-form">
-        {hasPassword && <label><span className="field-label">Current password</span><input type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></label>}
-        <label><span className="field-label">New password</span><input type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /></label>
-        <label><span className="field-label">Confirm new password</span><input type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></label>
-        <p className="modal-note">Use at least 12 characters with uppercase, lowercase, a number, and a symbol.</p>
-      </div>
-      <div className="modal__actions"><button className="button button--ghost" onClick={() => setPasswordOpen(false)}>Cancel</button><button className="button button--primary" disabled={busy === 'password' || (hasPassword && !currentPassword) || !newPassword || !confirmPassword} onClick={() => run('password', async () => {
-        const passwordError = validateNewPassword(newPassword)
-        if (passwordError) throw new Error(passwordError)
-        if (newPassword !== confirmPassword) throw new Error('The new passwords do not match.')
-        await updateCloudPassword(newPassword, hasPassword ? currentPassword : undefined)
-        setMessage(hasPassword ? 'Your password was changed.' : 'Your password was set. Emailed links will still work too.')
-      }, () => { clearSensitiveFields(); setPasswordOpen(false) })}>{busy === 'password' ? <LoaderCircle className="spin" size={16} /> : <KeyRound size={16} />} {hasPassword ? 'Change password' : 'Set password'}</button></div>
-    </Modal>
-
     <Modal open={resetOpen} onClose={() => setResetOpen(false)} title="Reset all training data" description="This permanently deletes your cloud training history, plans, surveys, notes, settings, and recovery state, then starts onboarding again. Your login remains active. Export first if you want a recoverable copy.">
-      {!hasPassword && <p className="modal-note">For a passwordless account, Supabase requires this session to come from an emailed link opened within the last five minutes. If it has been longer, sign out and use a fresh link before returning here.</p>}
-      <div className="cloud-sensitive-form">{hasPassword && <label><span className="field-label">Current password</span><input type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></label>}<label><span className="field-label">Type RESET to confirm</span><input value={typedConfirmation} onChange={(event) => setTypedConfirmation(event.target.value)} autoComplete="off" /></label></div>
-      <div className="modal__actions"><button className="button button--ghost" onClick={() => setResetOpen(false)}>Keep my data</button><button className="button button--danger" disabled={busy === 'reset' || (hasPassword && !currentPassword) || typedConfirmation !== 'RESET'} onClick={() => run('reset', () => runtime.resetData(hasPassword ? currentPassword : undefined), () => { clearSensitiveFields(); setResetOpen(false); setMessage('Your cloud training data was reset. Onboarding is ready for a fresh start.') })}>{busy === 'reset' ? <LoaderCircle className="spin" size={16} /> : <RotateCcw size={16} />} Reset training data</button></div>
+      <p className="modal-note">Supabase requires a sign-in link opened within the last five minutes for this permanent action. Request and open a fresh link first if needed.</p>
+      <button type="button" className="full-row-button" disabled={busy === 'verify'} onClick={sendFreshLink}>{busy === 'verify' ? <LoaderCircle className="spin" size={16} /> : <Mail size={16} />} Email me a fresh verification link</button>
+      <div className="cloud-sensitive-form"><label><span className="field-label">Type RESET to confirm</span><input value={typedConfirmation} onChange={(event) => setTypedConfirmation(event.target.value)} autoComplete="off" /></label></div>
+      <div className="modal__actions"><button className="button button--ghost" onClick={() => setResetOpen(false)}>Keep my data</button><button className="button button--danger" disabled={busy === 'reset' || typedConfirmation !== 'RESET'} onClick={() => run('reset', runtime.resetData, () => { clearConfirmation(); setResetOpen(false); setMessage('Your cloud training data was reset. Onboarding is ready for a fresh start.') })}>{busy === 'reset' ? <LoaderCircle className="spin" size={16} /> : <RotateCcw size={16} />} Reset training data</button></div>
     </Modal>
 
     <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete your ForgePath account" description="This permanently deletes the login and every ForgePath data row linked to it. This cannot be undone. Export first if you want to keep a personal copy.">
       <div className="warning-box"><AlertTriangle size={18} /> You will be signed out immediately and will need a new invitation to return.</div>
-      {!hasPassword && <p className="modal-note">For a passwordless account, Supabase requires this session to come from an emailed link opened within the last five minutes. If it has been longer, sign out and use a fresh link before returning here.</p>}
-      <div className="cloud-sensitive-form">{hasPassword && <label><span className="field-label">Current password</span><input type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></label>}<label><span className="field-label">Type DELETE to confirm</span><input value={typedConfirmation} onChange={(event) => setTypedConfirmation(event.target.value)} autoComplete="off" /></label></div>
-      <div className="modal__actions"><button className="button button--ghost" onClick={() => setDeleteOpen(false)}>Keep my account</button><button className="button button--danger" disabled={busy === 'delete' || (hasPassword && !currentPassword) || typedConfirmation !== 'DELETE'} onClick={() => run('delete', () => runtime.deleteAccount(hasPassword ? currentPassword : undefined))}>{busy === 'delete' ? <LoaderCircle className="spin" size={16} /> : <Trash2 size={16} />} Permanently delete account</button></div>
+      <p className="modal-note">Supabase requires a sign-in link opened within the last five minutes for this permanent action. Request and open a fresh link first if needed.</p>
+      <button type="button" className="full-row-button" disabled={busy === 'verify'} onClick={sendFreshLink}>{busy === 'verify' ? <LoaderCircle className="spin" size={16} /> : <Mail size={16} />} Email me a fresh verification link</button>
+      <div className="cloud-sensitive-form"><label><span className="field-label">Type DELETE to confirm</span><input value={typedConfirmation} onChange={(event) => setTypedConfirmation(event.target.value)} autoComplete="off" /></label></div>
+      <div className="modal__actions"><button className="button button--ghost" onClick={() => setDeleteOpen(false)}>Keep my account</button><button className="button button--danger" disabled={busy === 'delete' || typedConfirmation !== 'DELETE'} onClick={() => run('delete', runtime.deleteAccount)}>{busy === 'delete' ? <LoaderCircle className="spin" size={16} /> : <Trash2 size={16} />} Permanently delete account</button></div>
     </Modal>
   </>
 }

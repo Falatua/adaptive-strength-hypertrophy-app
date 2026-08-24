@@ -413,6 +413,8 @@ export interface TrainingSession {
   readinessAnsweredCount?: number
   readinessUnknownCount?: number
   readinessConfidence?: EvidenceConfidence
+  /** Athlete-controlled live safety signal. This never diagnoses pain or grants medical clearance. */
+  painStatus?: 'no-change' | 'changed-training'
   startedAt?: string
   completedAt?: string
   /** Total milliseconds the athlete has held the session clock stopped, excluding any open stop. */
