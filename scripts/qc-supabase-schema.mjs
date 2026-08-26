@@ -5,16 +5,18 @@ import { resolve } from 'node:path'
 const manifestPath = resolve('supabase/migrations/manifest.json')
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
 const migrationDirectory = resolve('supabase/migrations')
-const [foundationEntry, trainingCoreEntry, accountControlsEntry, snapshotContractEntry] = manifest.migrations
+const [foundationEntry, trainingCoreEntry, accountControlsEntry, snapshotContractEntry, homeScreenHandoffEntry] = manifest.migrations
 const foundationPath = resolve(migrationDirectory, foundationEntry.file)
 const trainingCorePath = resolve(migrationDirectory, trainingCoreEntry.file)
 const accountControlsPath = resolve(migrationDirectory, accountControlsEntry.file)
 const snapshotContractPath = resolve(migrationDirectory, snapshotContractEntry.file)
+const homeScreenHandoffPath = resolve(migrationDirectory, homeScreenHandoffEntry.file)
 const foundation = readFileSync(foundationPath, 'utf8')
 const trainingCore = readFileSync(trainingCorePath, 'utf8')
 const accountControls = readFileSync(accountControlsPath, 'utf8')
 const snapshotContract = readFileSync(snapshotContractPath, 'utf8')
-const migration = `${foundation}\n${trainingCore}\n${accountControls}\n${snapshotContract}`
+const homeScreenHandoff = readFileSync(homeScreenHandoffPath, 'utf8')
+const migration = `${foundation}\n${trainingCore}\n${accountControls}\n${snapshotContract}\n${homeScreenHandoff}`
 const requiredTables = [
   'forgepath_profiles',
   'forgepath_devices',
@@ -33,7 +35,7 @@ const requiredTables = [
 ]
 const failures = []
 
-if (manifest.schemaVersion !== 1 || manifest.migrations.length !== 4) failures.push('migration manifest shape is invalid')
+if (manifest.schemaVersion !== 1 || manifest.migrations.length !== 5) failures.push('migration manifest shape is invalid')
 for (const entry of manifest.migrations) {
   if (`${entry.version}_${entry.name}.sql` !== entry.file) failures.push(`${entry.file} does not match its version and name`)
   const contents = readFileSync(resolve(migrationDirectory, entry.file))
@@ -81,6 +83,16 @@ for (const evidence of ['createSupabaseContext', "auth: 'user'", 'supabaseAdmin.
 }
 if (/VITE_|localStorage|sessionStorage/.test(deleteAccountFunction)) failures.push('account deletion function risks exposing privileged configuration or browser storage')
 
+for (const evidence of ['forgepath_auth_handoffs', 'code_hash text not null unique', 'expires_at timestamptz not null', 'redeemed_at timestamptz', 'enable row level security', 'force row level security', 'revoke all on public.forgepath_auth_handoffs from public, anon, authenticated']) {
+  if (!homeScreenHandoff.includes(evidence)) failures.push(`Home Screen handoff migration evidence is missing: ${evidence}`)
+}
+
+const pwaHandoffFunction = readFileSync(resolve('supabase/functions/pwa-handoff/index.ts'), 'utf8')
+for (const evidence of ['allowedOrigins.has(origin)', 'cache-control', 'recentSignInSeconds', "body.action === 'create'", "body.action === 'redeem'", ".is('redeemed_at', null)", ".gt('expires_at', redeemedAt)", "generateLink({ type: 'magiclink', email })", 'hashed_token']) {
+  if (!pwaHandoffFunction.includes(evidence)) failures.push(`Home Screen handoff function evidence is missing: ${evidence}`)
+}
+if (/localStorage|sessionStorage|VITE_/.test(pwaHandoffFunction)) failures.push('Home Screen handoff function risks exposing browser storage or build-time credentials')
+
 for (const evidence of [
   'resulting_version = expected_version + 1',
   'forgepath_entity_events_device_sequence_unique',
@@ -113,6 +125,8 @@ if (!envExample.includes('VITE_SUPABASE_PUBLISHABLE_KEY')) failures.push('browse
 const supabaseConfig = readFileSync(resolve('supabase/config.toml'), 'utf8')
 if (!supabaseConfig.includes('enable_signup = false')) failures.push('local Supabase configuration does not preserve invite-only signup')
 if (!supabaseConfig.includes('enable_anonymous_sign_ins = false')) failures.push('local Supabase configuration allows anonymous sign-ins')
+if (!supabaseConfig.includes('https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/?forgepath_auth=home-screen')) failures.push('the exact production Home Screen email callback is not allow-listed')
+if (!supabaseConfig.includes('[functions.pwa-handoff]') || !supabaseConfig.includes('verify_jwt = false')) failures.push('the signed-out Home Screen redemption endpoint is not explicitly configured for application-level verification')
 
 const deployWorkflow = readFileSync(resolve('.github/workflows/deploy-pages.yml'), 'utf8')
 if (!deployWorkflow.includes("vars.FORGEPATH_CLOUD_RELEASE_ENABLED == 'true'")) failures.push('Pages does not gate cloud configuration behind the remote-auth release switch')
@@ -127,7 +141,7 @@ const transactionalAudit = readFileSync(resolve('supabase/audits/forgepath_trans
 for (const evidence of ['normalized_projection_write_denied', 'snapshot_apply', 'snapshot_idempotent_replay', 'idempotent_replay_metadata_rejected', 'snapshot_envelope_rejected', 'snapshot_conflict_preserved', 'snapshot_invariants', 'cross_athlete_isolation', 'rollback;']) {
   if (!transactionalAudit.includes(evidence)) failures.push(`transactional production audit is missing ${evidence}`)
 }
-for (const evidence of ['migration_ledger', 'table_rls', 'normalized_browser_mutation_grants', 'ownership_mutation_grants', 'volume_view_security', 'snapshot_rpc', 'snapshot_envelope_constraints', 'stored_snapshot_envelopes']) {
+for (const evidence of ['migration_ledger', 'table_rls', 'home_screen_handoff_grants', 'normalized_browser_mutation_grants', 'ownership_mutation_grants', 'volume_view_security', 'snapshot_rpc', 'snapshot_envelope_constraints', 'stored_snapshot_envelopes']) {
   if (!acceptanceAudit.includes(`'${evidence}'`)) failures.push(`production acceptance audit is missing ${evidence}`)
 }
 
@@ -136,4 +150,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log(`Supabase foundation QC passed for ${manifest.migrations.length} checksum-locked migrations, ${requiredTables.length} RLS-protected tables, two security-invoker volume views, explicit survey missingness, and the idempotent conflict-preserving snapshot RPC.`)
+console.log(`Supabase foundation QC passed for ${manifest.migrations.length} checksum-locked migrations, ${requiredTables.length + 1} RLS-protected tables, a server-only one-time Home Screen handoff, two security-invoker volume views, explicit survey missingness, and the idempotent conflict-preserving snapshot RPC.`)

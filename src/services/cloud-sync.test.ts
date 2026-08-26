@@ -9,7 +9,13 @@ import {
   CLOUD_OUTBOX_STORAGE_KEY,
   CLOUD_VERSION_STORAGE_KEY,
   acceptCloudSnapshot,
+  createHomeScreenHandoffCode,
+  createHomeScreenHandoffUsing,
   evaluateCloudConfiguration,
+  formatHomeScreenHandoffCode,
+  hashHomeScreenHandoffCode,
+  homeScreenSignInRedirect,
+  normalizeHomeScreenHandoffCode,
   parseCloudPushResult,
   parseCloudSnapshotRow,
   persistentCloudAuthOptions,
@@ -20,6 +26,7 @@ import {
   queueCloudSnapshot,
   readPendingSnapshot,
   recordCloudPushResult,
+  redeemHomeScreenHandoffUsing,
   requestPrivateSignInUsing,
   restoreVerifiedCloudSnapshot,
   stageCloudSnapshot,
@@ -112,6 +119,36 @@ describe('invitation-only email-link policy', () => {
   it('gives a neutral retry instruction when Supabase rate limits link delivery', async () => {
     const signInWithOtp = vi.fn().mockResolvedValue({ error: { code: 'over_email_send_rate_limit', message: 'rate limit' } })
     await expect(requestPrivateSignInUsing({ auth: { signInWithOtp } }, 'athlete@example.com', 'https://example.com/')).rejects.toThrow(/wait a minute/i)
+  })
+
+  it('marks a Home Screen request without changing the exact application scope', () => {
+    expect(homeScreenSignInRedirect('https://example.com/forgepath/')).toBe('https://example.com/forgepath/?forgepath_auth=home-screen')
+  })
+
+  it('creates, normalizes, and formats a uniform 100-bit one-time code', () => {
+    const code = createHomeScreenHandoffCode(Uint8Array.from({ length: 20 }, (_, index) => index))
+    expect(code).toBe('23456789ABCDEFGHJKLM')
+    expect(normalizeHomeScreenHandoffCode('2345-6789 abcd efgh jklm')).toBe(code)
+    expect(formatHomeScreenHandoffCode(code)).toBe('2345 6789 ABCD EFGH JKLM')
+  })
+
+  it('stores only a SHA-256 code digest in the server-only handoff function', async () => {
+    const invoke = vi.fn().mockResolvedValue({ data: { expiresInSeconds: 300 }, error: null })
+    const client = { functions: { invoke }, auth: { verifyOtp: vi.fn() } }
+    const code = '23456789ABCDEFGHJKLM'
+    const expectedHash = await hashHomeScreenHandoffCode(code)
+    await expect(createHomeScreenHandoffUsing(client, code)).resolves.toBe(300)
+    expect(invoke).toHaveBeenCalledWith('pwa-handoff', { body: { action: 'create', codeHash: expectedHash } })
+    expect(JSON.stringify(invoke.mock.calls)).not.toContain(code)
+  })
+
+  it('redeems a one-time code into a new local magic-link session without exposing tokens in the URL', async () => {
+    const invoke = vi.fn().mockResolvedValue({ data: { tokenHash: 'server-generated-token-hash' }, error: null })
+    const verifyOtp = vi.fn().mockResolvedValue({ error: null })
+    const client = { functions: { invoke }, auth: { verifyOtp } }
+    await redeemHomeScreenHandoffUsing(client, '2345 6789 ABCD EFGH JKLM')
+    expect(invoke).toHaveBeenCalledWith('pwa-handoff', { body: { action: 'redeem', codeHash: expect.stringMatching(/^[0-9a-f]{64}$/) } })
+    expect(verifyOtp).toHaveBeenCalledWith({ token_hash: 'server-generated-token-hash', type: 'magiclink' })
   })
 })
 

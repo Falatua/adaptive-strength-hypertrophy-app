@@ -2607,7 +2607,18 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Before inviting any athlete outside the owner-controlled private test group, host ForgePath on a dedicated browser origin so another application cannot share access to its Supabase session or interrupted-save recovery storage. Path-scoped service workers and cache cleanup do not constitute browser storage isolation.
 - Detail: [[ForgePath Supabase Backend Runbook]] and Build Bible Chapter 87
 
+### R-414 Installed Home Screen Session Handoff
+- Status: implemented
+- Provenance: from-user and verified platform behavior
+- Requirement: When iOS opens an invited-email confirmation in Safari instead of the installed ForgePath Home Screen web app, the verified browser must be able to establish a separate durable session in the installed app without exposing reusable Auth tokens, weakening email verification, enabling public signup, or requiring repeated email links after successful setup.
+- Detail: [[ForgePath Supabase Backend Runbook]] and Build Bible Chapter 88
+
 ## Thread Coverage Audit
+
+### 2026-08-26 Installed Home Screen Authentication
+- Scope: JB reported that adding ForgePath to the iPhone Home Screen forced another login and kept the verified link in the browser.
+- Result: Added R-414 and Build Bible Chapter 88. Private alpha 0.62.0 adds a five-minute, single-use, server-mediated code that transfers verified identity into a separate durable installed-app session without placing access or refresh tokens in the URL or clipboard.
+- Status: Implemented, deployed, and locally and remotely verified. A final exact-device acceptance pass with JB's installed icon remains the physical-device confirmation gate.
 
 ### 2026-08-26 Passwordless Entry and Interrupted-Save Recovery
 - Scope: JB clarified the invited-email testing flow and asked ForgePath to avoid misleading local storage language and prevent loss during interrupted Supabase saves.

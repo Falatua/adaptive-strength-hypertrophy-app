@@ -6,7 +6,8 @@ with expected(version, name, statement_count, content_sha256) as (
     ('20260811000100'::text, 'forgepath_cloud_foundation'::text, 1, 'c18793b38bfcfa6b45b483bc1be0c4a9051cc50649efd4c8c38946559331813c'::text),
     ('20260811000200'::text, 'forgepath_training_core'::text, 1, '50484d39e0ef86cbe49cce813357586d185fa23b1e7c3847a88b9bc45ceef5c8'::text),
     ('20260813000100'::text, 'forgepath_account_controls'::text, 1, '18a316cb8c7657f15a0ffc6e8cf556e388de411cde9695499f9f01d96d2ebfd8'::text),
-    ('20260814000100'::text, 'forgepath_snapshot_contract'::text, 1, '991c5a3d60b236c383aabdc93e85555e46b6397e2320f1f41b56455152ab79c1'::text)
+    ('20260814000100'::text, 'forgepath_snapshot_contract'::text, 1, '991c5a3d60b236c383aabdc93e85555e46b6397e2320f1f41b56455152ab79c1'::text),
+    ('20260826000100'::text, 'forgepath_home_screen_handoff'::text, 1, '69e439a7ed494bd4d71932683f894408bd37ae6cfc2b2677120de38e1b9e3a6d'::text)
 ), actual as (
   select
     version,
@@ -35,7 +36,7 @@ union all
 
 select
   'table_rls' as check_name,
-  count(*) = 14 and bool_and(c.relrowsecurity and c.relforcerowsecurity) as passed,
+  count(*) = 15 and bool_and(c.relrowsecurity and c.relforcerowsecurity) as passed,
   jsonb_build_object(
     'table_count', count(*),
     'rls_enabled_count', count(*) filter (where c.relrowsecurity),
@@ -46,6 +47,20 @@ join pg_namespace n on n.oid = c.relnamespace
 where n.nspname = 'public'
   and c.relkind = 'r'
   and c.relname like 'forgepath_%'
+
+union all
+
+select
+  'home_screen_handoff_grants' as check_name,
+  count(*) = 0 as passed,
+  jsonb_build_object('unexpected_grants', coalesce(jsonb_agg(jsonb_build_object(
+    'grantee', grantee,
+    'privilege', privilege_type
+  )) filter (where grantee is not null), '[]'::jsonb)) as evidence
+from information_schema.role_table_grants
+where table_schema = 'public'
+  and table_name = 'forgepath_auth_handoffs'
+  and grantee in ('anon', 'authenticated')
 
 union all
 

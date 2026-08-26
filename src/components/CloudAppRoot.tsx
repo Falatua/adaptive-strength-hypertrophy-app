@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { AlertTriangle, LoaderCircle, Mail } from 'lucide-react'
+import { AlertTriangle, Check, Clipboard, KeyRound, LoaderCircle, Mail, Smartphone } from 'lucide-react'
 import type { Session } from '@supabase/supabase-js'
 import App from '../App'
 import { backupStateFrom, createBackup } from '../domain/backup'
@@ -10,13 +10,19 @@ import {
   CLOUD_OUTBOX_STORAGE_KEY,
   CLOUD_VERSION_STORAGE_KEY,
   deleteCloudAccount,
+  createHomeScreenHandoff,
   fetchCloudSnapshot,
+  formatHomeScreenHandoffCode,
   getCloudClient,
+  isHomeScreenAuthCallback,
+  isInstalledHomeScreenApp,
   localCloudMetadata,
+  normalizeHomeScreenHandoffCode,
   planCloudBootstrap,
   planCloudMutation,
   pushCloudSnapshot,
   readPendingSnapshot,
+  redeemHomeScreenHandoff,
   requestPrivateSignIn,
   resetCloudData,
   restoreVerifiedCloudSnapshot,
@@ -64,7 +70,9 @@ function downloadPendingRecovery() {
 }
 
 export function CloudAuth() {
+  const homeScreenApp = isInstalledHomeScreenApp()
   const [email, setEmail] = useState('')
+  const [handoffCode, setHandoffCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -76,14 +84,72 @@ export function CloudAuth() {
     try { await action() } catch (cause) { setError(messageFrom(cause, 'ForgePath could not complete that account request.')) } finally { setBusy(false) }
   }
 
-  return <AuthFrame title="Welcome to ForgePath" detail="Enter an email invited by the creator. There is no password. Confirm one email link in this same browser profile, then ForgePath keeps you signed in through refreshes and app updates until you choose Sign out or clear this browser's site data.">
+  return <AuthFrame title="Welcome to ForgePath" detail={homeScreenApp ? "Enter an email invited by the creator. The confirmation opens in Safari, where ForgePath gives you a one-time Home Screen code. Return here and enter it once; this app then keeps you signed in." : "Enter an email invited by the creator. There is no password. Confirm one email link in this same browser profile, then ForgePath keeps you signed in through refreshes and app updates until you choose Sign out or clear this browser's site data."}>
     <label className="cloud-auth__field"><span>Email</span><span><Mail size={17} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></span></label>
     <button className="button button--primary button--full" disabled={busy || !email.trim()} onClick={() => run(async () => {
-      await requestPrivateSignIn(email)
-      setMessage('If that email was invited, open the private confirmation link in this same browser profile. This is the one-time check for this browser; ForgePath will keep the renewed session here afterward.')
+      if (homeScreenApp) await requestPrivateSignIn(email, true)
+      else await requestPrivateSignIn(email)
+      setMessage(homeScreenApp ? 'If that email was invited, open the confirmation link in Safari. Create the one-time Home Screen code there, then return to this app.' : 'If that email was invited, open the private confirmation link in this same browser profile. This is the one-time check for this browser; ForgePath will keep the renewed session here afterward.')
     })}>{busy ? <LoaderCircle className="spin" size={17} /> : <Mail size={17} />} Log in with email</button>
+    {homeScreenApp && <div className="cloud-auth__handoff">
+      <div className="cloud-auth__divider"><span>Then return here</span></div>
+      <label className="cloud-auth__field"><span>One-time Home Screen code</span><span><KeyRound size={17} /><input type="text" value={formatHomeScreenHandoffCode(handoffCode)} onChange={(event) => setHandoffCode(normalizeHomeScreenHandoffCode(event.target.value))} autoCapitalize="characters" autoCorrect="off" spellCheck={false} inputMode="text" /></span></label>
+      <button className="button button--secondary button--full" disabled={busy || normalizeHomeScreenHandoffCode(handoffCode).length !== 20} onClick={() => run(async () => {
+        await redeemHomeScreenHandoff(handoffCode)
+        setMessage('Home Screen sign-in complete. ForgePath is opening your cloud training journal.')
+      })}>{busy ? <LoaderCircle className="spin" size={17} /> : <Smartphone size={17} />} Finish Home Screen login</button>
+    </div>}
     {message && <p className="cloud-auth__message" role="status">{message}</p>}
     {error && <AuthError message={error} />}
+  </AuthFrame>
+}
+
+function HomeScreenHandoff() {
+  const [code, setCode] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const createCode = async () => {
+    setBusy(true)
+    setError(null)
+    setCopied(false)
+    try {
+      const handoff = await createHomeScreenHandoff()
+      setCode(handoff.code)
+    } catch (cause) {
+      setError(messageFrom(cause, 'ForgePath could not create the Home Screen code.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const copyCode = async () => {
+    if (!code) return
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+    } catch {
+      setError('Copy was blocked. Press and hold the code, then copy it manually.')
+    }
+  }
+
+  const continueInBrowser = () => {
+    const url = new URL(window.location.href)
+    url.searchParams.delete('forgepath_auth')
+    url.hash = ''
+    window.location.replace(url.toString())
+  }
+
+  return <AuthFrame title="Finish on your Home Screen" detail="Your invited email is verified in Safari. Create a private one-time code, then open ForgePath from your Home Screen and enter it there. The code expires in five minutes and stops working after one use.">
+    {!code ? <button className="button button--primary button--full" disabled={busy} onClick={() => { void createCode() }}>{busy ? <LoaderCircle className="spin" size={17} /> : <Smartphone size={17} />} Create Home Screen code</button> : <div className="cloud-auth__code">
+      <span>Your one-time code</span>
+      <strong aria-label={`Home Screen code ${formatHomeScreenHandoffCode(code)}`}>{formatHomeScreenHandoffCode(code)}</strong>
+      <button className="button button--primary button--full" onClick={() => { void copyCode() }}>{copied ? <Check size={17} /> : <Clipboard size={17} />} {copied ? 'Copied' : 'Copy code'}</button>
+      <p>Now open the ForgePath icon on your Home Screen, paste this code, and press <strong>Finish Home Screen login</strong>. Do not share this code.</p>
+    </div>}
+    {error && <AuthError message={error} />}
+    <div className="cloud-auth__links"><button type="button" onClick={continueInBrowser}>Use ForgePath in Safari instead</button></div>
   </AuthFrame>
 }
 
@@ -100,6 +166,7 @@ export function CloudLoading({ error, retry, refresh, signOut, recover }: { erro
 }
 
 export function CloudAppRoot() {
+  const browserHomeScreenHandoff = isHomeScreenAuthCallback() && !isInstalledHomeScreenApp()
   const [session, setSession] = useState<Session | null>(null)
   const [checking, setChecking] = useState(cloudAuthoritativeBuild)
   const [ready, setReady] = useState(!cloudAuthoritativeBuild)
@@ -178,10 +245,10 @@ export function CloudAppRoot() {
   }
 
   useEffect(() => {
-    if (session) void Promise.resolve().then(bootstrap)
+    if (session && !browserHomeScreenHandoff) void Promise.resolve().then(bootstrap)
   // retryToken deliberately restarts the verified bootstrap after an explicit retry.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user.id, retryToken])
+  }, [session?.user.id, retryToken, browserHomeScreenHandoff])
 
   const saveNow = async () => {
     if (!session || !ready) return
@@ -305,6 +372,7 @@ export function CloudAppRoot() {
   if (!cloudAuthoritativeBuild) return withUpdateNotice(<App />)
   if (checking) return withUpdateNotice(<CloudLoading />)
   if (!session) return withUpdateNotice(<CloudAuth />)
+  if (browserHomeScreenHandoff) return withUpdateNotice(<HomeScreenHandoff />)
   if (!ready) return withUpdateNotice(<CloudLoading
     error={error}
     recover={readPendingSnapshot(window.localStorage) ? downloadPendingRecovery : undefined}

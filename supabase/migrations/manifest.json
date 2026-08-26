@@ -28,6 +28,13 @@
       "file": "20260814000100_forgepath_snapshot_contract.sql",
       "sha256": "991c5a3d60b236c383aabdc93e85555e46b6397e2320f1f41b56455152ab79c1",
       "remoteStatementCount": 1
+    },
+    {
+      "version": "20260826000100",
+      "name": "forgepath_home_screen_handoff",
+      "file": "20260826000100_forgepath_home_screen_handoff.sql",
+      "sha256": "69e439a7ed494bd4d71932683f894408bd37ae6cfc2b2677120de38e1b9e3a6d",
+      "remoteStatementCount": 1
     }
   ]
 }

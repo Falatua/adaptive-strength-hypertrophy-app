@@ -5,12 +5,22 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.61.1
+app_version: 0.62.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.62.0 Installed Home Screen Session Delta
+
+- Detects the installed iOS Home Screen context and sends its email link back through a dedicated handoff callback.
+- After Safari verifies the invited email, creates a random 100-bit one-time code whose SHA-256 digest is stored server-side for five minutes. The raw code is never stored in Supabase.
+- Redeems the code once into an installed-app Supabase session through a server-generated magic-link token hash. Access tokens and refresh tokens are never copied through the clipboard, URL, or GitHub Pages.
+- Keeps the installed app signed in through refreshes and app updates using the existing renewable local session until explicit sign-out, site-data removal, or server revocation.
+- Adds a stable PWA manifest identity, a fifth checksum-locked migration, a fifteenth forced-RLS table with no browser grants, and the deployed `pwa-handoff` Edge Function with application-level origin, freshness, expiry, and single-use checks.
+- Live acceptance on 2026-08-26 passed all ten database checks, including the exact fifth migration digest, fifteen of fifteen forced-RLS tables, and zero handoff-table browser grants. Signed-out valid-shape redemption reaches the function, invalid or expired codes are rejected, and unapproved origins receive 403.
+- Current local acceptance is 439 deterministic tests, with backup schema 26 and every training-rule identity unchanged.
 
 ## Private Alpha 0.61.1 Persistent Verified-Browser Session Delta
 

@@ -11,14 +11,14 @@ confidence: verified-live-transactional
 
 ## Current Boundary
 
-Private alpha 0.61.1 makes the validated version 26 snapshot cloud-authoritative for invited accounts, adds persistent safe update notification, preserves the newest unconfirmed snapshot through a browser or operating-system kill, and explicitly stores the renewable Auth session in durable browser storage. A dedicated remote project exists in a separate approved Supabase organization: `ForgePath`, project reference `kdavpkphvapnckenbuyg`, AWS `us-east-2`. JB-OS and Roman TD Global Leaderboard were not modified, paused, deleted, or reused.
+Private alpha 0.62.0 makes the validated version 26 snapshot cloud-authoritative for invited accounts, adds persistent safe update notification, preserves the newest unconfirmed snapshot through a browser or operating-system kill, explicitly stores the renewable Auth session in durable browser storage, and securely establishes a separate renewable session in the installed iOS Home Screen app after Safari verifies the invited email. A dedicated remote project exists in a separate approved Supabase organization: `ForgePath`, project reference `kdavpkphvapnckenbuyg`, AWS `us-east-2`. JB-OS and Roman TD Global Leaderboard were not modified, paused, deleted, or reused.
 
 The current GitHub project-site URL shares the parent `falatua.github.io` browser origin with other project sites. Service-worker scope and cache naming protect refresh behavior but do not isolate local storage, IndexedDB, or a Supabase browser session from another script on that origin. Keep this release within the owner-controlled test group. A dedicated ForgePath origin plus redirect, session, recovery, and phone-laptop acceptance is required before inviting external athletes.
 
 The local foundation includes:
 
-- four checksum-locked versioned migrations in `supabase/migrations`;
-- fourteen forced Row Level Security tables and two security-invoker volume views;
+- five checksum-locked versioned migrations in `supabase/migrations`;
+- fifteen forced Row Level Security tables and two security-invoker volume views;
 - an invite-only email-link gate with account creation disabled, generic non-enumerating responses, and no athlete-facing password route;
 - stable device identity and version metadata;
 - one account-scoped durable retry snapshot that is removed after authenticated cloud confirmation;
@@ -27,6 +27,7 @@ The local foundation includes:
 - automatic verified launch hydration, serialized checksum-deduplicated saves, and conflict preservation;
 - recently reauthenticated reset that deletes all caller-owned ForgePath rows but preserves the login;
 - a deployed authenticated Edge Function that permanently deletes the caller's Auth account and cascaded app data without exposing the server credential;
+- a deployed `pwa-handoff` Edge Function that stores only a SHA-256 digest, requires a recently verified session to create a 100-bit code, atomically redeems it once within five minutes, and returns a server-generated token hash only to the approved app origin;
 - a deployment path for browser-safe Supabase configuration;
 - automated static database-boundary checks;
 - checksum-locked migration history plus read-only and rolled-back production acceptance scripts;
@@ -34,7 +35,7 @@ The local foundation includes:
 - a normalized entity ledger, device cursors, exercises, sessions, movements, sets, notes, survey records, and explicit missingness;
 - source-set daily, weekly, monthly, and yearly total and exclusive primary-region volume rollups.
 
-The first two migrations were applied transactionally on 2026-08-11. The account-control migration and its exact ledger statement were applied on 2026-08-13, followed by the snapshot-contract migration. The `delete-account` Edge Function was deployed from the checked-in source. Because the original SQL Editor applications did not populate the Supabase CLI ledger, `supabase_migrations.schema_migrations` was repaired from the exact committed files. All four remote statement payloads are represented by the SHA-256 manifest. The established live proof covers fourteen forced-RLS tables, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, two security-invoker volume views, and the authenticated snapshot RPC. On 2026-08-13 the transactional proof was expanded to a 74,375-byte JSON payload representing 52 weeks, 156 sessions, and 624 sets; all ten identity, RLS, apply, replay, conflict, payload, and isolation checks passed. A separate query returned zero reserved test users, profiles, devices, events, conflicts, and snapshots after rollback. The reset RPC is authenticated only, self-scoped through `auth.uid()`, exact-confirmation gated, and rejects JWTs older than five minutes.
+The first two migrations were applied transactionally on 2026-08-11. The account-control migration and its exact ledger statement were applied on 2026-08-13, followed by the snapshot-contract migration. The Home Screen handoff migration and exact ledger statement were applied on 2026-08-26. The `delete-account` and `pwa-handoff` Edge Functions were deployed from their checked-in sources. Because the original SQL Editor applications did not populate the Supabase CLI ledger, `supabase_migrations.schema_migrations` was repaired from the exact committed files. All five remote statement payloads are represented by the SHA-256 manifest. The established live proof covers fifteen forced-RLS tables, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, two security-invoker volume views, and the authenticated snapshot RPC. On 2026-08-13 the transactional proof was expanded to a 74,375-byte JSON payload representing 52 weeks, 156 sessions, and 624 sets; all ten identity, RLS, apply, replay, conflict, payload, and isolation checks passed. A separate query returned zero reserved test users, profiles, devices, events, conflicts, and snapshots after rollback. The reset RPC is authenticated only, self-scoped through `auth.uid()`, exact-confirmation gated, and rejects JWTs older than five minutes. The 2026-08-26 read-only acceptance audit returned true for all ten checks, including the exact fifth migration digest, fifteen of fifteen forced-RLS tables, and zero handoff-table grants to browser roles. The public handoff endpoint rejects malformed and expired codes, denies unapproved origins, disables only the legacy gateway JWT check, and performs its own create and redeem authorization inside the function.
 
 Production and local redirect URLs are configured. Public signup is disabled and persisted after a hard reload. On 2026-08-26 the live Auth endpoint accepted the approved admin address with account creation disabled and sent the private passwordless confirmation email. This verifies allow-list eligibility without hardcoding the address into the public client or repository. The live Sessions page reports no user-session timebox, no inactivity timeout, 3,600-second renewable access tokens, compromised refresh-token detection enabled, and a 10-second reuse interval. The private release gate is enabled for the approved invitation acceptance window, but this is not approval for wider cloud release. During the activation audit, the GitHub browser-key secret was found to contain plain-English instruction text instead of a Supabase key. The secret was corrected from the existing browser-safe dashboard key without exposing it to source, logs, or the vault. The deployment workflow now validates the gate, URL, and browser-safe key shape before it can build Pages.
 
@@ -60,6 +61,7 @@ ForgePath was created in another owner-approved organization. This satisfies the
 ## Mandatory Remote Acceptance Gates
 
 - Auth: an invited account receives a sign-in link and an uninvited email cannot create an account.
+- Installed app Auth: a Safari-verified invited session creates one five-minute code, the Home Screen app redeems it once into its own renewable session, replay fails, and no access or refresh token appears in the clipboard or redirect URL.
 - RLS: athlete A cannot select, insert, update, or invoke data as athlete B.
 - Anonymous access: the public Pages visitor cannot read any ForgePath table.
 - Idempotency: replaying the same event ID and checksum produces no duplicate event or version.

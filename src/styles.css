@@ -1048,6 +1048,14 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .cloud-auth__field button { position: absolute; right: 4px; display: grid; width: 40px; height: 40px; place-items: center; border: 0; background: transparent; color: var(--muted); }
 .cloud-auth__hint, .cloud-auth__message { margin: 0 0 14px; color: var(--muted); font-size: .68rem; line-height: 1.5; }
 .cloud-auth__message { padding: 10px; border: 1px solid rgb(231 255 88 / 28%); border-radius: 9px; background: rgb(231 255 88 / 6%); color: var(--lime); }
+.cloud-auth__handoff { margin-top: 18px; }
+.cloud-auth__divider { display: flex; align-items: center; gap: 10px; margin: 4px 0 16px; color: var(--muted); font-size: .63rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.cloud-auth__divider::before, .cloud-auth__divider::after { content: ''; height: 1px; flex: 1; background: var(--line); }
+.cloud-auth__code { display: grid; gap: 13px; padding: 16px; border: 1px solid rgb(97 200 255 / 28%); border-radius: 12px; background: rgb(97 200 255 / 6%); text-align: center; }
+.cloud-auth__code > span { color: var(--muted); font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.cloud-auth__code > strong { color: var(--lime); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: clamp(1rem, 5vw, 1.25rem); letter-spacing: .08em; white-space: nowrap; }
+.cloud-auth__code p { margin: 0; color: var(--muted); font-size: .69rem; line-height: 1.55; }
+.cloud-auth__code p strong { color: var(--text); }
 .cloud-auth__links { display: flex; justify-content: space-between; gap: 14px; margin-top: 14px; }
 .cloud-auth__links button { min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--blue); font-size: .69rem; font-weight: 800; text-align: left; }
 .cloud-auth__loading { text-align: center; }

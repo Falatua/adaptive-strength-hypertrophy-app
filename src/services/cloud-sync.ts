@@ -12,6 +12,10 @@ export const CLOUD_DEVICE_STORAGE_KEY = 'forgepath-cloud-device-v1'
 export const CLOUD_OUTBOX_STORAGE_KEY = 'forgepath-cloud-outbox-v1'
 export const CLOUD_VERSION_STORAGE_KEY = 'forgepath-cloud-server-version-v1'
 export const CLOUD_LAST_SYNC_STORAGE_KEY = 'forgepath-cloud-last-sync-v1'
+export const HOME_SCREEN_AUTH_QUERY = 'forgepath_auth'
+export const HOME_SCREEN_AUTH_VALUE = 'home-screen'
+const HOME_SCREEN_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'
+const HOME_SCREEN_CODE_LENGTH = 20
 
 export type CloudPushResult = {
   status: 'applied' | 'already_applied' | 'conflict'
@@ -331,10 +335,48 @@ export function localCloudMetadata(storage = typeof window === 'undefined' ? nul
   }
 }
 
-export async function requestPrivateSignIn(email: string) {
+export function isInstalledHomeScreenApp() {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false
+  const iosStandalone = Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
+  return iosStandalone || window.matchMedia?.('(display-mode: standalone)').matches === true
+}
+
+export function isHomeScreenAuthCallback(location = typeof window === 'undefined' ? null : window.location) {
+  if (!location) return false
+  return new URLSearchParams(location.search).get(HOME_SCREEN_AUTH_QUERY) === HOME_SCREEN_AUTH_VALUE
+}
+
+export function homeScreenSignInRedirect(baseUrl: string) {
+  const redirect = new URL(baseUrl)
+  redirect.searchParams.set(HOME_SCREEN_AUTH_QUERY, HOME_SCREEN_AUTH_VALUE)
+  return redirect.toString()
+}
+
+export function createHomeScreenHandoffCode(bytes = crypto.getRandomValues(new Uint8Array(HOME_SCREEN_CODE_LENGTH))) {
+  if (bytes.length < HOME_SCREEN_CODE_LENGTH) throw new Error('ForgePath could not create a secure Home Screen code.')
+  return Array.from(bytes.slice(0, HOME_SCREEN_CODE_LENGTH), (byte) => HOME_SCREEN_CODE_ALPHABET[byte & 31]).join('')
+}
+
+export function normalizeHomeScreenHandoffCode(value: string) {
+  return value.toUpperCase().replace(/[^2-9A-HJ-NP-Z]/g, '').slice(0, HOME_SCREEN_CODE_LENGTH)
+}
+
+export function formatHomeScreenHandoffCode(value: string) {
+  return normalizeHomeScreenHandoffCode(value).replace(/(.{4})(?=.)/g, '$1 ')
+}
+
+export async function hashHomeScreenHandoffCode(value: string) {
+  const normalized = normalizeHomeScreenHandoffCode(value)
+  if (normalized.length !== HOME_SCREEN_CODE_LENGTH) throw new Error('Enter the complete Home Screen code shown in Safari.')
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalized))
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+export async function requestPrivateSignIn(email: string, forHomeScreen = false) {
   const client = await getCloudClient()
   if (!client) throw new Error(cloudConfiguration.status === 'ready' ? 'The ForgePath cloud client could not start.' : cloudConfiguration.reason)
-  const redirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).toString()
+  const appBase = new URL(import.meta.env.BASE_URL, window.location.origin).toString()
+  const redirectTo = forHomeScreen ? homeScreenSignInRedirect(appBase) : appBase
   await requestPrivateSignInUsing(client, email, redirectTo)
 }
 
@@ -367,6 +409,47 @@ export async function requestPrivateSignInUsing(client: PasswordlessClient, emai
   if (!error || isUninvitedEmailError(error)) return
   if (isEmailRateLimitError(error)) throw new Error('A sign-in email was requested recently. Wait a minute and try again.')
   throw new Error('ForgePath could not send a private sign-in link. Check your connection and try again.')
+}
+
+type HomeScreenHandoffClient = {
+  functions: {
+    invoke: (name: string, options: { body: { action: 'create' | 'redeem'; codeHash: string } }) => Promise<{
+      data: { tokenHash?: string; expiresInSeconds?: number } | null
+      error: { message?: string } | null
+    }>
+  }
+  auth: {
+    verifyOtp: (credentials: { token_hash: string; type: 'magiclink' }) => Promise<{ error: { message?: string } | null }>
+  }
+}
+
+export async function createHomeScreenHandoffUsing(client: HomeScreenHandoffClient, code: string) {
+  const codeHash = await hashHomeScreenHandoffCode(code)
+  const { data, error } = await client.functions.invoke('pwa-handoff', { body: { action: 'create', codeHash } })
+  if (error || !data?.expiresInSeconds) throw new Error('ForgePath could not create the Home Screen code. Open a new email sign-in link and try again.')
+  return data.expiresInSeconds
+}
+
+export async function createHomeScreenHandoff() {
+  const client = await getCloudClient()
+  if (!client) throw new Error(cloudConfiguration.status === 'ready' ? 'The ForgePath cloud client could not start.' : cloudConfiguration.reason)
+  const code = createHomeScreenHandoffCode()
+  const expiresInSeconds = await createHomeScreenHandoffUsing(client, code)
+  return { code, expiresInSeconds }
+}
+
+export async function redeemHomeScreenHandoffUsing(client: HomeScreenHandoffClient, code: string) {
+  const codeHash = await hashHomeScreenHandoffCode(code)
+  const { data, error } = await client.functions.invoke('pwa-handoff', { body: { action: 'redeem', codeHash } })
+  if (error || !data?.tokenHash) throw new Error('That Home Screen code is invalid or expired. Open a new email sign-in link and create another code.')
+  const { error: verificationError } = await client.auth.verifyOtp({ token_hash: data.tokenHash, type: 'magiclink' })
+  if (verificationError) throw new Error('ForgePath could not finish signing in on the Home Screen. Create another code and try again.')
+}
+
+export async function redeemHomeScreenHandoff(code: string) {
+  const client = await getCloudClient()
+  if (!client) throw new Error(cloudConfiguration.status === 'ready' ? 'The ForgePath cloud client could not start.' : cloudConfiguration.reason)
+  await redeemHomeScreenHandoffUsing(client, code)
 }
 
 export async function resetCloudData() {

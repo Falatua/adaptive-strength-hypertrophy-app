@@ -5,7 +5,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const authMocks = vi.hoisted(() => ({
-  requestPrivateSignIn: vi.fn()
+  requestPrivateSignIn: vi.fn(),
+  redeemHomeScreenHandoff: vi.fn()
 }))
 
 vi.mock('../services/cloud-sync', async (importOriginal) => ({
@@ -16,7 +17,10 @@ vi.mock('../services/cloud-sync', async (importOriginal) => ({
 import { CloudAuth, CloudLoading } from './CloudAppRoot'
 
 describe('cloud account gate', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    Object.defineProperty(window.navigator, 'standalone', { configurable: true, value: false })
+  })
 
   afterEach(cleanup)
 
@@ -30,6 +34,20 @@ describe('cloud account gate', () => {
 
     await waitFor(() => expect(authMocks.requestPrivateSignIn).toHaveBeenCalledWith('Athlete@Example.com'))
     expect(screen.getByRole('status')).toHaveTextContent(/If that email was invited, open the private confirmation link/i)
+  })
+
+  it('guides an installed Home Screen app through the one-time Safari handoff', async () => {
+    Object.defineProperty(window.navigator, 'standalone', { configurable: true, value: true })
+    render(<CloudAuth />)
+
+    expect(screen.getByText(/confirmation opens in Safari/i)).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'athlete@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Log in with email' }))
+    await waitFor(() => expect(authMocks.requestPrivateSignIn).toHaveBeenCalledWith('athlete@example.com', true))
+
+    fireEvent.change(screen.getByLabelText('One-time Home Screen code'), { target: { value: '2345 6789 ABCD EFGH JKLM' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Finish Home Screen login' }))
+    await waitFor(() => expect(authMocks.redeemHomeScreenHandoff).toHaveBeenCalledWith('23456789ABCDEFGHJKLM'))
   })
 })
 
