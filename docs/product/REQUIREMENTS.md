@@ -2610,10 +2610,15 @@ This is the canonical traceability index for every durable requirement JB states
 ### R-414 Installed Home Screen Session Handoff
 - Status: implemented
 - Provenance: from-user and verified platform behavior
-- Requirement: When iOS opens an invited-email confirmation in Safari instead of the installed ForgePath Home Screen web app, the verified browser must be able to establish a separate durable session in the installed app without exposing reusable Auth tokens, weakening email verification, enabling public signup, or requiring repeated email links after successful setup.
+- Requirement: When iOS opens an invited-email confirmation in the default browser instead of the installed ForgePath Home Screen web app, the verified browser must be able to establish a separate durable session in the installed app without exposing reusable Auth tokens, weakening email verification, enabling public signup, or requiring repeated email links after successful setup. An existing verified browser must be able to reopen the transfer surface without another email, repeated send attempts must be visibly throttled, and temporary server token-generation failure must remain safely retryable.
 - Detail: [[ForgePath Supabase Backend Runbook]] and Build Bible Chapter 88
 
 ## Thread Coverage Audit
+
+### 2026-08-26 Home Screen Error and Email Throttle Recovery
+- Scope: JB reported an error during installed-app setup and exhausted the temporary Supabase email-send allowance while retrying.
+- Result: Advanced R-414 and Build Bible Chapter 88. Private alpha 0.62.1 adds an already-verified-browser transfer link that sends no new email, a sixty-second client cooldown, distinct email and request throttle messages, structured handoff failure recovery, and a conditional redemption rollback when token creation fails.
+- Status: Implemented and locally verified. Live Edge Function deployment, Auth-log inspection, rate-limit recheck, Pages release, and exact-device acceptance remain the release gates.
 
 ### 2026-08-26 Installed Home Screen Authentication
 - Scope: JB reported that adding ForgePath to the iPhone Home Screen forced another login and kept the verified link in the browser.

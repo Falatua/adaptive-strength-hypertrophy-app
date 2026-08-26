@@ -116,9 +116,15 @@ describe('invitation-only email-link policy', () => {
     await expect(requestPrivateSignInUsing({ auth: { signInWithOtp } }, 'unknown@example.com', 'https://example.com/')).resolves.toBeUndefined()
   })
 
-  it('gives a neutral retry instruction when Supabase rate limits link delivery', async () => {
+  it('explains the email-service limit without implying that the private account is locked', async () => {
     const signInWithOtp = vi.fn().mockResolvedValue({ error: { code: 'over_email_send_rate_limit', message: 'rate limit' } })
-    await expect(requestPrivateSignInUsing({ auth: { signInWithOtp } }, 'athlete@example.com', 'https://example.com/')).rejects.toThrow(/wait a minute/i)
+    await expect(requestPrivateSignInUsing({ auth: { signInWithOtp } }, 'athlete@example.com', 'https://example.com/')).rejects.toThrow(/temporarily paused new sign-in emails/i)
+    await expect(requestPrivateSignInUsing({ auth: { signInWithOtp } }, 'athlete@example.com', 'https://example.com/')).rejects.toThrow(/account is not locked/i)
+  })
+
+  it('distinguishes connection request throttling from the email-send quota', async () => {
+    const signInWithOtp = vi.fn().mockResolvedValue({ error: { code: 'over_request_rate_limit', message: 'rate limit' } })
+    await expect(requestPrivateSignInUsing({ auth: { signInWithOtp } }, 'athlete@example.com', 'https://example.com/')).rejects.toThrow(/connection.*few minutes/i)
   })
 
   it('marks a Home Screen request without changing the exact application scope', () => {
@@ -142,6 +148,15 @@ describe('invitation-only email-link policy', () => {
     expect(JSON.stringify(invoke.mock.calls)).not.toContain(code)
   })
 
+  it('distinguishes a stale verified browser from a generic handoff failure', async () => {
+    const invoke = vi.fn().mockResolvedValue({
+      data: null,
+      error: { context: new Response(JSON.stringify({ errorCode: 'AUTH_STALE' }), { status: 401 }) }
+    })
+    const client = { functions: { invoke }, auth: { verifyOtp: vi.fn() } }
+    await expect(createHomeScreenHandoffUsing(client, '23456789ABCDEFGHJKLM')).rejects.toThrow(/older than ten minutes/i)
+  })
+
   it('redeems a one-time code into a new local magic-link session without exposing tokens in the URL', async () => {
     const invoke = vi.fn().mockResolvedValue({ data: { tokenHash: 'server-generated-token-hash' }, error: null })
     const verifyOtp = vi.fn().mockResolvedValue({ error: null })
@@ -149,6 +164,15 @@ describe('invitation-only email-link policy', () => {
     await redeemHomeScreenHandoffUsing(client, '2345 6789 ABCD EFGH JKLM')
     expect(invoke).toHaveBeenCalledWith('pwa-handoff', { body: { action: 'redeem', codeHash: expect.stringMatching(/^[0-9a-f]{64}$/) } })
     expect(verifyOtp).toHaveBeenCalledWith({ token_hash: 'server-generated-token-hash', type: 'magiclink' })
+  })
+
+  it('keeps a temporary token-generation failure retryable and distinct from an invalid code', async () => {
+    const invoke = vi.fn().mockResolvedValue({
+      data: { errorCode: 'TOKEN_CREATE_FAILED' },
+      error: { message: 'Edge Function returned a non-2xx status code' }
+    })
+    const client = { functions: { invoke }, auth: { verifyOtp: vi.fn() } }
+    await expect(redeemHomeScreenHandoffUsing(client, '23456789ABCDEFGHJKLM')).rejects.toThrow(/same code once more/i)
   })
 })
 

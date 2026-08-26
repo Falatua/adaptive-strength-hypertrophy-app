@@ -11,7 +11,7 @@ confidence: verified-live-transactional
 
 ## Current Boundary
 
-Private alpha 0.62.0 makes the validated version 26 snapshot cloud-authoritative for invited accounts, adds persistent safe update notification, preserves the newest unconfirmed snapshot through a browser or operating-system kill, explicitly stores the renewable Auth session in durable browser storage, and securely establishes a separate renewable session in the installed iOS Home Screen app after Safari verifies the invited email. A dedicated remote project exists in a separate approved Supabase organization: `ForgePath`, project reference `kdavpkphvapnckenbuyg`, AWS `us-east-2`. JB-OS and Roman TD Global Leaderboard were not modified, paused, deleted, or reused.
+Private alpha 0.62.1 makes the validated version 26 snapshot cloud-authoritative for invited accounts, adds persistent safe update notification, preserves the newest unconfirmed snapshot through a browser or operating-system kill, explicitly stores the renewable Auth session in durable browser storage, and securely establishes a separate renewable session in the installed iOS Home Screen app after the default browser verifies the invited email. An already-verified browser can create another Home Screen code without sending another email. A dedicated remote project exists in a separate approved Supabase organization: `ForgePath`, project reference `kdavpkphvapnckenbuyg`, AWS `us-east-2`. JB-OS and Roman TD Global Leaderboard were not modified, paused, deleted, or reused.
 
 The current GitHub project-site URL shares the parent `falatua.github.io` browser origin with other project sites. Service-worker scope and cache naming protect refresh behavior but do not isolate local storage, IndexedDB, or a Supabase browser session from another script on that origin. Keep this release within the owner-controlled test group. A dedicated ForgePath origin plus redirect, session, recovery, and phone-laptop acceptance is required before inviting external athletes.
 
@@ -61,7 +61,7 @@ ForgePath was created in another owner-approved organization. This satisfies the
 ## Mandatory Remote Acceptance Gates
 
 - Auth: an invited account receives a sign-in link and an uninvited email cannot create an account.
-- Installed app Auth: a Safari-verified invited session creates one five-minute code, the Home Screen app redeems it once into its own renewable session, replay fails, and no access or refresh token appears in the clipboard or redirect URL.
+- Installed app Auth: a default-browser-verified invited session creates one five-minute code, an existing verified browser can reopen the transfer page without another email, the Home Screen app redeems the code into its own renewable session, successful replay fails, a temporary token-generation failure remains retryable, and no access or refresh token appears in the clipboard or redirect URL.
 - RLS: athlete A cannot select, insert, update, or invoke data as athlete B.
 - Anonymous access: the public Pages visitor cannot read any ForgePath table.
 - Idempotency: replaying the same event ID and checksum produces no duplicate event or version.

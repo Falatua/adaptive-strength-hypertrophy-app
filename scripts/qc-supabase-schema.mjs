@@ -88,7 +88,7 @@ for (const evidence of ['forgepath_auth_handoffs', 'code_hash text not null uniq
 }
 
 const pwaHandoffFunction = readFileSync(resolve('supabase/functions/pwa-handoff/index.ts'), 'utf8')
-for (const evidence of ['allowedOrigins.has(origin)', 'cache-control', 'recentSignInSeconds', "body.action === 'create'", "body.action === 'redeem'", ".is('redeemed_at', null)", ".gt('expires_at', redeemedAt)", "generateLink({ type: 'magiclink', email })", 'hashed_token']) {
+for (const evidence of ['allowedOrigins.has(origin)', 'cache-control', 'recentSignInSeconds', "body.action === 'create'", "body.action === 'redeem'", ".is('redeemed_at', null)", ".gt('expires_at', redeemedAt)", "generateLink({ type: 'magiclink', email })", 'hashed_token', "errorCode: 'AUTH_STALE'", "errorCode: 'CODE_INVALID'", "errorCode: 'TOKEN_CREATE_FAILED'", ".update({ redeemed_at: null })"]) {
   if (!pwaHandoffFunction.includes(evidence)) failures.push(`Home Screen handoff function evidence is missing: ${evidence}`)
 }
 if (/localStorage|sessionStorage|VITE_/.test(pwaHandoffFunction)) failures.push('Home Screen handoff function risks exposing browser storage or build-time credentials')

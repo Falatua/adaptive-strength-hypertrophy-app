@@ -5,12 +5,20 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-26
 status: canonical-build-reference-and-active-implementation
-version: 1.58.0
+version: 1.58.1
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.58.1 Change Entry
+
+- Advanced the working application to private alpha 0.62.1 while preserving backup schema 26 and every training-rule identity.
+- Advanced R-414 and Chapter 88 with a no-new-email transfer path for an athlete whose default browser already has a verified renewable session.
+- Added a sixty-second send cooldown and precise account-safe messages for Supabase email-send and request throttles.
+- Added structured handoff failure codes, actionable recovery guidance, and rollback of the redemption claim when server token creation fails so the same unexpired code can be retried.
+- Retains the invited-email proof, public-signup denial, exact-origin enforcement, digest-only code storage, and renewable installed-app session boundary.
 
 ### Version 1.58.0 Change Entry
 
@@ -6296,7 +6304,7 @@ Every normalized table enables and forces Row Level Security. Authenticated clie
 
 Completed sets retain entered load and unit, normalized kilograms, repetitions, exact exercise identity, movement family, exclusive primary region, non-additive involved regions, source device, source event, version, and completion time. `volume_load_kg` is a stored generated value equal to normalized load multiplied by repetitions. Security-invoker views produce source-set facts and daily, weekly, monthly, and yearly rollups for total training and exclusive primary-region scopes. Survey answers store `answered`, `skipped`, `not-sure`, `prefer-not`, and `not-answered` explicitly, and only an answered row may contain a value.
 
-The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the public source repository. Five committed migrations are checksum-locked and represented by the repaired remote migration ledger. A live catalog audit confirmed fifteen of fifteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as GitHub Actions secrets outside the public source tree, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The private cloud release is enabled, while real invited-athlete physical phone-to-laptop recovery remains an open acceptance gate. App version 0.62.0 and backup schema 26 preserve the cloud-authoritative snapshot boundary, add durable interrupted-save recovery, persistent renewable Auth, and a secure installed Home Screen session handoff, and do not claim normalized entity merge or active-workout handoff.
+The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the public source repository. Five committed migrations are checksum-locked and represented by the repaired remote migration ledger. A live catalog audit confirmed fifteen of fifteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as GitHub Actions secrets outside the public source tree, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The private cloud release is enabled, while real invited-athlete physical phone-to-laptop recovery remains an open acceptance gate. App version 0.62.1 and backup schema 26 preserve the cloud-authoritative snapshot boundary, add durable interrupted-save recovery, persistent renewable Auth, and a secure rate-aware installed Home Screen session handoff, and do not claim normalized entity merge or active-workout handoff.
 
 ## 79. Exact-Movement Workout Notes and Longitudinal Recall
 
@@ -6598,7 +6606,7 @@ A newly installed iOS Home Screen web app is a separate storage context from Saf
 
 ### 88.2 Verified Session Bridge
 
-When the installed app requests an email link, its redirect identifies the Home Screen setup flow. Safari completes the normal invited-email verification. A recently verified Safari session may then create one random twenty-character code drawn uniformly from a thirty-two-character alphabet. The code carries 100 bits of entropy, expires after five minutes, and replaces any prior active code for that user.
+When the installed app requests an email link, its redirect identifies the Home Screen setup flow. The athlete's default browser completes the normal invited-email verification. A recently verified browser session may then create one random twenty-character code drawn uniformly from a thirty-two-character alphabet. The code carries 100 bits of entropy, expires after five minutes, and replaces any prior active code for that user. If that browser already has a renewable ForgePath session, the installed app may open the transfer page there and create a code without sending another email.
 
 ### 88.3 Credential Safety
 
@@ -6606,9 +6614,13 @@ The browser hashes the code with SHA-256 before sending it to Supabase. Only the
 
 ### 88.4 Single-Use Redemption
 
-The installed app hashes the entered code and calls the handoff function from the approved ForgePath origin. The function atomically marks an unexpired, unredeemed digest as used, resolves the owning invited Auth user with the service role, and creates a server-generated magic-link token hash. The installed app verifies that hash through Supabase Auth and receives its own renewable local session. Reuse, expiry, malformed input, and unapproved origins fail closed.
+The installed app hashes the entered code and calls the handoff function from the approved ForgePath origin. The function atomically marks an unexpired, unredeemed digest as used, resolves the owning invited Auth user with the service role, and creates a server-generated magic-link token hash. If token creation fails, the function conditionally releases only that still-current redemption claim while the code remains unexpired, allowing one safe retry. The installed app verifies the token hash through Supabase Auth and receives its own renewable local session. Reuse after successful token creation, expiry, malformed input, and unapproved origins fail closed. Structured failure codes let the client distinguish missing or stale browser proof, an invalid code, and a temporary token-generation failure without revealing invitation membership.
 
-### 88.5 Acceptance
+### 88.5 Email Delivery and Retry Control
+
+ForgePath disables the send action for sixty seconds after a request and tells the athlete to use the newest email instead of generating replacements. Supabase email-send throttling and connection request throttling are separate states and never imply that the athlete account is locked. The built-in Supabase sender remains a narrow private-testing dependency with a low project-wide quota; custom SMTP and delivery monitoring remain required before wider athlete onboarding.
+
+### 88.6 Acceptance
 
 Release requires deterministic code generation, normalization, hashing, create, and redemption tests; browser coverage for both Safari callback and standalone entry surfaces; a checksum-matched fifth migration; fifteen forced-RLS tables; no browser grants on the handoff table; the deployed function with legacy gateway JWT verification disabled in favor of its application-level checks; invalid-code and origin-denial probes; and a final exact-device walkthrough from email request through a refreshed installed app.
 

@@ -5,12 +5,21 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.62.0
+app_version: 0.62.1
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.62.1 Rate-Aware Home Screen Recovery Delta
+
+- Lets an installed Home Screen app open the transfer page in an already-verified default browser and create a code without consuming another Supabase email.
+- Applies a visible sixty-second send cooldown, directs the athlete to the newest email, and distinguishes temporary email-send throttling, connection throttling, and account state.
+- Replaces Safari-only language with the truthful default-browser boundary.
+- Adds structured server failure codes and precise client recovery for missing proof, stale proof, invalid or expired code, and temporary token-generation failure.
+- Conditionally releases a still-current redemption claim if server token generation fails, allowing the same unexpired code to be retried without weakening successful single-use redemption.
+- Preserves the 100-bit code, digest-only storage, five-minute expiry, exact-origin checks, invitation-only email proof, durable renewable session, backup schema 26, and every training-rule identity.
 
 ## Private Alpha 0.62.0 Installed Home Screen Session Delta
 
@@ -20,7 +29,7 @@ confidence: verified
 - Keeps the installed app signed in through refreshes and app updates using the existing renewable local session until explicit sign-out, site-data removal, or server revocation.
 - Adds a stable PWA manifest identity, a fifth checksum-locked migration, a fifteenth forced-RLS table with no browser grants, and the deployed `pwa-handoff` Edge Function with application-level origin, freshness, expiry, and single-use checks.
 - Live acceptance on 2026-08-26 passed all ten database checks, including the exact fifth migration digest, fifteen of fifteen forced-RLS tables, and zero handoff-table browser grants. Signed-out valid-shape redemption reaches the function, invalid or expired codes are rejected, and unapproved origins receive 403.
-- Current local acceptance is 439 deterministic tests, with backup schema 26 and every training-rule identity unchanged.
+- Current 0.62.0 acceptance was 439 deterministic tests, with backup schema 26 and every training-rule identity unchanged.
 
 ## Private Alpha 0.61.1 Persistent Verified-Browser Session Delta
 

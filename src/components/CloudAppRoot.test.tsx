@@ -33,17 +33,21 @@ describe('cloud account gate', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Log in with email' }))
 
     await waitFor(() => expect(authMocks.requestPrivateSignIn).toHaveBeenCalledWith('Athlete@Example.com'))
-    expect(screen.getByRole('status')).toHaveTextContent(/If that email was invited, open the private confirmation link/i)
+    expect(screen.getByRole('status')).toHaveTextContent(/If that email was invited, use the newest private confirmation email/i)
   })
 
-  it('guides an installed Home Screen app through the one-time Safari handoff', async () => {
+  it('guides an installed Home Screen app through the one-time browser handoff', async () => {
     Object.defineProperty(window.navigator, 'standalone', { configurable: true, value: true })
     render(<CloudAuth />)
 
-    expect(screen.getByText(/confirmation opens in Safari/i)).toBeInTheDocument()
+    expect(screen.getByText(/confirmation opens in your default browser/i)).toBeInTheDocument()
+    const existingSessionLink = screen.getByRole('link', { name: /without another email/i })
+    expect(existingSessionLink).toHaveAttribute('target', '_blank')
+    expect(existingSessionLink).toHaveAttribute('href', expect.stringContaining('forgepath_auth=home-screen'))
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'athlete@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: 'Log in with email' }))
     await waitFor(() => expect(authMocks.requestPrivateSignIn).toHaveBeenCalledWith('athlete@example.com', true))
+    expect(screen.getByRole('button', { name: /Try again in 60s/i })).toBeDisabled()
 
     fireEvent.change(screen.getByLabelText('One-time Home Screen code'), { target: { value: '2345 6789 ABCD EFGH JKLM' } })
     fireEvent.click(screen.getByRole('button', { name: 'Finish Home Screen login' }))

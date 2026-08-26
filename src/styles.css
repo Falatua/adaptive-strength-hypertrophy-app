@@ -1057,7 +1057,8 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .cloud-auth__code p { margin: 0; color: var(--muted); font-size: .69rem; line-height: 1.55; }
 .cloud-auth__code p strong { color: var(--text); }
 .cloud-auth__links { display: flex; justify-content: space-between; gap: 14px; margin-top: 14px; }
-.cloud-auth__links button { min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--blue); font-size: .69rem; font-weight: 800; text-align: left; }
+.cloud-auth__links--before-divider { margin: 0 0 14px; }
+.cloud-auth__links button, .cloud-auth__links a { display: inline-flex; min-height: 44px; align-items: center; padding: 0; border: 0; background: transparent; color: var(--blue); font-size: .69rem; font-weight: 800; line-height: 1.45; text-align: left; }
 .cloud-auth__loading { text-align: center; }
 .cloud-auth__loading > svg { color: var(--blue); }
 .cloud-auth__loading h1 { margin: 15px 0 8px; font-size: 1.2rem; }

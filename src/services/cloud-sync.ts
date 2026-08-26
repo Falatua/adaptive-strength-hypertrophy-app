@@ -398,6 +398,21 @@ function isEmailRateLimitError(error: { code?: string; message?: string }) {
   return code.includes('rate_limit') || /rate limit|wait .*second|email.*recently/.test(message)
 }
 
+function emailRateLimitMessage(error: { code?: string; message?: string }) {
+  const code = error.code?.toLowerCase() ?? ''
+  const message = error.message?.toLowerCase() ?? ''
+  if (code === 'over_email_send_rate_limit') {
+    return 'Supabase has temporarily paused new sign-in emails. Use the newest ForgePath email already received. If none arrives, wait before trying again. Your account is not locked.'
+  }
+  if (code === 'over_request_rate_limit') {
+    return 'Too many sign-in requests came from this connection. Wait a few minutes, then try once. Your account is not locked.'
+  }
+  if (/wait .*second|email.*recently/.test(message)) {
+    return 'A sign-in email was requested recently. Wait one minute, then try once. Your account is not locked.'
+  }
+  return 'Sign-in email requests are temporarily limited. Use the newest ForgePath email already received, or wait before trying once more. Your account is not locked.'
+}
+
 export async function requestPrivateSignInUsing(client: PasswordlessClient, email: string, redirectTo: string) {
   const normalized = email.trim().toLowerCase()
   if (!/^\S+@\S+\.\S+$/.test(normalized)) throw new Error('Enter the email address invited by the creator.')
@@ -407,15 +422,15 @@ export async function requestPrivateSignInUsing(client: PasswordlessClient, emai
   })
   // Do not reveal whether an email is on the private invitation list.
   if (!error || isUninvitedEmailError(error)) return
-  if (isEmailRateLimitError(error)) throw new Error('A sign-in email was requested recently. Wait a minute and try again.')
+  if (isEmailRateLimitError(error)) throw new Error(emailRateLimitMessage(error))
   throw new Error('ForgePath could not send a private sign-in link. Check your connection and try again.')
 }
 
 type HomeScreenHandoffClient = {
   functions: {
     invoke: (name: string, options: { body: { action: 'create' | 'redeem'; codeHash: string } }) => Promise<{
-      data: { tokenHash?: string; expiresInSeconds?: number } | null
-      error: { message?: string } | null
+      data: { tokenHash?: string; expiresInSeconds?: number; error?: string; errorCode?: string } | null
+      error: { message?: string; context?: Response } | null
     }>
   }
   auth: {
@@ -423,10 +438,26 @@ type HomeScreenHandoffClient = {
   }
 }
 
+async function homeScreenFunctionErrorCode(data: { errorCode?: string } | null, error: { context?: Response } | null) {
+  if (data?.errorCode) return data.errorCode
+  if (!error?.context) return null
+  try {
+    const payload = await error.context.clone().json() as { errorCode?: unknown }
+    return typeof payload.errorCode === 'string' ? payload.errorCode : null
+  } catch {
+    return null
+  }
+}
+
 export async function createHomeScreenHandoffUsing(client: HomeScreenHandoffClient, code: string) {
   const codeHash = await hashHomeScreenHandoffCode(code)
   const { data, error } = await client.functions.invoke('pwa-handoff', { body: { action: 'create', codeHash } })
-  if (error || !data?.expiresInSeconds) throw new Error('ForgePath could not create the Home Screen code. Open a new email sign-in link and try again.')
+  if (error || !data?.expiresInSeconds) {
+    const errorCode = await homeScreenFunctionErrorCode(data, error)
+    if (errorCode === 'AUTH_STALE') throw new Error('This browser verification is older than ten minutes. Use the newest ForgePath email link, then create the Home Screen code right away.')
+    if (errorCode === 'AUTH_REQUIRED') throw new Error('This browser is not signed in to ForgePath. Use the newest email link in this browser, then create the Home Screen code.')
+    throw new Error('ForgePath could not create the Home Screen code. Open the newest email sign-in link and try once more.')
+  }
   return data.expiresInSeconds
 }
 
@@ -441,9 +472,14 @@ export async function createHomeScreenHandoff() {
 export async function redeemHomeScreenHandoffUsing(client: HomeScreenHandoffClient, code: string) {
   const codeHash = await hashHomeScreenHandoffCode(code)
   const { data, error } = await client.functions.invoke('pwa-handoff', { body: { action: 'redeem', codeHash } })
-  if (error || !data?.tokenHash) throw new Error('That Home Screen code is invalid or expired. Open a new email sign-in link and create another code.')
+  if (error || !data?.tokenHash) {
+    const errorCode = await homeScreenFunctionErrorCode(data, error)
+    if (errorCode === 'CODE_INVALID') throw new Error('That Home Screen code is invalid, expired, or already finished. Create a fresh code in your verified browser, then enter it within five minutes.')
+    if (errorCode === 'TOKEN_CREATE_FAILED') throw new Error('Supabase could not prepare the Home Screen session. Try the same code once more; if it still fails, create a fresh code in your verified browser.')
+    throw new Error('ForgePath could not verify that Home Screen code. Check the code and connection, then try once more.')
+  }
   const { error: verificationError } = await client.auth.verifyOtp({ token_hash: data.tokenHash, type: 'magiclink' })
-  if (verificationError) throw new Error('ForgePath could not finish signing in on the Home Screen. Create another code and try again.')
+  if (verificationError) throw new Error('ForgePath could not finish signing in on the Home Screen. Create a fresh code in your verified browser and try once more.')
 }
 
 export async function redeemHomeScreenHandoff(code: string) {

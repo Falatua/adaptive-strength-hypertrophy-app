@@ -55,11 +55,11 @@ export default {
   fetch: async (request: Request) => {
     const origin = request.headers.get('origin') ?? ''
     if (request.method === 'OPTIONS') return response(origin, 204, {})
-    if (request.method !== 'POST' || !allowedOrigins.has(origin)) return response(origin, 403, { error: 'Request not allowed.' })
+    if (request.method !== 'POST' || !allowedOrigins.has(origin)) return response(origin, 403, { error: 'Request not allowed.', errorCode: 'ORIGIN_DENIED' })
 
     let body: { action?: string; codeHash?: string }
-    try { body = await request.json() } catch { return response(origin, 400, { error: 'Invalid request.' }) }
-    if (!codeHashPattern.test(body.codeHash ?? '')) return response(origin, 400, { error: 'Invalid request.' })
+    try { body = await request.json() } catch { return response(origin, 400, { error: 'Invalid request.', errorCode: 'REQUEST_INVALID' }) }
+    if (!codeHashPattern.test(body.codeHash ?? '')) return response(origin, 400, { error: 'Invalid request.', errorCode: 'REQUEST_INVALID' })
 
     const admin = adminClient()
     const now = new Date()
@@ -67,12 +67,12 @@ export default {
 
     if (body.action === 'create') {
       const token = bearerToken(request)
-      if (!token) return response(origin, 401, { error: 'Authentication required.' })
+      if (!token) return response(origin, 401, { error: 'Authentication required.', errorCode: 'AUTH_REQUIRED' })
       const { data: userData, error: userError } = await admin.auth.getUser(token)
-      if (userError || !userData.user) return response(origin, 401, { error: 'Authentication required.' })
+      if (userError || !userData.user) return response(origin, 401, { error: 'Authentication required.', errorCode: 'AUTH_REQUIRED' })
       const tokenIssuedAt = issuedAt(token)
       if (!tokenIssuedAt || Math.floor(Date.now() / 1000) - tokenIssuedAt > recentSignInSeconds) {
-        return response(origin, 401, { error: 'Open a new ForgePath sign-in link before creating a Home Screen code.' })
+        return response(origin, 401, { error: 'Open a new ForgePath sign-in link before creating a Home Screen code.', errorCode: 'AUTH_STALE' })
       }
       const { error } = await admin.from('forgepath_auth_handoffs').upsert({
         user_id: userData.user.id,
@@ -81,7 +81,7 @@ export default {
         expires_at: new Date(now.getTime() + handoffLifetimeMilliseconds).toISOString(),
         redeemed_at: null
       }, { onConflict: 'user_id' })
-      if (error) return response(origin, 500, { error: 'The Home Screen code could not be created.' })
+      if (error) return response(origin, 500, { error: 'The Home Screen code could not be created.', errorCode: 'CODE_CREATE_FAILED' })
       return response(origin, 200, { expiresInSeconds: handoffLifetimeMilliseconds / 1000 })
     }
 
@@ -95,17 +95,25 @@ export default {
         .gt('expires_at', redeemedAt)
         .select('user_id')
         .maybeSingle()
-      if (redeemError || !handoff) return response(origin, 400, { error: 'That Home Screen code is invalid or expired.' })
+      if (redeemError || !handoff) return response(origin, 400, { error: 'That Home Screen code is invalid or expired.', errorCode: 'CODE_INVALID' })
 
       const { data: userData, error: userError } = await admin.auth.admin.getUserById(handoff.user_id)
       const email = userData.user?.email
-      if (userError || !email) return response(origin, 400, { error: 'That Home Screen code is invalid or expired.' })
+      if (userError || !email) return response(origin, 400, { error: 'That Home Screen code is invalid or expired.', errorCode: 'CODE_INVALID' })
       const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({ type: 'magiclink', email })
       const tokenHash = linkData.properties?.hashed_token
-      if (linkError || !tokenHash) return response(origin, 500, { error: 'The Home Screen sign-in could not be completed.' })
+      if (linkError || !tokenHash) {
+        await admin
+          .from('forgepath_auth_handoffs')
+          .update({ redeemed_at: null })
+          .eq('user_id', handoff.user_id)
+          .eq('redeemed_at', redeemedAt)
+          .gt('expires_at', redeemedAt)
+        return response(origin, 500, { error: 'The Home Screen sign-in could not be completed.', errorCode: 'TOKEN_CREATE_FAILED' })
+      }
       return response(origin, 200, { tokenHash })
     }
 
-    return response(origin, 400, { error: 'Invalid request.' })
+    return response(origin, 400, { error: 'Invalid request.', errorCode: 'REQUEST_INVALID' })
   }
 }
