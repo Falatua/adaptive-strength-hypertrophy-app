@@ -29,7 +29,10 @@ import {
   redeemHomeScreenHandoffUsing,
   requestPrivateSignInUsing,
   restoreVerifiedCloudSnapshot,
+  signInCooldownRemaining,
+  SIGN_IN_COOLDOWN_STORAGE_KEY,
   stageCloudSnapshot,
+  startSignInCooldown,
   type ForgePathCloudClient
 } from './cloud-sync'
 import type { Json } from './supabase.types'
@@ -131,6 +134,16 @@ describe('invitation-only email-link policy', () => {
     expect(homeScreenSignInRedirect('https://example.com/forgepath/')).toBe('https://example.com/forgepath/?forgepath_auth=home-screen')
   })
 
+  it('keeps the send cooldown through a phone-browser refresh and clears it after expiry', () => {
+    const { storage, values } = storageHarness()
+    expect(startSignInCooldown(storage, 1_000)).toBe(60)
+    expect(values.get(SIGN_IN_COOLDOWN_STORAGE_KEY)).toBe('61000')
+    expect(signInCooldownRemaining(storage, 1_001)).toBe(60)
+    expect(signInCooldownRemaining(storage, 60_001)).toBe(1)
+    expect(signInCooldownRemaining(storage, 61_000)).toBe(0)
+    expect(values.has(SIGN_IN_COOLDOWN_STORAGE_KEY)).toBe(false)
+  })
+
   it('creates, normalizes, and formats a uniform 100-bit one-time code', () => {
     const code = createHomeScreenHandoffCode(Uint8Array.from({ length: 20 }, (_, index) => index))
     expect(code).toBe('23456789ABCDEFGHJKLM')
@@ -146,6 +159,11 @@ describe('invitation-only email-link policy', () => {
     await expect(createHomeScreenHandoffUsing(client, code)).resolves.toBe(300)
     expect(invoke).toHaveBeenCalledWith('pwa-handoff', { body: { action: 'create', codeHash: expectedHash } })
     expect(JSON.stringify(invoke.mock.calls)).not.toContain(code)
+  })
+
+  it('uses browser-neutral recovery language for incomplete Home Screen codes', async () => {
+    await expect(hashHomeScreenHandoffCode('short')).rejects.toThrow(/verified browser/i)
+    await expect(hashHomeScreenHandoffCode('short')).rejects.not.toThrow(/Safari/i)
   })
 
   it('distinguishes a stale verified browser from a generic handoff failure', async () => {

@@ -19,6 +19,18 @@ import { CloudAuth, CloudLoading } from './CloudAppRoot'
 describe('cloud account gate', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    const values = new Map<string, string>()
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: {
+        get length() { return values.size },
+        clear: () => values.clear(),
+        getItem: (key: string) => values.get(key) ?? null,
+        key: (index: number) => [...values.keys()][index] ?? null,
+        removeItem: (key: string) => values.delete(key),
+        setItem: (key: string, value: string) => values.set(key, value)
+      } satisfies Storage
+    })
     Object.defineProperty(window.navigator, 'standalone', { configurable: true, value: false })
   })
 
@@ -29,11 +41,23 @@ describe('cloud account gate', () => {
     expect(screen.queryByLabelText(/password/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /password|forgot/i })).not.toBeInTheDocument()
     expect(screen.getByText(/invited by the creator/i)).toBeInTheDocument()
+    expect(screen.getByText(/not Incognito or an email-app preview/i)).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: ' Athlete@Example.com ' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Log in with email' }))
+    fireEvent.submit(screen.getByLabelText('Email').closest('form')!)
 
     await waitFor(() => expect(authMocks.requestPrivateSignIn).toHaveBeenCalledWith('Athlete@Example.com'))
     expect(screen.getByRole('status')).toHaveTextContent(/If that email was invited, use the newest private confirmation email/i)
+  })
+
+  it('keeps the resend cooldown after the phone browser reloads', async () => {
+    const first = render(<CloudAuth />)
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'athlete@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Log in with email' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /Try again in 60s/i })).toBeDisabled())
+    first.unmount()
+
+    render(<CloudAuth />)
+    expect(screen.getByRole('button', { name: /Try again in 60s/i })).toBeDisabled()
   })
 
   it('guides an installed Home Screen app through the one-time browser handoff', async () => {
@@ -41,6 +65,7 @@ describe('cloud account gate', () => {
     render(<CloudAuth />)
 
     expect(screen.getByText(/confirmation opens in your default browser/i)).toBeInTheDocument()
+    expect(screen.getByText(/set Chrome as your default browser first/i)).toBeInTheDocument()
     const existingSessionLink = screen.getByRole('link', { name: /without another email/i })
     expect(existingSessionLink).toHaveAttribute('target', '_blank')
     expect(existingSessionLink).toHaveAttribute('href', expect.stringContaining('forgepath_auth=home-screen'))

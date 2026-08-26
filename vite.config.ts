@@ -8,6 +8,16 @@ export default defineConfig({
   base,
   plugins: [
     react(),
+    {
+      name: 'forgepath-local-http-csp',
+      transformIndexHtml(html, context) {
+        if (!context.server) return html
+        // Production is HTTPS and retains upgrade-insecure-requests. Local iPhone/WebKit
+        // acceptance runs on loopback HTTP, where WebKit otherwise upgrades Vite modules
+        // to an unavailable HTTPS endpoint and leaves only the static skip link visible.
+        return html.replace('; upgrade-insecure-requests', '')
+      }
+    },
     VitePWA({
       registerType: 'prompt',
       includeAssets: ['forgepath-mark.svg'],

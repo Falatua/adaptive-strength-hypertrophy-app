@@ -34,9 +34,9 @@ jobs:
         run: npm ci
       - name: Run deterministic quality gates
         run: npm run check
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Run desktop and mobile browser journeys
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+      - name: Run desktop, Android Chrome, and iPhone-engine browser journeys
         env:
           VITE_FORGEPATH_LOCAL_E2E: true
         run: npm run test:e2e

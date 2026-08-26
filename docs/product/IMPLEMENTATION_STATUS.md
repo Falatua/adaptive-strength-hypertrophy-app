@@ -5,12 +5,23 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.62.1
+app_version: 0.62.2
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.62.2 Phone Chrome Continuity Delta
+
+- Treats normal phone Chrome as a first-class authenticated client while preserving the separate installed iOS Home Screen storage boundary.
+- Converts invited-email login and Home Screen code redemption into semantic forms so the phone keyboard Go or Done action submits the intended step.
+- Uses mobile-safe email and one-time-code input attributes and adds safe-area padding plus standalone web-app metadata.
+- Persists the sixty-second email-send cooldown in ForgePath-scoped browser storage so refreshes and browser restarts do not reopen the send button early.
+- Directs athletes to a normal browser profile, not Incognito or an email-app preview, and tells Chrome users to make Chrome the iPhone default before requesting the Home Screen link.
+- Removes the last Safari-only recovery message and keeps every handoff instruction truthful for Chrome or another verified default browser.
+- Adds a complete iPhone WebKit-engine release project beside desktop Chromium and Android-style mobile Chromium. The first run exposed a development-only security-policy upgrade that blanked the iPhone test page; local Vite now removes only `upgrade-insecure-requests`, while production retains it on HTTPS.
+- Current local acceptance is 445 deterministic tests and 129 desktop, Android-style Chrome, and iPhone-engine browser journeys, with backup schema 26 and every training-rule identity unchanged.
 
 ## Private Alpha 0.62.1 Rate-Aware Home Screen Recovery Delta
 

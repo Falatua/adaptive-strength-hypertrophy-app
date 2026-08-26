@@ -2613,7 +2613,18 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: When iOS opens an invited-email confirmation in the default browser instead of the installed ForgePath Home Screen web app, the verified browser must be able to establish a separate durable session in the installed app without exposing reusable Auth tokens, weakening email verification, enabling public signup, or requiring repeated email links after successful setup. An existing verified browser must be able to reopen the transfer surface without another email, repeated send attempts must be visibly throttled, and temporary server token-generation failure must remain safely retryable.
 - Detail: [[ForgePath Supabase Backend Runbook]] and Build Bible Chapter 88
 
+### R-415 Phone Chrome Authentication and Release Continuity
+- Status: implemented
+- Provenance: from-user and verified platform behavior
+- Requirement: Normal phone Chrome must submit invited-email login from the keyboard, persist its renewable Supabase session through refreshes and app updates, keep the email-send cooldown through refresh or browser restart, avoid routing identity proof through Incognito or an email-app preview, and receive release coverage appropriate to both Android Chromium and the iPhone browser engine. Installed iOS Home Screen storage remains a separate session that uses R-414.
+- Detail: [[ForgePath Supabase Backend Runbook]] and Build Bible Chapter 89
+
 ## Thread Coverage Audit
+
+### 2026-08-26 Phone Chrome Primary Use
+- Scope: JB designated Google Chrome on the phone as the primary ForgePath client and requested complete login, storage, update, and installed-app compatibility.
+- Result: Added R-415 and Build Bible Chapter 89. Private alpha 0.62.2 adds keyboard-submit forms, mobile input hints, persistent resend protection, normal-profile and email-preview guidance, Chrome-default instructions for iPhone handoff, safe-area web-app metadata, and an iPhone WebKit release project beside mobile Chromium.
+- Status: Implemented locally with 445 deterministic tests and 129 browser journeys. GitHub, Pages, live bundle, and exact-device Chrome acceptance remain release gates.
 
 ### 2026-08-26 Home Screen Error and Email Throttle Recovery
 - Scope: JB reported an error during installed-app setup and exhausted the temporary Supabase email-send allowance while retrying.

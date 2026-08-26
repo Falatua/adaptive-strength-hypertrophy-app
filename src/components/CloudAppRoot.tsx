@@ -27,7 +27,9 @@ import {
   requestPrivateSignIn,
   resetCloudData,
   restoreVerifiedCloudSnapshot,
+  signInCooldownRemaining,
   signOutCloud,
+  startSignInCooldown,
   stageCloudSnapshot
 } from '../services/cloud-sync'
 import { checkForAppUpdate, readAppVersionStatus, reloadWithFreshAppShell } from '../services/app-shell'
@@ -76,13 +78,13 @@ export function CloudAuth() {
   const [email, setEmail] = useState('')
   const [handoffCode, setHandoffCode] = useState('')
   const [busy, setBusy] = useState(false)
-  const [emailRetrySeconds, setEmailRetrySeconds] = useState(0)
+  const [emailRetrySeconds, setEmailRetrySeconds] = useState(() => signInCooldownRemaining(window.localStorage))
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (emailRetrySeconds <= 0) return
-    const timer = window.setTimeout(() => setEmailRetrySeconds((seconds) => Math.max(0, seconds - 1)), 1000)
+    const timer = window.setTimeout(() => setEmailRetrySeconds(signInCooldownRemaining(window.localStorage)), 1000)
     return () => window.clearTimeout(timer)
   }, [emailRetrySeconds])
 
@@ -92,27 +94,33 @@ export function CloudAuth() {
     setMessage(null)
     try { await action() } catch (cause) {
       const nextError = messageFrom(cause, 'ForgePath could not complete that account request.')
-      if (/temporarily|too many|requested recently|rate/i.test(nextError)) setEmailRetrySeconds(60)
+      if (/temporarily|too many|requested recently|rate/i.test(nextError)) setEmailRetrySeconds(startSignInCooldown(window.localStorage))
       setError(nextError)
     } finally { setBusy(false) }
   }
 
-  return <AuthFrame title="Welcome to ForgePath" detail={homeScreenApp ? "Enter an email invited by the creator. The confirmation opens in your default browser, where ForgePath gives you a one-time Home Screen code. Return here and enter it once; this app then keeps you signed in." : "Enter an email invited by the creator. There is no password. Confirm one email link in this same browser profile, then ForgePath keeps you signed in through refreshes and app updates until you choose Sign out or clear this browser's site data."}>
-    <label className="cloud-auth__field"><span>Email</span><span><Mail size={17} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></span></label>
-    <button className="button button--primary button--full" disabled={busy || emailRetrySeconds > 0 || !email.trim()} onClick={() => run(async () => {
-      if (homeScreenApp) await requestPrivateSignIn(email, true)
-      else await requestPrivateSignIn(email)
-      setEmailRetrySeconds(60)
-      setMessage(homeScreenApp ? 'If that email was invited, use the newest confirmation email in your default browser. Create the one-time Home Screen code there, then return to this app. Sending another email will not make the first one arrive faster.' : 'If that email was invited, use the newest private confirmation email in this same browser profile. This is the one-time check for this browser; ForgePath will keep the renewed session here afterward.')
-    })}>{busy ? <LoaderCircle className="spin" size={17} /> : <Mail size={17} />} {emailRetrySeconds > 0 ? `Try again in ${emailRetrySeconds}s` : 'Log in with email'}</button>
+  const requestLogin = () => run(async () => {
+    setEmailRetrySeconds(startSignInCooldown(window.localStorage))
+    if (homeScreenApp) await requestPrivateSignIn(email, true)
+    else await requestPrivateSignIn(email)
+    setMessage(homeScreenApp ? 'If that email was invited, use the newest confirmation email in your normal default browser. Create the one-time Home Screen code there, then return to this app. Sending another email will not make the first one arrive faster.' : 'If that email was invited, use the newest private confirmation email in this normal browser profile. Do not open it in Incognito or an email-app preview. ForgePath will keep the renewed session here afterward.')
+  })
+
+  return <AuthFrame title="Welcome to ForgePath" detail={homeScreenApp ? "Enter an email invited by the creator. The confirmation opens in your default browser, where ForgePath gives you a one-time Home Screen code. If you use Chrome, set Chrome as your default browser first. Do not use Incognito or an email-app preview. Return here and enter the code once; this app then keeps you signed in." : "Enter an email invited by the creator. There is no password. Confirm one email link in this same normal browser profile, not Incognito or an email-app preview. ForgePath then keeps you signed in through refreshes and app updates until you choose Sign out or clear this browser's site data."}>
+    <form onSubmit={(event) => { event.preventDefault(); if (!busy && emailRetrySeconds <= 0 && email.trim()) void requestLogin() }}>
+      <label className="cloud-auth__field"><span>Email</span><span><Mail size={17} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="go" /></span></label>
+      <button type="submit" className="button button--primary button--full" disabled={busy || emailRetrySeconds > 0 || !email.trim()}>{busy ? <LoaderCircle className="spin" size={17} /> : <Mail size={17} />} {emailRetrySeconds > 0 ? `Try again in ${emailRetrySeconds}s` : 'Log in with email'}</button>
+    </form>
     {homeScreenApp && <div className="cloud-auth__handoff">
       <div className="cloud-auth__links cloud-auth__links--before-divider"><a href={browserTransferUrl} target="_blank" rel="noopener noreferrer">Already signed in in your browser? Create a code without another email</a></div>
       <div className="cloud-auth__divider"><span>Then return here</span></div>
-      <label className="cloud-auth__field"><span>One-time Home Screen code</span><span><KeyRound size={17} /><input type="text" value={formatHomeScreenHandoffCode(handoffCode)} onChange={(event) => setHandoffCode(normalizeHomeScreenHandoffCode(event.target.value))} autoCapitalize="characters" autoCorrect="off" spellCheck={false} inputMode="text" /></span></label>
-      <button className="button button--secondary button--full" disabled={busy || normalizeHomeScreenHandoffCode(handoffCode).length !== 20} onClick={() => run(async () => {
-        await redeemHomeScreenHandoff(handoffCode)
-        setMessage('Home Screen sign-in complete. ForgePath is opening your cloud training journal.')
-      })}>{busy ? <LoaderCircle className="spin" size={17} /> : <Smartphone size={17} />} Finish Home Screen login</button>
+      <form onSubmit={(event) => { event.preventDefault(); if (!busy && normalizeHomeScreenHandoffCode(handoffCode).length === 20) void run(async () => {
+          await redeemHomeScreenHandoff(handoffCode)
+          setMessage('Home Screen sign-in complete. ForgePath is opening your cloud training journal.')
+        }) }}>
+        <label className="cloud-auth__field"><span>One-time Home Screen code</span><span><KeyRound size={17} /><input type="text" value={formatHomeScreenHandoffCode(handoffCode)} onChange={(event) => setHandoffCode(normalizeHomeScreenHandoffCode(event.target.value))} autoComplete="one-time-code" autoCapitalize="characters" autoCorrect="off" spellCheck={false} inputMode="text" enterKeyHint="done" /></span></label>
+        <button type="submit" className="button button--secondary button--full" disabled={busy || normalizeHomeScreenHandoffCode(handoffCode).length !== 20}>{busy ? <LoaderCircle className="spin" size={17} /> : <Smartphone size={17} />} Finish Home Screen login</button>
+      </form>
     </div>}
     {message && <p className="cloud-auth__message" role="status">{message}</p>}
     {error && <AuthError message={error} />}
@@ -157,10 +165,10 @@ function HomeScreenHandoff() {
   }
 
   return <AuthFrame title="Finish on your Home Screen" detail="Your invited email is verified in this browser. Create a private one-time code, then open ForgePath from your Home Screen and enter it there. The code expires in five minutes and stops working after one use.">
-    {!code ? <button className="button button--primary button--full" disabled={busy} onClick={() => { void createCode() }}>{busy ? <LoaderCircle className="spin" size={17} /> : <Smartphone size={17} />} Create Home Screen code</button> : <div className="cloud-auth__code">
+    {!code ? <button type="button" className="button button--primary button--full" disabled={busy} onClick={() => { void createCode() }}>{busy ? <LoaderCircle className="spin" size={17} /> : <Smartphone size={17} />} Create Home Screen code</button> : <div className="cloud-auth__code">
       <span>Your one-time code</span>
       <strong aria-label={`Home Screen code ${formatHomeScreenHandoffCode(code)}`}>{formatHomeScreenHandoffCode(code)}</strong>
-      <button className="button button--primary button--full" onClick={() => { void copyCode() }}>{copied ? <Check size={17} /> : <Clipboard size={17} />} {copied ? 'Copied' : 'Copy code'}</button>
+      <button type="button" className="button button--primary button--full" onClick={() => { void copyCode() }}>{copied ? <Check size={17} /> : <Clipboard size={17} />} {copied ? 'Copied' : 'Copy code'}</button>
       <p>Now open the ForgePath icon on your Home Screen, paste this code, and press <strong>Finish Home Screen login</strong>. Do not share this code.</p>
     </div>}
     {error && <AuthError message={error} />}

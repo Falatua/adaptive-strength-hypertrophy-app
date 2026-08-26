@@ -14,6 +14,8 @@ export const CLOUD_VERSION_STORAGE_KEY = 'forgepath-cloud-server-version-v1'
 export const CLOUD_LAST_SYNC_STORAGE_KEY = 'forgepath-cloud-last-sync-v1'
 export const HOME_SCREEN_AUTH_QUERY = 'forgepath_auth'
 export const HOME_SCREEN_AUTH_VALUE = 'home-screen'
+export const SIGN_IN_COOLDOWN_STORAGE_KEY = 'forgepath-sign-in-cooldown-v1'
+export const SIGN_IN_COOLDOWN_SECONDS = 60
 const HOME_SCREEN_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'
 const HOME_SCREEN_CODE_LENGTH = 20
 
@@ -341,6 +343,20 @@ export function isInstalledHomeScreenApp() {
   return iosStandalone || window.matchMedia?.('(display-mode: standalone)').matches === true
 }
 
+export function signInCooldownRemaining(storage: Storage, now = Date.now()) {
+  const expiresAt = Number(storage.getItem(SIGN_IN_COOLDOWN_STORAGE_KEY))
+  if (!Number.isFinite(expiresAt) || expiresAt <= now) {
+    storage.removeItem(SIGN_IN_COOLDOWN_STORAGE_KEY)
+    return 0
+  }
+  return Math.ceil((expiresAt - now) / 1000)
+}
+
+export function startSignInCooldown(storage: Storage, now = Date.now()) {
+  storage.setItem(SIGN_IN_COOLDOWN_STORAGE_KEY, String(now + SIGN_IN_COOLDOWN_SECONDS * 1000))
+  return SIGN_IN_COOLDOWN_SECONDS
+}
+
 export function isHomeScreenAuthCallback(location = typeof window === 'undefined' ? null : window.location) {
   if (!location) return false
   return new URLSearchParams(location.search).get(HOME_SCREEN_AUTH_QUERY) === HOME_SCREEN_AUTH_VALUE
@@ -367,7 +383,7 @@ export function formatHomeScreenHandoffCode(value: string) {
 
 export async function hashHomeScreenHandoffCode(value: string) {
   const normalized = normalizeHomeScreenHandoffCode(value)
-  if (normalized.length !== HOME_SCREEN_CODE_LENGTH) throw new Error('Enter the complete Home Screen code shown in Safari.')
+  if (normalized.length !== HOME_SCREEN_CODE_LENGTH) throw new Error('Enter the complete Home Screen code shown in your verified browser.')
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalized))
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }

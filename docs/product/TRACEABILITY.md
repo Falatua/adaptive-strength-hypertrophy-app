@@ -17,8 +17,8 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Coverage Summary
 
-- Total requirement headings: 414.
-- Sequential range: R-001 through R-414.
+- Total requirement headings: 415.
+- Sequential range: R-001 through R-415.
 - Missing IDs: none after the 2026-08-26 verification.
 - Duplicate IDs: none after the 2026-08-26 verification.
 - Primary implementation authority: [[Adaptive Strength and Hypertrophy App Build Bible]].
@@ -26,7 +26,7 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Current Implementation Evidence
 
-Private alpha 0.62.1 and Build Bible 1.58.1 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current gate includes 442 deterministic tests, 86 desktop and phone browser journeys, durable renewable Auth-session storage, a rate-aware installed Home Screen session handoff, a no-new-email transfer path for an already-verified browser, durable interrupted-save recovery, truthful cloud status, invitation-only passwordless entry, persistent exact-source update notification, a rolling 52-week athlete replay, a 10,000-set persistence stress case, progression and volume decision matrices, JSON-canonical backup recovery, production Supabase rollback acceptance, Pages compilation, dependency and data-boundary checks. Backup schema remains 26. Dedicated-origin hosting, custom SMTP, complete offline startup, real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
+Private alpha 0.62.2 and Build Bible 1.58.2 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current gate includes 445 deterministic tests, 129 desktop, Android-style Chrome, and iPhone-engine browser journeys, durable renewable Auth-session storage, refresh-persistent resend protection, mobile keyboard form submission, a rate-aware installed Home Screen session handoff, a no-new-email transfer path for an already-verified browser, durable interrupted-save recovery, truthful cloud status, invitation-only passwordless entry, persistent exact-source update notification, a rolling 52-week athlete replay, a 10,000-set persistence stress case, progression and volume decision matrices, JSON-canonical backup recovery, production Supabase rollback acceptance, Pages compilation, dependency and data-boundary checks. Backup schema remains 26. Dedicated-origin hosting, custom SMTP, complete offline startup, real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
 
 ## Product and Training Traceability
 
@@ -105,6 +105,7 @@ Private alpha 0.62.1 and Build Bible 1.58.1 are the current boundary. Evidence i
 | R-412 | Persistent exact-source update awareness, safe refresh, and shared-origin PWA isolation | 19, 24, 27, 75, 86 | [[Private Alpha Implementation 2026-08-10]], `src/components/AppUpdateNotice.tsx`, `src/services/app-shell.ts` | Ongoing | Marker polling, update action, save-failure retention, worker and cache isolation, desktop and phone containment, Pages source-marker match |
 | R-413 | Dedicated browser-origin isolation before access expands beyond the owner-controlled test group | 19, 20, 24, 27, 68, 78, 80, 87 | [[ForgePath Supabase Backend Runbook]], [[Data Backend Storage and Learning Architecture]] | Before external private alpha | Dedicated host-origin proof, cross-origin storage denial, redirect acceptance, Auth-session persistence, recovery outbox, Pages replacement or redirect, and live phone-laptop acceptance |
 | R-414 | Secure verified-browser to installed Home Screen session handoff | 19, 20, 24, 27, 68, 78, 80, 88 | [[ForgePath Supabase Backend Runbook]], `src/services/cloud-sync.ts`, `supabase/functions/pwa-handoff/index.ts` | 1A | iOS standalone detection, callback routing, existing-session transfer, send cooldown, rate-limit recovery, 100-bit code, digest-only storage, five-minute expiry, retry-safe token failure, single-use success, origin denial, session persistence, and exact-device acceptance |
+| R-415 | Phone Chrome authentication and release continuity | 19, 20, 24, 27, 68, 78, 80, 89 | [[ForgePath Supabase Backend Runbook]], `src/components/CloudAppRoot.tsx`, `src/services/cloud-sync.ts`, `playwright.config.ts` | 1A | keyboard-submit forms, normal-profile guidance, persistent cooldown, safe-area containment, Chromium and iPhone-engine suites, exact-device acceptance |
 
 ## Delivery Phase Key
 
