@@ -12,6 +12,7 @@ import {
   evaluateCloudConfiguration,
   parseCloudPushResult,
   parseCloudSnapshotRow,
+  persistentCloudAuthOptions,
   planCloudBootstrap,
   planCloudMutation,
   prepareCloudStorageForAccount,
@@ -84,6 +85,16 @@ describe('cloud configuration boundary', () => {
 })
 
 describe('invitation-only email-link policy', () => {
+  it('keeps a verified browser session in durable storage and renews it automatically', () => {
+    const { storage } = storageHarness()
+    expect(persistentCloudAuthOptions(storage)).toEqual({
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage
+    })
+  })
+
   it('normalizes the email, refuses account creation, and returns to the exact app base', async () => {
     const signInWithOtp = vi.fn().mockResolvedValue({ error: null })
     await requestPrivateSignInUsing({ auth: { signInWithOtp } }, ' Athlete@Example.com ', 'https://example.com/forgepath/')

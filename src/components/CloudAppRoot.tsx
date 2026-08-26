@@ -76,11 +76,11 @@ export function CloudAuth() {
     try { await action() } catch (cause) { setError(messageFrom(cause, 'ForgePath could not complete that account request.')) } finally { setBusy(false) }
   }
 
-  return <AuthFrame title="Welcome to ForgePath" detail="Enter an email invited by the creator. There is no password. A new or signed-out browser confirms the email once, then this device opens ForgePath automatically until you sign out.">
+  return <AuthFrame title="Welcome to ForgePath" detail="Enter an email invited by the creator. There is no password. Confirm one email link in this same browser profile, then ForgePath keeps you signed in through refreshes and app updates until you choose Sign out or clear this browser's site data.">
     <label className="cloud-auth__field"><span>Email</span><span><Mail size={17} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></span></label>
     <button className="button button--primary button--full" disabled={busy || !email.trim()} onClick={() => run(async () => {
       await requestPrivateSignIn(email)
-      setMessage('If that email was invited, open the private confirmation link we sent. ForgePath will then sign this device in and keep it signed in.')
+      setMessage('If that email was invited, open the private confirmation link in this same browser profile. This is the one-time check for this browser; ForgePath will keep the renewed session here afterward.')
     })}>{busy ? <LoaderCircle className="spin" size={17} /> : <Mail size={17} />} Log in with email</button>
     {message && <p className="cloud-auth__message" role="status">{message}</p>}
     {error && <AuthError message={error} />}

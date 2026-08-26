@@ -5,12 +5,21 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.61.0
+app_version: 0.61.1
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.61.1 Persistent Verified-Browser Session Delta
+
+- Makes durable browser storage explicit in the Supabase Auth client while retaining Supabase's existing default session key so already-verified browsers are not logged out by the release.
+- Keeps automatic refresh-token renewal and email-link return detection enabled. Refreshes, PWA updates, and ForgePath-scoped cache cleanup do not clear the authenticated session.
+- Adds a deterministic regression contract and strengthens the cloud data boundary gate so persistent storage, automatic renewal, and email-link detection cannot be removed unnoticed.
+- Clarifies that the one-time link must open in the same browser profile. A different profile, incognito window, explicit sign-out, or cleared site data correctly requires another verification.
+- Verified live Supabase session settings on 2026-08-26: time-boxing is never, inactivity timeout is never, access tokens renew after 3,600 seconds, compromised refresh-token detection is enabled, and the reuse interval is 10 seconds.
+- Current local acceptance is 434 deterministic tests, with backup schema 26 and every training-rule identity unchanged.
 
 ## Private Alpha 0.61.0 Passwordless Entry and Interrupted-Save Recovery Delta
 

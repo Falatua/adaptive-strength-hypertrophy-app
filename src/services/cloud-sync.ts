@@ -63,13 +63,25 @@ export type ForgePathCloudClient = SupabaseClient<ForgePathDatabase>
 let cloudClient: ForgePathCloudClient | null = null
 let cloudClientPromise: Promise<ForgePathCloudClient> | null = null
 
+export function persistentCloudAuthOptions(storage: Storage) {
+  return {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage
+  } as const
+}
+
 export async function getCloudClient() {
   if (cloudConfiguration.status !== 'ready') return null
   if (cloudClient) return cloudClient
   if (!cloudClientPromise) {
     const { url, publishableKey } = cloudConfiguration
     cloudClientPromise = import('@supabase/supabase-js').then(({ createClient }) => createClient<ForgePathDatabase>(url, publishableKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+      // Keep Supabase's existing default storage key so already-verified browsers remain signed in.
+      // Supplying persistent browser storage explicitly prevents an SDK default change from silently
+      // turning the private alpha into an in-memory session that disappears on refresh.
+      auth: persistentCloudAuthOptions(requireBrowserStorage())
     }))
   }
   cloudClient = await cloudClientPromise
