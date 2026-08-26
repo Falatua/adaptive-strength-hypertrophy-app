@@ -3,26 +3,36 @@ type: product-build-bible
 aliases: [Adaptive Training App Build Bible, App Build Bible]
 tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
-updated: 2026-08-24
+updated: 2026-08-26
 status: canonical-build-reference-and-active-implementation
-version: 1.56.0
+version: 1.57.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
 
+### Version 1.57.0 Change Entry
+
+- Advanced the working application to private alpha 0.61.0 while preserving backup schema 26 and every training-rule identity.
+- Advanced R-314, R-316, and R-380 with one durable account-scoped pending snapshot, safe same-device rebasing, post-kill replay, and truthful live save-state labels.
+- Keeps Supabase authoritative and removes the pending local payload after authenticated confirmation.
+- Preserves both copies and blocks editing when the pending snapshot and a newer cloud version diverge.
+- Keeps passwordless login invitation-only. `Log in with email` starts one verified email confirmation on a new or signed-out browser, after which the renewable session opens the device automatically until sign-out.
+- Added R-413 as a dedicated-browser-origin gate before external athlete invitations because path-scoped Pages deployment does not isolate Auth or recovery storage from other applications on the parent origin.
+- Added Chapter 87 for the exact interrupted-save and authentication boundary.
+
 ### Version 1.56.0 Change Entry
 
 - Added R-412 and Chapter 86 for persistent, accessible update-ready notification.
-- Advanced the working application to private alpha 0.60.0 while preserving backup schema 25 and every training-rule identity.
+- Advanced the working application to private alpha 0.60.0 while preserving backup schema 26 and every training-rule identity.
 - Checks the exact public source marker immediately, once per visible minute, and after focus or reconnection.
 - Saves pending cloud changes before refresh, refuses to navigate after a failed save, and keeps the notice visible until the athlete updates.
 - Changed PWA activation to prompt mode and limited repair cleanup to ForgePath's worker and named caches so another Pages app on the shared origin cannot be disrupted.
 
 ### Version 1.55.0 Change Entry
 
-- Advanced the working application to private alpha 0.59.0 while preserving backup schema 25 and all training-rule identities.
+- Advanced the working application to private alpha 0.59.0 while preserving backup schema 26 and all training-rule identities.
 - Made the invited-email magic link the sole athlete-facing authentication path, with account creation disabled and non-enumerating responses.
 - Kept reset and deletion behind a fresh email-link JWT no more than five minutes old, exact typed confirmation, and server-side self-only enforcement.
 - Added exact installed-versus-published source comparison before cloud hydration or save.
@@ -37,7 +47,7 @@ confidence: product-decision
 - Corrected schedule-fit confidence so consistent attendance can mature without requiring a missed workout.
 - Canonicalized backup checksums to the JSON actually transported, including optional undefined fields.
 - Expanded the production rollback test to 52 weeks, 156 sessions, and 624 sets with idempotence, conflict, isolation, and zero-residue proof.
-- Advanced the working application to private alpha 0.58.0 while preserving backup schema 25 and `progression-v2`, `volume-progression-v2`, `ongoing-confidence-v1`, and `cloud-sync-v1` rule identities.
+- Advanced the working application to private alpha 0.58.0 with backup schema 26 and preserved `progression-v2`, `volume-progression-v2`, `ongoing-confidence-v1`, and `cloud-sync-v1` rule identities.
 
 ## 0. Authority, Use, and Change Control
 
@@ -6271,7 +6281,7 @@ Every normalized table enables and forces Row Level Security. Authenticated clie
 
 Completed sets retain entered load and unit, normalized kilograms, repetitions, exact exercise identity, movement family, exclusive primary region, non-additive involved regions, source device, source event, version, and completion time. `volume_load_kg` is a stored generated value equal to normalized load multiplied by repetitions. Security-invoker views produce source-set facts and daily, weekly, monthly, and yearly rollups for total training and exclusive primary-region scopes. Survey answers store `answered`, `skipped`, `not-sure`, `prefer-not`, and `not-answered` explicitly, and only an answered row may contain a value.
 
-The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the public source repository. Four committed migrations are checksum-locked and represented by the repaired remote migration ledger. A live catalog audit confirmed fourteen of fourteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as GitHub Actions secrets outside the public source tree, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The private cloud release is enabled, while real invited-athlete physical phone-to-laptop recovery remains an open acceptance gate. App version 0.60.0 and backup schema 25 preserve the cloud-authoritative snapshot boundary without claiming normalized entity merge or active-workout handoff.
+The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the public source repository. Four committed migrations are checksum-locked and represented by the repaired remote migration ledger. A live catalog audit confirmed fourteen of fourteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as GitHub Actions secrets outside the public source tree, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The private cloud release is enabled, while real invited-athlete physical phone-to-laptop recovery remains an open acceptance gate. App version 0.61.0 and backup schema 26 preserve the cloud-authoritative snapshot boundary, add durable interrupted-save recovery, and do not claim normalized entity merge or active-workout handoff.
 
 ## 79. Exact-Movement Workout Notes and Longitudinal Recall
 
@@ -6534,6 +6544,36 @@ The service worker uses prompt activation rather than silently replacing the pag
 ### 86.5 Acceptance
 
 Deterministic tests cover exact marker comparison, worker update request, scope-limited repair, cache isolation, the persistent action, no-update silence, and save-failure retention. Desktop and 390 by 844 phone journeys prove the notice wording, refresh action, non-dismissibility, and horizontal containment. Pages verification proves the published marker matches the tested source.
+
+## 87. Passwordless Entry and Durable Interrupted-Save Recovery
+
+### 87.1 Authentication Boundary
+
+An athlete enters an invited email and selects `Log in with email`. Public account creation remains disabled and the response does not reveal invitation membership. A new or signed-out browser must prove control of the address through Supabase's time-limited confirmation link. The renewable session then persists on that browser until explicit sign-out. Email knowledge alone never establishes an authenticated identity, and no approved address is hardcoded into the public client.
+
+### 87.2 Local Staging Before Cloud Confirmation
+
+Every state mutation in a cloud-authoritative build creates an integrity-protected whole-state pending snapshot before the 800-millisecond upload delay. The snapshot is account-scoped, device-identified, sequenced, based on the last confirmed server version, and stored durably enough to survive refresh, browser crash, or operating-system process kill. The normal Zustand training-state writer remains disabled in production.
+
+### 87.3 Confirmation and Same-Device Ordering
+
+A successful or idempotently replayed Supabase event advances the confirmed server version and removes only the exact acknowledged pending event. If a newer mutation replaced the outbox while the older request was in flight, the newer payload remains and is safely rebased onto the confirmed version. A failed request retains the exact event for retry.
+
+### 87.4 Startup Recovery and Conflict Boundary
+
+Authenticated startup compares the pending payload with the verified cloud snapshot. An identical payload accepts the cloud copy and clears the duplicate. A pending event whose base version still equals the cloud version is replayed before the app opens. A divergent pending payload and newer cloud version preserve both, block editing, explain the conflict, and offer a download of the local recovery copy. No last-write-wins path may erase training.
+
+### 87.5 Truthful Status
+
+Production surfaces use only `Saved to private cloud`, `Saving to private cloud`, `Cloud save needs attention`, or `Checking private cloud`. Local test mode remains explicitly labeled. `Saved on this device` may describe the local test build but may not appear as the production cloud result. A pending recovery copy is not a confirmed cloud save.
+
+### 87.6 Honest Remaining Boundary
+
+This chapter proves interrupted-save durability for the newest whole-state snapshot. It does not prove browser storage isolation from other applications on a shared GitHub Pages origin, complete offline startup, multi-day offline operation, normalized event merge, active-workout takeover, device revocation, or physical phone-to-laptop acceptance. A dedicated origin is required before any athlete outside the owner-controlled test group is invited.
+
+### 87.7 Acceptance
+
+Four hundred thirty-three deterministic tests cover invitation-only email entry, neutral account-membership responses, durable staging, idempotent retry, same-device ordering, startup replay, divergent-copy preservation, interface-only update suppression, and a 10,000-set recovery-size boundary. Eighty-six desktop and phone journeys remain green. Production status copy is truthful across normal navigation and an active workout.
 
 ### Version 1.47.0 Change Entry
 

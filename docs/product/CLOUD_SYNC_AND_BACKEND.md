@@ -3,7 +3,7 @@ type: product-process
 aliases: [Adaptive Training Data Backend, Supabase Training App Architecture]
 tags: [fitness, app, backend, database, supabase, postgres, privacy, learning]
 created: 2026-08-09
-updated: 2026-08-13
+updated: 2026-08-26
 status: cloud-authoritative-private-alpha
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
@@ -18,7 +18,7 @@ The first disposable prototype can run on a local database. The first real multi
 The current owner-approved architecture is:
 
 1. Supabase Postgres as the private cloud system of record.
-2. In-memory client state for the open session, with no durable browser copy of training history, plans, surveys, notes, settings, or recovery payloads.
+2. In-memory client state for the open session plus one account-scoped durable pending snapshot while a Supabase save is unconfirmed.
 3. Supabase Auth plus Row Level Security for user isolation.
 4. Server-side functions for privileged rules, sync reconciliation, exports, and optional AI-provider calls.
 5. Versioned SQL views or background jobs for daily through annual aggregates and learning features.
@@ -26,19 +26,19 @@ The current owner-approved architecture is:
 
 No separate data warehouse, vector database, or foundation-model training pipeline is required for the first useful product.
 
-The browser may retain the renewable Supabase Auth session and harmless device and server-version metadata. Those values are not athlete training records. Offline durable training is intentionally not part of this cloud-only decision. If Supabase is unavailable, the app must say the save is incomplete and retain only the current in-memory state long enough to retry. It must not label unconfirmed work as saved.
+The browser may retain the renewable Supabase Auth session, device and server-version metadata, and one integrity-protected pending snapshot. Supabase remains authoritative. The pending payload exists only until an authenticated save is confirmed, is isolated when the browser changes accounts, and must never be labeled cloud-saved. This is interrupted-save recovery, not a claim of complete offline startup, normalized local event storage, or automatic multi-device merge.
 
 ## Cloud-Authoritative Account Slice, 2026-08-13
 
-Private alpha 0.60.0 uses an authenticated cloud gate and automatic whole-state snapshot persistence. An invited athlete enters only the invited email and opens the private time-limited link Supabase sends. The athlete product has no password setup, password sign-in, or password recovery route. The request disables account creation, returns a generic response that does not reveal invitation membership, and routes verified links back to ForgePath. Public signup remains disabled.
+Private alpha 0.61.0 uses an authenticated cloud gate and automatic whole-state snapshot persistence. An invited athlete enters only the invited email and presses `Log in with email`. A new or signed-out browser opens the private time-limited confirmation link Supabase sends; the renewable session then keeps the device signed in until sign-out. The athlete product has no password setup, password sign-in, or password recovery route. The request disables account creation, returns a generic response that does not reveal invitation membership, and routes verified links back to ForgePath. Public signup remains disabled. Email knowledge alone never establishes identity.
 
 Every open page compares the exact installed source with the uncached published marker on startup, once per visible minute, and after focus or reconnection. A confirmed newer release stays visibly announced until the athlete refreshes. The refresh action flushes pending Supabase work first and refuses to navigate if that save fails.
 
-On authenticated launch, ForgePath verifies and hydrates the latest Supabase snapshot before opening training. When no remote copy exists, it uploads the current state once. A legacy browser copy is read only for this one migration and is deleted only after Supabase confirms the save. Afterward, the Zustand persistence writer is disabled for cloud builds, and the retry payload exists only in memory. Automatic saves are serialized, checksum-deduplicated, versioned, and conflict-preserving.
+On authenticated launch, ForgePath verifies the latest Supabase snapshot and checks for an account-scoped pending recovery snapshot before opening training. A pending snapshot is replayed only when its expected server version is still current. An identical cloud copy clears the duplicate safely. Divergent local and cloud versions preserve both and block editing instead of choosing a winner. When no remote copy exists, ForgePath uploads the current state once. A legacy full browser copy is deleted only after Supabase confirms the save. The general Zustand persistence writer remains disabled for cloud builds. Automatic saves stage an integrity-protected pending snapshot synchronously, then serialize, checksum-deduplicate, version, and upload it after 800 milliseconds. Confirmation removes that recovery payload; a browser or operating-system kill before confirmation leaves it available for the next authenticated launch.
 
 Account controls are split by privilege. `reset_forgepath_data('RESET')` is an authenticated, recently reauthenticated, self-scoped database function that deletes every ForgePath row for the caller while preserving the Auth account. `delete-account` is an authenticated Edge Function that verifies the caller, recent JWT issue time, exact confirmation, allowed origin, and then uses the server-only Auth Admin client to delete that caller. `on delete cascade` removes the related ForgePath rows. No privileged key enters the browser bundle.
 
-This slice does not yet claim normalized entity mutation, automatic multi-writer merge, offline durable workouts, active-workout handoff, device revocation UI, or a completed physical phone-to-laptop acceptance drill. The snapshot remains the cloud source of truth until those later contracts are proven.
+This slice does not yet claim complete offline startup, normalized entity mutation, automatic multi-writer merge, active-workout handoff, device revocation UI, or a completed physical phone-to-laptop acceptance drill. The snapshot remains the cloud source of truth until those later contracts are proven.
 
 ## Phone and Laptop Product Decision
 

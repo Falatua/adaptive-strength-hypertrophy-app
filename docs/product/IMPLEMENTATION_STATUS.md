@@ -3,14 +3,28 @@ type: implementation-status
 aliases: [ForgePath Private Alpha, Adaptive Training App Private Alpha]
 tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
-updated: 2026-08-24
+updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.60.0
+app_version: 0.61.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.61.0 Passwordless Entry and Interrupted-Save Recovery Delta
+
+- Keeps Supabase as the authoritative account store while staging one account-scoped, integrity-protected pending snapshot before the delayed cloud request.
+- Preserves that newest unconfirmed change through refresh, browser crash, or operating-system kill and replays it only when its expected server version still matches.
+- Preserves both local and cloud copies and blocks editing when another device advanced the account instead of silently choosing a winner.
+- Prevents an older in-flight request from erasing a newer same-device recovery snapshot and safely rebases the newer event after confirmation.
+- Replaces stale `Local first` and `Saved on this device` production labels with live `Saved to private cloud`, `Saving to private cloud`, and `Cloud save needs attention` states.
+- Adds a download action for a blocked pending recovery copy.
+- Renames the only athlete-facing action to `Log in with email`, keeps account creation disabled, and explains the one-time confirmation required on a new or signed-out browser. Knowledge of an invited email alone never authenticates a user.
+- Verified the approved admin address through the live Supabase Auth endpoint with account creation disabled without placing the address in source or documentation.
+- Records dedicated-origin hosting as a security gate before invitations expand beyond the owner-controlled test group; path-scoped GitHub Pages workers do not isolate browser Auth or recovery storage.
+- Current local acceptance is 433 deterministic tests and 86 desktop and phone browser journeys, with backup schema 26 unchanged.
+- Preserves backup schema 26 and every training-rule identity.
 
 ## Private Alpha 0.60.0 Persistent Update-Ready Delta
 
@@ -19,7 +33,7 @@ confidence: verified
 - Flushes pending Supabase changes before refreshing. A failed cloud save keeps the notice open, reports the failure, and does not navigate away.
 - Uses prompt-style PWA activation so a waiting worker does not silently refresh an active workout.
 - Refreshes through a cache-busted URL while unregistering only the ForgePath-scoped worker and deleting only ForgePath-named caches. Other GitHub Pages applications on the shared origin remain untouched.
-- Current local acceptance is 430 deterministic tests and 86 desktop and phone browser journeys, with backup schema 25 unchanged.
+- Current local acceptance is 430 deterministic tests and 86 desktop and phone browser journeys, with backup schema 26 unchanged.
 
 ## Private Alpha 0.59.0 Passwordless Cloud and Live Safety Delta
 

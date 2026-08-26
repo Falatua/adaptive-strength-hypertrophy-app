@@ -12,6 +12,8 @@ import {
   evaluateCloudConfiguration,
   parseCloudPushResult,
   parseCloudSnapshotRow,
+  planCloudBootstrap,
+  planCloudMutation,
   prepareCloudStorageForAccount,
   pushCloudSnapshotUsing,
   queueCloudSnapshot,
@@ -19,6 +21,7 @@ import {
   recordCloudPushResult,
   requestPrivateSignInUsing,
   restoreVerifiedCloudSnapshot,
+  stageCloudSnapshot,
   type ForgePathCloudClient
 } from './cloud-sync'
 import type { Json } from './supabase.types'
@@ -102,6 +105,35 @@ describe('invitation-only email-link policy', () => {
 })
 
 describe('durable snapshot outbox', () => {
+  it('ignores interface-only store updates while staging real changes and retrying an existing outbox', () => {
+    expect(planCloudMutation('same', 'same', null)).toBe('none')
+    expect(planCloudMutation('new', 'old', null)).toBe('stage')
+    expect(planCloudMutation('new', 'old', 'new')).toBe('retry')
+    expect(planCloudMutation('restored', 'restored', 'stale-pending')).toBe('stage')
+  })
+
+  it('chooses cloud, pending recovery, or a preserved conflict without silently dropping either copy', () => {
+    const pending = {
+      eventId: '22222222-2222-4222-8222-222222222222',
+      deviceId: '11111111-1111-4111-8111-111111111111',
+      deviceSequence: 1,
+      baseVersion: 7,
+      queuedAt: '2026-08-11T12:00:00.000Z',
+      backup: createBackup(state(), '2026-08-11T12:00:00.000Z')
+    }
+    const cloudState = state()
+    cloudState.settings.availableMinutes = 30
+    const cloud = { backup: createBackup(cloudState, '2026-08-11T13:00:00.000Z'), serverVersion: 7, updatedAt: '2026-08-11T13:00:00.000Z' }
+    const matchingCloud = { ...cloud, backup: pending.backup, serverVersion: 8 }
+
+    expect(planCloudBootstrap(cloud, null)).toBe('cloud')
+    expect(planCloudBootstrap(null, null)).toBe('empty')
+    expect(planCloudBootstrap(cloud, pending)).toBe('pending')
+    expect(planCloudBootstrap(matchingCloud, pending)).toBe('cloud')
+    expect(planCloudBootstrap({ ...cloud, serverVersion: 8 }, pending)).toBe('conflict')
+    expect(planCloudBootstrap(null, { ...pending, baseVersion: 0 })).toBe('pending')
+  })
+
   it('isolates device, sequence, version, and pending data when the browser changes accounts', () => {
     const firstAccount = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
     const secondAccount = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
@@ -182,6 +214,22 @@ describe('durable snapshot outbox', () => {
       expect(confirmedHarness.values.get(CLOUD_VERSION_STORAGE_KEY)).toBe('8')
       expect(confirmedHarness.values.get(CLOUD_LAST_SYNC_STORAGE_KEY)).toBe('2026-08-11T13:00:00.000Z')
     }
+  })
+
+  it('keeps and safely rebases a newer same-device change that arrives while an older save is in flight', () => {
+    const { storage, values } = storageHarness([[CLOUD_VERSION_STORAGE_KEY, '7']])
+    const first = queueCloudSnapshot(createBackup(state(), '2026-08-11T12:00:00.000Z'), storage)
+    const laterState = state()
+    laterState.settings.availableMinutes = 45
+    const later = stageCloudSnapshot(laterState, storage)
+
+    recordCloudPushResult({ status: 'applied', serverVersion: 8, eventId: first.eventId, message: '' }, storage)
+
+    const preserved = readPendingSnapshot(storage)
+    expect(preserved?.eventId).toBe(later.eventId)
+    expect(preserved?.baseVersion).toBe(8)
+    expect(preserved?.backup.data.settings.availableMinutes).toBe(45)
+    expect(values.get(CLOUD_VERSION_STORAGE_KEY)).toBe('8')
   })
 
   it('replays a pending event first, then queues current device state against the confirmed version', async () => {

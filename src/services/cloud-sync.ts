@@ -35,6 +35,22 @@ export type PendingSnapshot = {
   backup: ForgePathBackup
 }
 
+export type CloudBootstrapPlan = 'cloud' | 'pending' | 'conflict' | 'empty'
+export type CloudMutationPlan = 'none' | 'retry' | 'stage'
+
+export function planCloudBootstrap(snapshot: CloudSnapshot | null, pending: PendingSnapshot | null): CloudBootstrapPlan {
+  if (!pending) return snapshot ? 'cloud' : 'empty'
+  if (snapshot?.backup.integrity.value === pending.backup.integrity.value) return 'cloud'
+  if ((!snapshot && pending.baseVersion === 0) || snapshot?.serverVersion === pending.baseVersion) return 'pending'
+  return 'conflict'
+}
+
+export function planCloudMutation(currentChecksum: string, confirmedChecksum: string | null, pendingChecksum: string | null): CloudMutationPlan {
+  if (currentChecksum === confirmedChecksum && !pendingChecksum) return 'none'
+  if (currentChecksum === pendingChecksum) return 'retry'
+  return 'stage'
+}
+
 type PushRpcRow = {
   status?: string
   server_version?: number
@@ -179,7 +195,18 @@ export function recordCloudPushResult(result: CloudPushResult, storage: Storage,
   if (result.status === 'conflict') return
   storage.setItem(CLOUD_VERSION_STORAGE_KEY, String(result.serverVersion))
   storage.setItem(CLOUD_LAST_SYNC_STORAGE_KEY, confirmedAt)
-  storage.removeItem(CLOUD_OUTBOX_STORAGE_KEY)
+  const current = readPendingSnapshot(storage)
+  if (!current || current.eventId === result.eventId) {
+    storage.removeItem(CLOUD_OUTBOX_STORAGE_KEY)
+    return
+  }
+  // A later local change may have replaced the outbox while this request was in flight.
+  // Keep that newer payload and advance only its expected server version so it can follow
+  // the confirmed event without producing a false same-device conflict.
+  storage.setItem(CLOUD_OUTBOX_STORAGE_KEY, JSON.stringify({
+    ...current,
+    baseVersion: result.serverVersion
+  } satisfies PendingSnapshot))
 }
 
 async function sendPending(client: ForgePathCloudClient, session: Session, pending: PendingSnapshot, storage: Storage): Promise<CloudPushResult> {
@@ -211,18 +238,12 @@ export async function pushCloudSnapshot(state: RestorableAppState): Promise<Clou
   return pushCloudSnapshotUsing(state, client, session, storage)
 }
 
-const cloudPayloadMemory = new Map<string, string>()
-
 function cloudAuthoritativeStorage(): Storage {
-  const browser = requireBrowserStorage()
-  return {
-    get length() { return browser.length + cloudPayloadMemory.size },
-    clear: () => cloudPayloadMemory.clear(),
-    getItem: (key) => key === CLOUD_OUTBOX_STORAGE_KEY ? cloudPayloadMemory.get(key) ?? null : browser.getItem(key),
-    key: (index) => [...cloudPayloadMemory.keys(), ...Array.from({ length: browser.length }, (_, item) => browser.key(item)).filter(Boolean) as string[]][index] ?? null,
-    removeItem: (key) => key === CLOUD_OUTBOX_STORAGE_KEY ? cloudPayloadMemory.delete(key) : browser.removeItem(key),
-    setItem: (key, value) => key === CLOUD_OUTBOX_STORAGE_KEY ? cloudPayloadMemory.set(key, value) : browser.setItem(key, value)
-  }
+  return requireBrowserStorage()
+}
+
+export function stageCloudSnapshot(state: RestorableAppState, storage = requireBrowserStorage()) {
+  return queueCloudSnapshot(createBackup(state), storage)
 }
 
 export async function pushCloudSnapshotUsing(state: RestorableAppState, client: ForgePathCloudClient, session: Session, storage: Storage): Promise<CloudPushResult> {

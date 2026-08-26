@@ -7,6 +7,7 @@ import { athleteLevel } from '../domain/athlete-level-engine'
 import { PixelAvatar } from './PixelAvatar'
 import { LevelProgress } from './LevelProgress'
 import { ForgeGlyph, type ForgeGlyphName } from './ForgeGlyph'
+import { cloudSaveCopy, useCloudRuntime } from './cloud-runtime-context'
 
 const navItems: { id: NavKey; label: string; icon: ForgeGlyphName }[] = [
   { id: 'today', label: 'Today', icon: 'today' },
@@ -19,6 +20,8 @@ const navItems: { id: NavKey; label: string; icon: ForgeGlyphName }[] = [
 export function AppShell({ children }: { children: ReactNode }) {
   const { nav, setNav, athlete, notice, setNotice, settings , history, records, sessions } = useAppStore()
   const athleteProgress = athleteLevel({ history, records, sessions })
+  const cloudRuntime = useCloudRuntime()
+  const saveCopy = cloudSaveCopy(cloudRuntime?.saveState ?? null)
   const mainRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -58,7 +61,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar__footer">
           <ForgeGlyph name="saved" size={16} />
-          <span>ForgePath {BACKUP_APP_VERSION}<br /><small>Saved on this device</small></span>
+          <span>ForgePath {BACKUP_APP_VERSION}<br /><small aria-live="polite">{saveCopy.short}</small></span>
         </div>
       </aside>
       <main ref={mainRef} id="main-content" className="main-content" tabIndex={-1}>{children}</main>

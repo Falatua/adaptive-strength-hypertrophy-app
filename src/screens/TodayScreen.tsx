@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlarmClock, AlertTriangle, MessageSquare, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, CloudOff, Dumbbell, FileCheck2, Footprints, RotateCcw, ShieldCheck, Trophy } from 'lucide-react'
+import { AlarmClock, AlertTriangle, MessageSquare, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, Cloud, CloudOff, Dumbbell, FileCheck2, Footprints, LoaderCircle, RotateCcw, ShieldCheck, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import type { EffectiveSurveyMode, MissedOpportunityInput, SurveyAnswer } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
@@ -20,6 +20,7 @@ import { scheduleSessionEligibility } from '../domain/schedule-adaptation-engine
 import { playForgeSound } from '../services/sound-engine'
 import { buildLifeAwareAssessment } from '../domain/life-aware-engine'
 import { ForgeGlyph } from '../components/ForgeGlyph'
+import { cloudSaveCopy, useCloudRuntime } from '../components/cloud-runtime-context'
 
 const timeOptions = [15, 30, 45, 60, 75]
 const dateInputFor = (offsetDays: number) => {
@@ -31,6 +32,8 @@ const dateInputFor = (offsetDays: number) => {
 export function TodayScreen() {
   const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, surveys, mesocycles, activeSessionId, startSession, resumeActiveSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
   const athleteProgress = athleteLevel({ history, records, sessions })
+  const cloudRuntime = useCloudRuntime()
+  const saveCopy = cloudSaveCopy(cloudRuntime?.saveState ?? null)
   const [surveyOpen, setSurveyOpen] = useState(false)
   const [surveyChooserOpen, setSurveyChooserOpen] = useState(false)
   const [activeSurveyMode, setActiveSurveyMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
@@ -185,7 +188,10 @@ export function TodayScreen() {
           <h1>Your next useful win.</h1>
           <p>Built from workouts you actually finished, not an untouched calendar.</p>
         </div>
-        <div className="local-pill"><CloudOff size={16} /><span>Local first<strong>Saved on this device</strong></span></div>
+        <div className="local-pill" aria-live="polite">
+          {cloudRuntime?.saveState === 'saving' ? <LoaderCircle className="spin" size={16} /> : cloudRuntime ? <Cloud size={16} /> : <CloudOff size={16} />}
+          <span>{saveCopy.detail}<strong>{saveCopy.short}</strong></span>
+        </div>
       </header>
 
       {feedbackRequest && feedbackSession && <section className="feedback-followup" aria-label="Optional session feedback">

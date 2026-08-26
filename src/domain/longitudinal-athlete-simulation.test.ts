@@ -452,7 +452,11 @@ describe('longitudinal athlete acceptance replay', () => {
     state.records = derivePersonalRecords(history)
     const expectedVolume = volumeLoad(history)
     const backup = createBackup(state, '2026-08-24T12:00:00.000Z')
-    const parsed = parseBackup(JSON.stringify(backup))
+    const serializedBackup = JSON.stringify(backup)
+    // The durable interrupted-save outbox uses browser storage. Keep the proven
+    // 10,000-set athlete history below the conservative 5 MB recovery boundary.
+    expect(new TextEncoder().encode(serializedBackup).byteLength).toBeLessThan(5_000_000)
+    const parsed = parseBackup(serializedBackup)
     const analytics = buildAnalytics(parsed.backup.data.history, 'all', new Date('2026-08-24T12:00:00.000Z'))
 
     expect(parsed.summary.completedSets).toBe(10_000)

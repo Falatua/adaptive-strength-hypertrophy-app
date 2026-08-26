@@ -9,7 +9,7 @@ import { LocationArt } from '../components/LocationArt'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { CollapsiblePanel } from '../components/CollapsiblePanel'
 import { LevelProgress } from '../components/LevelProgress'
-import { createBackup, parseBackup, type BackupPreview } from '../domain/backup'
+import { BACKUP_SCHEMA_VERSION, createBackup, parseBackup, type BackupPreview } from '../domain/backup'
 import { placementRouteLabels } from '../domain/placement-engine'
 import { placementVerificationVerdictLabels, summarizePlacementVerification } from '../domain/placement-verification-engine'
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from '../domain/placement-exit-engine'
@@ -106,10 +106,10 @@ export function YouScreen() {
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `forgepath-backup-v25-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `forgepath-backup-v${BACKUP_SCHEMA_VERSION}-${new Date().toISOString().slice(0, 10)}.json`
     anchor.click()
     URL.revokeObjectURL(url)
-    setNotice('Verified version 25 backup created as open JSON, including exercise notes, completed priority-region work, schedule and readiness evidence, missed-work decisions, starting-plan reviews, completed workout checks, records, plans, substitutions, and surveys.')
+    setNotice('Verified version 26 backup created as open JSON, including entered-number provenance, exercise notes, completed priority-region work, schedule and readiness evidence, missed-work decisions, starting-plan reviews, completed workout checks, records, plans, substitutions, and surveys.')
   }
 
   const openEquipmentEditor = (profile?: EquipmentProfile) => {
@@ -249,7 +249,7 @@ export function YouScreen() {
         <aside className="settings-aside" id="you-account">
           <CloudSyncPanel />
           <div id="you-data"><CollapsiblePanel className="panel" label="backup and recovery" header={<div className="panel__header"><div><p className="eyebrow">Your data</p><h3>Backup and recovery</h3></div><ShieldCheck size={19} /></div>}>
-            <div className="privacy-status"><HardDrive size={28} /><strong>{cloudAuthoritativeBuild ? 'Stored in your private cloud account' : 'Stored on this test device'}</strong><p>{cloudAuthoritativeBuild ? 'Your private account is the source of truth. Export remains available as a personal, portable copy.' : 'This local build keeps the deterministic development and browser test path available.'}</p></div>
+            <div className="privacy-status"><HardDrive size={28} /><strong>{cloudAuthoritativeBuild ? 'Stored in your private cloud account' : 'Stored on this test device'}</strong><p>{cloudAuthoritativeBuild ? 'Your private account is the source of truth. An interrupted save keeps one temporary recovery copy on this device until Supabase confirms it.' : 'This local build keeps the deterministic development and browser test path available.'}</p></div>
             <div className="data-actions">
               <button className="full-row-button" onClick={exportData}><Download size={17} /> Export verified backup</button>
               <button className="full-row-button" onClick={() => fileInput.current?.click()}><Upload size={17} /> Preview and restore</button>
@@ -258,7 +258,7 @@ export function YouScreen() {
             {importError && <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Restore blocked</strong>{importError}</span></div>}
             {recoverySnapshot && <div className="recovery-callout"><Undo2 size={17} /><span><strong>Automatic restore point available</strong><small>Your pre-restore state can be recovered until another restore or reset.</small></span><button onClick={undoLastRestore}>Undo last restore</button></div>}
           </CollapsiblePanel></div>
-          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.60.0 private alpha</strong></li><li><span>Rules</span><strong>0.60.0 persistent update-ready alert</strong></li><li className="diagnostic-list__wide"><span>Calculations</span><details><summary>Rule versions behind the numbers</summary><p>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Ongoing confidence v1 · Life-aware review v1 · Route session v3 · Progression v2 · Effort metric v1 · Set structure v1 · Volume progression v2 · Deload v1 · Athlete level v1 · Training split v1 · Structure progression v1 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Movement notes v1 · Session extension v1 · Equipment v1 · Load increment v1 · Catalog merge v1 · Sound pack field-guide-synth-v1</p></details></li><li><span>Backup version</span><strong>Version 25</strong></li><li><span>Persistence</span><strong>{cloudAuthoritativeBuild ? 'Supabase snapshot v1 · no browser training copy' : 'Local test state v25'}</strong></li><li><span>Cloud</span><strong>{cloudConfiguration.status === 'ready' ? 'Authenticated and account-scoped' : 'Private release gate closed'}</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
+          <section className="panel"><div className="panel__header"><div><p className="eyebrow">System versions</p><h3>Diagnostics</h3></div><Database size={19} /></div><ul className="diagnostic-list"><li><span>App</span><strong>0.61.0 private alpha</strong></li><li><span>Rules</span><strong>0.61.0 durable interrupted-save recovery</strong></li><li className="diagnostic-list__wide"><span>Calculations</span><details><summary>Rule versions behind the numbers</summary><p>Placement v3 · Movement placement v2 · Placement history v1 · Placement verification v1 · Placement exit v1 · Movement placement exit v1 · Ongoing confidence v1 · Life-aware review v1 · Route session v3 · Progression v2 · Effort metric v1 · Set structure v1 · Volume progression v2 · Deload v1 · Athlete level v1 · Training split v1 · Structure progression v1 · Missed opportunity v5 · Schedule eligibility v1 · Schedule readiness v1 · Schedule priority dose v1 · Calendar exposure v1 · Volume v2 · PR v2 · Plan dose v1 · Muscle dose v1 · Movement notes v1 · Session extension v1 · Equipment v1 · Load increment v1 · Catalog merge v1 · Sound pack field-guide-synth-v1</p></details></li><li><span>Backup version</span><strong>Version 26</strong></li><li><span>Persistence</span><strong>{cloudAuthoritativeBuild ? 'Supabase snapshot v1 · pending recovery copy only' : 'Local test state v25'}</strong></li><li><span>Cloud</span><strong>{cloudConfiguration.status === 'ready' ? 'Authenticated and account-scoped' : 'Private release gate closed'}</strong></li><li><span>AI provider</span><strong>Not required</strong></li></ul></section>
           <section className="panel"><div className="panel__header"><div><p className="eyebrow">Notifications</p><h3>Quiet by default</h3></div><Bell size={19} /></div><p className="callout-copy">PRs and reminders never interrupt an active set, punish a missed day, or push unsafe work.</p></section>
           {!cloudAuthoritativeBuild && <button className="button button--danger button--full" onClick={() => setResetOpen(true)}><RotateCcw size={17} /> Clear local test data</button>}
         </aside>

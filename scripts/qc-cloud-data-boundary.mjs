@@ -3,10 +3,13 @@ import { resolve } from 'node:path'
 
 const store = readFileSync(resolve('src/store/useAppStore.ts'), 'utf8')
 const sync = readFileSync(resolve('src/services/cloud-sync.ts'), 'utf8')
+const syncTests = readFileSync(resolve('src/services/cloud-sync.test.ts'), 'utf8')
 const root = readFileSync(resolve('src/components/CloudAppRoot.tsx'), 'utf8')
 const panel = readFileSync(resolve('src/components/CloudSyncPanel.tsx'), 'utf8')
 const config = readFileSync(resolve('src/services/cloud-config.ts'), 'utf8')
 const shell = readFileSync(resolve('src/services/app-shell.ts'), 'utf8')
+const backup = readFileSync(resolve('src/domain/backup.ts'), 'utf8')
+const youScreen = readFileSync(resolve('src/screens/YouScreen.tsx'), 'utf8')
 const failures = []
 const sourceFiles = (directory) => readdirSync(resolve(directory), { withFileTypes: true }).flatMap((entry) => {
   const path = resolve(directory, entry.name)
@@ -19,14 +22,15 @@ const jsonComparisonSources = [...sourceFiles('src/domain'), resolve('src/store/
 if (!store.includes("if (typeof window !== 'undefined' && !cloudAuthoritativeBuild) window.localStorage.setItem")) {
   failures.push('the Zustand application store can write training state in a cloud-authoritative build')
 }
-if (!sync.includes('const cloudPayloadMemory = new Map<string, string>()')) failures.push('the automatic cloud outbox is not memory-only')
-if (!sync.includes("key === CLOUD_OUTBOX_STORAGE_KEY ? cloudPayloadMemory.set(key, value) : browser.setItem(key, value)")) {
-  failures.push('the automatic cloud outbox can write a training payload to browser storage')
-}
+if (!sync.includes('export function stageCloudSnapshot') || !root.includes('stageCloudSnapshot(currentState)')) failures.push('a training change is not durably staged before the delayed cloud save')
+if (!sync.includes('export function planCloudMutation') || !root.includes("mutationPlan === 'none'") || !root.includes("mutationPlan === 'stage'") || !syncTests.includes("planCloudMutation('same', 'same', null)") || !syncTests.includes("toBe('none')")) failures.push('interface-only store changes can manufacture redundant cloud versions')
+if (!sync.includes('return requireBrowserStorage()')) failures.push('the interrupted-save outbox does not survive a browser or operating-system kill')
+if (!sync.includes('current.eventId === result.eventId') || !sync.includes('baseVersion: result.serverVersion')) failures.push('an in-flight save can erase or falsely conflict with a newer same-device recovery snapshot')
 if (!root.includes('window.localStorage.removeItem(LEGACY_APP_STORAGE_KEY)')) failures.push('the verified one-time migration does not remove the legacy training copy')
+if (/function clearLegacyTrainingStorage[\s\S]{0,180}removeItem\(CLOUD_OUTBOX_STORAGE_KEY\)/.test(root)) failures.push('legacy cleanup can delete the durable interrupted-save recovery snapshot')
 if (!root.includes("window.addEventListener('beforeunload', protectUnsavedCloudChange)") || !root.includes("saveState !== 'saving' && saveState !== 'error'")) failures.push('the browser can close without warning while a cloud change is pending or failed')
 if (!root.includes('if (saveTimer.current) {') || !root.includes('await saveNow()') || !root.includes('await flushPendingSave()') || !root.includes('if (lastSaveFailure.current) throw lastSaveFailure.current')) failures.push('sign-out can bypass or swallow a cloud save that is still waiting in the debounce timer')
-if (!root.includes('await fetchCloudSnapshot()') || !root.includes('await pushCloudSnapshot(currentState)')) failures.push('cloud bootstrap does not prove a remote source of truth')
+if (!root.includes('await fetchCloudSnapshot()') || !root.includes('await pushCloudSnapshot(currentState)') || !root.includes('readPendingSnapshot(window.localStorage)')) failures.push('cloud bootstrap does not reconcile a durable pending recovery snapshot with the remote source of truth')
 if (!sync.includes('CLOUD_ACCOUNT_STORAGE_KEY') || !sync.includes('prepareCloudStorageForAccount(session.user.id')) failures.push('cloud device and version metadata are not isolated by signed-in account')
 if (!sync.includes("select('payload,version,updated_at,checksum,schema_version,app_version')")) failures.push('cloud restore does not compare snapshot projection metadata with its verified backup envelope')
 if (!sync.includes('parseCloudSnapshotRow(data)')) failures.push('cloud snapshot rows do not pass through the reviewed restore contract')
@@ -46,10 +50,13 @@ if (!root.includes('refresh={() => { void reloadWithFreshAppShell() }}') || !roo
 if (!shell.includes('registration?.unregister()') || !shell.includes("key.toLowerCase().includes('forgepath')") || !shell.includes('key.includes(appScope)') || !shell.includes('caches.delete(key)') || !shell.includes('window.location.replace(')) failures.push('the app-shell repair does not replace only the scoped ForgePath worker and cached app files')
 if (!shell.includes('source-version.txt') || !shell.includes("cache: 'no-store'") || !shell.includes('available !== normalizedInstalled')) failures.push('the installed app cannot compare its exact source version with the published build')
 if (/localStorage|CLOUD_|restoreBackup|resetForTesting/.test(shell)) failures.push('the app-shell repair reaches into training or cloud state')
+const backupSchemaVersion = backup.match(/BACKUP_SCHEMA_VERSION\s*=\s*(\d+)/)?.[1]
+if (!backupSchemaVersion || !youScreen.includes(`<strong>Version ${backupSchemaVersion}</strong>`)) failures.push('the athlete-facing backup diagnostic does not match the actual backup schema')
+if (!youScreen.includes('forgepath-backup-v${BACKUP_SCHEMA_VERSION}')) failures.push('the exported backup filename can drift from the actual backup schema')
 
 if (failures.length) {
   console.error(`Cloud data boundary QC failed:\n- ${failures.join('\n- ')}`)
   process.exit(1)
 }
 
-console.log('Cloud data boundary QC passed: Supabase is authoritative, authentication is invitation-only and passwordless, the snapshot outbox is memory-only, exact stale builds are blocked, and failed loads remain recoverable.')
+console.log('Cloud data boundary QC passed: Supabase is authoritative, authentication is invitation-only and passwordless, interrupted saves have a durable account-scoped recovery snapshot, exact stale builds are blocked, and failed loads remain recoverable.')

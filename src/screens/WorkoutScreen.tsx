@@ -20,6 +20,7 @@ import { MOVEMENT_NOTE_MAX_LENGTH, movementNotesForExercise } from '../domain/mo
 import { sessionExtensionGate } from '../domain/session-extension-engine'
 import { sessionClockState } from '../domain/session-clock'
 import { ABX_BACK_PAD_ANGLES, benchAngleLabel, buildBenchAngleLadder, comparableAngleHistory, normalizeBenchAngle, supportsBenchAngle } from '../domain/bench-angle-engine'
+import { cloudSaveCopy, useCloudRuntime } from '../components/cloud-runtime-context'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary movement',
@@ -31,6 +32,8 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const { sessions, exercises, equipmentProfiles, history, surveys, movementNotes, settings, placementVerifications, updateSet, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, skipSet, setPlacementWarmup, setSessionPainStatus, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
+  const cloudRuntime = useCloudRuntime()
+  const saveCopy = cloudSaveCopy(cloudRuntime?.saveState ?? null)
   const [swapTarget, setSwapTarget] = useState<PlannedExercise | null>(null)
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
   const [swapBrowseMode, setSwapBrowseMode] = useState<'recommended' | 'library'>('recommended')
@@ -289,7 +292,10 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
       <header className="workout-header">
         <div className="workout-header__left">
           <button className="icon-button" onClick={leaveActiveSession} aria-label="Leave workout open"><ArrowLeft size={20} /></button>
-          <div><p className="eyebrow">Active workout · Auto-save on</p><h1>{session.title}</h1></div>
+          <div>
+            <p className="eyebrow">Active workout · {saveCopy.short}</p>
+            <div className="workout-header__title"><h1>{session.title}</h1><span className={`workout-save-dot workout-save-dot--${cloudRuntime?.saveState ?? 'local'}`} aria-live="polite" title={`${saveCopy.short}. ${saveCopy.detail}`}><span className="sr-only">{saveCopy.short}</span></span></div>
+          </div>
         </div>
         <div className="workout-header__stats">
           <div><small>Sets</small><strong>{completedSets}/{totalSets}</strong></div>

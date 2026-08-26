@@ -10,6 +10,7 @@ import { trainingSplitFor } from '../domain/split-engine'
 import { LocationArt } from './LocationArt'
 import { PixelAvatar } from './PixelAvatar'
 import { ForgeGlyph } from './ForgeGlyph'
+import { cloudSaveCopy, useCloudRuntime } from './cloud-runtime-context'
 
 const goals: Array<{ id: PlacementGoal; label: string }> = [
   { id: 'strength', label: 'Powerlifting' }, { id: 'hypertrophy', label: 'Hypertrophy' }
@@ -26,6 +27,8 @@ function MovementScorePicker({ exerciseName, label, value, onChange }: { exercis
 
 export function Onboarding() {
   const { completeOnboarding, equipmentProfiles, exercises, history, athlete, settings, onboardingStartStep, setActiveEquipmentProfile, setNav, setNotice } = useAppStore()
+  const cloudRuntime = useCloudRuntime()
+  const saveCopy = cloudSaveCopy(cloudRuntime?.saveState ?? null)
   const priorInputs = athlete.placement.inputs
   const isHistoryReview = onboardingStartStep === 1
   const [createdAt] = useState(() => new Date().toISOString())
@@ -149,7 +152,7 @@ export function Onboarding() {
       <div className="onboarding__art">
         <div className="pixel-sun" /><div className="pixel-mountain pixel-mountain--one" /><div className="pixel-mountain pixel-mountain--two" />
         <PixelAvatar size="large" mood={step === 3 ? 'celebrate' : 'strong'} />
-        <div className="onboarding__art-copy"><span className="eyebrow">Private Alpha · Local first</span><h1>Build the athlete.<br />Adapt the path.</h1><p>What you have done before, how you feel today, and what your week actually allows are three different things. The app makes its best guess to start, then learns from the work you finish.</p></div>
+        <div className="onboarding__art-copy"><span className="eyebrow">Private Alpha · {saveCopy.short}</span><h1>Build the athlete.<br />Adapt the path.</h1><p>What you have done before, how you feel today, and what your week actually allows are three different things. The app makes its best guess to start, then learns from the work you finish.</p></div>
       </div>
       <main id="main-content" className="onboarding__panel" tabIndex={-1}>
         <div className="onboarding__brand"><span className="brand__mark"><ForgeGlyph name="mark" size={25} /></span><strong>ForgePath</strong></div>

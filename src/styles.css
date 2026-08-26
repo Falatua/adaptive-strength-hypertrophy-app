@@ -1121,6 +1121,11 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .workout-header { position: sticky; z-index: 20; top: 0; padding: 16px clamp(16px, 3vw, 42px) 0; background: rgb(13 15 12 / 94%); border-bottom: 1px solid var(--line); backdrop-filter: blur(20px); }
 .workout-header__left { display: flex; align-items: center; gap: 12px; }
 .workout-header__left h1 { margin: 0; font-size: 1.15rem; letter-spacing: -.02em; }
+.workout-header__title { display: flex; align-items: center; gap: 8px; }
+.workout-save-dot { width: 8px; height: 8px; flex: none; border-radius: 999px; background: var(--muted); box-shadow: 0 0 0 3px rgb(255 255 255 / 5%); }
+.workout-save-dot--saved { background: var(--lime); }
+.workout-save-dot--saving, .workout-save-dot--loading { background: var(--orange); }
+.workout-save-dot--error { background: var(--red); }
 .workout-header__stats { position: absolute; top: 13px; right: clamp(16px, 3vw, 42px); display: flex; align-items: center; gap: 22px; }
 .workout-header__stats > div small, .workout-header__stats > div strong { display: block; }
 .workout-header__stats > div small { font: 650 .58rem/1 ui-monospace, monospace; text-transform: uppercase; }

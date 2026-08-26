@@ -2008,7 +2008,7 @@ This is the canonical traceability index for every durable requirement JB states
 - Detail: [[Data Backend Storage and Learning Architecture]]
 
 ### R-314 Local-First Cloud Synchronization
-- Status: captured
+- Status: implemented-first-slice
 - Provenance: from-user and product-decision
 - Requirement: Save workout actions locally before confirming them in the interface, queue them through an idempotent outbox, and synchronize with the cloud whenever authenticated connectivity is available so a weak connection never blocks training or loses completed work.
 - Detail: [[Data Backend Storage and Learning Architecture]]
@@ -2020,7 +2020,7 @@ This is the canonical traceability index for every durable requirement JB states
 - Detail: [[Data Backend Storage and Learning Architecture]]
 
 ### R-316 Honest Sync Status and Freshness
-- Status: captured
+- Status: implemented-first-slice
 - Provenance: product-decision
 - Requirement: Distinguish `Saved on this device`, `Syncing`, `Synced`, `Offline`, and `Needs review`, show the last successful cloud synchronization, and refresh on launch, resume, important mutations, and before cloud-dependent decisions. Never label local-only data as cloud-synced.
 - Detail: [[Data Backend Storage and Learning Architecture]]
@@ -2404,7 +2404,7 @@ This is the canonical traceability index for every durable requirement JB states
 - Detail: [[Adaptive Strength and Hypertrophy App Build Bible#80. Supabase Reliability and Release Evidence Contract]]
 
 ### R-380 Validated Durable Snapshot Outbox
-- Status: implemented-first-slice
+- Status: implemented
 - Provenance: from-user and product-decision
 - Requirement: Validate every queued event envelope and its complete backup before delivery. Network failure retains the exact event for idempotent retry; confirmed apply or replay clears it; conflict preserves it; and state changed during retry queues a second event only after the older event is acknowledged.
 - Detail: [[Data Backend Storage and Learning Architecture]]
@@ -2601,7 +2601,18 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Whenever a newer ForgePath build is published, every open page must persistently alert the athlete that an update is ready and provide a direct page refresh action. The app must save pending training changes before refreshing, remain on the current page if the save fails, and avoid disturbing other applications that share the GitHub Pages origin.
 - Detail: [[Private Alpha Implementation 2026-08-10]] and Build Bible Chapter 86
 
+### R-413 Dedicated Browser Origin Before External Athlete Access
+- Status: planned security gate
+- Provenance: inferred from security audit
+- Requirement: Before inviting any athlete outside the owner-controlled private test group, host ForgePath on a dedicated browser origin so another application cannot share access to its Supabase session or interrupted-save recovery storage. Path-scoped service workers and cache cleanup do not constitute browser storage isolation.
+- Detail: [[ForgePath Supabase Backend Runbook]] and Build Bible Chapter 87
+
 ## Thread Coverage Audit
+
+### 2026-08-26 Passwordless Entry and Interrupted-Save Recovery
+- Scope: JB clarified the invited-email testing flow and asked ForgePath to avoid misleading local storage language and prevent loss during interrupted Supabase saves.
+- Result: Advanced R-314, R-316, and R-380, added R-413, and added Build Bible Chapter 87. Private alpha 0.61.0 stages one durable account-scoped pending snapshot, restores it after refresh or process kill when safe, preserves conflicts, corrects production storage labels, and presents one `Log in with email` action without weakening identity verification.
+- Status: Implemented locally with backup schema 26 unchanged. Dedicated-origin hosting is required before external athlete invitations; complete offline startup, normalized cross-device merge, active-workout takeover, and physical phone-to-laptop acceptance remain open.
 
 ### 2026-08-24 Persistent Update-Ready Alert
 - Scope: JB requested the same clear new-build awareness used in Roman TD so ForgePath athletes always know when they should refresh.
@@ -2907,7 +2918,9 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
-- 2026-08-24: Added R-412 and Build Bible Chapter 86 for persistent update-ready awareness, a direct safe refresh action, save-failure retention, prompt-style PWA activation, and shared-origin isolation. Private alpha 0.60.0 preserves backup schema 25.
+- 2026-08-26: Advanced R-314, R-316, and R-380, added R-413, and added Build Bible Chapter 87 for truthful cloud status, durable interrupted-save recovery, safe same-device ordering, conflict preservation, a clearer invitation-only `Log in with email` flow, and dedicated-origin isolation before external athlete invitations. Private alpha 0.61.0 preserves backup schema 26.
+
+- 2026-08-24: Added R-412 and Build Bible Chapter 86 for persistent update-ready awareness, a direct safe refresh action, save-failure retention, prompt-style PWA activation, and shared-origin isolation. Private alpha 0.60.0 preserves backup schema 26.
 
 - 2026-08-13: Added R-395 through R-403 for latest prescribed-exposure integrity, missing-is-unknown feedback, safety-first gate ordering, load-then-repetition-then-recovered-set progression, exact setup performance, response-first volume decisions, athlete approval and evidence, usable optional recovery capture, and pain-aware cycle choices. Private alpha 0.57.0 versions the corrected engines as `progression-v2` and `volume-progression-v2`.
 

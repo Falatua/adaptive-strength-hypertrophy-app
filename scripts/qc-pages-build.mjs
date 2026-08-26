@@ -37,7 +37,7 @@ if (manifestSource) {
 
 if (!serviceWorker.includes('index.html')) failures.push('The service worker is missing its navigation fallback.')
 if (!javascript.includes('Build my starting profile')) failures.push('The public artifact is missing the clean new-athlete onboarding path.')
-if (!javascript.includes('Email me a sign-in link') || !javascript.includes('shouldCreateUser')) failures.push('The public artifact is missing the invitation-only email-link login path.')
+if (!javascript.includes('Log in with email') || !javascript.includes('shouldCreateUser')) failures.push('The public artifact is missing the invitation-only email login path.')
 if (/I have a password|Forgot password\?|Set a password|Change password/.test(javascript)) failures.push('The public artifact still exposes a password authentication path.')
 const expectedSourceVersion = process.env.VITE_FORGEPATH_SOURCE_VERSION?.trim()
 if (expectedSourceVersion && !javascript.includes(expectedSourceVersion)) failures.push('The public artifact does not contain its exact source version.')

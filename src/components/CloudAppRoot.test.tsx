@@ -26,10 +26,10 @@ describe('cloud account gate', () => {
     expect(screen.queryByRole('button', { name: /password|forgot/i })).not.toBeInTheDocument()
     expect(screen.getByText(/invited by the creator/i)).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: ' Athlete@Example.com ' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Email me a sign-in link' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Log in with email' }))
 
     await waitFor(() => expect(authMocks.requestPrivateSignIn).toHaveBeenCalledWith('Athlete@Example.com'))
-    expect(screen.getByRole('status')).toHaveTextContent(/If that email was invited, a private sign-in link is on its way/i)
+    expect(screen.getByRole('status')).toHaveTextContent(/If that email was invited, open the private confirmation link/i)
   })
 })
 
@@ -40,16 +40,19 @@ describe('cloud load failure recovery', () => {
     const retry = vi.fn()
     const refresh = vi.fn()
     const signOut = vi.fn()
-    render(<CloudLoading error="Athlete placement is invalid." retry={retry} refresh={refresh} signOut={signOut} />)
+    const recover = vi.fn()
+    render(<CloudLoading error="Athlete placement is invalid." retry={retry} refresh={refresh} signOut={signOut} recover={recover} />)
 
     expect(screen.getByRole('heading', { name: 'Cloud data did not load' })).toBeInTheDocument()
     expect(screen.getByText(/older copy of ForgePath/i)).toBeInTheDocument()
     expect(screen.getByText(/saved training is not touched/i)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Download pending recovery' }))
     fireEvent.click(screen.getByRole('button', { name: 'Update ForgePath' }))
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
     expect(retry).toHaveBeenCalledTimes(1)
+    expect(recover).toHaveBeenCalledTimes(1)
     expect(refresh).toHaveBeenCalledTimes(1)
     expect(signOut).toHaveBeenCalledTimes(1)
   })

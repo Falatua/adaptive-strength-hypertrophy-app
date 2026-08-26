@@ -12,11 +12,16 @@ import {
   deleteCloudAccount,
   fetchCloudSnapshot,
   getCloudClient,
+  localCloudMetadata,
+  planCloudBootstrap,
+  planCloudMutation,
   pushCloudSnapshot,
+  readPendingSnapshot,
   requestPrivateSignIn,
   resetCloudData,
   restoreVerifiedCloudSnapshot,
-  signOutCloud
+  signOutCloud,
+  stageCloudSnapshot
 } from '../services/cloud-sync'
 import { checkForAppUpdate, readAppVersionStatus, reloadWithFreshAppShell } from '../services/app-shell'
 import { AppUpdateNotice } from './AppUpdateNotice'
@@ -38,13 +43,24 @@ function waitForStoreHydration() {
 
 function clearLegacyTrainingStorage() {
   window.localStorage.removeItem(LEGACY_APP_STORAGE_KEY)
-  window.localStorage.removeItem(CLOUD_OUTBOX_STORAGE_KEY)
 }
 
 function clearCloudVersionStorage() {
   window.localStorage.removeItem(CLOUD_VERSION_STORAGE_KEY)
   window.localStorage.removeItem(CLOUD_LAST_SYNC_STORAGE_KEY)
   window.localStorage.removeItem(CLOUD_OUTBOX_STORAGE_KEY)
+}
+
+function downloadPendingRecovery() {
+  const pending = readPendingSnapshot(window.localStorage)
+  if (!pending) throw new Error('There is no pending device recovery copy to download.')
+  const blob = new Blob([JSON.stringify(pending.backup, null, 2)], { type: 'application/json' })
+  const href = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = href
+  anchor.download = `forgepath-pending-recovery-${pending.queuedAt.slice(0, 10)}.json`
+  anchor.click()
+  URL.revokeObjectURL(href)
 }
 
 export function CloudAuth() {
@@ -60,12 +76,12 @@ export function CloudAuth() {
     try { await action() } catch (cause) { setError(messageFrom(cause, 'ForgePath could not complete that account request.')) } finally { setBusy(false) }
   }
 
-  return <AuthFrame title="Welcome to ForgePath" detail="Enter the email address invited by the creator. ForgePath will send a private link that signs you in. No password needed.">
+  return <AuthFrame title="Welcome to ForgePath" detail="Enter an email invited by the creator. There is no password. A new or signed-out browser confirms the email once, then this device opens ForgePath automatically until you sign out.">
     <label className="cloud-auth__field"><span>Email</span><span><Mail size={17} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></span></label>
     <button className="button button--primary button--full" disabled={busy || !email.trim()} onClick={() => run(async () => {
       await requestPrivateSignIn(email)
-      setMessage('If that email was invited, a private sign-in link is on its way. Open it on this device to enter ForgePath.')
-    })}>{busy ? <LoaderCircle className="spin" size={17} /> : <Mail size={17} />} Email me a sign-in link</button>
+      setMessage('If that email was invited, open the private confirmation link we sent. ForgePath will then sign this device in and keep it signed in.')
+    })}>{busy ? <LoaderCircle className="spin" size={17} /> : <Mail size={17} />} Log in with email</button>
     {message && <p className="cloud-auth__message" role="status">{message}</p>}
     {error && <AuthError message={error} />}
   </AuthFrame>
@@ -79,8 +95,8 @@ function AuthError({ message }: { message: string }) {
   return <div className="import-error" role="alert"><AlertTriangle size={17} /><span><strong>Account action stopped</strong>{message}</span></div>
 }
 
-export function CloudLoading({ error, retry, refresh, signOut }: { error?: string | null; retry?: () => void; refresh?: () => void; signOut?: () => void }) {
-  return <main className="cloud-auth"><section className="cloud-auth__card cloud-auth__loading">{error ? <><AlertTriangle size={28} /><h1>Cloud data did not load</h1><p>{error}</p>{retry && <button className="button button--primary" onClick={retry}>Try again</button>}{refresh && <p className="cloud-auth__hint">If trying again keeps failing, this device is probably still running an older copy of ForgePath. Updating reinstalls the newest app files. Your saved training is not touched.</p>}<div className="cloud-auth__links">{refresh && <button type="button" onClick={refresh}>Update ForgePath</button>}{signOut && <button type="button" onClick={signOut}>Sign out</button>}</div></> : <><LoaderCircle className="spin" size={28} /><h1>Opening your private training journal</h1><p>ForgePath is verifying the newest saved copy before opening the app.</p></>}</section></main>
+export function CloudLoading({ error, retry, refresh, signOut, recover }: { error?: string | null; retry?: () => void; refresh?: () => void; signOut?: () => void; recover?: () => void }) {
+  return <main className="cloud-auth"><section className="cloud-auth__card cloud-auth__loading">{error ? <><AlertTriangle size={28} /><h1>Cloud data did not load</h1><p>{error}</p>{recover && <button className="button button--secondary" onClick={recover}>Download pending recovery</button>}{retry && <button className="button button--primary" onClick={retry}>Try again</button>}{refresh && <p className="cloud-auth__hint">If trying again keeps failing, this device is probably still running an older copy of ForgePath. Updating reinstalls the newest app files. Your saved training is not touched.</p>}<div className="cloud-auth__links">{refresh && <button type="button" onClick={refresh}>Update ForgePath</button>}{signOut && <button type="button" onClick={signOut}>Sign out</button>}</div></> : <><LoaderCircle className="spin" size={28} /><h1>Opening your private training journal</h1><p>ForgePath is verifying the newest saved copy before opening the app.</p></>}</section></main>
 }
 
 export function CloudAppRoot() {
@@ -131,10 +147,20 @@ export function CloudAppRoot() {
       }
       await waitForStoreHydration()
       const snapshot = await fetchCloudSnapshot()
-      if (snapshot) {
+      const pending = readPendingSnapshot(window.localStorage)
+      const bootstrapPlan = planCloudBootstrap(snapshot, pending)
+      if (bootstrapPlan === 'cloud' && snapshot) {
         restoreVerifiedCloudSnapshot(snapshot, (state) => useAppStore.getState().restoreBackup(state))
         lastBackupChecksum.current = snapshot.backup.integrity.value
         setLastSavedAt(snapshot.updatedAt)
+      } else if (bootstrapPlan === 'pending' && pending) {
+        const result = await pushCloudSnapshot(pending.backup.data)
+        if (result.status === 'conflict') throw new Error('This device has unsynced training changes and the cloud account changed too. Both copies are preserved. Review them before continuing.')
+        useAppStore.getState().restoreBackup(pending.backup.data)
+        lastBackupChecksum.current = pending.backup.integrity.value
+        setLastSavedAt(new Date().toISOString())
+      } else if (bootstrapPlan === 'conflict') {
+        throw new Error('This device has unsynced training changes from an older cloud version. Both copies are preserved. Do not clear browser data; use recovery review before continuing.')
       } else {
         const currentState = backupStateFrom(useAppStore.getState())
         const result = await pushCloudSnapshot(currentState)
@@ -164,7 +190,7 @@ export function CloudAppRoot() {
     setError(null)
     const currentState = backupStateFrom(useAppStore.getState())
     const currentChecksum = createBackup(currentState).integrity.value
-    if (currentChecksum === lastBackupChecksum.current) {
+    if (currentChecksum === lastBackupChecksum.current && !localCloudMetadata().hasPendingUpload) {
       setSaveState('saved')
       return
     }
@@ -180,6 +206,21 @@ export function CloudAppRoot() {
   useEffect(() => {
     if (!session || !ready) return
     const unsubscribe = useAppStore.subscribe(() => {
+      try {
+        const currentState = backupStateFrom(useAppStore.getState())
+        const currentChecksum = createBackup(currentState).integrity.value
+        const pending = readPendingSnapshot(window.localStorage)
+        const mutationPlan = planCloudMutation(currentChecksum, lastBackupChecksum.current, pending?.backup.integrity.value ?? null)
+        // Navigation, notices, and other interface-only state still trigger Zustand.
+        // Do not manufacture a cloud version when the restorable training state is unchanged.
+        if (mutationPlan === 'none') return
+        if (mutationPlan === 'stage') stageCloudSnapshot(currentState)
+      } catch (cause) {
+        lastSaveFailure.current = cause instanceof Error ? cause : new Error('This device could not preserve the pending training change.')
+        setSaveState('error')
+        setError('This device could not preserve the pending training change. Keep ForgePath open and export a backup before clearing browser data.')
+        return
+      }
       if (saveTimer.current) window.clearTimeout(saveTimer.current)
       setSaveState('saving')
       saveTimer.current = window.setTimeout(() => {
@@ -266,6 +307,7 @@ export function CloudAppRoot() {
   if (!session) return withUpdateNotice(<CloudAuth />)
   if (!ready) return withUpdateNotice(<CloudLoading
     error={error}
+    recover={readPendingSnapshot(window.localStorage) ? downloadPendingRecovery : undefined}
     retry={() => setRetryToken((value) => value + 1)}
     refresh={() => { void reloadWithFreshAppShell() }}
     signOut={() => { void signOutCloud().catch(() => undefined).then(() => setSession(null)) }}
