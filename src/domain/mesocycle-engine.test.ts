@@ -107,4 +107,34 @@ describe('criterion-driven mesocycle planning', () => {
     expect(programmed).not.toContain('two-board-press')
     expect(programmed).not.toContain('cable-fly')
   })
+
+  it('carries athlete-approved movement and incline choices through the block blueprint', () => {
+    const next = {
+      ...draft(),
+      movementOverrides: [{ sessionIndex: 1, slotIndex: 1, exerciseId: 'incline-db-press', benchAngleDeg: 45, source: 'athlete' as const }]
+    }
+    const preview = buildMesocyclePreview(next, {
+      exercises,
+      currentSessions: sessions,
+      history,
+      planId: 'blueprint-plan',
+      planVersion: 2
+    })
+    const selected = preview.sessions[1].exercises[1]
+    expect(selected.exerciseId).toBe('incline-db-press')
+    expect(selected.role).toBe('secondary')
+    expect(selected.sets.every((workSet) => workSet.benchAngleDeg === 45)).toBe(true)
+    expect(preview.projectedBlockSets).toBe(preview.projectedSets * next.targetMicrocycles)
+    expect(preview.projectedBlockMinutes).toBe(preview.projectedMinutes * next.targetMicrocycles)
+    expect(preview.explanations).toContain('1 athlete-approved movement or incline choice will repeat in each generated training round until the block is revised.')
+  })
+
+  it('preserves a saved blueprint when a completed block becomes the next draft', () => {
+    const plan = {
+      ...mesocycles[0],
+      movementOverrides: [{ sessionIndex: 1, slotIndex: 1, exerciseId: 'incline-db-press', benchAngleDeg: 30, source: 'athlete' as const }]
+    }
+    expect(draftFromPlan(plan).movementOverrides).toEqual(plan.movementOverrides)
+    expect(draftFromPlan(plan).movementOverrides).not.toBe(plan.movementOverrides)
+  })
 })

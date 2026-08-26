@@ -19,6 +19,8 @@ export interface MesocyclePreview {
   requiredExposureCount: number
   projectedSets: number
   projectedMinutes: number
+  projectedBlockSets: number
+  projectedBlockMinutes: number
   regionSets: Partial<Record<BodyRegion, number>>
   protectedAnchors: string[]
   explanations: string[]
@@ -188,6 +190,18 @@ function fitToTime(exercises: PlannedExercise[], minutes: number) {
   }))
 }
 
+function applyBenchAngleOverride(planned: PlannedExercise, benchAngleDeg: number | null | undefined) {
+  if (benchAngleDeg === undefined) return planned
+  return {
+    ...planned,
+    sets: planned.sets.map((workSet) => {
+      const withoutAngle = { ...workSet }
+      delete withoutAngle.benchAngleDeg
+      return benchAngleDeg === null ? withoutAngle : { ...withoutAngle, benchAngleDeg }
+    })
+  }
+}
+
 export function draftFromPlan(plan: MesocyclePlan): MesocycleDraft {
   return {
     title: plan.title,
@@ -209,7 +223,8 @@ export function draftFromPlan(plan: MesocyclePlan): MesocycleDraft {
     generationRuleVersion: plan.generationRuleVersion,
     placementCreatedAt: plan.placementCreatedAt,
     generationEquipment: plan.generationEquipment ? structuredClone(plan.generationEquipment) : undefined,
-    movementPlacements: plan.movementPlacements ? structuredClone(plan.movementPlacements) : undefined
+    movementPlacements: plan.movementPlacements ? structuredClone(plan.movementPlacements) : undefined,
+    movementOverrides: plan.movementOverrides ? structuredClone(plan.movementOverrides) : undefined
   }
 }
 
@@ -241,7 +256,7 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     priorityAccessories.forEach((exercise) => excluded.add(exercise.id))
     const maintenanceAccessories = chooseAccessories(context.exercises, excluded, draft.maintenanceRegions, accessoryCount - priorityAccessories.length, index, context.equipmentProfile)
     const accessories = [...priorityAccessories, ...maintenanceAccessories]
-    const exercisePlan = [
+    const suggestedExercisePlan = [
       plannedExercise(anchor, 'primary', routeProfile?.strategy ?? adaptationCopy[draft.dominantAdaptation].primary, sessionKey, context, draft.dominantAdaptation, routeProfile),
       ...(secondary ? [plannedExercise(secondary, 'secondary', `Build transfer to ${anchor.name}.`, sessionKey, context, draft.dominantAdaptation, routeProfile)] : []),
       ...accessories.map((exercise) => plannedExercise(
@@ -254,6 +269,23 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
         routeProfile
       ))
     ]
+    const exercisePlan = suggestedExercisePlan.map((suggested, slotIndex) => {
+      const override = draft.movementOverrides?.find((choice) => choice.sessionIndex === index && choice.slotIndex === slotIndex)
+      if (!override) return suggested
+      if (suggested.role === 'primary' && override.exerciseId !== suggested.exerciseId) throw new Error('Protected main-lift choices must be changed through the block anchor controls.')
+      const selected = context.exercises.find((exercise) => exercise.id === override.exerciseId)
+      if (!selected || selected.retired || selected.disliked || selected.jointFeeling === 'avoid') throw new Error('A saved block movement is no longer available for programming.')
+      if (context.equipmentProfile && !exerciseEquipmentFit(selected, context.equipmentProfile).available) throw new Error(`${selected.name} is not available with ${context.equipmentProfile.name}.`)
+      const purpose = suggested.role === 'primary'
+        ? suggested.purpose
+        : suggested.role === 'secondary'
+          ? `Build transfer to ${anchor.name}.`
+          : draft.priorityRegions.includes(selected.primaryRegion)
+            ? `Develop ${selected.primaryRegion} for the active training block.`
+            : `Maintain ${selected.primaryRegion} with a recoverable dose.`
+      return applyBenchAngleOverride(plannedExercise(selected, suggested.role, purpose, sessionKey, context, draft.dominantAdaptation, routeProfile), override.benchAngleDeg)
+    })
+    if (new Set(exercisePlan.map((planned) => planned.exerciseId)).size !== exercisePlan.length) throw new Error('Choose a different movement for each slot in a training day.')
     const fitted = fitToTime(exercisePlan, draft.defaultMinutes)
     return {
       id: sessionKey,
@@ -289,11 +321,15 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     if (exercise) regionSets[exercise.primaryRegion] = (regionSets[exercise.primaryRegion] ?? 0) + planned.sets.length
   })
 
+  const projectedSets = sessions.flatMap((session) => session.exercises).reduce((sum, exercise) => sum + exercise.sets.length, 0)
+  const projectedMinutes = sessions.reduce((sum, session) => sum + session.durationMinutes, 0)
   return {
     sessions,
     requiredExposureCount,
-    projectedSets: sessions.flatMap((session) => session.exercises).reduce((sum, exercise) => sum + exercise.sets.length, 0),
-    projectedMinutes: sessions.reduce((sum, session) => sum + session.durationMinutes, 0),
+    projectedSets,
+    projectedMinutes,
+    projectedBlockSets: projectedSets * draft.targetMicrocycles,
+    projectedBlockMinutes: projectedMinutes * draft.targetMicrocycles,
     regionSets,
     protectedAnchors: anchors.map((anchor) => anchor.id),
     explanations: [
@@ -307,6 +343,7 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
       `${anchors.length} strength anchors remain protected as required exposures.`,
       `${draft.weeklyOpportunities} weekly opportunities estimate the calendar pace; exposure completion controls progression.`,
       `${draft.defaultMinutes} minutes caps each generated session before optional work is added.`,
+      ...(draft.movementOverrides?.length ? [`${draft.movementOverrides.length} athlete-approved movement or incline choice${draft.movementOverrides.length === 1 ? '' : 's'} will repeat in each generated training round until the block is revised.`] : []),
       ...(context.equipmentProfile ? [
         `${context.equipmentProfile.name} filters secondary and accessory choices before generation and supplies executable ${context.equipmentProfile.incrementUnit} load increments.`,
         ...anchors.filter((anchor) => !exerciseEquipmentFit(anchor, context.equipmentProfile!).available).map((anchor) => `${anchor.name} remains protected but needs equipment review: ${exerciseEquipmentFit(anchor, context.equipmentProfile!).missing.join(', ')}.`)

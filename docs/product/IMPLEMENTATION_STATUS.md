@@ -5,12 +5,22 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.62.2
+app_version: 0.63.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.63.0 Training-Block Blueprint Delta
+
+- Shows the complete training-block route before commitment: planned rounds, final review, weekly days, estimated minutes and working sets, and every Primary, Secondary, Accessory, and Tertiary movement.
+- Lets the athlete replace a suggested movement once for the whole block while preserving equipment eligibility, protected main-lift behavior, exact history, immutable earlier plan versions, and completed work.
+- Persists an optional exact incline back-pad angle across all planned sets and later rounds while retaining set-by-set workout editing and exact-angle evidence separation.
+- Separates the stable movement contract from adaptive load, repetitions, recoverable dose, schedule, extension, and deload proposals.
+- Carries a completed movement map into the next-block draft and labels exact feedback as keep, review, change, or athlete choice without applying the recommendation automatically.
+- Advances backup schema to 27, safely migrates schema 26 without inventing choices, rejects malformed overrides, and preserves the cloud-authoritative whole-state snapshot boundary.
+- Passes 452 deterministic tests and 132 desktop, Android-style Chrome, and iPhone-engine browser journeys, including blueprint editing, exact incline persistence, compact blueprint-first order, update awareness, typography rhythm, console integrity, and horizontal containment. The Pages-specific build and artifact gate also pass.
 
 ## Private Alpha 0.62.2 Phone Chrome Continuity Delta
 

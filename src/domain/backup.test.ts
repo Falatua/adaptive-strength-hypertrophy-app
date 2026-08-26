@@ -88,6 +88,25 @@ describe('versioned backup and restore', () => {
     expect(parsed.summary.completedSets).toBe(current.history.length)
   })
 
+  it('round-trips athlete-approved block movement and incline choices', () => {
+    const current = state()
+    current.mesocycles[0].movementOverrides = [{ sessionIndex: 1, slotIndex: 1, exerciseId: 'incline-db-press', benchAngleDeg: 45, source: 'athlete' }]
+    const parsed = parseBackup(JSON.stringify(createBackup(current, '2026-08-10T12:00:00.000Z')))
+    expect(parsed.backup.data.mesocycles[0].movementOverrides).toEqual(current.mesocycles[0].movementOverrides)
+
+    current.mesocycles[0].movementOverrides[0].benchAngleDeg = 95
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/bench angle/i)
+  })
+
+  it('migrates a version 26 backup without inventing block choices', () => {
+    const prior = createBackup(state(), '2026-08-10T12:00:00.000Z') as unknown as Record<string, unknown>
+    prior.schemaVersion = 26
+    const parsed = parseBackup(JSON.stringify(prior))
+    expect(parsed.backup.schemaVersion).toBe(BACKUP_SCHEMA_VERSION)
+    expect(parsed.backup.data.mesocycles[0].movementOverrides).toBeUndefined()
+    expect(parsed.warnings[0]).toMatch(/version 26/i)
+  })
+
   it('restores an integrity-valid cloud snapshot after jsonb reorders object keys', () => {
     const backup = reorderJsonObjectKeys(createBackup(state(), '2026-08-10T12:00:00.000Z'))
     const parsed = parseBackup(JSON.stringify(backup))

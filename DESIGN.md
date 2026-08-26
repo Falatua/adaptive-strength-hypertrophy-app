@@ -88,6 +88,14 @@ Avoid stacking multiple floating glass panels. Use blur only for persistent navi
 - Progressive disclosure: Today shows one dominant start path, Workout puts the current set before notes, Library collapses filters on compact screens, and Progress exposes three primary time ranges with the rest under More.
 - Forge level: describes recorded journal depth only. It must never rank athlete ability, training age, readiness, or identity.
 
+## Training-Block Blueprint
+
+The Plan screen presents one readable route before the detailed workout queue. A horizontal round route establishes duration and the final block review. Compact facts distinguish weekly days, estimated time, planned sets, and recovery checkpoints. Each day then uses a stable movement table with written Primary, Secondary, Accessory, and Tertiary roles, exact movement name, purpose, set and repetition target, optional incline angle, and Suggested or Your choice status.
+
+The editor keeps the same weekly structure instead of switching to an unrelated form. On wide screens, structural controls and the editable blueprint sit side by side. At tablet and phone widths, the blueprint appears first so the athlete can understand the proposed block before changing it. Native selects and number inputs retain visible labels, the dialog always opens at its top, and no horizontal overflow is allowed at 320 pixels or wider.
+
+Movement identity, role, setup angle, and the weekly route are labeled as stable until athlete approval. Load, repetitions, recoverable dose, scheduling, and recovery recommendations are labeled separately as adaptive. Planned block totals always say they are estimates. A completed-block review may label movements Keep suggested, Review suggested, Change suggested, or Keep or change, with a written evidence reason and no automatic replacement.
+
 # Motion and Generated Visual Assets
 
 Higgsfield is an approved external authoring tool for original ForgePath loading moments, transitions, environment loops, celebration plates, and other visual polish when its connector or production workflow is available. GPT Images and other tools may also be used when they are the better fit. Tool choice does not change the design or quality contract.

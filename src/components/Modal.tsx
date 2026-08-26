@@ -18,7 +18,10 @@ export function Modal({ open, title, description, onClose, children, wide }: Mod
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
-    if (open && !dialog.open) dialog.showModal()
+    if (open && !dialog.open) {
+      dialog.scrollTop = 0
+      dialog.showModal()
+    }
     if (!open && dialog.open) dialog.close()
   }, [open])
 

@@ -78,6 +78,54 @@ test('turns the current prescription into an original, evidence-backed field gui
   expect(browserErrors).toEqual([])
 })
 
+test('previews and preserves an athlete-edited training-block blueprint', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Plan', exact: true }).click()
+
+  const blueprint = page.getByRole('region', { name: 'See the whole route before you train it.' })
+  await expect(blueprint).toContainText('Round 4')
+  await expect(blueprint).toContainText('Block review')
+  await expect(blueprint).toContainText('Primary')
+  await expect(blueprint).toContainText('Secondary')
+  await expect(blueprint).toContainText('Accessory')
+  await expect(blueprint).toContainText('Tertiary')
+  await expect(blueprint).toContainText('Deload is proposed from evidence')
+
+  await blueprint.getByRole('button', { name: 'Review and edit blueprint' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Preview training-block version 2' })
+  await expect(dialog).toBeVisible()
+  expect(await dialog.evaluate((element) => element.scrollTop)).toBe(0)
+  if (testInfo.project.name !== 'desktop-chromium') {
+    const previewTop = await dialog.locator('.plan-preview').evaluate((element) => element.getBoundingClientRect().top)
+    const formTop = await dialog.locator('.plan-editor__form').evaluate((element) => element.getBoundingClientRect().top)
+    expect(previewTop).toBeLessThan(formTop)
+  }
+
+  await dialog.getByLabel('Secondary exercise for day 1').selectOption('incline-db-press')
+  await dialog.getByLabel('Incline Dumbbell Press back-pad angle').fill('45')
+  await dialog.getByLabel('Why are you changing the plan?').fill('Use one repeatable incline setup for this block.')
+  await dialog.getByRole('button', { name: 'Apply version 2' }).click()
+  await expect(dialog).not.toBeVisible()
+  await expect(blueprint).toContainText('Incline Dumbbell Press')
+  await expect(blueprint).toContainText('45° bench')
+  await expect(blueprint).toContainText('Your choice')
+
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state)
+  const activePlan = persisted.mesocycles.find((plan: { id: string }) => plan.id === persisted.activeMesocycleId)
+  expect(activePlan.movementOverrides).toContainEqual({ sessionIndex: 0, slotIndex: 1, exerciseId: 'incline-db-press', benchAngleDeg: 45, source: 'athlete' })
+  const benchDay = persisted.sessions.find((session: { mesocycleId: string; exercises: Array<{ role: string; exerciseId: string }> }) => session.mesocycleId === activePlan.id && session.exercises[0]?.exerciseId === 'competition-bench')
+  expect(benchDay.exercises[1].exerciseId).toBe('incline-db-press')
+  expect(benchDay.exercises[1].sets.every((workSet: { benchAngleDeg?: number }) => workSet.benchAngleDeg === 45)).toBe(true)
+
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  if (testInfo.project.name === 'mobile-chromium') await blueprint.screenshot({ path: 'output/playwright/training-block-blueprint-mobile.png' })
+  expect(browserErrors).toEqual([])
+})
+
 test('keeps destination context and primary mobile actions in view', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })

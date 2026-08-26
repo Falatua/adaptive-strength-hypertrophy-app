@@ -11,6 +11,7 @@ import {
   Flag,
   History,
   Layers3,
+  ListChecks,
   MoveRight,
   Pin,
   RefreshCcw,
@@ -25,11 +26,43 @@ import { buildMesocyclePreview, draftFromPlan } from '../domain/mesocycle-engine
 import { buildCycleReview } from '../domain/cycle-review-engine'
 import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION } from '../domain/route-session-engine'
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from '../domain/placement-exit-engine'
-import type { BodyRegion, CycleReviewDecision, MesocycleDraft } from '../domain/types'
+import { exerciseEquipmentFit } from '../domain/equipment-engine'
+import { benchAngleLabel, normalizeBenchAngle, supportsBenchAngle } from '../domain/bench-angle-engine'
+import type { BodyRegion, CycleReviewDecision, Exercise, ExerciseRole, MesocycleDraft, PlannedExercise } from '../domain/types'
 
 const regions: BodyRegion[] = ['chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']
 
 const readable = (value: string) => value.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+
+const roleLabels: Record<ExerciseRole, string> = {
+  primary: 'Primary',
+  secondary: 'Secondary',
+  accessory: 'Accessory',
+  tertiary: 'Tertiary'
+}
+
+interface NextBlockMovementRecommendation {
+  exercise: Exercise
+  recommendation: string
+  tone: 'warning' | 'review' | 'keep' | 'neutral'
+  reason: string
+}
+
+const prescriptionSummary = (planned: PlannedExercise) => {
+  const first = planned.sets[0]
+  if (!first) return 'No working sets'
+  const samePrescription = planned.sets.every((workSet) => workSet.targetReps === first.targetReps && workSet.targetRir === first.targetRir)
+  return samePrescription
+    ? `${planned.sets.length} × ${first.targetReps} · ${first.targetRir} RIR`
+    : `${planned.sets.length} working sets · set-specific targets`
+}
+
+const plannedAngleSummary = (planned: PlannedExercise) => {
+  const angles = [...new Set(planned.sets.map((workSet) => workSet.benchAngleDeg).filter((angle): angle is number => angle !== undefined))]
+  if (!angles.length) return 'Angle not tracked'
+  if (angles.length === 1) return benchAngleLabel(angles[0])
+  return `${angles.map((angle) => `${angle}°`).join(' / ')} ladder`
+}
 
 const reviewChoices: { id: CycleReviewDecision; title: string; detail: string }[] = [
   { id: 'continue-progress', title: 'Start the next training round and progress', detail: 'Build the next group of workouts. Completed results earn the smallest supported increase, with load considered before repetitions and sets.' },
@@ -45,6 +78,8 @@ export function PlanScreen() {
     startSession, pinSession, applyMesocycleRevision, applyCycleReview, setNotice
   } = useAppStore()
   const activePlan = mesocycles.find((plan) => plan.id === activeMesocycleId)
+  const latestPlan = [...mesocycles].sort((a, b) => b.version - a.version)[0]
+  const sourcePlan = activePlan ?? latestPlan
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const nextVersion = Math.max(0, ...mesocycles.map((plan) => plan.version)) + 1
   const blankDraft = (): MesocycleDraft => ({
@@ -71,11 +106,11 @@ export function PlanScreen() {
   const [reviewReason, setReviewReason] = useState('')
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [placementExitAssessedAt] = useState(() => new Date().toISOString())
-  const [draft, setDraft] = useState<MesocycleDraft>(() => activePlan ? draftFromPlan(activePlan) : blankDraft())
+  const [draft, setDraft] = useState<MesocycleDraft>(() => sourcePlan ? draftFromPlan(sourcePlan) : blankDraft())
   const [editorError, setEditorError] = useState<string | null>(null)
 
   const openEditor = () => {
-    setDraft(activePlan ? draftFromPlan(activePlan) : blankDraft())
+    setDraft(sourcePlan ? draftFromPlan(sourcePlan) : blankDraft())
     setEditorError(null)
     setEditorOpen(true)
   }
@@ -89,12 +124,12 @@ export function PlanScreen() {
     equipmentProfile: activeEquipmentProfile
   }), [draft, exercises, sessions, history, nextVersion, activeEquipmentProfile])
 
-  const planSessions = activePlan
-    ? sessions.filter((session) => session.mesocycleId === activePlan.id || activePlan.sessionIds.includes(session.id))
+  const planSessions = sourcePlan
+    ? sessions.filter((session) => session.mesocycleId === sourcePlan.id || sourcePlan.sessionIds.includes(session.id))
     : sessions
   const completed = planSessions.filter((session) => ['completed', 'partial-primary'].includes(session.status)).length
   const required = Math.max(1, activePlan?.sessionIds.length ?? planSessions.length)
-  const activeAnchors = (activePlan?.strengthAnchors ?? athlete.strengthAnchors)
+  const activeAnchors = (sourcePlan?.strengthAnchors ?? athlete.strengthAnchors)
     .map((id) => exercises.find((exercise) => exercise.id === id)?.name)
     .filter(Boolean)
   const cycleReview = useMemo(() => activePlan ? buildCycleReview(activePlan, sessions, history, new Date(), surveys) : null, [activePlan, sessions, history, surveys])
@@ -103,6 +138,34 @@ export function PlanScreen() {
   const activeCycleReviews = activePlan ? cycleReviews.filter((review) => review.mesocycleId === activePlan.id) : []
   const activeScheduleChanges = activePlan ? missedOpportunityEvents.filter((event) => event.mesocycleId === activePlan.id) : missedOpportunityEvents
   const latestScheduleChange = activeScheduleChanges.at(-1)
+  const blueprintRound = cycleReview?.microcycleNumber ?? Math.max(1, ...planSessions.map((session) => session.microcycleNumber ?? 1))
+  const blueprintSessions = planSessions.filter((session) => (session.microcycleNumber ?? 1) === blueprintRound)
+  const blueprintSetsPerRound = blueprintSessions.flatMap((session) => session.exercises).reduce((total, planned) => total + planned.sets.length, 0)
+  const blueprintMinutesPerRound = blueprintSessions.reduce((total, session) => total + session.durationMinutes, 0)
+  const nextBlockMovementRecommendations = useMemo<NextBlockMovementRecommendation[]>(() => {
+    if (sourcePlan?.status !== 'completed') return []
+    const sourceSessionIds = new Set(planSessions.map((session) => session.id))
+    const seen = new Set<string>()
+    return blueprintSessions.flatMap((session) => session.exercises).flatMap<NextBlockMovementRecommendation>((planned) => {
+      if (seen.has(planned.exerciseId)) return []
+      seen.add(planned.exerciseId)
+      const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)
+      if (!exercise) return []
+      const feedback = history.filter((record) => sourceSessionIds.has(record.sessionId) && record.exerciseId === planned.exerciseId)
+      const maximumPain = feedback.length ? Math.max(...feedback.map((record) => record.pain)) : null
+      const averageTechnique = feedback.length ? feedback.reduce((total, record) => total + record.technique, 0) / feedback.length : null
+      if (exercise.disliked || exercise.jointFeeling === 'avoid' || (maximumPain !== null && maximumPain >= 4)) {
+        return [{ exercise, recommendation: 'Change suggested', tone: 'warning' as const, reason: exercise.disliked || exercise.jointFeeling === 'avoid' ? 'Your saved movement preference says to avoid this one.' : `Recorded pain reached ${maximumPain}/5. Choose a different setup or movement before the next block.` }]
+      }
+      if ((maximumPain !== null && maximumPain >= 2) || (averageTechnique !== null && averageTechnique < 3)) {
+        return [{ exercise, recommendation: 'Review suggested', tone: 'review' as const, reason: 'Completed-set feedback was mixed. Keep it only if the setup still feels appropriate.' }]
+      }
+      if (feedback.length) {
+        return [{ exercise, recommendation: 'Keep suggested', tone: 'keep' as const, reason: `${feedback.length} completed set${feedback.length === 1 ? '' : 's'} support reusing this exact movement.` }]
+      }
+      return [{ exercise, recommendation: 'Keep or change', tone: 'neutral' as const, reason: 'There is not enough completed feedback yet, so this remains your choice.' }]
+    })
+  }, [sourcePlan?.status, planSessions, blueprintSessions, exercises, history])
 
   const openReview = () => {
     if (!cycleReview) return
@@ -120,7 +183,7 @@ export function PlanScreen() {
 
   const openPivot = () => {
     setReviewOpen(false)
-    setDraft(activePlan ? { ...draftFromPlan(activePlan), revisionReason: '' } : blankDraft())
+    setDraft(sourcePlan ? { ...draftFromPlan(sourcePlan), revisionReason: '' } : blankDraft())
     setEditorError(null)
     setEditorOpen(true)
   }
@@ -130,12 +193,48 @@ export function PlanScreen() {
     anchors[slot] = exerciseId
     const strengthAnchors = [...new Set(anchors.filter(Boolean))]
     const movementPlacementsComplete = strengthAnchors.every((anchorId) => current.movementPlacements?.some((placement) => placement.exerciseId === anchorId))
+    const sessionCount = Math.max(strengthAnchors.length, current.weeklyOpportunities)
+    const movementOverrides = (current.movementOverrides ?? [])
+      .filter((choice) => choice.slotIndex !== 0 || choice.sessionIndex % Math.max(1, strengthAnchors.length) !== slot)
+    for (let sessionIndex = slot; sessionIndex < sessionCount; sessionIndex += Math.max(1, strengthAnchors.length)) {
+      movementOverrides.push({ sessionIndex, slotIndex: 0, exerciseId, source: 'athlete' })
+    }
     return {
       ...current,
       strengthAnchors,
+      movementOverrides,
       ...(current.entryRoute && !movementPlacementsComplete ? { generationRuleVersion: EQUIPMENT_ROUTE_SESSION_RULE_VERSION, movementPlacements: undefined } : {})
     }
   })
+
+  const setMovementChoice = (sessionIndex: number, slotIndex: number, exerciseId: string) => setDraft((current) => {
+    const previous = current.movementOverrides?.find((choice) => choice.sessionIndex === sessionIndex && choice.slotIndex === slotIndex)
+    const movementOverrides = (current.movementOverrides ?? []).filter((choice) => choice.sessionIndex !== sessionIndex || choice.slotIndex !== slotIndex)
+    return {
+      ...current,
+      movementOverrides: [...movementOverrides, {
+        sessionIndex,
+        slotIndex,
+        exerciseId,
+        source: 'athlete' as const,
+        ...(previous?.exerciseId === exerciseId && previous.benchAngleDeg !== undefined ? { benchAngleDeg: previous.benchAngleDeg } : {})
+      }]
+    }
+  })
+
+  const setMovementAngle = (sessionIndex: number, slotIndex: number, exerciseId: string, raw: string) => setDraft((current) => {
+    const movementOverrides = (current.movementOverrides ?? []).filter((choice) => choice.sessionIndex !== sessionIndex || choice.slotIndex !== slotIndex)
+    const benchAngleDeg = raw === '' ? null : normalizeBenchAngle(Number(raw))
+    return {
+      ...current,
+      movementOverrides: [...movementOverrides, { sessionIndex, slotIndex, exerciseId, benchAngleDeg, source: 'athlete' as const }]
+    }
+  })
+
+  const resetMovementChoice = (sessionIndex: number, slotIndex: number) => setDraft((current) => ({
+    ...current,
+    movementOverrides: current.movementOverrides?.filter((choice) => choice.sessionIndex !== sessionIndex || choice.slotIndex !== slotIndex)
+  }))
 
   const toggleRegion = (field: 'priorityRegions' | 'maintenanceRegions', region: BodyRegion) => setDraft((current) => {
     const selected = current[field]
@@ -187,6 +286,70 @@ export function PlanScreen() {
           <MoveRight />
           <div className="cycle-node"><Flag size={18} /><span>Next<small>Continue or pivot</small></span></div>
         </div>
+      </section>
+
+      <section className="block-blueprint" aria-labelledby="block-blueprint-title">
+        <div className="block-blueprint__header">
+          <div>
+            <p className="eyebrow">Training-block blueprint</p>
+            <h2 id="block-blueprint-title">See the whole route before you train it.</h2>
+            <p>{sourcePlan ? 'These movements repeat as the stable weekly structure. Loads, repetitions, and recovery decisions can adapt after completed-work reviews, but ForgePath will not silently replace your chosen exercises.' : 'Build the first block to review every training day, movement role, and recovery checkpoint before committing.'}</p>
+          </div>
+          <button className="button button--primary" onClick={openEditor}><Edit3 size={17} /> {sourcePlan ? 'Review and edit blueprint' : 'Build first blueprint'}</button>
+        </div>
+
+        {sourcePlan ? <>
+          <div className="block-route" aria-label={`${sourcePlan.targetMicrocycles} planned training rounds followed by a block review`}>
+            {Array.from({ length: sourcePlan.targetMicrocycles }, (_, index) => {
+              const round = index + 1
+              const state = sourcePlan.status === 'completed' || round < blueprintRound ? 'complete' : round === blueprintRound && sourcePlan.status === 'active' ? 'current' : 'planned'
+              return <div key={round} className={`block-route__round block-route__round--${state}`}><span>{state === 'complete' ? <Check size={15} /> : round}</span><strong>Round {round}</strong><small>{state === 'current' ? 'Current' : state === 'complete' ? 'Recorded' : 'Planned'}</small></div>
+            })}
+            <div className="block-route__review"><Flag size={16} /><strong>Block review</strong><small>Continue, recover, or change</small></div>
+          </div>
+
+          <div className="block-blueprint__facts">
+            <div><span>Weekly layout</span><strong>{blueprintSessions.length} training days</strong><small>{blueprintMinutesPerRound} estimated minutes</small></div>
+            <div><span>Block length</span><strong>{sourcePlan.targetMicrocycles} planned rounds</strong><small>Completion follows training, not dates alone</small></div>
+            <div><span>Planned working sets</span><strong>About {blueprintSetsPerRound * sourcePlan.targetMicrocycles}</strong><small>{blueprintSetsPerRound} per round before adaptations</small></div>
+            <div><span>Recovery checkpoint</span><strong>After every round</strong><small>Deload is proposed from evidence</small></div>
+          </div>
+
+          <div className="block-blueprint__sessions">
+            {blueprintSessions.map((session, sessionIndex) => <article key={session.id} className="blueprint-day">
+              <header>
+                <span className="blueprint-day__number">Day {sessionIndex + 1}</span>
+                <div><h3>{session.title}</h3><p>{session.objective}</p></div>
+                <small><Clock3 size={14} /> {session.durationMinutes} min</small>
+              </header>
+              <div className="blueprint-day__movements">
+                {session.exercises.map((planned, slotIndex) => {
+                  const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)
+                  const athleteChosen = sourcePlan.movementOverrides?.some((choice) => choice.sessionIndex === sessionIndex && choice.slotIndex === slotIndex)
+                  return <div key={planned.id} className={`blueprint-movement blueprint-movement--${planned.role}`}>
+                    <span className="blueprint-movement__role">{roleLabels[planned.role]}</span>
+                    <span><strong>{exercise?.name ?? planned.exerciseId}</strong><small>{planned.purpose}</small></span>
+                    <span className="blueprint-movement__dose"><strong>{prescriptionSummary(planned)}</strong>{exercise && supportsBenchAngle(exercise) && <small>{plannedAngleSummary(planned)}</small>}</span>
+                    <span className={`status-chip status-chip--${athleteChosen ? 'lime' : 'default'}`}>{athleteChosen ? 'Your choice' : 'Suggested'}</span>
+                  </div>
+                })}
+              </div>
+            </article>)}
+          </div>
+
+          <div className="block-blueprint__contract">
+            <div><Shield size={18} /><span><strong>Stable across the block</strong><small>Movement choices, roles, setup angles, priorities, and the weekly route stay fixed until you approve a revision.</small></span></div>
+            <div><RefreshCcw size={18} /><span><strong>Allowed to adapt</strong><small>Load, repetitions, recoverable dose, scheduling, and the deload recommendation respond to completed work and feedback.</small></span></div>
+          </div>
+
+          {sourcePlan.status === 'completed' && <section className="next-block-review" aria-labelledby="next-block-review-title">
+            <div className="next-block-review__header"><div><p className="eyebrow">Next-block movement review</p><h3 id="next-block-review-title">Start from what worked. Change what needs attention.</h3><p>ForgePath carries this blueprint forward, then uses your saved preferences and completed-set feedback to flag movement choices. These are suggestions only. You approve the next block.</p></div><RefreshCcw size={20} /></div>
+            <div className="next-block-review__list">{nextBlockMovementRecommendations.map(({ exercise, recommendation, tone, reason }) => <article key={exercise.id}>
+              <span><strong>{exercise.name}</strong><small>{reason}</small></span>
+              <span className={`status-chip next-block-review__status next-block-review__status--${tone}`}>{recommendation}</span>
+            </article>)}</div>
+          </section>}
+        </> : <div className="block-blueprint__empty"><ListChecks size={28} /><div><strong>No training-block blueprint yet</strong><p>ForgePath can suggest the first weekly structure from your goal, main lifts, available equipment, preferred movements, and time. You approve every exercise before it becomes the plan.</p></div></div>}
       </section>
 
       <div className="plan-layout">
@@ -321,16 +484,49 @@ export function PlanScreen() {
             <fieldset className="plan-fieldset"><legend>Maintenance regions <small>Choose up to 3</small></legend><div className="region-chips region-chips--maintenance">{regions.map((region) => <button type="button" key={region} aria-pressed={draft.maintenanceRegions.includes(region)} onClick={() => toggleRegion('maintenanceRegions', region)}>{readable(region)}</button>)}</div></fieldset>
 
             <details className="criteria-details"><summary>What starts, finishes, and ends this plan</summary><label><span className="field-label">Entry criteria</span><textarea value={draft.entryCriteria} onChange={(event) => setDraft({ ...draft, entryCriteria: event.target.value })} /></label><label><span className="field-label">Success criteria</span><textarea value={draft.successCriteria} onChange={(event) => setDraft({ ...draft, successCriteria: event.target.value })} /></label><label><span className="field-label">Recovery or exit plan</span><textarea value={draft.exitPlan} onChange={(event) => setDraft({ ...draft, exitPlan: event.target.value })} /></label></details>
-            <label><span className="field-label">Why are you changing the plan?</span><textarea value={draft.revisionReason} placeholder="Example: My schedule is stable again and I can protect three 60-minute sessions." onChange={(event) => setDraft({ ...draft, revisionReason: event.target.value })} /></label>
+            <label><span className="field-label">{activePlan ? 'Why are you changing the plan?' : 'Why are you choosing this next block?'}</span><textarea value={draft.revisionReason} placeholder="Example: My schedule is stable again and I can protect three 60-minute sessions." onChange={(event) => setDraft({ ...draft, revisionReason: event.target.value })} /></label>
             {editorError && <div className="import-error" role="alert"><AlertCircle size={17} /><span><strong>Plan not changed</strong>{editorError}</span></div>}
           </div>
 
           <aside className="plan-preview">
-            <div className="plan-preview__header"><div><p className="eyebrow">Preview</p><h3>What is coming up next</h3></div><Sparkles size={19} /></div>
-            <div className="plan-preview__stats"><div><span>Required sessions</span><strong>{preview.requiredExposureCount}</strong></div><div><span>Projected sets</span><strong>{preview.projectedSets}</strong></div><div><span>Total minutes</span><strong>{preview.projectedMinutes}</strong></div></div>
-            <div className="preview-session-list">{preview.sessions.map((session, index) => <article key={session.id}><span>{String(index + 1).padStart(2, '0')}</span><div><strong>{session.title}</strong><small>{session.durationMinutes} min · {session.exercises.length} movements</small><ul>{session.exercises.map((planned) => <li key={planned.id}><b>{planned.role}</b>{exercises.find((exercise) => exercise.id === planned.exerciseId)?.name} · {planned.sets.length} sets</li>)}</ul></div></article>)}</div>
+            <div className="plan-preview__header"><div><p className="eyebrow">Editable weekly blueprint</p><h3>Choose once for the whole block</h3></div><Sparkles size={19} /></div>
+            <p className="plan-preview__intro">ForgePath suggests a complete weekly structure. Change a main lift, builder, accessory, or incline setup here and that choice carries into each new training round until you revise the block.</p>
+            <div className="plan-preview__stats"><div><span>Days / round</span><strong>{preview.requiredExposureCount}</strong></div><div><span>Sets / round</span><strong>{preview.projectedSets}</strong></div><div><span>Whole block</span><strong>~{Math.round(preview.projectedBlockMinutes / 60)} hr</strong><small>{preview.projectedBlockSets} planned sets</small></div></div>
+            <div className="preview-block-route" aria-label={`${draft.targetMicrocycles} training rounds and a recovery review`}>{Array.from({ length: draft.targetMicrocycles }, (_, index) => <span key={index}>R{index + 1}</span>)}<strong>Review</strong></div>
+            <div className="preview-session-list preview-session-list--editable">{preview.sessions.map((session, sessionIndex) => <article key={session.id}>
+              <span>{String(sessionIndex + 1).padStart(2, '0')}</span>
+              <div className="preview-session-editor">
+                <div className="preview-session-editor__header"><strong>{session.title}</strong><small>{session.durationMinutes} min · {session.exercises.length} movements</small></div>
+                {session.exercises.map((planned, slotIndex) => {
+                  const currentExercise = exercises.find((exercise) => exercise.id === planned.exerciseId)
+                  if (!currentExercise) return null
+                  const override = draft.movementOverrides?.find((choice) => choice.sessionIndex === sessionIndex && choice.slotIndex === slotIndex)
+                  const usedExerciseIds = new Set(session.exercises.map((item) => item.exerciseId))
+                  const candidates = exercises
+                    .filter((exercise) => !exercise.retired && !exercise.disliked && exercise.jointFeeling !== 'avoid')
+                    .filter((exercise) => exerciseEquipmentFit(exercise, activeEquipmentProfile).available)
+                    .filter((exercise) => exercise.id === currentExercise.id || !usedExerciseIds.has(exercise.id))
+                    .filter((exercise) => planned.role === 'primary'
+                      ? exercise.pattern === currentExercise.pattern
+                      : exercise.pattern === currentExercise.pattern || exercise.primaryRegion === currentExercise.primaryRegion || exercise.family === currentExercise.family)
+                    .sort((a, b) => {
+                      const aPreferred = Number(a.favorite) + Number(a.jointFeeling === 'great')
+                      const bPreferred = Number(b.favorite) + Number(b.jointFeeling === 'great')
+                      return bPreferred - aPreferred || a.name.localeCompare(b.name)
+                    })
+                  const carriedAngles = [...new Set(planned.sets.map((workSet) => workSet.benchAngleDeg).filter((angle): angle is number => angle !== undefined))]
+                  const angleValue = override?.benchAngleDeg === null ? '' : override?.benchAngleDeg ?? (carriedAngles.length === 1 ? carriedAngles[0] : '')
+                  return <div key={planned.id} className="preview-movement-editor">
+                    <div className="preview-movement-editor__heading"><span className={`role-label role-label--${planned.role}`}>{roleLabels[planned.role]}</span><small>{prescriptionSummary(planned)}</small></div>
+                    <label><span className="sr-only">{roleLabels[planned.role]} exercise for day {sessionIndex + 1}</span><select value={planned.exerciseId} onChange={(event) => planned.role === 'primary' ? updateAnchor(sessionIndex % Math.max(1, draft.strengthAnchors.length), event.target.value) : setMovementChoice(sessionIndex, slotIndex, event.target.value)}>{candidates.map((exercise) => <option key={exercise.id} value={exercise.id}>{exercise.name}</option>)}</select></label>
+                    {supportsBenchAngle(currentExercise) && <label className="preview-angle-input"><span>Back pad</span><span><input aria-label={`${currentExercise.name} back-pad angle`} type="number" min="0" max="90" step="1" inputMode="decimal" value={angleValue} placeholder="Untracked" onChange={(event) => setMovementAngle(sessionIndex, slotIndex, currentExercise.id, event.target.value)} /><b>°</b></span><small>Applies to all sets; refine set by set during training.</small></label>}
+                    {override && <button type="button" className="text-button preview-reset-choice" onClick={() => resetMovementChoice(sessionIndex, slotIndex)}>Use ForgePath suggestion</button>}
+                  </div>
+                })}
+              </div>
+            </article>)}</div>
             <div className="preview-rationale"><strong>Why this queue</strong>{preview.explanations.map((explanation) => <p key={explanation}><Check size={14} />{explanation}</p>)}</div>
-            <p className="modal-note">Projected sets are planning estimates, not completed volume. Progress dashboards remain sourced only from logged sets.</p>
+            <p className="modal-note">Block totals are estimates, not completed volume. ForgePath reviews recovery after each round and proposes a deload, extension, or next block only from completed work and feedback. You approve the decision.</p>
           </aside>
         </div>
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setEditorOpen(false)}>Cancel</button><button className="button button--primary" disabled={Boolean(activeSessionId) || !draft.revisionReason.trim()} onClick={saveRevision}>Apply version {nextVersion}</button></div>

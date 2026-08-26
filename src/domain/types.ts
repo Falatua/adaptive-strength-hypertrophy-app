@@ -457,6 +457,17 @@ export interface MesocyclePlan {
   placementCreatedAt?: string
   generationEquipment?: EquipmentGenerationEvidence
   movementPlacements?: MovementPlacementAssessment[]
+  /** Athlete-approved exercise and setup choices that repeat when each new training round is generated. */
+  movementOverrides?: MesocycleMovementOverride[]
+}
+
+export interface MesocycleMovementOverride {
+  sessionIndex: number
+  slotIndex: number
+  exerciseId: string
+  /** Null deliberately clears a carried angle. Undefined keeps the exact-history suggestion. */
+  benchAngleDeg?: number | null
+  source: 'athlete'
 }
 
 export interface MesocycleDraft {
@@ -480,6 +491,7 @@ export interface MesocycleDraft {
   placementCreatedAt?: string
   generationEquipment?: EquipmentGenerationEvidence
   movementPlacements?: MovementPlacementAssessment[]
+  movementOverrides?: MesocycleMovementOverride[]
 }
 
 export interface CycleReviewEvidence {

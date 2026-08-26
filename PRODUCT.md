@@ -81,6 +81,14 @@ Life-aware decisions separate the cause of interruption before changing training
 
 The engine explains decisions at three horizons: what to do today, what happens to the current training round, and what repeated evidence may propose at the next athlete-approved training-block review.
 
+## Training-Block Blueprint
+
+- Before the athlete starts or revises a training block, ForgePath shows the complete repeatable weekly structure: every training day, primary movement, secondary builder, accessory, tertiary movement, planned role, set and repetition target, approximate time, number of rounds, and recovery-review point.
+- ForgePath suggestions are a starting blueprint, not a command. The athlete can replace a main lift, builder, accessory, or tertiary movement once at the block level instead of repeating the same change in every workout.
+- A block-level movement choice, including an optional incline back-pad angle, stays stable in later training rounds until the athlete approves another revision. Load, repetitions, recoverable dose, scheduling, and recovery recommendations may adapt from completed evidence without changing that movement contract silently.
+- Planned block sets, minutes, and dates are visibly estimates. They never enter completed volume, records, progression, or confidence until the work is actually completed.
+- When a block finishes, ForgePath begins the next-block draft from the completed movement map. Exact completed-set feedback and saved preferences may suggest keep, review, or change, but the athlete chooses whether to reuse or replace each movement.
+
 ## Ongoing Calibration and Confidence
 
 Calibration is a permanent learning loop, not a one-time onboarding gate. Confidence describes how much relevant evidence ForgePath has for one decision, never how capable or compliant the athlete is.

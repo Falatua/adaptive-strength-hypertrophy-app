@@ -1153,6 +1153,7 @@ export const useAppStore = create<AppState>()(
         if (!draft.revisionReason.trim()) return { ok: false, error: 'Add a short reason so this plan change stays explainable.' }
         if (draft.strengthAnchors.length === 0) return { ok: false, error: 'Choose at least one protected strength anchor.' }
         const activePlan = state.mesocycles.find((plan) => plan.id === state.activeMesocycleId)
+          ?? [...state.mesocycles].sort((a, b) => b.version - a.version)[0]
         const nextVersion = Math.max(0, ...state.mesocycles.map((plan) => plan.version)) + 1
         const planId = `mesocycle-${nanoid()}`
         const effectiveAt = new Date().toISOString()
@@ -1166,16 +1167,26 @@ export const useAppStore = create<AppState>()(
               movementPlacements: hasCompleteMovementPlacement ? structuredClone(draft.movementPlacements) : undefined
             }
           : { ...draft, movementPlacements: undefined, generationEquipment: undefined }
-        const preview = buildMesocyclePreview(nextDraft, {
-          exercises: state.exercises,
-          currentSessions: state.sessions,
-          history: state.history,
-          planId,
-          planVersion: nextVersion,
-          startsAt: new Date(effectiveAt),
-          equipmentProfile: generationProfile
-        })
-        const nextPlan = createMesocyclePlan(nextDraft, planId, nextVersion, effectiveAt, activePlan?.id ?? null, preview.sessions.map((session) => session.id))
+        let preview: ReturnType<typeof buildMesocyclePreview>
+        try {
+          preview = buildMesocyclePreview(nextDraft, {
+            exercises: state.exercises,
+            currentSessions: state.sessions,
+            history: state.history,
+            planId,
+            planVersion: nextVersion,
+            startsAt: new Date(effectiveAt),
+            equipmentProfile: generationProfile
+          })
+        } catch (error) {
+          return { ok: false, error: error instanceof Error ? error.message : 'The training-block blueprint could not be generated.' }
+        }
+        const generatedSlots = new Set(preview.sessions.flatMap((session, sessionIndex) => session.exercises.map((_, slotIndex) => `${sessionIndex}:${slotIndex}`)))
+        const appliedDraft = {
+          ...nextDraft,
+          movementOverrides: nextDraft.movementOverrides?.filter((choice) => generatedSlots.has(`${choice.sessionIndex}:${choice.slotIndex}`))
+        }
+        const nextPlan = createMesocyclePlan(appliedDraft, planId, nextVersion, effectiveAt, activePlan?.id ?? null, preview.sessions.map((session) => session.id))
         const revised = replaceFuturePlan(state.sessions, state.mesocycles, nextPlan, preview.sessions)
         set({
           sessions: revised.sessions,

@@ -2619,7 +2619,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Normal phone Chrome must submit invited-email login from the keyboard, persist its renewable Supabase session through refreshes and app updates, keep the email-send cooldown through refresh or browser restart, avoid routing identity proof through Incognito or an email-app preview, and receive release coverage appropriate to both Android Chromium and the iPhone browser engine. Installed iOS Home Screen storage remains a separate session that uses R-414.
 - Detail: [[ForgePath Supabase Backend Runbook]] and Build Bible Chapter 89
 
+### R-416 Complete Training-Block Blueprint
+- Status: implemented
+- Provenance: from-user
+- Requirement: Before starting or revising a training block, show its complete repeatable weekly structure and whole-block route, including every day, primary, secondary, accessory, and tertiary movement, purpose, planned prescription, estimated time and sets, planned number of rounds, and final review. Planned totals must remain clearly labeled estimates rather than completed work.
+- Detail: `src/screens/PlanScreen.tsx`, `src/domain/mesocycle-engine.ts`, and Build Bible Chapter 90
+
+### R-417 Athlete-Approved Block Movement Choices
+- Status: implemented
+- Provenance: from-user
+- Requirement: Let the athlete replace suggested primary, secondary, accessory, and tertiary movements at the block level so the choice repeats in future rounds without requiring the same workout-by-workout substitution. Keep equipment and duplicate-movement eligibility checks, preserve exact history, version every change, and never silently replace an athlete-approved choice.
+- Detail: `src/screens/PlanScreen.tsx`, `src/domain/mesocycle-engine.ts`, and Build Bible Chapter 90
+
+### R-418 Block-Level Incline Setup Identity
+- Status: implemented
+- Provenance: from-user
+- Requirement: For incline-compatible movements, let the athlete choose or clear an exact zero-to-ninety-degree back-pad angle in the block blueprint, apply that choice to every planned set, persist it into later rounds, and retain set-by-set editing during training. Different angles remain separate evidence lanes.
+- Detail: `src/domain/bench-angle-engine.ts`, `src/domain/mesocycle-engine.ts`, and Build Bible Chapter 90
+
+### R-419 Completed-Block Movement Review
+- Status: implemented
+- Provenance: from-user
+- Requirement: When a training block finishes, begin the next-block draft from the completed movement map and use only saved movement preferences and exact completed-set feedback to label keep, review, change, or athlete-choice suggestions. The athlete may reuse or replace any movement and must approve the next plan.
+- Detail: `src/screens/PlanScreen.tsx` and Build Bible Chapter 90
+
+### R-420 Blueprint Persistence, Migration, and Responsive Acceptance
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Persist athlete-approved block movement and incline choices through local testing state, versioned backup, cloud-authoritative snapshot save, refresh, update, and later-round generation. Safely migrate version 26 into backup schema 27 without inventing choices, reject malformed or unsafe overrides, open the editor at the top, prioritize the blueprint on compact screens, and prevent horizontal overflow.
+- Detail: `src/domain/backup.ts`, `src/screens/PlanScreen.test.tsx`, and Build Bible Chapter 90
+
 ## Thread Coverage Audit
+
+### 2026-08-26 Training-Block Blueprint and Next-Block Review
+- Scope: JB requested an organized whole-block preview inspired by the useful planning behavior of established hypertrophy apps, with primary through accessory roles, weekly and whole-block visibility, block-level movement swaps, exact incline angles, deload expectations, and a repeat-or-change decision after completion.
+- Result: Added R-416 through R-420 and Build Bible Chapter 90. Private alpha 0.63.0 adds a complete training-block route, editable weekly movement map, exact angle persistence, athlete-approved future-round choices, evidence-labeled completed-block movement review, and backup schema 27.
+- Status: Implemented with 452 deterministic tests, 132 desktop and phone browser journeys, and a passing Pages artifact gate. GitHub publication, Pages deployment, and live verification remain required before this entry is release-complete.
 
 ### 2026-08-26 Phone Chrome Primary Use
 - Scope: JB designated Google Chrome on the phone as the primary ForgePath client and requested complete login, storage, update, and installed-app compatibility.

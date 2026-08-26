@@ -32,8 +32,8 @@ import { missedOpportunityEventError } from './schedule-adaptation-engine'
 import { movementNoteError } from './movement-note-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 26
-export const BACKUP_APP_VERSION = '0.62.2'
+export const BACKUP_SCHEMA_VERSION = 27
+export const BACKUP_APP_VERSION = '0.63.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -614,6 +614,24 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
     plan.sessionIds.forEach((sessionId) => {
       if (typeof sessionId !== 'string' || (plan.status === 'active' && !sessionIds.has(sessionId))) errors.push('An active mesocycle references an unknown session.')
     })
+    if (plan.movementOverrides !== undefined) {
+      if (!Array.isArray(plan.movementOverrides)) errors.push('A mesocycle movement blueprint is invalid.')
+      else {
+        const overrideKeys = new Set<string>()
+        const plannedSlots = Math.max((plan.strengthAnchors as unknown[]).length, Number(plan.weeklyOpportunities) || 0)
+        plan.movementOverrides.forEach((override) => {
+          if (!isRecord(override) || !Number.isInteger(override.sessionIndex) || Number(override.sessionIndex) < 0 || Number(override.sessionIndex) >= plannedSlots || !Number.isInteger(override.slotIndex) || Number(override.slotIndex) < 0 || typeof override.exerciseId !== 'string' || !exerciseIds.has(override.exerciseId) || override.source !== 'athlete') {
+            errors.push('A mesocycle movement blueprint choice is invalid.')
+            return
+          }
+          const key = `${override.sessionIndex}:${override.slotIndex}`
+          if (overrideKeys.has(key)) errors.push('A mesocycle movement blueprint repeats a session slot.')
+          overrideKeys.add(key)
+          if (override.slotIndex === 0 && override.exerciseId !== (plan.strengthAnchors as unknown[])[Number(override.sessionIndex) % Math.max(1, (plan.strengthAnchors as unknown[]).length)]) errors.push('A mesocycle movement blueprint cannot replace a protected anchor outside the anchor controls.')
+          if (override.benchAngleDeg !== undefined && override.benchAngleDeg !== null && (!Number.isFinite(override.benchAngleDeg) || Number(override.benchAngleDeg) < 0 || Number(override.benchAngleDeg) > 90)) errors.push('A mesocycle movement blueprint has an invalid bench angle.')
+        })
+      }
+    }
   })
 
   const activeSessionId = candidate.activeSessionId
@@ -984,6 +1002,18 @@ function migrateV25(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV26(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  validateState(candidate.data, true)
+  return {
+    data: candidate.data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 26 backup migrated safely. Existing training blocks remain intact; athlete-approved block movement and incline choices begin with future plan revisions.'
+  }
+}
+
 function migrateV24(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
   if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
@@ -1110,6 +1140,10 @@ export function parseBackup(raw: string): BackupPreview {
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 25) {
     const migrated = migrateV25(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 26) {
+    const migrated = migrateV26(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {

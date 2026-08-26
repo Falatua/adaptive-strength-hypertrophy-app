@@ -5,12 +5,19 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-26
 status: canonical-build-reference-and-active-implementation
-version: 1.58.2
+version: 1.59.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.59.0 Change Entry
+
+- Advanced the working application to private alpha 0.63.0 and backup schema 27 while preserving every completed workout, earlier plan version, and training-rule identity.
+- Added R-416 through R-420 and Chapter 90 for the complete training-block blueprint, weekly movement-role map, whole-block estimates, athlete-approved movement swaps, exact incline setup persistence, and completed-block reuse review.
+- Added explicit separation between the stable movement contract and adaptive load, repetition, dose, schedule, and recovery proposals.
+- Added version 26 migration, malformed-override rejection, deterministic future-round persistence, component interaction coverage, compact-screen blueprint-first ordering, modal scroll reset, and horizontal-containment acceptance.
 
 ### Version 1.58.2 Change Entry
 
@@ -6312,7 +6319,7 @@ Every normalized table enables and forces Row Level Security. Authenticated clie
 
 Completed sets retain entered load and unit, normalized kilograms, repetitions, exact exercise identity, movement family, exclusive primary region, non-additive involved regions, source device, source event, version, and completion time. `volume_load_kg` is a stored generated value equal to normalized load multiplied by repetitions. Security-invoker views produce source-set facts and daily, weekly, monthly, and yearly rollups for total training and exclusive primary-region scopes. Survey answers store `answered`, `skipped`, `not-sure`, `prefer-not`, and `not-answered` explicitly, and only an answered row may contain a value.
 
-The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the public source repository. Five committed migrations are checksum-locked and represented by the repaired remote migration ledger. A live catalog audit confirmed fifteen of fifteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as GitHub Actions secrets outside the public source tree, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The private cloud release is enabled, while real invited-athlete physical phone-to-laptop recovery remains an open acceptance gate. App version 0.62.2 and backup schema 26 preserve the cloud-authoritative snapshot boundary, add durable interrupted-save recovery, persistent renewable Auth, phone Chrome continuity, and a secure rate-aware installed Home Screen session handoff, and do not claim normalized entity merge or active-workout handoff.
+The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the public source repository. Five committed migrations are checksum-locked and represented by the repaired remote migration ledger. A live catalog audit confirmed fifteen of fifteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as GitHub Actions secrets outside the public source tree, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The private cloud release is enabled, while real invited-athlete physical phone-to-laptop recovery remains an open acceptance gate. App version 0.63.0 and backup schema 27 preserve the cloud-authoritative snapshot boundary, include athlete-approved training-block movement and incline choices, add durable interrupted-save recovery, persistent renewable Auth, phone Chrome continuity, and a secure rate-aware installed Home Screen session handoff, and do not claim normalized entity merge or active-workout handoff.
 
 ## 79. Exact-Movement Workout Notes and Longitudinal Recall
 
@@ -6653,6 +6660,32 @@ The authentication surface uses dynamic viewport height, iPhone safe-area paddin
 ### 89.5 Engine Acceptance
 
 Every release runs the complete browser suite in desktop Chromium, Android-style mobile Chromium, and an iPhone WebKit engine. Local development may remove only the production `upgrade-insecure-requests` directive required to prevent WebKit from upgrading loopback Vite modules to a nonexistent HTTPS server; the production Pages artifact retains the directive and is served only over HTTPS. Exact-device iPhone Chrome login, restart, update, and Home Screen transfer remain the final physical acceptance gate.
+
+## 90. Training-Block Blueprint and Athlete-Approved Movement Contract
+
+### 90.1 Whole-Block Preview
+
+Before a training block is applied, the Plan screen shows the number of planned rounds, final review, weekly training days, approximate planned minutes, planned working sets, and every movement assigned to every day. Each movement exposes its written Primary, Secondary, Accessory, or Tertiary role, purpose, set and repetition target, optional incline setup, and whether it remains a ForgePath suggestion or an athlete choice. Estimates never enter completed dose or progression evidence.
+
+### 90.2 Block-Level Choice
+
+The athlete may replace a main lift, secondary builder, accessory, or tertiary movement once in the blueprint. Eligible choices respect the active equipment profile, avoid excluded movements, and prevent duplicates inside one session. A protected primary change updates the block anchor; a nonprimary change becomes an explicit athlete-authored movement override. Applying the draft creates a new immutable plan version and replaces only future planned work.
+
+### 90.3 Stable and Adaptive Boundaries
+
+Movement identity, role, priority purpose, and block-level incline angle remain stable in later training rounds until the athlete approves a new revision. The progression and life-aware engines may still propose load, repetitions, recoverable dose, scheduling, extension, or recovery from completed evidence. No adaptive rule may silently swap the athlete's chosen movement or count planned block totals as completed work.
+
+### 90.4 Angle Identity
+
+Incline-compatible movements accept an optional zero-to-ninety-degree back-pad angle. A block choice applies to all planned sets and remains editable per set during the workout. Clearing the value returns it to untracked rather than zero degrees. Progression and performance continue to compare only the same exact movement and recorded angle.
+
+### 90.5 Completion and Reuse
+
+Completing a block preserves its blueprint as the starting point for the next draft. Saved avoid preferences, exact completed-set pain, and exact technique feedback may label a movement Keep suggested, Review suggested, Change suggested, or Keep or change. These labels explain their evidence and never perform a replacement. The athlete decides whether to reuse or change each movement and supplies a reason before activating the next version.
+
+### 90.6 Persistence and Acceptance
+
+Backup schema 27 stores block movement overrides and optional incline choices inside the cloud-authoritative snapshot. Version 26 migrates without inventing choices. Validation rejects unknown exercises, duplicate override slots, invalid session or slot indices, protected-primary conflicts, invalid sources, and out-of-range angles. Acceptance requires deterministic generation and round-to-round replay, backup round trip and tamper tests, interactive component coverage, desktop and compact-phone visual inspection, top-reset dialog behavior, keyboard and screen-reader labels, zero console warnings, and zero horizontal overflow.
 
 ### Version 1.47.0 Change Entry
 
