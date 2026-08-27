@@ -2709,7 +2709,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Existing local and Supabase-authoritative profiles must gain new system movements and untouched Home Gym capabilities without losing custom profiles, preferences, history, plans, or active-location identity. Release acceptance must cover deterministic merge and programming tests, branded Library search, ABX preset interaction, compact-phone containment, console integrity, and existing cloud boundaries without a new database migration.
 - Detail: `src/domain/catalog-engine.ts`, `src/store/useAppStore.ts`, `tests/e2e/exercise-library-expansion.spec.ts`, and Build Bible Chapter 92
 
+### R-431 Coherent Generated Destination Icons
+- Status: implemented
+- Provenance: from-user
+- Requirement: Today, Plan, Progress, Library, and You must use one original GPT Images-authored emblem family across phone and desktop. Every destination retains its written label, current-state semantics, and accessible control name, and the image itself casts no drop shadow.
+- Detail: `src/components/ForgeGlyph.tsx`, `src/components/AppShell.tsx`, and Build Bible Chapter 93
+
+### R-432 Coherent Generated Movement-Family Art
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Exercise Library cards and details must use one reviewed generated-art family covering the canonical movement scenes. The exercise name and saved setup remain authoritative because a family image cannot claim exact technique, angle, equipment, or anatomy for every variation.
+- Detail: `src/components/MovementArt.tsx`, `public/icons/movements/`, and Build Bible Chapter 93
+
+### R-433 Written and Contained Level Badge
+- Status: implemented
+- Provenance: from-user
+- Requirement: The avatar badge must spell out `Level` followed by the journal level, never abbreviate it as `FL`, remain horizontally contained inside the avatar footprint, sit below rather than obscure the athlete's face, and cast no shadow.
+- Detail: `src/components/PixelAvatar.tsx`, `src/styles.css`, and Build Bible Chapter 93
+
+### R-434 Generated Asset Provenance and Runtime Independence
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Accepted generated icons must ship as optimized versioned local assets with retained source atlases, tool and prompt provenance, processing history, and a written truth boundary. The browser bundle must contain no image-provider key, request, or runtime generation dependency.
+- Detail: `docs/product/assets/forgepath-icons-v1-source/`, `public/icons/`, and Build Bible Chapter 93
+
+### R-435 Cross-Device Icon and Badge Acceptance
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Destination icons, movement-family art, and the written level badge must pass desktop Chromium, mobile Chromium, iPhone WebKit, missing-alt review, console integrity, and horizontal-containment acceptance. A generated image failure must not remove the written destination or exercise identity.
+- Detail: `tests/e2e/exercise-library-expansion.spec.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 93
+
 ## Thread Coverage Audit
+
+### 2026-08-26 Mobile Navigation, Library Art, and Level Badge
+- Scope: JB rejected the existing mobile destination and Exercise Library icon art, requested GPT Images replacements, asked for `FL1` to become `Level 1`, and removed the level-pill shadow.
+- Result: Added R-431 through R-435 and Build Bible Chapter 93. Private alpha 0.66.0 ships a reviewed five-destination atlas, twenty movement-family emblems, local optimized exports and source provenance, larger phone navigation art, and a contained shadow-free written Level badge below the athlete.
+- Status: Implemented and locally verified across desktop Chromium, mobile Chromium, and iPhone WebKit. Full deterministic, browser, Pages-artifact, deployment, and live-source verification remain the release gates for this build.
 
 ### 2026-08-26 Freak Athlete Home Gym Equipment
 - Scope: JB identified the Freak Athlete Hyper Pro with ABX bench and Leg Developer as the primary home-gym environment and requested prevalent incline work, chest-supported rows, leg extensions, and hamstring curls.
@@ -3049,6 +3084,8 @@ This is the canonical traceability index for every durable requirement JB states
 - Exact boundary and default setting for focused-training or low-decoration mode.
 
 ## Change Log
+
+- 2026-08-26: Added R-431 through R-435 and Build Bible Chapter 93 for the GPT Images-authored destination and Exercise Library icon families, local provenance and runtime independence, the written contained shadow-free Level badge, and cross-device acceptance. Private alpha 0.66.0 preserves backup schema 28 and local persistence 26.
 
 - 2026-08-26: Advanced R-314, R-316, and R-380, added R-413, and added Build Bible Chapter 87 for truthful cloud status, durable interrupted-save recovery, safe same-device ordering, conflict preservation, a clearer invitation-only `Log in with email` flow, and dedicated-origin isolation before external athlete invitations. Private alpha 0.61.0 preserves backup schema 26.
 

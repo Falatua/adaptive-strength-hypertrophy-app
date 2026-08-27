@@ -38,7 +38,12 @@ const glyphs: Record<ForgeGlyphName, ReactNode> = {
   sync: <><path d="M3 6h12V3l6 5-6 5v-3H3zm18 12H9v3l-6-5 6-5v3h12z" /><path d="M10 10h4v4h-4z" className="forge-glyph__accent" /></>
 }
 
+const generatedDestinationGlyphs = new Set<ForgeGlyphName>(['today', 'plan', 'progress', 'library', 'you'])
+
 export function ForgeGlyph({ name, size = 20, className = '' }: { name: ForgeGlyphName; size?: number; className?: string }) {
+  if (generatedDestinationGlyphs.has(name)) {
+    return <img className={`forge-glyph forge-glyph--generated ${className}`} src={`${import.meta.env.BASE_URL}icons/navigation/${name}.png`} width={size} height={size} alt="" aria-hidden="true" />
+  }
   return <svg className={`forge-glyph ${className}`} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false" shapeRendering="crispEdges">{glyphs[name]}</svg>
 }
 

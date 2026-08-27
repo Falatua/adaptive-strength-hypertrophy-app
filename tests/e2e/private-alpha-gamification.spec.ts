@@ -1748,7 +1748,7 @@ test('turns session feedback into next week volume rather than storing it unused
   expect(browserErrors).toEqual([])
 })
 
-test('shows an earned athlete form and level that trace back to completed work', async ({ page }) => {
+test('shows an earned athlete form and level that trace back to completed work', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
   page.on('pageerror', (error) => browserErrors.push(error.message))
@@ -1765,11 +1765,19 @@ test('shows an earned athlete form and level that trace back to completed work',
   // The avatar carries the same level beside its head, and the form matches the level reached.
   const heroAvatar = page.locator('.profile-hero .pixel-avatar')
   const levelText = String(await levelPanel.textContent()).match(/Forge level (\d+)/)?.[1]
-  await expect(heroAvatar.locator('.pixel-avatar__level')).toHaveText(`FL${levelText}`)
+  await expect(heroAvatar.locator('.pixel-avatar__level')).toHaveText(`Level ${levelText}`)
+  await expect(heroAvatar.locator('.pixel-avatar__level')).toHaveCSS('box-shadow', 'none')
+  const avatarBox = await heroAvatar.boundingBox()
+  const levelBox = await heroAvatar.locator('.pixel-avatar__level').boundingBox()
+  expect(avatarBox).not.toBeNull()
+  expect(levelBox).not.toBeNull()
+  expect(levelBox!.x).toBeGreaterThanOrEqual(avatarBox!.x)
+  expect(levelBox!.x + levelBox!.width).toBeLessThanOrEqual(avatarBox!.x + avatarBox!.width)
   await expect(heroAvatar).toHaveAttribute('aria-label', new RegExp(`Forge level ${levelText}`))
   const form = String(await heroAvatar.getAttribute('class')).match(/pixel-avatar--(apprentice|forged|champion|apex)/)?.[1]
   expect(['apprentice', 'forged', 'champion', 'apex']).toContain(form)
   await expect(levelPanel).toContainText(/Uncharted|Established|Well mapped|Long record/)
+  if (testInfo.project.name === 'mobile-chromium') await page.locator('.profile-hero').screenshot({ path: 'output/playwright/forge-level-mobile.png' })
 
   expect(browserErrors).toEqual([])
 })

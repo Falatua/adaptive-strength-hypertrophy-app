@@ -5,12 +5,21 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.65.0
+app_version: 0.66.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.66.0 Generated Icon and Level Badge Delta
+
+- Replaces the five mobile and desktop destination glyphs with one original GPT Images-authored ForgePath emblem family for Today, Plan, Progress, Library, and You.
+- Replaces thin hand-coded Exercise Library scenes with twenty matching movement-family emblems while keeping exact exercise names and saved setups authoritative.
+- Spells out `Level` in the avatar badge, positions it below the athlete inside the avatar footprint, and removes the badge shadow.
+- Stores optimized transparent runtime assets locally and retains both source atlases, tool and prompt direction, processing history, and visual truth boundaries beside the product specification.
+- Adds browser acceptance for every destination asset, movement-family semantics, Level wording, shadow removal, containment, and screenshots across desktop Chromium, mobile Chromium, and iPhone WebKit.
+- Keeps backup schema 28, local persistence 26, and the Supabase cloud-authoritative data contract unchanged.
 
 ## Private Alpha 0.65.0 Freak Athlete Home Gym Delta
 

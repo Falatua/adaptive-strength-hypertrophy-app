@@ -54,7 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {navItems.map((item) => {
             return (
               <button key={item.id} className={nav === item.id ? 'active' : ''} onClick={() => setNav(item.id)} aria-current={nav === item.id ? 'page' : undefined}>
-                <ForgeGlyph name={item.icon} size={20} /><span>{item.label}</span>
+                <ForgeGlyph name={item.icon} size={24} /><span>{item.label}</span>
               </button>
             )
           })}
@@ -69,7 +69,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {navItems.map((item) => {
           return (
             <button key={item.id} className={nav === item.id ? 'active' : ''} onClick={() => setNav(item.id)} aria-current={nav === item.id ? 'page' : undefined}>
-              <ForgeGlyph name={item.icon} size={20} /><span>{item.label}</span>
+              <ForgeGlyph name={item.icon} size={26} /><span>{item.label}</span>
             </button>
           )
         })}

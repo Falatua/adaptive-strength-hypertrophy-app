@@ -165,11 +165,9 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .location-art--medium { width: 56px; height: 56px; }
 
 .pixel-avatar { flex: none; position: relative; }
-/* The level badge sits beside the head the way a roster entry shows one. */
-.pixel-avatar__level { position: absolute; top: 2%; right: 0; display: grid; place-items: center; min-width: 26%; aspect-ratio: 1; padding: 0 4px; border: 2px solid var(--surface); border-radius: 999px; background: var(--lime); color: #1b2016; font: 800 clamp(.58rem, 2.6vw, .9rem)/1 ui-monospace, monospace; box-shadow: 0 2px 0 rgb(0 0 0 / 30%); }
-.pixel-avatar--small .pixel-avatar__level { top: -6px; right: -8px; min-width: 20px; border-width: 2px; font-size: .5rem; }
-.pixel-avatar__level { aspect-ratio: auto; gap: 2px; border-radius: 999px; }
-.pixel-avatar__level b { font-size: .72em; letter-spacing: .04em; opacity: .8; }
+/* The journal level stays inside the avatar footprint and never casts a competing shadow. */
+.pixel-avatar__level { position: absolute; z-index: 2; left: 50%; bottom: 2%; display: inline-flex; align-items: center; justify-content: center; min-height: 22px; max-width: calc(100% - 12px); padding: 4px 7px; transform: translateX(-50%); border: 1px solid #11140d; border-radius: 999px; background: var(--lime); color: #1b2016; font: 850 clamp(.55rem, 2.2vw, .72rem)/1 ui-monospace, monospace; letter-spacing: -.02em; white-space: nowrap; box-shadow: none; }
+.pixel-avatar--small .pixel-avatar__level { bottom: 1px; min-height: 15px; padding: 2px 4px; font-size: .42rem; }
 .pixel-aura rect { fill: var(--lime); opacity: .55; }
 .pixel-avatar img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; display: block; }
 .pixel-avatar__forge-marks { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
@@ -926,14 +924,9 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .library-view-all strong, .library-view-all small { display: block; }
 .library-view-all strong { margin-top: 15px; }
 .library-view-all small { margin-top: 4px; font-size: .67rem; }
-.movement-art { display: grid; place-items: center; width: 62px; height: 52px; padding: 3px; border: 1px solid var(--line-bright); border-radius: 12px; background: #212a1c; color: var(--lime); box-shadow: 4px 4px 0 #0c0e0b; }
-.movement-art svg { display: block; width: 100%; height: 100%; }
+.movement-art { display: grid; place-items: center; width: 66px; height: 58px; padding: 3px; border: 1px solid rgb(231 255 88 / 18%); border-radius: 11px; background: #171c15; color: var(--lime); box-shadow: none; }
+.movement-art img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .movement-art--large { width: 104px; height: 88px; }
-.movement-art__body { fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
-.movement-art__load { fill: var(--orange); stroke: var(--orange); stroke-width: 2.1; stroke-linecap: round; }
-.movement-art__load[r], .movement-art__load[rx] { fill: rgb(255 122 69 / 22%); }
-.movement-art__gear { fill: none; stroke: var(--dim); stroke-width: 2; stroke-linecap: round; }
-.movement-art__floor { stroke: var(--line-bright); stroke-width: 1.6; stroke-linecap: round; }
 .exercise-preference { display: flex; align-items: flex-start; gap: 8px; }
 .exercise-preference button { display: grid; min-width: 54px; min-height: 48px; place-items: center; gap: 2px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); color: var(--muted); }
 .exercise-preference button span { font-size: .58rem; font-weight: 800; }
@@ -1522,8 +1515,8 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .main-content { margin-left: 0; }
   .screen { padding: 26px 18px 100px; }
   .bottom-nav { position: fixed; z-index: 30; inset: auto 0 0; display: grid; grid-template-columns: repeat(5, 1fr); padding: 7px max(6px, env(safe-area-inset-right)) max(7px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left)); background: rgb(16 19 15 / 96%); border-top: 1px solid var(--line); backdrop-filter: blur(20px); }
-  .bottom-nav button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 3px; border: 0; border-radius: 8px; background: transparent; color: var(--dim); font-size: .56rem; }
-  .bottom-nav button.active { color: var(--lime); background: rgb(231 255 88 / 7%); }
+  .bottom-nav button { display: flex; min-height: 54px; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 5px 3px; border: 0; border-radius: 9px; background: transparent; color: var(--dim); font-size: .6rem; font-weight: 720; }
+  .bottom-nav button.active { color: var(--lime); background: rgb(231 255 88 / 7%); box-shadow: inset 0 0 0 1px rgb(231 255 88 / 13%); }
   .toast { top: max(12px, env(safe-area-inset-top)); right: 12px; bottom: auto; left: 12px; max-width: none; }
   .screen-header { flex-direction: column; }
   .screen-header .segmented-control { width: 100%; overflow: auto; flex-wrap: nowrap; }
@@ -2096,7 +2089,9 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .forge-glyph__cut { fill: var(--surface-deep); }
 .forge-glyph__muted { fill: color-mix(in srgb, currentColor 24%, transparent); }
 .brand__mark .forge-glyph__accent, .sidebar__nav button.active .forge-glyph__accent { fill: var(--surface-deep); }
-.sidebar__nav .forge-glyph, .bottom-nav .forge-glyph { filter: drop-shadow(2px 2px 0 rgb(0 0 0 / 22%)); }
+.forge-glyph--generated { object-fit: contain; }
+.sidebar__nav button:not(.active) .forge-glyph--generated, .bottom-nav button:not(.active) .forge-glyph--generated { opacity: .56; filter: saturate(.45) contrast(.88); }
+.sidebar__nav button.active .forge-glyph--generated, .bottom-nav button.active .forge-glyph--generated { opacity: 1; filter: none; }
 .body-region-glyph { color: var(--muted); }
 .body-region-glyph > path:last-child { fill: currentColor; }
 .filter-chips button.selected .body-region-glyph { color: var(--lime); }

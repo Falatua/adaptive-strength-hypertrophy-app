@@ -86,6 +86,31 @@ test('finds the Freak Athlete home-gym movements and offers ABX angle presets', 
   expect(browserErrors).toEqual([])
 })
 
+test('uses the generated ForgePath destination and movement-family icon system', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterCleanProfile(page)
+
+  const destinations = ['today', 'plan', 'progress', 'library', 'you']
+  for (const destination of destinations) {
+    await expect(page.locator(`.bottom-nav img[src*="/icons/navigation/${destination}.png"]`)).toHaveCount(1)
+  }
+  if (testInfo.project.name === 'mobile-chromium') await page.locator('.bottom-nav').screenshot({ path: 'output/playwright/generated-bottom-navigation-mobile.png' })
+
+  await page.getByRole('button', { name: 'Library', exact: true }).click()
+  const movementArt = page.locator('.exercise-grid .movement-art img[src*="/icons/movements/"]')
+  await expect(movementArt.first()).toBeVisible()
+  expect(await movementArt.count()).toBeGreaterThan(10)
+  await expect(movementArt.first()).toHaveAttribute('alt', '')
+  await expect(movementArt.first().locator('..')).toHaveAttribute('role', 'img')
+  if (testInfo.project.name === 'mobile-chromium') await page.locator('.exercise-grid').screenshot({ path: 'output/playwright/generated-library-movements-mobile.png' })
+
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  expect(browserErrors).toEqual([])
+})
+
 test('seeds exact incline performance from the movement Library without inventing missing evidence', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error' || message.type() === 'warning') browserErrors.push(`${message.type()}: ${message.text()}`) })

@@ -12,7 +12,7 @@ interface PixelAvatarProps {
   size?: 'small' | 'medium' | 'large'
   /** Which earned form to draw. Defaults to the first so callers without a level still render. */
   form?: AthleteForm
-  /** Shown in a badge beside the head, the way a roster entry shows one. */
+  /** Shown in a compact badge below the athlete, the way a roster entry shows one. */
   level?: number
 }
 
@@ -38,7 +38,7 @@ export function PixelAvatar({ mood = 'ready', size = 'medium', form = 'apprentic
         <g className="forge-mark forge-mark--three"><path d="M66 158h25v5H66zm5 8h22v4H71zm7 7h18v4H78z" /></g>
         <g className="forge-mark forge-mark--four"><path d="M166 154h23v5h-23zm-4 8h22v4h-22zm-3 7h18v4h-18z" /></g>
       </svg>
-      {typeof level === 'number' && <span className="pixel-avatar__level" aria-hidden="true"><b>FL</b>{level}</span>}
+      {typeof level === 'number' && <span className="pixel-avatar__level" aria-hidden="true">Level {level}</span>}
     </div>
   )
 }

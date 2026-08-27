@@ -90,7 +90,8 @@ Avoid stacking multiple floating glass panels. Use blur only for persistent navi
 - Primary action: progress-lime fill, dark text, one-pixel lime border, four-pixel hard offset shadow, minimum 44-pixel target.
 - Secondary action: raised-panel fill, bone-text, one-pixel trail-line, no competing accent.
 - Navigation selection: filled progress-lime on desktop or a contained lime state on mobile, always paired with `aria-current`.
-- Forge glyph: original 16, 20, or 24-pixel SVG geometry for destinations, training states, body regions, and movement patterns. Standard safety and account controls may retain familiar labeled system icons.
+- Forge destination icon: original GPT Images-authored local PNG emblem at 24 or 26 CSS pixels, always paired with a written label. Today, Plan, Progress, Library, and You share one palette, contour weight, and matte field-guide finish without icon drop shadows.
+- Movement-family art: original GPT Images-authored local PNG emblems in one coherent family. The exercise name remains authoritative because a family emblem must never imply exact setup or technique for every variation.
 - Status chip: compact monospace label with icon and a written state, never color alone.
 - Evidence panel: field-panel or raised-panel, plain-language headline, source or rule label, and a next action only when one exists.
 - Training Field Guide: compact framed route, next-win, and evidence rows with one tactile selector that opens the full explanation.
@@ -100,7 +101,7 @@ Avoid stacking multiple floating glass panels. Use blur only for persistent navi
 - Sound cue: original synthesized pocket-console feedback under 700 milliseconds, low-volume, meaningful rather than ambient, off by default, previewable, and always suppressed by quiet mode.
 - Loading moment: an original compact visual tied to a real wait state, with written status, a static reduced-motion fallback, no fake delay, and no effect on training logic.
 - Progressive disclosure: Today shows one dominant start path, Workout puts the current set before notes, Library collapses filters on compact screens, and Progress exposes three primary time ranges with the rest under More.
-- Forge level: describes recorded journal depth only. It must never rank athlete ability, training age, readiness, or identity.
+- Forge level: describes recorded journal depth only. Its badge spells out `Level`, sits inside the avatar footprint below the athlete, and casts no shadow. It must never rank athlete ability, training age, readiness, or identity.
 
 ## Training-Block Blueprint
 

@@ -120,7 +120,8 @@ Calibration is a permanent learning loop, not a one-time onboarding gate. Confid
 ## Exercise Preferences
 
 - Every movement has one programming preference: preferred, neutral, or avoid. The Library presents these as clear thumbs-up and thumbs-down controls with written labels.
-- Library body regions and movement patterns use original labeled ForgePath glyphs. A pattern or family icon is navigational guidance, not a claim that one generic drawing exactly depicts every exercise variation.
+- Library body regions and movement patterns use one original, GPT Images-authored ForgePath emblem family. A pattern or family icon is navigational guidance, not a claim that one generic drawing exactly depicts every exercise variation.
+- Today, Plan, Progress, Library, and You use a matching five-icon destination family on phone and desktop. Written labels and current-state semantics remain authoritative; the image never replaces the destination name.
 - Preferred movements rank higher when ForgePath selects new secondary work, accessories, or substitutions. Preference never overrides pain, equipment availability, goal specificity, or completed-history truth.
 - Avoided movements are excluded from newly generated secondary work, accessories, and substitution recommendations.
 - Marking a current protected main lift as avoid does not silently remove or replace it. ForgePath keeps the current plan intact, explains the conflict, and waits for the athlete to approve a training-block revision.
@@ -129,6 +130,7 @@ Calibration is a permanent learning loop, not a one-time onboarding gate. Confid
 ## Forge Journal Progress
 
 - Forge levels and the Uncharted, Established, Well mapped, and Long record forms describe how much completed evidence this ForgePath journal has recorded.
+- The athlete badge always spells out `Level` followed by the number. It stays contained within the avatar footprint, remains shadow-free, and never abbreviates the label as `FL`.
 - Journal progress never labels the athlete as a beginner, novice, or apprentice and never overrides stated training age, movement skill, current readiness, or athlete judgment.
 - Points come only from completed work and source-backed records. They are a return-and-recall layer, not a skill score or compliance grade.
 

@@ -5,12 +5,18 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-26
 status: canonical-build-reference-and-active-implementation
-version: 1.61.0
+version: 1.62.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.62.0 Change Entry
+
+- Advanced the working application to private alpha 0.66.0 while keeping backup schema 28, local persistence 26, and every cloud-authoritative training-data boundary unchanged.
+- Added R-431 through R-435 and Chapter 93 for one original generated destination family, one coherent Exercise Library movement family, written Level badges, source provenance, optimized local delivery, and cross-device acceptance.
+- Retained written destination and exercise identity as the accessible and training-truth authority when visual assets are decorative or unavailable.
 
 ### Version 1.61.0 Change Entry
 
@@ -6749,6 +6755,28 @@ When the active Home Gym profile contains the corresponding Freak Athlete implem
 ### 92.5 Persistence and Acceptance
 
 Cloud and backup shape remain at schema 28 because the feature adds system catalog and equipment-template data without adding athlete-record fields. Cloud restore re-merges the current system catalog and untouched seed profiles before use while preserving the active location and athlete-owned profiles. Local persistence version 26 triggers the same merge for browser test state. Acceptance covers catalog identity uniqueness, profile upgrade behavior, home availability, deterministic programming preference, exact-angle separation, branded Library search, all ABX preset controls, desktop Chromium, mobile Chromium, iPhone WebKit, console integrity, and horizontal containment.
+
+## 93. Generated Navigation and Movement Icon System
+
+### 93.1 Destination Family
+
+Today, Plan, Progress, Library, and You use five original emblems authored as one GPT Images atlas and exported as transparent local PNG assets. Their calendar, route map, rising plate stack, open movement guide, and athlete bust metaphors share the ForgePath evergreen, bone, lime, and effort-orange palette. Phone navigation uses a readable 26-pixel presentation, desktop uses 24 pixels, and no image receives a decorative drop shadow.
+
+### 93.2 Movement-Family Art
+
+The Exercise Library uses twenty matching generated emblems for press, hinge, squat, machine, row, pull, shoulder, arm, calf, trunk, carry, and general dumbbell families. A deterministic mapping chooses the asset. Each visible exercise name, saved setup, and catalog identity remains authoritative; the emblem provides orientation only and must not imply exact angle, grip, machine geometry, or safe technique.
+
+### 93.3 Written Level Badge
+
+The avatar badge spells out `Level` and the current journal number. It sits below the athlete inside the avatar footprint, remains horizontally contained at every supported size, uses no shadow, and does not obscure the face. The accessible avatar label continues to describe the journal form and Forge level in full.
+
+### 93.4 Asset Lifecycle and Failure Boundary
+
+The accepted source atlases, authoring tool, prompt direction, generation date, processing history, and truth boundary live beside the product specification. Cropped transparent runtime exports live under `public/icons/` and are precached by the existing PWA build. GPT Images is an authoring tool only: no key, SDK, or request ships to the browser. Missing art cannot remove a written destination label, exercise name, state, or control.
+
+### 93.5 Acceptance
+
+Release acceptance verifies all five destination asset paths, more than ten rendered movement-family images, empty decorative image alternatives inside labeled semantic wrappers, the exact written Level label, `box-shadow: none`, avatar containment, console integrity, and horizontal containment across desktop Chromium, mobile Chromium, and iPhone WebKit. Visual review checks the actual compact-phone navigation, Library cards, contact sheet, and athlete profile rather than relying only on file existence.
 
 ### Version 1.47.0 Change Entry
 
