@@ -1473,6 +1473,9 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .bench-angle-set-grid input { width: 54px; min-height: 44px; text-align: center; }
 .bench-angle-set-grid small { grid-column: 1 / -1; font-size: .58rem; }
 .bench-angle-source { display: block; margin-top: 10px; font-size: .58rem; line-height: 1.45; }
+.history-entry-angle { align-content: start; }
+.history-entry-angle .bench-angle-presets { grid-column: 1 / -1; margin-top: 6px; }
+.history-entry-angle .bench-angle-presets button[aria-pressed="true"] { border-color: var(--blue); background: rgb(124 184 255 / 14%); color: var(--text); }
 .angle-history { margin: 20px 0; padding: 16px; border: 1px solid rgb(124 184 255 / 22%); border-radius: 12px; background: rgb(124 184 255 / 4%); }
 .angle-history > p { margin: 0 0 12px; color: var(--muted); font-size: .72rem; line-height: 1.55; }
 .angle-history__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }

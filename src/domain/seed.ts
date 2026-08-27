@@ -129,8 +129,8 @@ export const equipmentProfiles: EquipmentProfile[] = [
   },
   {
     id: 'equipment-home-gym', name: 'Home Gym', kind: 'home-gym', source: 'seed', incrementUnit: 'lb',
-    equipment: ['ab wheel', 'adjustable bench', 'barbell', 'bench', 'bodyweight', 'dumbbells', 'plates', 'pull-up bar', 'rack', ...extraPortableEquipment],
-    increments: { barbell: 5, dumbbell: 5, cable: 5, machine: 10, other: 5 }, constraints: ['No cable or selectorized machine work'], updatedAt: '2026-08-11T12:00:00.000Z'
+    equipment: ['ab wheel', 'adjustable bench', 'barbell', 'bench', 'bodyweight', 'dumbbells', 'freak athlete abx bench', 'freak athlete hyper pro', 'freak athlete leg developer', 'leg extension machine', 'lying leg curl machine', 'plates', 'pull-up bar', 'rack', ...extraPortableEquipment],
+    increments: { barbell: 5, dumbbell: 5, cable: 5, machine: 10, other: 5 }, constraints: ['Freak Athlete Hyper Pro with ABX bench and Leg Developer', 'No cable or selectorized machine work'], updatedAt: '2026-08-26T12:00:00.000Z'
   },
   {
     id: 'equipment-travel', name: 'Travel Setup', kind: 'travel', source: 'seed', incrementUnit: 'lb',

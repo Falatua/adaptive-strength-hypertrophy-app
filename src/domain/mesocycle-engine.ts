@@ -65,7 +65,15 @@ const titleFor = (exercise: Exercise, suffix: string) => {
   return `${exercise.name} ${suffix}`
 }
 
-const exerciseScore = (exercise: Exercise, role: 'secondary' | 'accessory', priorityRegions: BodyRegion[]) => {
+const homeEquipmentPreferenceScore = (exercise: Exercise, equipmentProfile?: EquipmentProfile) => {
+  if (!equipmentProfile || equipmentProfile.kind !== 'home-gym') return 0
+  const available = new Set(equipmentProfile.equipment.map((item) => item.toLowerCase()))
+  if (available.has('freak athlete abx bench') && exercise.id === 'abx-chest-supported-db-row') return 9
+  if (available.has('freak athlete leg developer') && ['leg-extension', 'single-leg-extension', 'lying-leg-curl'].includes(exercise.id)) return 9
+  return 0
+}
+
+const exerciseScore = (exercise: Exercise, role: 'secondary' | 'accessory', priorityRegions: BodyRegion[], equipmentProfile?: EquipmentProfile) => {
   let score = 0
   if (exercise.jointFeeling === 'great') score += 5
   if (exercise.jointFeeling === 'good') score += 3
@@ -74,6 +82,7 @@ const exerciseScore = (exercise: Exercise, role: 'secondary' | 'accessory', prio
   if (role === 'secondary' && exercise.roleTags.includes('secondary builder')) score += 7
   if (role === 'accessory' && exercise.roleTags.includes('accessory')) score += 4
   if (priorityRegions.includes(exercise.primaryRegion)) score += 6
+  score += homeEquipmentPreferenceScore(exercise, equipmentProfile)
   return score
 }
 
@@ -155,7 +164,7 @@ function chooseSecondary(anchor: Exercise, exercises: Exercise[], excluded: Set<
     .filter((exercise) => !excluded.has(exercise.id) && exercise.jointFeeling !== 'avoid' && !exercise.disliked)
     .filter((exercise) => !equipmentProfile || exerciseEquipmentFit(exercise, equipmentProfile).available)
     .filter((exercise) => exercise.pattern === anchor.pattern || exercise.family === anchor.family)
-    .sort((a, b) => exerciseScore(b, 'secondary', priorityRegions) - exerciseScore(a, 'secondary', priorityRegions) || a.name.localeCompare(b.name))[0]
+    .sort((a, b) => exerciseScore(b, 'secondary', priorityRegions, equipmentProfile) - exerciseScore(a, 'secondary', priorityRegions, equipmentProfile) || a.name.localeCompare(b.name))[0]
 }
 
 function chooseAccessories(exercises: Exercise[], excluded: Set<string>, regions: BodyRegion[], count: number, offset: number, equipmentProfile?: EquipmentProfile) {
@@ -167,7 +176,7 @@ function chooseAccessories(exercises: Exercise[], excluded: Set<string>, regions
     const match = exercises
       .filter((exercise) => !excluded.has(exercise.id) && !selected.some((item) => item.id === exercise.id) && exercise.jointFeeling !== 'avoid' && !exercise.disliked && exercise.primaryRegion === region)
       .filter((exercise) => !equipmentProfile || exerciseEquipmentFit(exercise, equipmentProfile).available)
-      .sort((a, b) => exerciseScore(b, 'accessory', regions) - exerciseScore(a, 'accessory', regions) || a.name.localeCompare(b.name))[0]
+      .sort((a, b) => exerciseScore(b, 'accessory', regions, equipmentProfile) - exerciseScore(a, 'accessory', regions, equipmentProfile) || a.name.localeCompare(b.name))[0]
     if (match) selected.push(match)
   })
   return selected

@@ -17,8 +17,8 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Coverage Summary
 
-- Total requirement headings: 420.
-- Sequential range: R-001 through R-425.
+- Total requirement headings: 425.
+- Sequential range: R-001 through R-430.
 - Missing IDs: none after the 2026-08-26 verification.
 - Duplicate IDs: none after the 2026-08-26 verification.
 - Primary implementation authority: [[Adaptive Strength and Hypertrophy App Build Bible]].
@@ -26,7 +26,7 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Current Implementation Evidence
 
-Private alpha 0.64.0 and Build Bible 1.60.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current gate includes 458 deterministic tests and 135 desktop Chromium, mobile Chromium, and iPhone WebKit journeys covering direct exact-movement historical performance entry, the editable training-block blueprint, durable renewable Auth-session storage, refresh-persistent resend protection, mobile keyboard form submission, a rate-aware installed Home Screen session handoff, a no-new-email transfer path for an already-verified browser, durable interrupted-save recovery, truthful cloud status, invitation-only passwordless entry, persistent exact-source update notification, a rolling 52-week athlete replay, a 10,000-set persistence stress case, progression and volume decision matrices, JSON-canonical backup recovery, production Supabase rollback acceptance, Pages compilation, dependency and data-boundary checks. Backup schema is 28 and safely migrates version 27 without inventing historical performances. Dedicated-origin hosting, custom SMTP, complete offline startup, real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
+Private alpha 0.65.0 and Build Bible 1.61.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current gate includes 461 deterministic tests and 138 desktop Chromium, mobile Chromium, and iPhone WebKit journeys covering Freak Athlete Home Gym capabilities, deterministic equipment-aware programming, ABX angle-aware chest-supported rows, direct exact-movement history, editable training-block blueprints, durable renewable Auth-session storage, interrupted-save recovery, invitation-only passwordless entry, persistent exact-source update notification, year-scale replay, backup recovery, production Supabase rollback acceptance, Pages compilation, dependency checks, console integrity, and horizontal containment. Backup schema remains 28. Dedicated-origin hosting, custom SMTP, complete offline startup, real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
 
 ## Product and Training Traceability
 
@@ -108,6 +108,7 @@ Private alpha 0.64.0 and Build Bible 1.60.0 are the current boundary. Evidence i
 | R-415 | Phone Chrome authentication and release continuity | 19, 20, 24, 27, 68, 78, 80, 89 | [[ForgePath Supabase Backend Runbook]], `src/components/CloudAppRoot.tsx`, `src/services/cloud-sync.ts`, `playwright.config.ts` | 1A | keyboard-submit forms, normal-profile guidance, persistent cooldown, safe-area containment, Chromium and iPhone-engine suites, exact-device acceptance |
 | R-416 to R-420 | Complete training-block preview, athlete-approved movement and angle choices, completed-block reuse review, and versioned persistence | 8, 10, 15, 20, 22, 27, 90 | `PRODUCT.md`, `DESIGN.md`, `src/screens/PlanScreen.tsx`, `src/domain/mesocycle-engine.ts`, `src/domain/backup.ts` | 1B to 1C | deterministic blueprint generation, future-round replay, version 26 migration, tamper rejection, component interaction, desktop and compact-phone rendering, console, and horizontal containment |
 | R-421 to R-425 | Direct exact-movement past-performance entry, effort and setup context, programming evidence, audit control, and cloud persistence | 7, 10, 15, 20, 22, 27, 91 | `PRODUCT.md`, `DESIGN.md`, `src/screens/LibraryScreen.tsx`, `src/domain/history-entry-engine.ts`, `src/domain/backup.ts` | 1A to 1C | deterministic validation and RPE conversion, exact-history programming evidence, correction, deletion, undo, version 27 migration, tamper rejection, desktop and compact-phone rendering, persistence, console, and horizontal containment |
+| R-426 to R-430 | Freak Athlete Home Gym capabilities, ABX and Leg Developer movement identity, angle-aware rows, programming preference, preservation-safe upgrade, and mobile acceptance | 6.7, 10, 15, 20, 21, 24, 27, 92 | `PRODUCT.md`, `DESIGN.md`, `src/domain/seed.ts`, `src/domain/mesocycle-engine.ts`, `src/screens/LibraryScreen.tsx` | 1A to 1C | catalog uniqueness, seed-profile merge, active-profile preservation, home availability, deterministic selection, ABX presets, cloud restore merge, desktop and compact-phone search, console, and containment tests |
 
 ## Delivery Phase Key
 

@@ -2679,7 +2679,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Persist direct Library history through local testing state, backup, the existing cloud-authoritative Supabase snapshot, refresh, and app updates. Backup schema 28 must migrate schema 27 without inventing history, reject incomplete or mixed provenance, allow legitimate per-set corrections, and pass desktop Chromium, mobile Chromium, iPhone WebKit, console, persistence, and horizontal-containment acceptance without requiring a new Supabase table or function.
 - Detail: `src/domain/backup.ts`, `tests/e2e/exercise-library-expansion.spec.ts`, and Build Bible Chapter 91
 
+### R-426 Freak Athlete Home Gym Capability Profile
+- Status: implemented
+- Provenance: from-user
+- Requirement: The Home Gym profile must explicitly represent the Freak Athlete Hyper Pro, ABX adjustable bench, and Leg Developer while retaining generic capability tags for compatible incline, chest-supported-row, leg-extension, and lying-leg-curl programming. Home Gym is the default for new clean profiles.
+- Detail: `src/domain/seed.ts`, `src/store/useAppStore.ts`, and Build Bible Chapter 92
+
+### R-427 ABX and Leg Developer Exercise Library Identity
+- Status: implemented
+- Provenance: from-user
+- Requirement: The Exercise Library must provide a canonical ABX chest-supported dumbbell row and make leg extension, single-leg extension, and lying hamstring curl discoverable through Freak Athlete, Hyper Pro, ABX, and Leg Developer search language without splitting existing canonical histories.
+- Detail: `src/domain/exercise-catalog-extras.ts`, `src/domain/exercise-catalog-expansion.ts`, and Build Bible Chapter 92
+
+### R-428 Angle-Aware Chest-Supported Row Evidence
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Chest-supported adjustable-bench rows must support the same optional per-set ABX back-pad angle evidence as incline pressing. The eleven known ABX positions are shortcuts, any zero-to-ninety-degree value remains valid, and comparison or progression evidence must never cross recorded angles.
+- Detail: `src/domain/bench-angle-engine.ts`, `src/screens/LibraryScreen.tsx`, and Build Bible Chapter 92
+
+### R-429 Home-Equipment Programming Preference
+- Status: implemented
+- Provenance: from-user
+- Requirement: When Home Gym contains the Freak Athlete implements, block generation must rank the ABX chest-supported row and Leg Developer extension or curl movements higher within athlete-declared back, quadriceps, and hamstring regions. The preference must not override pain, avoid status, protected main lifts, equipment eligibility, or athlete approval.
+- Detail: `src/domain/mesocycle-engine.ts` and Build Bible Chapter 92
+
+### R-430 Equipment Upgrade, Cloud Preservation, and Mobile Acceptance
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Existing local and Supabase-authoritative profiles must gain new system movements and untouched Home Gym capabilities without losing custom profiles, preferences, history, plans, or active-location identity. Release acceptance must cover deterministic merge and programming tests, branded Library search, ABX preset interaction, compact-phone containment, console integrity, and existing cloud boundaries without a new database migration.
+- Detail: `src/domain/catalog-engine.ts`, `src/store/useAppStore.ts`, `tests/e2e/exercise-library-expansion.spec.ts`, and Build Bible Chapter 92
+
 ## Thread Coverage Audit
+
+### 2026-08-26 Freak Athlete Home Gym Equipment
+- Scope: JB identified the Freak Athlete Hyper Pro with ABX bench and Leg Developer as the primary home-gym environment and requested prevalent incline work, chest-supported rows, leg extensions, and hamstring curls.
+- Result: Added R-426 through R-430 and Build Bible Chapter 92. Private alpha 0.65.0 makes Home Gym the new-profile default, adds explicit branded capabilities and search aliases, adds an angle-aware ABX chest-supported dumbbell row, prioritizes those implements within declared muscle regions, and safely re-merges system additions into existing local and cloud-restored state.
+- Status: Implemented and locally verified with 461 deterministic tests and 138 desktop and phone browser journeys. Pages artifact, deployment, and live-source verification remain the release gates for this build.
 
 ### 2026-08-26 Direct Exact-Movement Historical Performance Entry
 - Scope: JB requested a way to seed ForgePath with existing movement performance so a fresh athlete does not start programming from zero, using Incline Barbell Bench Press at 135 pounds, 45 degrees, three sets of eight, and RIR zero as the acceptance example.

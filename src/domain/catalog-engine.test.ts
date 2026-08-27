@@ -8,7 +8,7 @@ describe('exercise catalog governance', () => {
   })
 
   it('ships a deep catalog with stable unique identities and no exact alias collision', () => {
-    expect(exercises).toHaveLength(242)
+    expect(exercises).toHaveLength(243)
     expect(new Set(exercises.map((exercise) => exercise.id)).size).toBe(exercises.length)
     expect(new Set(exercises.map((exercise) => exercise.name.toLowerCase())).size).toBe(exercises.length)
     const exactNames = new Map<string, string[]>()
@@ -33,6 +33,16 @@ describe('exercise catalog governance', () => {
     const merged = mergeSystemEquipmentProfiles([priorCommercial, custom], equipmentProfiles)
     expect(merged.find((profile) => profile.id === priorCommercial.id)?.equipment).toContain('leg press machine')
     expect(merged.find((profile) => profile.id === custom.id)?.equipment).toEqual(['barbell'])
+  })
+
+  it('upgrades the untouched Home Gym profile with Freak Athlete capabilities without changing athlete-owned locations', () => {
+    const priorHome = { ...structuredClone(equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!), equipment: ['barbell', 'rack'], constraints: ['Old system constraint'], updatedAt: '2026-08-11T12:00:00.000Z' }
+    const athleteHome = { ...structuredClone(priorHome), id: 'athlete-home', name: 'My Garage', source: 'athlete' as const, equipment: ['barbell'], constraints: ['Athlete choice'] }
+    const merged = mergeSystemEquipmentProfiles([priorHome, athleteHome], equipmentProfiles)
+    const upgraded = merged.find((profile) => profile.id === 'equipment-home-gym')!
+    expect(upgraded.equipment).toEqual(expect.arrayContaining(['freak athlete abx bench', 'freak athlete leg developer', 'leg extension machine', 'lying leg curl machine']))
+    expect(upgraded.constraints).toContain('Freak Athlete Hyper Pro with ABX bench and Leg Developer')
+    expect(merged.find((profile) => profile.id === athleteHome.id)).toEqual(athleteHome)
   })
 
   it('lets an athlete edit a custom identity while keeping its stable ID', () => {

@@ -5,12 +5,18 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-26
 status: canonical-build-reference-and-active-implementation
-version: 1.60.0
+version: 1.61.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.61.0 Change Entry
+
+- Advanced the working application to private alpha 0.65.0 while keeping backup schema 28 and preserving all completed training, block choices, equipment profiles, and Supabase snapshot behavior.
+- Added R-426 through R-430 and Chapter 92 for the Freak Athlete Hyper Pro, ABX bench, Leg Developer, angle-aware chest-supported rows, home-gym programming preference, catalog migration, and compact-phone acceptance.
+- Advanced local test persistence to version 26 so existing browser profiles re-merge the current system catalog and untouched equipment templates without replacing athlete-owned profiles or preferences.
 
 ### Version 1.60.0 Change Entry
 
@@ -6328,7 +6334,7 @@ Every normalized table enables and forces Row Level Security. Authenticated clie
 
 Completed sets retain entered load and unit, normalized kilograms, repetitions, exact exercise identity, movement family, exclusive primary region, non-additive involved regions, source device, source event, version, and completion time. `volume_load_kg` is a stored generated value equal to normalized load multiplied by repetitions. Security-invoker views produce source-set facts and daily, weekly, monthly, and yearly rollups for total training and exclusive primary-region scopes. Survey answers store `answered`, `skipped`, `not-sure`, `prefer-not`, and `not-answered` explicitly, and only an answered row may contain a value.
 
-The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the public source repository. Five committed migrations are checksum-locked and represented by the repaired remote migration ledger. A live catalog audit confirmed fifteen of fifteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as GitHub Actions secrets outside the public source tree, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The private cloud release is enabled, while real invited-athlete physical phone-to-laptop recovery remains an open acceptance gate. App version 0.64.0 and backup schema 28 preserve the cloud-authoritative snapshot boundary, include athlete-approved training-block choices and direct exact-movement history, add durable interrupted-save recovery, persistent renewable Auth, phone Chrome continuity, and a secure rate-aware installed Home Screen session handoff, and do not claim normalized entity merge or active-workout handoff.
+The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the public source repository. Five committed migrations are checksum-locked and represented by the repaired remote migration ledger. A live catalog audit confirmed fifteen of fifteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as GitHub Actions secrets outside the public source tree, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The private cloud release is enabled, while real invited-athlete physical phone-to-laptop recovery remains an open acceptance gate. App version 0.65.0 and backup schema 28 preserve the cloud-authoritative snapshot boundary, include athlete-approved training-block choices, direct exact-movement history, and active equipment identity, add current system catalog and untouched equipment-template merging on restore, retain durable interrupted-save recovery, persistent renewable Auth, phone Chrome continuity, and a secure rate-aware installed Home Screen session handoff, and do not claim normalized entity merge or active-workout handoff.
 
 ## 79. Exact-Movement Workout Notes and Longitudinal Recall
 
@@ -6721,6 +6727,28 @@ Backup schema 28 validates direct-entry provenance, prevents a row from claiming
 ### 91.6 Responsive Acceptance
 
 The form previews the exact set count, load, repetitions, effort, and optional angle before save. Compact phones use a one-column form and full-width actions with native date and numeric inputs. Release acceptance covers deterministic validation and conversion, backup round trip and tamper rejection, correction compatibility, undo, exact programming evidence, desktop Chromium, mobile Chromium, iPhone WebKit, console integrity, persistence, and horizontal containment.
+
+## 92. Freak Athlete Home Gym Programming
+
+### 92.1 Equipment Profile
+
+Home Gym is the default environment for a new athlete. The seeded profile explicitly contains the Freak Athlete Hyper Pro, ABX bench, and Leg Developer. It also contains the generic adjustable-bench, leg-extension-machine, and lying-leg-curl-machine capabilities used by deterministic availability checks, so equivalent equipment remains compatible and brand language never becomes a hidden eligibility lock.
+
+### 92.2 Canonical Exercise Identity
+
+The catalog includes an exact ABX Chest-Supported Dumbbell Row separate from the machine Chest-Supported Row and high-elbow Helms Row. Leg Extension, Single-Leg Extension, and Lying Leg Curl preserve their canonical histories while adding bounded Freak Athlete and Hyper Pro search aliases. Catalog migration adds new system identities and aliases without changing stable IDs, athlete preferences, custom movements, or completed sets.
+
+### 92.3 Angle-Aware ABX Setups
+
+Incline pressing and chest-supported adjustable-bench rows may record an optional back-pad angle per set. The known ABX positions are 0, 15, 22, 30, 37, 45, 52, 60, 67, 75, and 85 degrees. These are touch shortcuts only; any value from 0 to 90 remains valid. Progression, personal-record, and comparison logic uses only the exact movement and same recorded angle. Untracked and mixed-angle work remains completed dose but never becomes false single-angle evidence.
+
+### 92.4 Programming Preference and Athlete Control
+
+When the active Home Gym profile contains the corresponding Freak Athlete implement, ABX chest-supported rows rank higher for declared back work, and Leg Developer extensions and curls rank higher for declared quadriceps and hamstring work. This equipment preference applies only inside the athlete's selected priority or maintenance regions. Pain, avoid status, equipment eligibility, protected main lifts, and athlete-approved block changes remain stronger boundaries.
+
+### 92.5 Persistence and Acceptance
+
+Cloud and backup shape remain at schema 28 because the feature adds system catalog and equipment-template data without adding athlete-record fields. Cloud restore re-merges the current system catalog and untouched seed profiles before use while preserving the active location and athlete-owned profiles. Local persistence version 26 triggers the same merge for browser test state. Acceptance covers catalog identity uniqueness, profile upgrade behavior, home availability, deterministic programming preference, exact-angle separation, branded Library search, all ABX preset controls, desktop Chromium, mobile Chromium, iPhone WebKit, console integrity, and horizontal containment.
 
 ### Version 1.47.0 Change Entry
 

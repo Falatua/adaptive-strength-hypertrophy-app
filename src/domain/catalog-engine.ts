@@ -67,9 +67,9 @@ export function mergeSystemEquipmentProfiles(current: EquipmentProfile[] | undef
     const system = systemById.get(profile.id)
     if (!system || profile.source !== 'seed') return profile
     return {
-      ...profile,
+      ...structuredClone(system),
       equipment: normalizeCatalogList([...system.equipment, ...profile.equipment]),
-      updatedAt: system.updatedAt
+      source: 'seed' as const
     }
   })
   return [...preserved, ...systemProfiles.filter((profile) => !currentIds.has(profile.id)).map((profile) => structuredClone(profile))]

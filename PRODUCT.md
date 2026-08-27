@@ -1,5 +1,13 @@
 # Product
 
+## Freak Athlete Home Gym
+
+The default new-athlete environment is the Home Gym. Its first-party profile explicitly represents the Freak Athlete Hyper Pro, ABX adjustable bench, and Leg Developer while retaining generic capability tags so programming remains compatible with equivalent equipment.
+
+The Exercise Library must make ABX incline pressing, ABX chest-supported dumbbell rows, Leg Developer leg extensions, single-leg extensions, and lying hamstring curls easy to find through plain-language and branded search terms. ABX-supported rows and incline movements retain an optional back-pad angle as part of exact setup identity. All eleven known ABX positions, 0, 15, 22, 30, 37, 45, 52, 60, 67, 75, and 85 degrees, are shortcuts rather than restrictions.
+
+When Home Gym is active, ForgePath should prefer these implements within the athlete's declared back, quadriceps, and hamstring priorities. Equipment preference never overrides pain, avoid status, protected main lifts, or the athlete's block-level choices. Existing accounts and cloud snapshots gain new system catalog and untouched Home Gym capabilities without losing custom profiles, preferences, completed history, or training plans.
+
 ## Direct Historical Performance Entry
 
 An athlete who begins ForgePath with useful training history must be able to open an exact movement in the Exercise Library and add a truthful past performance without creating a fake planned workout. The first complete flow captures training date, number of sets, repetitions, weight, pounds or kilograms, RIR or RPE, and an optional incline angle. Optional technique, pain or irritation, session name, and setup note add useful context without becoming required onboarding friction.

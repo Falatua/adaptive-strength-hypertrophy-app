@@ -5,7 +5,8 @@ export const ABX_BACK_PAD_ANGLES = [0, 15, 22, 30, 37, 45, 52, 60, 67, 75, 85] a
 
 export const supportsBenchAngle = (exercise: Exercise) => {
   const identity = [exercise.name, exercise.family, ...exercise.aliases, exercise.description].join(' ').toLowerCase()
-  return identity.includes('incline') && exercise.equipment.join(' ').toLowerCase().includes('bench')
+  const usesAdjustableBench = exercise.equipment.some((item) => item.toLowerCase().includes('adjustable bench'))
+  return usesAdjustableBench && /incline|chest-supported|chest supported|prone|bench angle/.test(identity)
 }
 
 export const normalizeBenchAngle = (value: number | null | undefined) => {

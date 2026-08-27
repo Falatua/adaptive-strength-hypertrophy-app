@@ -1,8 +1,8 @@
-# ForgePath Private Alpha 0.64.0
+# ForgePath Private Alpha 0.65.0
 
 ForgePath is an athlete-controlled adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed. The hosted private alpha uses Supabase as the authoritative training store; local development keeps a browser-only test mode.
 
-The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 425 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
+The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 430 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
 ## Run locally
 
@@ -19,7 +19,7 @@ The current PWA is responsive on phone and laptop and runs an invite-only, Supab
 
 For repeatable personal testing, You now includes a true clean-data reset. It removes every local completed set, session, plan, survey, note, record, feedback item, correction, and testing event from the current browser, then restarts onboarding. It retains only the canonical exercise catalog and equipment templates required to create a new plan. It does not alter Supabase or another browser.
 
-The built-in exercise catalog now contains 242 canonical movements, including three leg-press variants and deep strength, weak-point, machine, unilateral, cable, bodyweight, arm, calf, and trunk coverage. Workout substitutions show six educated matches first and also provide a searchable full-library path. Every selected movement keeps its own exact history and receives conservative load calibration when no prior exposure exists.
+The built-in exercise catalog now contains 243 canonical movements. The Home Gym profile includes the Freak Athlete Hyper Pro, ABX bench, and Leg Developer as explicit capabilities. ABX chest-supported dumbbell rows, leg extensions, single-leg extensions, and lying hamstring curls are searchable and eligible for home programming. Incline presses and supported rows offer all ABX back-pad presets while retaining any 0 to 90 degree value and comparing progress only at the same recorded angle. Workout substitutions show six educated matches first and also provide a searchable full-library path. Every selected movement keeps its own exact history and receives conservative load calibration when no prior exposure exists.
 
 ## Hosted preview
 
@@ -48,7 +48,7 @@ npm run check:pages
 ## Current verification
 
 - deterministic domain and cloud-boundary tests, including corrupted outbox, network retry, pending-state replay, stale conflict, response tampering, and restore acceptance
-- 135 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys covering direct exact-movement past-performance entry, editable training-block blueprints, exact incline persistence, update notification, year-scale history, cloud boundaries, authentication continuity, console integrity, and horizontal containment
+- 138 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys covering Freak Athlete Home Gym search and ABX presets, direct exact-movement past-performance entry, editable training-block blueprints, exact angle persistence, update notification, year-scale history, cloud boundaries, authentication continuity, console integrity, and horizontal containment
 - automated UI boundary QC for original game-inspired expression, the technique-video exclusion, readable typography, focus and reduced-motion support, compact mobile coverage, and required product-design context
 - lint clean
 - production PWA build clean

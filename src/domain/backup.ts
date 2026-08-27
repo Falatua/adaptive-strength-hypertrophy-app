@@ -33,7 +33,7 @@ import { movementNoteError } from './movement-note-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
 export const BACKUP_SCHEMA_VERSION = 28
-export const BACKUP_APP_VERSION = '0.64.0'
+export const BACKUP_APP_VERSION = '0.65.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -41,7 +41,7 @@ const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPromp
   sessionAchievements: true,
   confetti: false,
   quietMode: false,
-  activeEquipmentProfileId: 'equipment-commercial-gym'
+  activeEquipmentProfileId: 'equipment-home-gym'
 }
 
 export interface RestorableAppState {

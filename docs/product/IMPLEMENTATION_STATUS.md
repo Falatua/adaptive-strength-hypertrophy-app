@@ -5,12 +5,22 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.64.0
+app_version: 0.65.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.65.0 Freak Athlete Home Gym Delta
+
+- Makes Home Gym the new clean-profile default and explicitly adds the Freak Athlete Hyper Pro, ABX bench, and Leg Developer alongside generic compatibility capabilities.
+- Adds a canonical ABX Chest-Supported Dumbbell Row and Freak Athlete or Hyper Pro aliases for leg extensions and lying hamstring curls without splitting existing movement histories.
+- Extends exact angle tracking to supported chest-supported rows and adds all eleven ABX presets to direct Library history entry while allowing any 0 to 90 degree value.
+- Gives ABX rows, leg extensions, and lying leg curls deterministic preference inside athlete-declared back, quadriceps, and hamstring regions when the matching Home Gym implements are available.
+- Re-merges current system exercises and untouched system equipment profiles during local migration and cloud restore while preserving athlete-owned profiles, preferences, completed data, active plans, and active-location identity.
+- Keeps backup schema 28 and the existing Supabase snapshot boundary because no athlete-record shape or database contract changed. Local test persistence advances to version 26.
+- Passes 461 deterministic tests and 138 desktop Chromium, mobile Chromium, and iPhone WebKit journeys, including branded movement search, ABX preset interaction, home-program selection, preservation-safe catalog merging, console integrity, and horizontal containment.
 
 ## Private Alpha 0.64.0 Direct Movement History Delta
 

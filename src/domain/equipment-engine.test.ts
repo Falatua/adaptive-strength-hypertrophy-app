@@ -18,6 +18,13 @@ describe('equipment-profile-v1', () => {
     expect(gaps[0].missing).toContain('barbell')
   })
 
+  it('makes the ABX bench and Leg Developer movements executable at Home Gym', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const movementIds = ['incline-db-press', 'abx-chest-supported-db-row', 'leg-extension', 'single-leg-extension', 'lying-leg-curl']
+    movementIds.forEach((exerciseId) => expect(exerciseEquipmentFit(exercises.find((exercise) => exercise.id === exerciseId)!, home).available).toBe(true))
+    expect(home.equipment).toEqual(expect.arrayContaining(['freak athlete abx bench', 'freak athlete hyper pro', 'freak athlete leg developer']))
+  })
+
   it('uses profile-specific executable increments by equipment class', () => {
     const profile = { ...equipmentProfiles[0], increments: { ...equipmentProfiles[0].increments, barbell: 2.5, dumbbell: 10 } }
     expect(loadIncrementFor(exercises.find((exercise) => exercise.id === 'competition-bench')!, profile)).toMatchObject({ kind: 'barbell', value: 2.5, unit: 'lb' })

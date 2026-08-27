@@ -166,12 +166,19 @@ const initialSettings: AppSettings = {
   confetti: false,
   quietMode: false,
   availableMinutes: 60,
-  equipmentLocation: 'Commercial Gym',
-  activeEquipmentProfileId: 'equipment-commercial-gym'
+  equipmentLocation: 'Home Gym',
+  activeEquipmentProfileId: 'equipment-home-gym'
 }
 
 const cleanTestingStart = () => ({
-  athlete: structuredClone(seedAthlete),
+  athlete: {
+    ...structuredClone(seedAthlete),
+    equipmentProfile: 'Home Gym',
+    placement: {
+      ...structuredClone(seedAthlete.placement),
+      inputs: { ...structuredClone(seedAthlete.placement.inputs), equipmentProfileId: 'equipment-home-gym' }
+    }
+  },
   settings: structuredClone(initialSettings),
   equipmentProfiles: structuredClone(seedEquipmentProfiles),
   exercises: structuredClone(seedExercises).map((exercise) => ({
@@ -1312,12 +1319,26 @@ export const useAppStore = create<AppState>()(
         })
         return { ok: true }
       },
-      restoreBackup: (data) => set((state) => ({
-        ...backupStateFrom(data),
-        recoverySnapshot: backupStateFrom(state),
-        nav: data.activeSessionId ? state.nav : 'today',
-        notice: `Backup restored: ${data.history.length} completed sets and ${data.exercises.length} exercises are active.`
-      })),
+      restoreBackup: (data) => set((state) => {
+        const equipmentProfiles = mergeSystemEquipmentProfiles(data.equipmentProfiles, seedEquipmentProfiles)
+        const requestedProfile = equipmentProfiles.find((profile) => profile.id === data.settings.activeEquipmentProfileId)
+          ?? equipmentProfiles.find((profile) => profile.name === data.settings.equipmentLocation)
+          ?? equipmentProfiles.find((profile) => profile.id === initialSettings.activeEquipmentProfileId)
+          ?? equipmentProfiles[0]
+        const restored = backupStateFrom({
+          ...data,
+          exercises: mergeSystemExerciseCatalog(data.exercises, seedExercises),
+          equipmentProfiles,
+          settings: { ...data.settings, activeEquipmentProfileId: requestedProfile.id, equipmentLocation: requestedProfile.name },
+          athlete: { ...data.athlete, equipmentProfile: requestedProfile.name }
+        })
+        return {
+          ...restored,
+          recoverySnapshot: backupStateFrom(state),
+          nav: data.activeSessionId ? state.nav : 'today',
+          notice: `Backup restored: ${data.history.length} completed sets and ${restored.exercises.length} exercises are active.`
+        }
+      }),
       undoLastRestore: () => set((state) => state.recoverySnapshot ? ({
         ...backupStateFrom(state.recoverySnapshot),
         recoverySnapshot: null,
@@ -1328,7 +1349,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: LEGACY_APP_STORAGE_KEY,
-      version: 25,
+      version: 26,
       storage: createJSONStorage(() => browserStateStorage),
       partialize: (state) => ({
         athlete: state.athlete,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildMesocyclePreview, createMesocyclePlan, draftFromPlan, replaceFuturePlan } from './mesocycle-engine'
-import { exercises, history, mesocycles, sessions } from './seed'
+import { equipmentProfiles, exercises, history, mesocycles, sessions } from './seed'
 
 const draft = () => ({ ...draftFromPlan(mesocycles[0]), revisionReason: 'Testing a deliberate plan revision.' })
 
@@ -43,6 +43,23 @@ describe('criterion-driven mesocycle planning', () => {
     })
     next.priorityRegions.forEach((region) => expect(preview.regionSets[region] ?? 0).toBeGreaterThan(0))
     expect(preview.sessions.some((session) => session.exercises.some((item) => item.role === 'tertiary'))).toBe(true)
+  })
+
+  it('prioritizes the athlete-owned ABX bench and Leg Developer within Home Gym programming', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const next = { ...draft(), priorityRegions: ['back' as const, 'quadriceps' as const, 'hamstrings' as const], maintenanceRegions: [] }
+    const preview = buildMesocyclePreview(next, {
+      exercises,
+      currentSessions: sessions,
+      history,
+      planId: 'freak-athlete-home-plan',
+      planVersion: 2,
+      equipmentProfile: home
+    })
+    const programmed = preview.sessions.flatMap((session) => session.exercises.map((planned) => planned.exerciseId))
+    expect(programmed).toContain('abx-chest-supported-db-row')
+    expect(programmed).toContain('leg-extension')
+    expect(programmed).toContain('lying-leg-curl')
   })
 
   it('starts reacclimation conservatively without adding catch-up volume', () => {
