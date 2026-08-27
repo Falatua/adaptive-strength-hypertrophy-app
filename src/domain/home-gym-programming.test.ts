@@ -4,9 +4,12 @@ import {
   HOME_GYM_PROGRAMMING_RULE_VERSION,
   homeGymAccessoryRegionAllowed,
   homeGymFrequentRowTarget,
+  homeGymInclinePressTarget,
   homeGymInitialPrescription,
   homeGymProgrammingPreference,
-  homeGymPullUpTarget
+  homeGymPullUpTarget,
+  homeGymTricepsPressId,
+  homeGymTricepsPressTarget
 } from './home-gym-programming'
 
 describe(HOME_GYM_PROGRAMMING_RULE_VERSION, () => {
@@ -17,7 +20,8 @@ describe(HOME_GYM_PROGRAMMING_RULE_VERSION, () => {
   it('strongly ranks JB preferred home movements', () => {
     const preferred = [
       'squat-press', 'abx-cambered-bar-chest-supported-row', 'abx-chest-supported-db-row',
-      'incline-barbell-press', 'incline-db-press', 'cambered-bar-bench', 'ssb-squat',
+      'incline-barbell-press', 'incline-db-press', 'two-board-press', 'close-grip-bench',
+      'spoto-press', 'cambered-bar-bench', 'ssb-squat',
       'high-bar-squat', 'bulgarian-split-squat', 'leg-extension', 'lying-leg-curl',
       'red-band-pull-apart', 'weighted-dip', 'parallel-bar-dip', 'deficit-conventional',
       'romanian-deadlift', 'stiff-leg-deadlift', 'pull-up', 'barbell-shrug'
@@ -25,6 +29,9 @@ describe(HOME_GYM_PROGRAMMING_RULE_VERSION, () => {
     preferred.forEach((exerciseId) => expect(preference(exerciseId).score).toBeGreaterThan(0))
     expect(home.equipment).toContain('deficit platform')
     expect(preference('squat-press').score).toBeGreaterThan(preference('front-squat').score)
+    expect(preference('incline-barbell-press').score).toBeGreaterThan(preference('two-board-press').score)
+    expect(preference('two-board-press').score).toBeGreaterThan(preference('cambered-bar-bench').score)
+    expect(preference('cambered-bar-bench').score).toBeGreaterThan(preference('competition-bench').score)
   })
 
   it('blocks automatic low-bar support work and de-prioritizes unlisted squat volume', () => {
@@ -49,5 +56,11 @@ describe(HOME_GYM_PROGRAMMING_RULE_VERSION, () => {
     expect([0, 1, 2].map((index) => homeGymPullUpTarget(index, 3, home))).toEqual([false, false, true])
     expect([0, 1, 2].map((index) => homeGymAccessoryRegionAllowed('calves', index, 3, home))).toEqual([false, false, true])
     expect(preference('standing-calf-raise').score).toBeLessThan(0)
+  })
+
+  it('reserves incline emphasis and rotates a stable triceps press across new block versions', () => {
+    expect([0, 1, 2].map((index) => homeGymInclinePressTarget(index, 3, home))).toEqual([true, false, false])
+    expect([0, 1, 2].map((index) => homeGymTricepsPressTarget(index, 3, home))).toEqual([false, false, true])
+    expect([1, 2, 3, 4].map(homeGymTricepsPressId)).toEqual(['two-board-press', 'close-grip-bench', 'spoto-press', 'two-board-press'])
   })
 })

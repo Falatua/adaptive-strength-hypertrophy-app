@@ -5,12 +5,41 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-26
 status: canonical-build-reference-and-active-implementation
-version: 1.66.0
+version: 1.67.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.67.0 Change Entry
+
+- Advanced the working application to private alpha 0.71.0 while keeping the 251-movement catalog, backup schema 28, and every Supabase cloud-authoritative data boundary unchanged.
+- Added R-456 through R-460 and Chapter 98 for Home Gym preference v3, incline-first pressing, block-stable Two-Board, Close-Grip, and Spoto rotation, separate exact histories, and preservation boundaries.
+- Added bench boards to the system Home Gym profile and advanced local persistence to 30 so untouched profiles receive the capability without replacing athlete-owned locations.
+- Added deterministic ranking, rotation, equipment, blueprint-frequency, and protected-flat-primary acceptance.
+
+## 98. Home Gym Incline and Triceps Press Emphasis
+
+### 98.1 Incline-First Hierarchy
+
+Automatic Home Gym support work ranks ABX incline barbell and dumbbell pressing above ordinary flat assistance. A standard round reserves an incline exposure when a suitable press is not already present and the declared time budget allows it. Competition Bench Press and any athlete-selected flat primary remain protected.
+
+### 98.2 Targeted Flat Exceptions
+
+Two-Board Press, Close-Grip Bench Press, and Spoto Press remain purposeful flat movements because they train the triceps and specific bench ranges. One is selected deterministically from the plan version and remains stable within that block. New plan versions rotate through the three rather than making one permanent.
+
+### 98.3 Exact History and Equipment
+
+Each press keeps its own canonical ID and exact completed history. Loads, repetitions, RIR, pain, notes, and progression never transfer between variants. The seeded Home Gym profile declares bench boards alongside the existing barbell, bench, and rack capabilities so Two-Board Press is executable.
+
+### 98.4 Athlete and Safety Boundaries
+
+Time fitting, equipment availability, pain, dislike status, athlete-approved movement overrides, and protected anchors outrank automatic preference. The rule changes only newly generated support work and never rewrites completed training or an active athlete-authored block.
+
+### 98.5 Persistence and Acceptance
+
+The 251-movement catalog, backup schema 28, and Supabase snapshot contract remain unchanged. Local persistence version 30 re-merges the updated untouched Home Gym profile while preserving athlete-owned locations. Acceptance covers incline-over-flat ranking, three-version triceps rotation, at least two incline exposures in a normal long-form round, targeted triceps inclusion, protected Competition Bench Press, equipment fit, profile merge, and cross-device browser regression.
 
 ### Version 1.66.0 Change Entry
 

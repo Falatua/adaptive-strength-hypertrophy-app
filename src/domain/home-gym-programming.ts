@@ -1,14 +1,21 @@
 import type { BodyRegion, EquipmentProfile, Exercise } from './types'
 
-export const HOME_GYM_PROGRAMMING_RULE_VERSION = 'home-gym-preference-v2' as const
+export const HOME_GYM_PROGRAMMING_RULE_VERSION = 'home-gym-preference-v3' as const
+
+const rotatingTricepsPresses = ['two-board-press', 'close-grip-bench', 'spoto-press'] as const
+export const HOME_GYM_TRICEPS_PRESS_IDS: readonly string[] = rotatingTricepsPresses
+const purposefulFlatPresses = new Set<string>([...rotatingTricepsPresses, 'cambered-bar-bench'])
 
 const preferredScores: Readonly<Record<string, number>> = {
   'squat-press': 24,
   'abx-cambered-bar-chest-supported-row': 22,
   'abx-chest-supported-db-row': 18,
-  'incline-barbell-press': 16,
-  'incline-db-press': 16,
-  'cambered-bar-bench': 15,
+  'incline-barbell-press': 38,
+  'incline-db-press': 35,
+  'two-board-press': 24,
+  'close-grip-bench': 23,
+  'spoto-press': 22,
+  'cambered-bar-bench': 10,
   'ssb-squat': 14,
   'high-bar-squat': 10,
   'bulgarian-split-squat': 14,
@@ -46,6 +53,21 @@ export const homeGymPullUpTarget = (sessionIndex: number, sessionCount: number, 
   return sessionIndex === sessionCount - 1
 }
 
+export const homeGymInclinePressTarget = (sessionIndex: number, sessionCount: number, profile?: EquipmentProfile) => {
+  if (!isJbHomeGym(profile) || sessionCount <= 0) return false
+  return sessionIndex === 0
+}
+
+export const homeGymTricepsPressTarget = (sessionIndex: number, sessionCount: number, profile?: EquipmentProfile) => {
+  if (!isJbHomeGym(profile) || sessionCount <= 0) return false
+  return sessionIndex === sessionCount - 1
+}
+
+export const homeGymTricepsPressId = (planVersion: number) => {
+  const stableVersion = Math.max(1, Math.trunc(planVersion))
+  return rotatingTricepsPresses[(stableVersion - 1) % rotatingTricepsPresses.length]
+}
+
 export const homeGymAccessoryRegionAllowed = (region: BodyRegion, sessionIndex: number, sessionCount: number, profile?: EquipmentProfile) => {
   if (!isJbHomeGym(profile) || region !== 'calves') return true
   return sessionCount > 0 && sessionIndex === sessionCount - 1
@@ -59,9 +81,10 @@ export const homeGymProgrammingPreference = (exercise: Exercise, profile?: Equip
   const preferred = preferredScores[exercise.id] ?? 0
   const squatPenalty = exercise.pattern === 'squat' && preferred === 0 ? -12 : 0
   const calfPenalty = exercise.primaryRegion === 'calves' ? -20 : 0
+  const generalFlatPressPenalty = exercise.family === 'Bench Press' && !purposefulFlatPresses.has(exercise.id) ? -14 : 0
   return {
     automaticEligible: true,
-    score: preferred + squatPenalty + calfPenalty,
+    score: preferred + squatPenalty + calfPenalty + generalFlatPressPenalty,
     ruleVersion: HOME_GYM_PROGRAMMING_RULE_VERSION
   }
 }

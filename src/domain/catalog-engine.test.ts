@@ -59,7 +59,7 @@ describe('exercise catalog governance', () => {
     const athleteHome = { ...structuredClone(priorHome), id: 'athlete-home', name: 'My Garage', source: 'athlete' as const, equipment: ['barbell'], constraints: ['Athlete choice'] }
     const merged = mergeSystemEquipmentProfiles([priorHome, athleteHome], equipmentProfiles)
     const upgraded = merged.find((profile) => profile.id === 'equipment-home-gym')!
-    expect(upgraded.equipment).toEqual(expect.arrayContaining(['freak athlete abx bench', 'freak athlete leg developer', 'leg extension machine', 'lying leg curl machine', 'cambered bar', 'safety squat bar', 'squat press machine', 'dip station', 'resistance bands']))
+    expect(upgraded.equipment).toEqual(expect.arrayContaining(['freak athlete abx bench', 'freak athlete leg developer', 'leg extension machine', 'lying leg curl machine', 'boards', 'cambered bar', 'safety squat bar', 'squat press machine', 'dip station', 'resistance bands']))
     expect(upgraded.constraints).toContain('Freak Athlete Hyper Pro with ABX bench and Leg Developer')
     expect(merged.find((profile) => profile.id === athleteHome.id)).toEqual(athleteHome)
   })

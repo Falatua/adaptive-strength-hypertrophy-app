@@ -59,6 +59,8 @@ The same angle identity appears in the block blueprint and active workout. Chest
 
 Home Gym preference v2 remains visible through the ordinary block blueprint rather than a hidden coaching mode. A normal three-day route should show the cambered-bar chest-supported row on two days and the pull-up lane on one day when those reserved support slots fit. The first no-history pull-up target must read as provisional 3 × 5 context, never as completed work or a demonstrated record. Exact logged pull-up sets replace that estimate. Calf support appears at most once automatically per round, while direct athlete choices remain unchanged.
 
+Home Gym preference v3 makes the pressing hierarchy visible in that same blueprint. ABX incline work should appear more often than ordinary flat assistance when the declared time budget permits. Competition Bench Press and any other athlete-selected primary stay fixed. One written Two-Board Press, Close-Grip Bench Press, or Spoto Press exposure is the block's targeted triceps exception; it remains stable throughout the block and can rotate only when a new plan version is created. Exact names remain visible so the athlete never mistakes the three histories for one interchangeable bench lane.
+
 ## Historical Performance Entry
 
 Past-performance entry uses progressive disclosure inside the selected Exercise Library movement detail. It does not open a second modal. The collapsed action stays near that movement's existing history, and the expanded panel presents familiar labeled controls in a compact responsive grid.

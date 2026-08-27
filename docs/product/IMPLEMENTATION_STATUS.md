@@ -5,12 +5,21 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.70.0
+app_version: 0.71.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.71.0 Home Gym Preference v3 Delta
+
+- Advances automatic Home Gym planning to `home-gym-preference-v3` while keeping the 251-movement catalog, backup schema 28, and Supabase cloud-authoritative snapshot contract unchanged.
+- Ranks ABX incline barbell and dumbbell pressing above general flat assistance and reserves additional incline work in a standard round when time, pain, equipment, and athlete-approved choices permit.
+- Rotates Two-Board Press, Close-Grip Bench Press, and Spoto Press by plan version as targeted triceps builders that remain stable inside a block and keep separate exact histories.
+- Preserves Competition Bench Press and any other athlete-selected primary. No completed work or active athlete-authored block is rewritten.
+- Adds bench boards to the system Home Gym profile and advances local persistence to 30 so untouched profiles gain the capability without changing athlete-owned locations.
+- Passes 501 deterministic tests. The complete 144-journey browser matrix, Pages artifact, deployment, and live-source verification remain release gates for this build.
 
 ## Private Alpha 0.70.0 Home Gym Preference v2 Delta
 

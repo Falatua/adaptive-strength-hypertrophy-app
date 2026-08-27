@@ -3,11 +3,15 @@ import { makeSets } from './training-engine'
 import { equipmentGenerationEvidence, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad } from './equipment-engine'
 import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION, prescriptionForRole, routeSessionProfile, type RouteSessionProfile } from './route-session-engine'
 import {
+  HOME_GYM_TRICEPS_PRESS_IDS,
   homeGymAccessoryRegionAllowed,
   homeGymFrequentRowTarget,
+  homeGymInclinePressTarget,
   homeGymInitialPrescription,
   homeGymProgrammingPreference,
-  homeGymPullUpTarget
+  homeGymPullUpTarget,
+  homeGymTricepsPressId,
+  homeGymTricepsPressTarget
 } from './home-gym-programming'
 import type {
   BodyRegion,
@@ -287,6 +291,9 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
       : planRouteProfile
     const sessionKey = `${context.sessionKeyPrefix ?? context.planId}-session-${index + 1}`
     const excluded = new Set<string>([anchor.id])
+    draft.movementOverrides
+      ?.filter((choice) => choice.sessionIndex === index && choice.slotIndex > 0)
+      .forEach((choice) => excluded.add(choice.exerciseId))
     const secondary = chooseSecondary(anchor, context.exercises, excluded, draft.priorityRegions, context.equipmentProfile)
     if (secondary) excluded.add(secondary.id)
     const timeAccessoryCount = draft.defaultMinutes <= 30 ? 1 : draft.defaultMinutes <= 45 ? 2 : 3
@@ -301,12 +308,29 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
         excluded.add(row.id)
       }
     }
+    const hasInclinePress = [anchor, secondary, ...reservedAccessories].some((exercise) => exercise?.family === 'Incline Press')
+    if (automaticPreferenceSlotsOpen && !hasInclinePress && reservedAccessories.length < accessoryCount && homeGymInclinePressTarget(index, requiredExposureCount, context.equipmentProfile)) {
+      const inclinePress = chooseNamedHomeGymMovement(context.exercises, excluded, 'incline-barbell-press', context.equipmentProfile)
+      if (inclinePress) {
+        reservedAccessories.push(inclinePress)
+        excluded.add(inclinePress.id)
+      }
+    }
     const hasPullUp = [anchor, secondary, ...reservedAccessories].some((exercise) => exercise?.id === 'pull-up')
     if (automaticPreferenceSlotsOpen && !hasPullUp && reservedAccessories.length < accessoryCount && homeGymPullUpTarget(index, requiredExposureCount, context.equipmentProfile)) {
       const pullUp = chooseNamedHomeGymMovement(context.exercises, excluded, 'pull-up', context.equipmentProfile)
       if (pullUp) {
         reservedAccessories.push(pullUp)
         excluded.add(pullUp.id)
+      }
+    }
+    const tricepsPressId = homeGymTricepsPressId(context.planVersion)
+    const hasTricepsPress = [anchor, secondary, ...reservedAccessories].some((exercise) => exercise?.id === tricepsPressId)
+    if (automaticPreferenceSlotsOpen && !hasTricepsPress && reservedAccessories.length < accessoryCount && homeGymTricepsPressTarget(index, requiredExposureCount, context.equipmentProfile)) {
+      const tricepsPress = chooseNamedHomeGymMovement(context.exercises, excluded, tricepsPressId, context.equipmentProfile)
+      if (tricepsPress) {
+        reservedAccessories.push(tricepsPress)
+        HOME_GYM_TRICEPS_PRESS_IDS.forEach((exerciseId) => excluded.add(exerciseId))
       }
     }
     const remainingAccessoryCount = Math.max(0, accessoryCount - reservedAccessories.length)
@@ -326,7 +350,11 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
         reservedAccessories.some((reserved) => reserved.id === exercise.id)
           ? exercise.id === 'pull-up'
             ? 'Build repeatable pull-up strength from the current provisional capacity; completed sets will replace this estimate.'
-            : 'Keep low-fatigue rowing present across most Home Gym sessions for upper-back development.'
+            : exercise.id === 'incline-barbell-press'
+              ? 'Emphasize ABX incline pressing instead of adding another general flat-press exposure.'
+              : exercise.id === tricepsPressId
+                ? 'Build triceps with this block’s selected flat-press exception.'
+                : 'Keep low-fatigue rowing present across most Home Gym sessions for upper-back development.'
           : draft.priorityRegions.includes(exercise.primaryRegion) ? `Develop ${exercise.primaryRegion} for the active mesocycle.` : `Maintain ${exercise.primaryRegion} with a recoverable dose.`,
         sessionKey,
         context,
@@ -410,7 +438,8 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
       `${draft.defaultMinutes} minutes caps each generated session before optional work is added.`,
       ...(homeGymFrequentRowTarget(0, requiredExposureCount, context.equipmentProfile) ? [
         'Home Gym support work reserves a low-fatigue row in most sessions and one weekly pull-up exposure when time, equipment, pain, and athlete-approved block choices permit.',
-        'The initial pull-up target is a provisional 3 × 5 capacity estimate, not completed history; exact logged sets replace it.'
+        'The initial pull-up target is a provisional 3 × 5 capacity estimate, not completed history; exact logged sets replace it.',
+        `Home Gym pressing favors ABX incline work over general flat assistance and rotates one targeted triceps exception by block: ${context.exercises.find((exercise) => exercise.id === homeGymTricepsPressId(context.planVersion))?.name ?? 'Two-Board, Close-Grip, or Spoto Press'}.`
       ] : []),
       ...(draft.movementOverrides?.length ? [`${draft.movementOverrides.length} athlete-approved movement or incline choice${draft.movementOverrides.length === 1 ? '' : 's'} will repeat in each generated training round until the block is revised.`] : []),
       ...(context.equipmentProfile ? [

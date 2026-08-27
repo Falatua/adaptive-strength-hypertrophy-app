@@ -90,6 +90,36 @@ describe('criterion-driven mesocycle planning', () => {
     expect(preview.explanations).toContain('The initial pull-up target is a provisional 3 × 5 capacity estimate, not completed history; exact logged sets replace it.')
   })
 
+  it('favors incline pressing and keeps a block-stable rotating flat press only for targeted triceps work', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const next = { ...draft(), defaultMinutes: 90, strengthAnchors: ['competition-squat', 'competition-bench', 'cambered-row'], priorityRegions: ['chest' as const, 'back' as const, 'triceps' as const], maintenanceRegions: [] }
+    const previews = [1, 2, 3].map((planVersion) => buildMesocyclePreview(next, { exercises, currentSessions: [], history: [], planId: `home-press-v${planVersion}`, planVersion, equipmentProfile: home }))
+
+    previews.forEach((preview, index) => {
+      const programmed = preview.sessions.flatMap((session) => session.exercises.map((planned) => planned.exerciseId))
+      expect(programmed.filter((id) => ['incline-barbell-press', 'incline-db-press'].includes(id)).length).toBeGreaterThanOrEqual(2)
+      expect(programmed).toContain(['two-board-press', 'close-grip-bench', 'spoto-press'][index])
+      expect(programmed.filter((id) => ['two-board-press', 'close-grip-bench', 'spoto-press'].includes(id))).toHaveLength(1)
+      expect(programmed).toContain('competition-bench')
+      expect(new Set(preview.sessions.flatMap((session) => session.exercises.map((planned) => planned.id))).size).toBe(preview.sessions.flatMap((session) => session.exercises).length)
+    })
+  })
+
+  it('keeps an angle-only Home Gym override unique when automatic reserved slots stand down', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const next = {
+      ...draft(),
+      defaultMinutes: 90,
+      movementOverrides: [{ sessionIndex: 0, slotIndex: 1, exerciseId: 'incline-db-press', benchAngleDeg: 45, source: 'athlete' as const }]
+    }
+    const preview = buildMesocyclePreview(next, { exercises, currentSessions: [], history: [], planId: 'home-angle-override', planVersion: 2, equipmentProfile: home })
+    const firstDayIds = preview.sessions[0].exercises.map((planned) => planned.exerciseId)
+    const incline = preview.sessions[0].exercises[1]
+
+    expect(firstDayIds.filter((exerciseId) => exerciseId === 'incline-db-press')).toHaveLength(1)
+    expect(incline.sets.every((workSet) => workSet.benchAngleDeg === 45)).toBe(true)
+  })
+
   it('uses the available Home Gym deficit platform for the highest-ranked barbell hinge builder', () => {
     const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
     const next = { ...draft(), strengthAnchors: ['conventional-deadlift'], weeklyOpportunities: 1, defaultMinutes: 60, priorityRegions: ['hamstrings' as const], maintenanceRegions: [] }

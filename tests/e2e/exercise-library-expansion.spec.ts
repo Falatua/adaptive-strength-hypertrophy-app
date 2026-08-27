@@ -61,7 +61,7 @@ test('finds leg press in the expanded library and replaces a squat through full-
   await expect(page.locator('.exercise-card').first()).toContainText("The replaced movement's load was not copied")
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(29)
+  expect(persisted.version).toBe(30)
   expect(persisted.state.exercises).toHaveLength(251)
   expect(persisted.state.substitutionEvents.at(-1)).toMatchObject({ originalExerciseId: 'competition-squat', selectedExerciseId: 'leg-press-45' })
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))

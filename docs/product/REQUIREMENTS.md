@@ -2859,7 +2859,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Preference v2 must preserve protected anchors, saved block choices, exact history, local persistence, backup schema, and Supabase cloud authority. Acceptance must prove row frequency, pull-up calibration and history takeover, calf ceiling, hinge and shrug ranking, and non-Home-Gym isolation.
 - Detail: `src/domain/home-gym-programming.test.ts`, `src/domain/mesocycle-engine.test.ts`, and Build Bible Chapter 97
 
+### R-456 Home Gym Incline-First Pressing Hierarchy
+- Status: implemented
+- Provenance: from-user
+- Requirement: Automatic Home Gym support work must rank ABX incline barbell and dumbbell presses above ordinary flat assistance and reserve extra incline work in a normal round when time, equipment, pain, and athlete-approved choices permit.
+- Detail: `src/domain/home-gym-programming.ts`, `src/domain/mesocycle-engine.ts`, and Build Bible Chapter 98
+
+### R-457 Targeted Triceps Press Rotation
+- Status: implemented
+- Provenance: from-user
+- Requirement: Two-Board Press, Close-Grip Bench Press, and Spoto Press must be preferred triceps builders. One selection must remain stable inside a block and rotate deterministically across new plan versions.
+- Detail: `src/domain/home-gym-programming.ts`, `src/domain/mesocycle-engine.ts`, and Build Bible Chapter 98
+
+### R-458 Exact Press-Variation History Separation
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Two-Board, Close-Grip, Spoto, incline, and flat bench variations must retain separate canonical histories, prescriptions, notes, pain evidence, and progression clocks. No variation may lend load or readiness to another.
+- Detail: `src/domain/seed.ts`, `src/domain/mesocycle-engine.ts`, and Build Bible Chapter 98
+
+### R-459 Home Gym Bench-Board Capability
+- Status: implemented
+- Provenance: from-user
+- Requirement: The system Home Gym profile must declare bench boards so Two-Board Press is executable, and untouched profiles must receive the capability without changing athlete-owned locations.
+- Detail: `src/domain/seed.ts`, `src/domain/catalog-engine.ts`, `src/store/useAppStore.ts`, and Build Bible Chapter 98
+
+### R-460 Preference-v3 Preservation and Acceptance
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Preference v3 must preserve athlete-selected flat primaries, saved block overrides, time limits, pain and equipment gates, completed history, backup schema, and Supabase authority. Acceptance must prove incline priority, three-version rotation, exact identity, board availability, and non-Home-Gym isolation.
+- Detail: `src/domain/home-gym-programming.test.ts`, `src/domain/mesocycle-engine.test.ts`, and Build Bible Chapter 98
+
 ## Thread Coverage Audit
+
+### 2026-08-26 Incline and Triceps Press Priorities
+- Scope: JB prioritized more incline pressing than flat pressing while identifying Two-Board Press, Close-Grip Bench Press, and Spoto Press as valuable triceps builders.
+- Result: Added R-456 through R-460 and Build Bible Chapter 98. Private alpha 0.71.0 advances `home-gym-preference-v3`, makes incline pressing the automatic emphasis, rotates one targeted triceps press by new block version, keeps each exact history separate, and adds bench boards to Home Gym.
+- Status: Implemented and locally verified with 501 deterministic tests. The complete browser, Pages-artifact, deployment, and live-source checks remain release gates.
 
 ### 2026-08-26 Home Gym Hinge, Pull-Up, Row, and Calf Priorities
 - Scope: JB prioritized barbell deficit, Romanian, and stiff-leg deadlifts, barbell shrugs, pull-up progression from approximately 3 × 5, rows in most workouts with the cambered-bar chest-supported row favored, more upper-body than lower-body support work, and very little automatic calf work.
@@ -3224,6 +3259,8 @@ This is the canonical traceability index for every durable requirement JB states
 - Exact boundary and default setting for focused-training or low-decoration mode.
 
 ## Change Log
+
+- 2026-08-26: Added R-456 through R-460 and Build Bible Chapter 98 for Home Gym preference v3, incline-first pressing, block-stable Two-Board, Close-Grip, and Spoto rotation, exact-history separation, bench-board availability, and athlete-choice preservation. Private alpha 0.71.0 preserves backup schema 28 and the Supabase snapshot contract while advancing local persistence to 30.
 
 - 2026-08-26: Added R-451 through R-455 and Build Bible Chapter 97 for Home Gym preference v2, explicit deficit-platform availability, preferred barbell hinge and shrug work, rows in most sessions, weekly pull-up progression from a provisional 3 × 5 capacity, exact-history takeover, upper-body support bias, low calf frequency, and athlete-choice preservation. Private alpha 0.70.0 preserves backup schema 28 and the Supabase snapshot contract while advancing local persistence to 29.
 
