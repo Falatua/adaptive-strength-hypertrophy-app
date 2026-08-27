@@ -5,12 +5,18 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-26
 status: canonical-build-reference-and-active-implementation
-version: 1.62.0
+version: 1.63.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.63.0 Change Entry
+
+- Advanced the working application to private alpha 0.67.0 while keeping backup schema 28, local persistence 26, and every cloud-authoritative training-data boundary unchanged.
+- Added R-436 through R-440 and Chapter 94 for anatomically targeted body-region art, a clear preference symbol, movement-specific visual mapping, automated image integrity, and all-flow responsive acceptance.
+- Expanded the movement system from twenty broad generated scenes to forty-one mapped scenes backed by forty reviewed local files, while preserving written exercise identity and saved setup as the authority.
 
 ### Version 1.62.0 Change Entry
 
@@ -6777,6 +6783,28 @@ The accepted source atlases, authoring tool, prompt direction, generation date, 
 ### 93.5 Acceptance
 
 Release acceptance verifies all five destination asset paths, more than ten rendered movement-family images, empty decorative image alternatives inside labeled semantic wrappers, the exact written Level label, `box-shadow: none`, avatar containment, console integrity, and horizontal containment across desktop Chromium, mobile Chromium, and iPhone WebKit. Visual review checks the actual compact-phone navigation, Library cards, contact sheet, and athlete profile rather than relying only on file existence.
+
+## 94. Anatomical and Movement Image Accuracy
+
+### 94.1 Body-Region Identity
+
+Library browse and filter controls use twelve original body-region emblems. Chest, back, shoulders, quadriceps, hamstrings, glutes, biceps, triceps, forearms, calves, trunk, and whole body use the front or rear view that makes the selected anatomy most legible. One effort-orange target is the visual authority, and the written region label remains the semantic authority.
+
+### 94.2 Preference Symbol
+
+The top-level `My preferences` card uses a standard blue thumbs-up inside a quiet rounded boundary. It is not reused as an exercise preference value by itself: preferred and avoid controls retain written labels and separate thumbs-up and thumbs-down states.
+
+### 94.3 Movement-Specific Mapping
+
+The image map distinguishes materially different postures and equipment. Push-up, parallel-bar dip, rear-delt fly, back extension, kettlebell swing, split squat, lunge, step-up, leg press, hack squat, hip abduction, hip adduction, Nordic curl, pull-up, pullover, upright row, face pull, shrug, sled work, seated calf raise, and tibialis raise no longer inherit misleading broad-family scenes. Specific movement words win before generic equipment or pattern words, including Smith-machine split squat and leg-press calf raise boundaries.
+
+### 94.4 Asset Integrity and Runtime Boundary
+
+The release contains five destination files, twelve body-region files, forty movement files, six location files, four athlete-form files, and the ForgePath mark. Automated QC validates the required inventories, PNG signatures, dimensions, transparency-capable color type, SVG structure, and referenced paths before lint, deterministic tests, or compilation. GPT Images remains an authoring tool only, with source atlases and prompt direction retained beside the specification and no runtime provider dependency.
+
+### 94.5 Rendered Acceptance
+
+Browser acceptance opens onboarding and all five primary destinations, asserts every rendered image has completed with nonzero natural dimensions, verifies no page creates horizontal overflow, and checks the exact body-region and representative movement asset paths. The matrix covers desktop Chromium, mobile Chromium, and iPhone WebKit. Final visual review includes body-region, movement-supplement, category-card, filter-chip, exercise-grid, and location-art screenshots.
 
 ### Version 1.47.0 Change Entry
 

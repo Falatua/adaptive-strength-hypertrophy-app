@@ -8,6 +8,16 @@ async function enterCleanProfile(page: import('@playwright/test').Page) {
   await expect(page.getByRole('heading', { name: 'Your next useful win.' })).toBeVisible()
 }
 
+async function expectHealthyImages(page: import('@playwright/test').Page) {
+  const images = page.locator('img')
+  expect(await images.count()).toBeGreaterThan(0)
+  const results = await images.evaluateAll((elements) => elements.map((element) => ({
+    src: element.getAttribute('src'), complete: element.complete,
+    naturalWidth: element.naturalWidth, naturalHeight: element.naturalHeight
+  })))
+  expect(results.filter((image) => !image.complete || image.naturalWidth < 1 || image.naturalHeight < 1)).toEqual([])
+}
+
 test('finds leg press in the expanded library and replaces a squat through full-library browse', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
@@ -99,15 +109,75 @@ test('uses the generated ForgePath destination and movement-family icon system',
   if (testInfo.project.name === 'mobile-chromium') await page.locator('.bottom-nav').screenshot({ path: 'output/playwright/generated-bottom-navigation-mobile.png' })
 
   await page.getByRole('button', { name: 'Library', exact: true }).click()
+  await expect(page.locator('.library-categories img[src*="/icons/body-regions/all.png"]')).toBeVisible()
+  await expect(page.locator('.library-categories').getByText('My preferences').locator('..').locator('svg.lucide-thumbs-up')).toBeVisible()
+  await page.getByRole('button', { name: 'Body part' }).click()
+  await expect(page.locator('.filter-chips img[src*="/icons/body-regions/"]')).toHaveCount(12)
+  for (const region of ['all', 'chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']) {
+    await expect(page.locator(`.filter-chips img[src*="/icons/body-regions/${region}.png"]`)).toHaveCount(1)
+  }
   const movementArt = page.locator('.exercise-grid .movement-art img[src*="/icons/movements/"]')
   await expect(movementArt.first()).toBeVisible()
   expect(await movementArt.count()).toBeGreaterThan(10)
   await expect(movementArt.first()).toHaveAttribute('alt', '')
   await expect(movementArt.first().locator('..')).toHaveAttribute('role', 'img')
-  if (testInfo.project.name === 'mobile-chromium') await page.locator('.exercise-grid').screenshot({ path: 'output/playwright/generated-library-movements-mobile.png' })
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.locator('.library-categories').screenshot({ path: 'output/playwright/library-body-preferences-mobile.png' })
+    await page.locator('.filter-stack').screenshot({ path: 'output/playwright/body-region-filters-mobile.png' })
+    await page.locator('.exercise-grid').screenshot({ path: 'output/playwright/generated-library-movements-mobile.png' })
+  }
+
+  const librarySearch = page.getByPlaceholder('Search a movement or its other names...')
+  for (const [movement, asset] of [
+    ['Push-Up', 'push-up'], ['Weighted Dip', 'dip'], ['Reverse Pec Deck', 'rear-delt-fly'],
+    ['45-Degree Back Extension', 'back-extension'], ['Kettlebell Swing', 'kettlebell-swing'],
+    ['Smith Machine Split Squat', 'split-squat'], ['Walking Lunge', 'lunge'], ['Dumbbell Step-Up', 'step-up'],
+    ['Hack Squat', 'hack-squat'], ['Seated Hip Abduction', 'hip-abduction'], ['Hip Adduction Machine', 'hip-adduction'],
+    ['Nordic Hamstring Curl', 'nordic-curl'], ['Pull-Up', 'pull-up'], ['Dumbbell Pullover', 'pullover'],
+    ['Cable Upright Row', 'upright-row'], ['Cable Face Pull', 'face-pull'], ['Barbell Shrug', 'shrug'],
+    ['Sled Push', 'sled-push'], ['Seated Calf Raise', 'seated-calf'], ['Tibialis Raise', 'tibialis-raise']
+  ] as const) {
+    await librarySearch.fill(movement)
+    const card = page.getByRole('heading', { name: movement, exact: true }).locator('..')
+    await expect(card.locator(`img[src*="/icons/movements/${asset}.png"]`), movement).toBeVisible()
+  }
+  await expectHealthyImages(page)
 
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  expect(browserErrors).toEqual([])
+})
+
+test('loads image art cleanly through onboarding and every primary destination', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await page.goto('/')
+  await page.evaluate(() => localStorage.clear())
+  await page.reload()
+
+  await expect(page.locator('img[src*="/athlete-forms/apprentice.png"]')).toBeVisible()
+  await expectHealthyImages(page)
+  await page.getByRole('button', { name: /Continue/ }).click()
+  await page.getByRole('button', { name: /Continue/ }).click()
+  await expect(page.locator('.onboarding-equipment img[src*="/locations/"]')).toHaveCount(3)
+  await expectHealthyImages(page)
+  if (testInfo.project.name === 'mobile-chromium') await page.locator('.onboarding-equipment').screenshot({ path: 'output/playwright/onboarding-location-art-mobile.png' })
+
+  await page.evaluate(() => localStorage.clear())
+  await page.reload()
+  await page.getByRole('button', { name: /Quick Start/ }).click()
+  for (const [destination, heading] of [
+    ['Today', 'Your next useful win.'], ['Plan', 'The plan bends. The goal stays visible.'],
+    ['Progress', 'Your training, made legible.'], ['Library', 'Find it. Rate it. Train it.'],
+    ['You', 'The app learns. You stay in charge.']
+  ] as const) {
+    await page.getByRole('button', { name: destination, exact: true }).click()
+    await expect(page.getByRole('heading', { name: heading })).toBeVisible()
+    await expectHealthyImages(page)
+    const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+    expect(dimensions.scrollWidth, destination).toBeLessThanOrEqual(dimensions.clientWidth)
+  }
   expect(browserErrors).toEqual([])
 })
 

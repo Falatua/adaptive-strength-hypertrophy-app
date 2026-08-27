@@ -47,23 +47,8 @@ export function ForgeGlyph({ name, size = 20, className = '' }: { name: ForgeGly
   return <svg className={`forge-glyph ${className}`} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false" shapeRendering="crispEdges">{glyphs[name]}</svg>
 }
 
-const regionHighlights: Record<BodyRegion | 'all', ReactNode> = {
-  all: <path d="M9 7h6v7H9zM6 8h3v7H6zm9 0h3v7h-3zM9 14h3v8H9zm3 0h3v8h-3z" />,
-  chest: <path d="M9 8h6v3H9z" />,
-  back: <path d="M9 8h6v6H9z" />,
-  shoulders: <path d="M6 8h3v3H6zm9 0h3v3h-3z" />,
-  quadriceps: <path d="M9 14h3v5H9zm3 0h3v5h-3z" />,
-  hamstrings: <path d="M9 15h2v5H9zm4 0h2v5h-2z" />,
-  glutes: <path d="M9 12h6v3H9z" />,
-  biceps: <path d="M6 9h3v3H6zm9 0h3v3h-3z" />,
-  triceps: <path d="M6 11h3v4H6zm9 0h3v4h-3z" />,
-  forearms: <path d="M5 14h4v3H5zm10 0h4v3h-4z" />,
-  calves: <path d="M9 18h3v4H9zm3 0h3v4h-3z" />,
-  trunk: <path d="M10 10h4v5h-4z" />
-}
-
 export function BodyRegionGlyph({ region, size = 18 }: { region: BodyRegion | 'all'; size?: number }) {
-  return <svg className="forge-glyph body-region-glyph" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false" shapeRendering="crispEdges"><path d="M10 2h4v4h-4zM9 7h6v7H9zM6 8h3v7H6zm9 0h3v7h-3zM9 14h3v8H9zm3 0h3v8h-3z" className="forge-glyph__muted" />{regionHighlights[region]}</svg>
+  return <img className="forge-glyph body-region-glyph body-region-glyph--generated" src={`${import.meta.env.BASE_URL}icons/body-regions/${region}.png`} width={size} height={size} alt="" aria-hidden="true" />
 }
 
 const patternPaths: Record<MovementPattern, ReactNode> = {

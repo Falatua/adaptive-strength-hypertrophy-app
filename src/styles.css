@@ -901,7 +901,9 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .library-categories button > strong { margin-top: 15px; }
 .library-categories button > small { margin-top: 4px; font-size: .67rem; }
 .library-categories button > svg { position: absolute; right: 12px; bottom: 12px; color: var(--dim); }
-.category-pixel { display: grid; place-items: center; width: 40px; height: 40px; background: #293123; color: var(--lime); box-shadow: 4px 4px 0 #11140d; }
+.category-pixel { display: grid; place-items: center; width: 54px; height: 54px; color: var(--lime); box-shadow: none; }
+.category-pixel > img { width: 50px; height: 50px; object-fit: contain; }
+.category-pixel--preference { border: 1px solid rgb(97 200 255 / 26%); border-radius: 13px; background: rgb(97 200 255 / 7%); color: var(--blue); }
 .category-pixel--squat { color: var(--orange); }
 .category-pixel--target, .category-pixel--heart { color: var(--blue); }
 .library-browser { scroll-margin-top: 14px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); overflow: hidden; }
@@ -914,6 +916,7 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .filter-chips { display: flex; align-items: center; gap: 6px; padding: 13px 16px; overflow: auto; border-bottom: 1px solid var(--line); }
 .filter-chips > span { flex: none; margin-right: 4px; color: var(--muted); font: 700 .62rem var(--mono); text-transform: uppercase; letter-spacing: .08em; }
 .filter-chips button { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.filter-chips .body-region-glyph--generated { flex: none; object-fit: contain; }
 .exercise-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 14px; background: #10130f; }
 .library-card { min-width: 0; overflow: hidden; padding: 18px 18px 0; border: 1px solid var(--line-bright); border-radius: 14px; background: var(--surface); box-shadow: 0 8px 22px rgb(0 0 0 / 16%); }
 .library-card.is-preferred { border-color: rgb(231 255 88 / 44%); }

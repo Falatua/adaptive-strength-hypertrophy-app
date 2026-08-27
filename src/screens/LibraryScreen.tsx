@@ -341,8 +341,8 @@ export function LibraryScreen() {
       </header>
 
       <section className="library-categories">
-        <button aria-pressed={browseDimension === 'body'} onClick={() => openBrowseDimension('body')}><span className="category-pixel category-pixel--body"><BodyRegionGlyph region="all" size={22} /></span><strong>Body part</strong><small>{bodyRegionFilterIds.length} areas</small></button>
-        <button aria-pressed={browseDimension === 'favorites'} onClick={() => openBrowseDimension('favorites')}><span className="category-pixel category-pixel--preference"><ForgeGlyph name="choice" size={22} /></span><strong>My preferences</strong><small>{activeExercises.filter((exercise) => exercise.favorite).length} preferred · {activeExercises.filter((exercise) => exercise.disliked).length} avoid</small></button>
+        <button aria-pressed={browseDimension === 'body'} onClick={() => openBrowseDimension('body')}><span className="category-pixel category-pixel--body"><BodyRegionGlyph region="all" size={50} /></span><strong>Body part</strong><small>{bodyRegionFilterIds.length} areas</small></button>
+        <button aria-pressed={browseDimension === 'favorites'} onClick={() => openBrowseDimension('favorites')}><span className="category-pixel category-pixel--preference"><ThumbsUp size={30} aria-hidden="true" /></span><strong>My preferences</strong><small>{activeExercises.filter((exercise) => exercise.favorite).length} preferred · {activeExercises.filter((exercise) => exercise.disliked).length} avoid</small></button>
         <button className="library-view-all" aria-pressed={browseDimension === null && region === 'all' && preferenceFilter === 'all' && !search} onClick={clearFilters}><span className="category-pixel category-pixel--target"><ForgeGlyph name="library" size={22} /></span><strong>View all</strong><small>{activeExercises.length} movements</small></button>
       </section>
 
@@ -354,7 +354,7 @@ export function LibraryScreen() {
         </div>
         {!filtersOpen && <div className="library-filter-summary"><ForgeGlyph name="choice" size={15} /><span>{region === 'all' ? 'All body parts' : regionFilters.find((item) => item.id === region)?.label} · {preferenceFilter === 'all' ? 'All preferences' : preferenceFilter}</span></div>}
         {filtersOpen && <div className="filter-stack" id="library-filter-panel">
-          <div className="filter-chips" aria-label="Body part and weak point filter"><span>Body part</span>{regionFilters.map((item) => <button key={item.id} className={region === item.id ? 'selected' : ''} aria-pressed={region === item.id} onClick={() => setRegion(item.id)}><BodyRegionGlyph region={item.id} size={16} />{item.label}</button>)}</div>
+          <div className="filter-chips" aria-label="Body part and weak point filter"><span>Body part</span>{regionFilters.map((item) => <button key={item.id} className={region === item.id ? 'selected' : ''} aria-pressed={region === item.id} onClick={() => setRegion(item.id)}><BodyRegionGlyph region={item.id} size={20} />{item.label}</button>)}</div>
 
           <div className="filter-chips filter-chips--availability" aria-label="Movement preference filter"><span>Preference</span><button className={preferenceFilter === 'all' ? 'selected' : ''} aria-pressed={preferenceFilter === 'all'} onClick={() => setPreferenceFilter('all')}>All</button><button className={preferenceFilter === 'preferred' ? 'selected' : ''} aria-pressed={preferenceFilter === 'preferred'} onClick={() => setPreferenceFilter('preferred')}><ThumbsUp size={14} /> Preferred</button><button className={preferenceFilter === 'avoid' ? 'selected' : ''} aria-pressed={preferenceFilter === 'avoid'} onClick={() => setPreferenceFilter('avoid')}><ThumbsDown size={14} /> Avoid</button><button onClick={clearFilters}>Reset</button></div>
         </div>}

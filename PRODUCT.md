@@ -120,7 +120,8 @@ Calibration is a permanent learning loop, not a one-time onboarding gate. Confid
 ## Exercise Preferences
 
 - Every movement has one programming preference: preferred, neutral, or avoid. The Library presents these as clear thumbs-up and thumbs-down controls with written labels.
-- Library body regions and movement patterns use one original, GPT Images-authored ForgePath emblem family. A pattern or family icon is navigational guidance, not a claim that one generic drawing exactly depicts every exercise variation.
+- Library body regions use twelve anatomically targeted GPT Images-authored emblems with the selected region highlighted on the clearest front or rear view. `My preferences` uses a recognizable thumbs-up, and every image remains paired with authoritative written text.
+- Movement art uses forty-one mapped scenes backed by forty local files so materially different setups such as push-up, dip, pull-up, rear-delt fly, leg press, hack squat, split squat, Nordic curl, seated calf raise, and tibialis raise do not collapse into misleading generic artwork. The exact written movement and saved setup remain authoritative.
 - Today, Plan, Progress, Library, and You use a matching five-icon destination family on phone and desktop. Written labels and current-state semantics remain authoritative; the image never replaces the destination name.
 - Preferred movements rank higher when ForgePath selects new secondary work, accessories, or substitutions. Preference never overrides pain, equipment availability, goal specificity, or completed-history truth.
 - Avoided movements are excluded from newly generated secondary work, accessories, and substitution recommendations.

@@ -2739,7 +2739,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Destination icons, movement-family art, and the written level badge must pass desktop Chromium, mobile Chromium, iPhone WebKit, missing-alt review, console integrity, and horizontal-containment acceptance. A generated image failure must not remove the written destination or exercise identity.
 - Detail: `tests/e2e/exercise-library-expansion.spec.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 93
 
+### R-436 Anatomically Accurate Body-Region Art
+- Status: implemented
+- Provenance: from-user
+- Requirement: Every Library body-part browse and filter option must use a fitting front or rear figure with only the selected chest, back, shoulders, quadriceps, hamstrings, glutes, biceps, triceps, forearms, calves, trunk, or whole-body region emphasized. The written label remains authoritative.
+- Detail: `public/icons/body-regions/`, `src/components/ForgeGlyph.tsx`, and Build Bible Chapter 94
+
+### R-437 Clear My Preferences Symbol
+- Status: implemented
+- Provenance: from-user
+- Requirement: The top Library `My preferences` category must use a recognizable thumbs-up rather than the generic choice glyph, retain its written label and counts, and avoid a hard drop shadow.
+- Detail: `src/screens/LibraryScreen.tsx`, `src/styles.css`, and Build Bible Chapter 94
+
+### R-438 Movement-Specific Image Accuracy
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Exercise art must depict the defining pose and equipment closely enough that materially different movements do not inherit misleading generic scenes. Specific movement identity wins before equipment and broad pattern words, while exact written exercise and setup data remain authoritative.
+- Detail: `src/domain/movement-art.ts`, `public/icons/movements/`, and Build Bible Chapter 94
+
+### R-439 Automatic Shipped-Image Integrity Gate
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Every release check must validate required image inventories, PNG signatures, dimensions, transparency-capable body and movement art, SVG structure, referenced asset existence, and the expected movement-scene coverage before compilation can pass.
+- Detail: `scripts/qc-image-assets.mjs`, `package.json`, and Build Bible Chapter 94
+
+### R-440 All-Flow Rendered Image Acceptance
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Release acceptance must inspect onboarding plus Today, Plan, Progress, Library, and You, verify every rendered image loads with nonzero natural dimensions, verify representative corrected movement paths and all body-region paths, and retain console and horizontal-containment checks across desktop Chromium, mobile Chromium, and iPhone WebKit.
+- Detail: `tests/e2e/exercise-library-expansion.spec.ts` and Build Bible Chapter 94
+
 ## Thread Coverage Audit
+
+### 2026-08-26 Anatomical and Movement Image Accuracy
+- Scope: JB requested more fitting and accurate body-part images, a thumbs-up for `My preferences`, and thorough image QC across all tabs, flows, and interfaces.
+- Result: Added R-436 through R-440 and Build Bible Chapter 94. Private alpha 0.67.0 ships twelve anatomically targeted body-region emblems, a clear preference symbol, forty-one mapped movement scenes backed by forty local files, an automatic shipped-image gate, and all-flow rendered acceptance.
+- Status: Implemented and locally verified with 483 deterministic tests plus targeted browser acceptance across desktop Chromium, mobile Chromium, and iPhone WebKit. Full browser, Pages-artifact, deployment, and live-source verification remain the release gates for this build.
 
 ### 2026-08-26 Mobile Navigation, Library Art, and Level Badge
 - Scope: JB rejected the existing mobile destination and Exercise Library icon art, requested GPT Images replacements, asked for `FL1` to become `Level 1`, and removed the level-pill shadow.
@@ -3084,6 +3119,8 @@ This is the canonical traceability index for every durable requirement JB states
 - Exact boundary and default setting for focused-training or low-decoration mode.
 
 ## Change Log
+
+- 2026-08-26: Added R-436 through R-440 and Build Bible Chapter 94 for anatomically targeted body-region art, a clear `My preferences` thumbs-up, movement-specific visual mapping, automatic shipped-image integrity, and onboarding plus all-destination rendered acceptance. Private alpha 0.67.0 preserves backup schema 28 and local persistence 26.
 
 - 2026-08-26: Added R-431 through R-435 and Build Bible Chapter 93 for the GPT Images-authored destination and Exercise Library icon families, local provenance and runtime independence, the written contained shadow-free Level badge, and cross-device acceptance. Private alpha 0.66.0 preserves backup schema 28 and local persistence 26.
 

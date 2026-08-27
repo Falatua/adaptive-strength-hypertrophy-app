@@ -119,6 +119,8 @@ The strongest first concepts are a plate stack that fills one plate at a time, a
 
 Generated media is an authoring input, not a runtime dependency. Accepted work must be exported, optimized, reviewed, and stored as a versioned local app asset with its prompt, source tool, generation date, license or usage basis, edit history, and approval state. No provider key or generation request belongs in the browser bundle.
 
+Library body-region emblems must make the selected anatomy unmistakable at mobile chip size by using an appropriate front or rear view and one bounded orange target area. Movement art must depict the defining posture and equipment of its mapped family; distinct families must not share art when doing so would create a materially wrong pose or implement. `My preferences` uses the standard thumbs-up metaphor. Every shipped image must pass inventory, PNG integrity, transparency, browser loading, console, responsive containment, contact-sheet, and rendered-flow review.
+
 Do not show a loader for an operation that resolves immediately. If a real wait becomes perceptible, show plain status first and introduce motion only when it improves reassurance or continuity. Never add delay so an animation can finish. Loops must end or yield cleanly as soon as the operation completes.
 
 Prefer lightweight WebM, AVIF, WebP, PNG sequences, SVG, CSS, or canvas according to the visual. Avoid GIF when a smaller accessible format is available. Decorative motion must be lazy-loaded, must not block the first useful action, and should remain under a 350 KB compressed mobile budget per loading asset unless measured evidence justifies an exception.

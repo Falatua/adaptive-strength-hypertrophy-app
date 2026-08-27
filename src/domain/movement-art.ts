@@ -11,35 +11,74 @@ export type MovementScene =
   | 'bench' | 'incline' | 'fly' | 'deadlift' | 'squat' | 'goodMorning' | 'machineSquat'
   | 'legCurl' | 'legExtension' | 'hipThrust' | 'row' | 'pulldown' | 'overhead'
   | 'lateralRaise' | 'triceps' | 'curl' | 'calf' | 'trunk' | 'carry' | 'dumbbell'
+  | 'pushUp' | 'dip' | 'rearDeltFly' | 'backExtension' | 'kettlebellSwing'
+  | 'splitSquat' | 'lunge' | 'stepUp' | 'legPress' | 'hackSquat' | 'hipAbduction'
+  | 'hipAdduction' | 'nordicCurl' | 'pullUp' | 'pullover' | 'uprightRow'
+  | 'facePull' | 'shrug' | 'sledPush' | 'seatedCalf' | 'tibialisRaise'
+
+export const movementSceneAssets: Record<MovementScene, string> = {
+  bench: 'bench', incline: 'incline', fly: 'fly', deadlift: 'deadlift', squat: 'squat',
+  goodMorning: 'good-morning', machineSquat: 'machine-squat', legCurl: 'leg-curl',
+  legExtension: 'leg-extension', hipThrust: 'hip-thrust', row: 'row', pulldown: 'pulldown',
+  overhead: 'overhead', lateralRaise: 'lateral-raise', triceps: 'triceps', curl: 'curl',
+  calf: 'calf', trunk: 'trunk', carry: 'carry', dumbbell: 'dumbbell', pushUp: 'push-up',
+  dip: 'dip', rearDeltFly: 'rear-delt-fly', backExtension: 'back-extension', kettlebellSwing: 'kettlebell-swing',
+  splitSquat: 'split-squat', lunge: 'lunge', stepUp: 'step-up', legPress: 'machine-squat',
+  hackSquat: 'hack-squat', hipAbduction: 'hip-abduction', hipAdduction: 'hip-adduction',
+  nordicCurl: 'nordic-curl', pullUp: 'pull-up', pullover: 'pullover', uprightRow: 'upright-row',
+  facePull: 'face-pull', shrug: 'shrug', sledPush: 'sled-push', seatedCalf: 'seated-calf',
+  tibialisRaise: 'tibialis-raise'
+}
 
 // Name and family keywords come first because they describe the actual movement.
 // The pattern is the fallback, so a custom movement still gets a fitting picture.
 const keywordScenes: [RegExp, MovementScene][] = [
   // Order matters: the most specific movement wins, so "Incline Dumbbell Curl" reads as a curl
   // and "Leg Press Calf Raise" reads as a calf raise rather than the machine it uses.
-  [/calf|soleus|tibialis|toe raise/i, 'calf'],
-  [/leg curl|hamstring curl|glute-?ham/i, 'legCurl'],
+  [/seated calf/i, 'seatedCalf'],
+  [/tibialis|toe raise/i, 'tibialisRaise'],
+  [/calf|soleus/i, 'calf'],
+  [/nordic hamstring|nordic curl|glute-?ham|razor curl/i, 'nordicCurl'],
+  [/leg curl|hamstring curl/i, 'legCurl'],
   [/leg extension|knee extension|reverse nordic/i, 'legExtension'],
-  [/nordic/i, 'legCurl'],
+  [/hip adduction/i, 'hipAdduction'],
+  [/hip abduction/i, 'hipAbduction'],
   [/jefferson/i, 'goodMorning'],
   [/bench dip/i, 'triceps'],
+  [/parallel-bar dip|assisted dip|weighted dip|ring dip/i, 'dip'],
+  [/push-?up|suspension trainer chest press/i, 'pushUp'],
   [/dead bug|hollow body|woodchop|landmine rotation|l-?sit|knee raise/i, 'trunk'],
   [/curl|wrist curl|wrist extension|wrist roller|forearm/i, 'curl'],
   [/incline/i, 'incline'],
-  [/\bfly\b|flye|pec deck/i, 'fly'],
-  [/hip thrust|glute bridge|kickback|abduction|frog pump|glute drive/i, 'hipThrust'],
-  [/back extension|hyperextension|good\s*morning/i, 'goodMorning'],
+  [/reverse pec deck|rear-?delt fly|powell raise/i, 'rearDeltFly'],
+  [/\bfly\b|flye|pec deck|press-around/i, 'fly'],
+  [/hip thrust|glute bridge|kickback|frog pump|glute drive/i, 'hipThrust'],
+  [/back extension|hyperextension|reverse hyper/i, 'backExtension'],
+  [/kettlebell swing/i, 'kettlebellSwing'],
   [/deadlift|rack pull|block pull|pull-?through/i, 'deadlift'],
-  [/hack squat|machine squat|leg press|pendulum|belt squat|v-squat|smith machine squat/i, 'machineSquat'],
+  [/rear-foot-elevated|front-foot-elevated|split squat/i, 'splitSquat'],
+  [/step-?up|step-?down/i, 'stepUp'],
+  [/walking lunge|reverse lunge|front-rack lunge|cossack|curtsy/i, 'lunge'],
+  [/45-degree leg press|horizontal leg press|single-leg press/i, 'legPress'],
+  [/hack squat|machine squat|pendulum|belt squat|v-squat/i, 'hackSquat'],
+  [/smith machine squat/i, 'machineSquat'],
   [/pallof|anti-rotation|ab wheel|plank|crunch|rollout|trunk|core|leg raise/i, 'trunk'],
-  [/lateral raise|lat raise|side raise|rear delt|face pull|trap raise|y-?raise|front raise|cuban/i, 'lateralRaise'],
-  [/triceps|pushdown|skull ?crusher/i, 'triceps'],
-  [/pulldown|pull-?up|chin-?up|pullover/i, 'pulldown'],
+  [/face pull/i, 'facePull'],
+  [/upright row/i, 'uprightRow'],
+  [/rear-?delt row/i, 'row'],
+  [/lateral raise|lat raise|side raise|trap raise|y-?raise|front raise|cuban/i, 'lateralRaise'],
+  [/jm press|triceps|pushdown|skull ?crusher/i, 'triceps'],
+  [/pull-?up|chin-?up|rack chin/i, 'pullUp'],
+  [/pullover/i, 'pullover'],
+  [/pulldown/i, 'pulldown'],
   [/\brow\b/i, 'row'],
   [/overhead press|shoulder press|push press|military|\bdip\b/i, 'overhead'],
   [/bench|floor press|coffin|push-?up|chest press/i, 'bench'],
+  [/sled push|sled drag/i, 'sledPush'],
+  [/shrug/i, 'shrug'],
+  [/hatfield squat/i, 'squat'],
   [/squat|lunge|step-?up/i, 'squat'],
-  [/carry|farmer|suitcase|yoke|shrug/i, 'carry']
+  [/carry|farmer|suitcase|yoke|plate pinch/i, 'carry']
 ]
 
 const patternScenes: Record<MovementPattern, MovementScene> = {

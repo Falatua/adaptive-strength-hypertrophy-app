@@ -5,12 +5,21 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.66.0
+app_version: 0.67.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.67.0 Image Accuracy Delta
+
+- Replaces generic Library body silhouettes with twelve anatomically targeted GPT Images-authored emblems using the clearest front or rear view for each region.
+- Replaces the top `My preferences` block glyph with a clear blue thumbs-up and removes the old hard-shadow treatment from the category visual.
+- Expands movement classification to forty-one mapped scenes backed by forty reviewed local files, correcting push-up, dip, pull-up, rear-delt fly, back extension, leg press, hack squat, split squat, lunge, step-up, abduction, adduction, Nordic curl, face pull, upright row, shrug, sled, seated-calf, and tibialis mismatches.
+- Adds a required image QC command for inventories, PNG validity, dimensions, transparency, SVG structure, and referenced paths.
+- Adds browser checks for every body region, representative corrected movement mappings, every rendered image through onboarding and all five primary destinations, console integrity, and responsive containment across desktop Chromium, mobile Chromium, and iPhone WebKit.
+- Keeps backup schema 28, local persistence 26, Supabase Auth, cloud snapshot storage, pending-save recovery, and athlete data unchanged.
 
 ## Private Alpha 0.66.0 Generated Icon and Level Badge Delta
 
