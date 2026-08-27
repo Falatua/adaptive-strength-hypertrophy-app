@@ -21,6 +21,7 @@ import { projectMovementNoteMerge, upsertMovementNote } from '../domain/movement
 import { buildAddedMovement, buildAddedSet, sessionExtensionGate } from '../domain/session-extension-engine'
 import { buildDropSet, buildMyoReps, canPairForSuperset, structureAllowedForRole } from '../domain/set-structure-engine'
 import { sameJsonValue } from '../domain/stable-json'
+import { buildHistoricalPerformance, type HistoricalPerformanceInput } from '../domain/history-entry-engine'
 import type {
   AppSettings,
   AthleteProfile,
@@ -132,6 +133,7 @@ interface AppState {
   deleteHistorySet: (setId: string, reason: string) => { ok: boolean; error?: string }
   mergeExercises: (sourceIds: string[], targetId: string, reason: string) => { ok: boolean; error?: string }
   importCompletedHistory: (records: CompletedSetRecord[], sourceName: string, skippedDuplicates: number) => { ok: boolean; error?: string }
+  addHistoricalPerformance: (input: HistoricalPerformanceInput) => { ok: boolean; error?: string; records?: CompletedSetRecord[] }
   undoLatestHistoryMutation: () => { ok: boolean; error?: string }
   applyMesocycleRevision: (draft: MesocycleDraft) => { ok: boolean; error?: string }
   applyCycleReview: (decision: CycleReviewDecision, reason: string) => { ok: boolean; error?: string }
@@ -1044,7 +1046,16 @@ export const useAppStore = create<AppState>()(
         if ([data.reps, data.load, data.rir, data.technique, data.pain].some((value) => !Number.isFinite(value) || value < 0)) return { ok: false, error: 'Use valid zero-or-greater numbers.' }
         if (Number.isNaN(new Date(data.completedAt).getTime())) return { ok: false, error: 'Use a valid completion date.' }
         const correctedData = { ...data, benchAngleDeg: data.benchAngleDeg === null ? undefined : data.benchAngleDeg }
-        const history = state.history.map((candidate) => candidate.id === setId ? { ...candidate, ...correctedData, rirKnown: true } : candidate)
+        const history = state.history.map((candidate) => candidate.id === setId ? {
+          ...candidate,
+          ...correctedData,
+          rirKnown: true,
+          ...(candidate.historyEntryId ? {
+            historyEntryUnits: state.settings.units,
+            historyEntryEffortScale: 'rir' as const,
+            historyEntryEffortValue: data.rir
+          } : {})
+        } : candidate)
         const records = derivePersonalRecords(history)
         const event: HistoryMutationEvent = {
           id: nanoid(), type: 'set-corrected', createdAt: new Date().toISOString(), reason: reason.trim(),
@@ -1131,6 +1142,42 @@ export const useAppStore = create<AppState>()(
           notice: `${importedRecords.length} source set${importedRecords.length === 1 ? '' : 's'} imported and replayed.${skippedDuplicates ? ` ${skippedDuplicates} existing duplicate row${skippedDuplicates === 1 ? ' was' : 's were'} skipped.` : ''}`
         })
         return { ok: true }
+      },
+      addHistoricalPerformance: (input) => {
+        const state = get()
+        if (state.activeSessionId) return { ok: false, error: 'Finish or leave the active workout before adding past performance.' }
+        const exercise = state.exercises.find((candidate) => candidate.id === input.exerciseId)
+        try {
+          if (!exercise) throw new Error('That movement is no longer in the Library.')
+          const projection = buildHistoricalPerformance({
+            entryId: nanoid(10),
+            form: input,
+            exercise,
+            appUnits: state.settings.units
+          })
+          const existingSetIds = new Set(state.history.map((workSet) => workSet.id))
+          if (projection.records.some((workSet) => existingSetIds.has(workSet.id))) return { ok: false, error: 'This past performance would reuse an existing source-set ID.' }
+          const history = [...state.history, ...projection.records]
+          const records = derivePersonalRecords(history)
+          const event: HistoryMutationEvent = {
+            id: nanoid(), type: 'history-entered', createdAt: new Date().toISOString(), reason: 'Athlete-entered exact movement history',
+            description: `${projection.records.length} past ${exercise.name} set${projection.records.length === 1 ? '' : 's'} added from the Library.`,
+            affectedSetIds: projection.records.map((workSet) => workSet.id),
+            before: { history: state.history, exercises: state.exercises, sessions: state.sessions, athlete: state.athlete, substitutionEvents: state.substitutionEvents },
+            after: { history, exercises: state.exercises, sessions: state.sessions, athlete: state.athlete, substitutionEvents: state.substitutionEvents },
+            recordsBefore: state.records, recordsAfter: records,
+            volumeBefore: historyVolume(state.history), volumeAfter: historyVolume(history)
+          }
+          set({
+            history,
+            records,
+            historyMutations: [...state.historyMutations, event],
+            notice: `${projection.records.length} past set${projection.records.length === 1 ? '' : 's'} added to ${exercise.name}. Future programming can now use this exact movement, load, setup, date, and effort evidence.`
+          })
+          return { ok: true, records: projection.records }
+        } catch (error) {
+          return { ok: false, error: error instanceof Error ? error.message : 'That past performance could not be added.' }
+        }
       },
       undoLatestHistoryMutation: () => {
         const state = get()

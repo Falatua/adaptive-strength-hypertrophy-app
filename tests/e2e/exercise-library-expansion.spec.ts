@@ -54,3 +54,53 @@ test('finds leg press in the expanded library and replaces a squat through full-
   if (testInfo.project.name === 'mobile-chromium') await page.getByLabel('45-Degree Leg Press movement notebook').screenshot({ path: 'output/playwright/leg-press-substitution-mobile.png' })
   expect(browserErrors).toEqual([])
 })
+
+test('seeds exact incline performance from the movement Library without inventing missing evidence', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error' || message.type() === 'warning') browserErrors.push(`${message.type()}: ${message.text()}`) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterCleanProfile(page)
+
+  await page.getByRole('button', { name: 'Library', exact: true }).click()
+  await page.getByPlaceholder('Search a movement or its other names...').fill('Incline Barbell Bench Press')
+  await page.getByRole('button', { name: 'View details for Incline Barbell Bench Press' }).click()
+  await expect(page.getByRole('heading', { name: 'Add a past performance' })).toBeVisible()
+  await page.getByRole('button', { name: 'Enter past sets' }).click()
+
+  const historicalDate = await page.evaluate(() => {
+    const date = new Date(Date.now() - 86_400_000)
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
+  })
+  await page.getByLabel('Past performance date').fill(historicalDate)
+  await page.getByLabel('Past performance sets').fill('3')
+  await page.getByLabel('Past performance repetitions').fill('8')
+  await page.getByLabel('Past performance weight', { exact: true }).fill('135')
+  await page.getByLabel('Past performance effort value').fill('0')
+  await page.getByLabel('Past performance bench angle').fill('45')
+  await page.getByLabel('Past performance session name').fill('Upper day')
+  await page.getByLabel('Past performance note').fill('Same bench and grip across every set.')
+  await expect(page.locator('.history-entry-preview')).toContainText('3 × 8 at 135 lb')
+  await expect(page.locator('.history-entry-preview')).toContainText('45° bench')
+  await expect(page.locator('.history-entry-preview')).toContainText('RIR 0')
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.locator('.history-entry-panel').evaluate((panel) => panel.scrollIntoView({ block: 'start' }))
+    await page.screenshot({ path: 'output/playwright/library-history-entry-form-mobile.png' })
+  }
+  await page.getByRole('button', { name: 'Add 3 past sets' }).click()
+
+  await expect(page.getByText('Athlete-entered history · Upper day · Same bench and grip across every set.')).toHaveCount(3)
+  await expect(page.getByText('quality not confirmed')).toHaveCount(3)
+  await expect(page.getByText('3 past Incline Barbell Bench Press sets added from the Library.')).toBeVisible()
+
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state)
+  const inclineSets = saved.history.filter((workSet: { exerciseId: string }) => workSet.exerciseId === 'incline-barbell-press')
+  expect(inclineSets).toHaveLength(3)
+  expect(inclineSets[0]).toMatchObject({ load: 135, reps: 8, rir: 0, rirKnown: true, benchAngleDeg: 45, qualityConfirmed: false, numbersEntered: true, historyEntrySource: 'library', historyEntryEffortScale: 'rir', historyEntryEffortValue: 0 })
+  expect(saved.historyMutations.at(-1)).toMatchObject({ type: 'history-entered', affectedSetIds: expect.any(Array) })
+  expect(saved.records.length).toBeGreaterThan(0)
+
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  if (testInfo.project.name === 'mobile-chromium') await page.getByRole('dialog').screenshot({ path: 'output/playwright/library-history-entry-mobile.png' })
+  expect(browserErrors).toEqual([])
+})

@@ -56,7 +56,7 @@ describe('version 25 backups', () => {
     useAppStore.getState().resetForTesting()
     const current = createBackup(backupStateFrom(useAppStore.getState()))
     expect(current.schemaVersion).toBe(BACKUP_SCHEMA_VERSION)
-    expect(BACKUP_SCHEMA_VERSION).toBe(27)
+    expect(BACKUP_SCHEMA_VERSION).toBe(28)
 
     const asVersion25 = JSON.parse(JSON.stringify(current)) as Record<string, unknown>
     asVersion25.schemaVersion = 25

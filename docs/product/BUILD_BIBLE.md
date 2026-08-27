@@ -5,12 +5,21 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-26
 status: canonical-build-reference-and-active-implementation
-version: 1.59.0
+version: 1.60.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.60.0 Change Entry
+
+- Advanced the working application to private alpha 0.64.0 and backup schema 28 while preserving completed workouts, imported history, movement identities, and every earlier plan version.
+- Added R-421 through R-425 and Chapter 91 for direct exact-movement past-performance entry from the Exercise Library.
+- Captures date, sets, repetitions, load, pounds or kilograms, RIR or RPE, optional incline angle, optional paired technique and pain feedback, session name, and setup notes.
+- Preserves unknown effort and quality as unknown, records direct-entry provenance, supports per-set correction and deletion plus one-step undo, and never creates a fake planned session.
+- Routes the exact saved sets into records, placement evidence, load selection, backup, and the cloud-authoritative snapshot with version 27 migration and responsive browser acceptance.
+- Passes 458 deterministic tests, 135 desktop Chromium, mobile Chromium, and iPhone WebKit journeys, and the Pages artifact gate.
 
 ### Version 1.59.0 Change Entry
 
@@ -6319,7 +6328,7 @@ Every normalized table enables and forces Row Level Security. Authenticated clie
 
 Completed sets retain entered load and unit, normalized kilograms, repetitions, exact exercise identity, movement family, exclusive primary region, non-additive involved regions, source device, source event, version, and completion time. `volume_load_kg` is a stored generated value equal to normalized load multiplied by repetitions. Security-invoker views produce source-set facts and daily, weekly, monthly, and yearly rollups for total training and exclusive primary-region scopes. Survey answers store `answered`, `skipped`, `not-sure`, `prefer-not`, and `not-answered` explicitly, and only an answered row may contain a value.
 
-The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the public source repository. Five committed migrations are checksum-locked and represented by the repaired remote migration ledger. A live catalog audit confirmed fifteen of fifteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as GitHub Actions secrets outside the public source tree, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The private cloud release is enabled, while real invited-athlete physical phone-to-laptop recovery remains an open acceptance gate. App version 0.63.0 and backup schema 27 preserve the cloud-authoritative snapshot boundary, include athlete-approved training-block movement and incline choices, add durable interrupted-save recovery, persistent renewable Auth, phone Chrome continuity, and a secure rate-aware installed Home Screen session handoff, and do not claim normalized entity merge or active-workout handoff.
+The dedicated remote project is `ForgePath`, project reference `kdavpkphvapnckenbuyg`, in AWS `us-east-2`. It belongs to a separate approved organization and is connected to the public source repository. Five committed migrations are checksum-locked and represented by the repaired remote migration ledger. A live catalog audit confirmed fifteen of fifteen tables with forced Row Level Security, two security-invoker volume views, zero anonymous grants, zero normalized browser mutation grants, four intentional profile/device mutation grants, and one authenticated-only snapshot RPC. A fully rolled-back two-identity transaction passed identity, device, RLS, apply, replay, conflict, invariant, and isolation assertions and left zero test rows. Public signup is disabled. Browser-safe project configuration is stored only as GitHub Actions secrets outside the public source tree, and Pages compiles those values only when the `FORGEPATH_CLOUD_RELEASE_ENABLED` repository variable is exactly `true`. The private cloud release is enabled, while real invited-athlete physical phone-to-laptop recovery remains an open acceptance gate. App version 0.64.0 and backup schema 28 preserve the cloud-authoritative snapshot boundary, include athlete-approved training-block choices and direct exact-movement history, add durable interrupted-save recovery, persistent renewable Auth, phone Chrome continuity, and a secure rate-aware installed Home Screen session handoff, and do not claim normalized entity merge or active-workout handoff.
 
 ## 79. Exact-Movement Workout Notes and Longitudinal Recall
 
@@ -6686,6 +6695,32 @@ Completing a block preserves its blueprint as the starting point for the next dr
 ### 90.6 Persistence and Acceptance
 
 Backup schema 27 stores block movement overrides and optional incline choices inside the cloud-authoritative snapshot. Version 26 migrates without inventing choices. Validation rejects unknown exercises, duplicate override slots, invalid session or slot indices, protected-primary conflicts, invalid sources, and out-of-range angles. Acceptance requires deterministic generation and round-to-round replay, backup round trip and tamper tests, interactive component coverage, desktop and compact-phone visual inspection, top-reset dialog behavior, keyboard and screen-reader labels, zero console warnings, and zero horizontal overflow.
+
+## 91. Direct Exact-Movement Historical Performance Entry
+
+### 91.1 Entry Surface
+
+Every active Exercise Library movement exposes one progressive-disclosure past-performance form inside its existing detail surface. The athlete chooses the exact movement first, then enters a past training date, set count, repetitions, weight, and pounds or kilograms. The interaction stays inside the movement detail and does not open a nested modal.
+
+### 91.2 Effort, Setup, and Optional Context
+
+Effort accepts RIR, RPE, or unknown. ForgePath preserves the athlete's raw scale and value, converts known RPE into the shared deterministic RIR scale, and labels the conversion before save. Incline-compatible movements accept a zero-to-ninety-degree back-pad angle. Technique from one to five and pain or irritation from zero to five are paired optional quality evidence; both remain unknown when either is omitted. Session name and a bounded setup note may preserve grip, equipment, tempo, or other useful context.
+
+### 91.3 Truth and Programming Authority
+
+Saving creates exact completed-set records for the selected movement and date. It does not create a planned workout, imply plan completion, infer readiness or recovery, or validate quality from numbers alone. Exact completed history becomes eligible for personal records, placement evidence, movement calibration, and future exact-movement load selection under the existing deterministic rules. Different incline angles remain separate comparison lanes.
+
+### 91.4 Audit and Athlete Control
+
+Each group receives a stable entry identity, source label, entry timestamp, raw units, raw effort scale, optional context, and contiguous set positions. The action creates a visible `history-entered` audit event and may be undone. Existing correction and deletion controls remain available per set. Correcting one set updates that set's current RIR provenance without requiring every set in the original group to remain numerically identical.
+
+### 91.5 Persistence and Migration
+
+Backup schema 28 validates direct-entry provenance, prevents a row from claiming both CSV import and Library entry sources, and carries the records through the existing cloud-authoritative whole-state snapshot. Version 27 migrates without inventing direct history. No new Supabase table, browser mutation grant, or Edge Function is required, and the same pending-save recovery boundary protects the snapshot during refresh or application updates.
+
+### 91.6 Responsive Acceptance
+
+The form previews the exact set count, load, repetitions, effort, and optional angle before save. Compact phones use a one-column form and full-width actions with native date and numeric inputs. Release acceptance covers deterministic validation and conversion, backup round trip and tamper rejection, correction compatibility, undo, exact programming evidence, desktop Chromium, mobile Chromium, iPhone WebKit, console integrity, persistence, and horizontal containment.
 
 ### Version 1.47.0 Change Entry
 

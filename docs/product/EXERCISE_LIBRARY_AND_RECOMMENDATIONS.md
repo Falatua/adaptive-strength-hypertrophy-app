@@ -593,6 +593,16 @@ Each movement should display and allow editing of:
 
 Every exercise detail page opens with a historical snapshot:
 
+- a progressive `Enter past sets` action for exact movement history recorded before ForgePath;
+- training date, set count, repetitions, load and units;
+- RIR, RPE, or explicit unknown effort, with visible deterministic conversion;
+- optional incline angle for compatible movements;
+- optional paired technique and pain evidence, session name, and setup note;
+- a pre-save summary that confirms exactly which completed sets will be created;
+- athlete-entered source labeling, correction, deletion, and one-step undo after save.
+
+Direct history is completed evidence, not a reconstructed plan. It may inform exact-movement records, placement, calibration, and future load selection, but it does not prove readiness, recovery, plan compliance, or set quality. It persists through the cloud-authoritative snapshot and backup schema 28 with no separate browser-only data island.
+
 - last completed date and days since exposure;
 - last completed work sets, shown set by set with load, repetitions, RIR or RPE, range of motion, and completion status;
 - previous top set, average load, total repetitions, working sets, and volume-load;

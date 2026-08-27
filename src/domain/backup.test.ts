@@ -107,6 +107,15 @@ describe('versioned backup and restore', () => {
     expect(parsed.warnings[0]).toMatch(/version 26/i)
   })
 
+  it('migrates a version 27 backup without inventing direct Library history', () => {
+    const prior = createBackup(state(), '2026-08-10T12:00:00.000Z') as unknown as Record<string, unknown>
+    prior.schemaVersion = 27
+    const parsed = parseBackup(JSON.stringify(prior))
+    expect(parsed.backup.schemaVersion).toBe(BACKUP_SCHEMA_VERSION)
+    expect(parsed.backup.data.history.every((workSet) => workSet.historyEntryId === undefined)).toBe(true)
+    expect(parsed.warnings[0]).toMatch(/version 27/i)
+  })
+
   it('restores an integrity-valid cloud snapshot after jsonb reorders object keys', () => {
     const backup = reorderJsonObjectKeys(createBackup(state(), '2026-08-10T12:00:00.000Z'))
     const parsed = parseBackup(JSON.stringify(backup))
@@ -955,6 +964,45 @@ describe('versioned backup and restore', () => {
     current.historyMutations[0].after.history = structuredClone(current.history)
     current.historyMutations[0].recordsAfter = derivePersonalRecords(current.history)
     expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/incomplete source provenance/i)
+  })
+
+  it('round-trips direct Library history and rejects mixed or inconsistent provenance', () => {
+    const current = state()
+    const beforeHistory = structuredClone(current.history)
+    const entered = [0, 1, 2].map((setIndex) => ({
+      ...structuredClone(current.history[0]),
+      id: `history-entry-set-incline-${setIndex + 1}`,
+      sessionId: 'history-entry-session-incline',
+      exerciseId: 'incline-barbell-press',
+      exerciseName: 'Incline Barbell Bench Press',
+      family: 'Incline Press',
+      completedAt: '2026-08-10T12:00:00.000Z',
+      load: 135, reps: 8, rir: 0, rirKnown: true, technique: 0, pain: 0, qualityConfirmed: false, numbersEntered: true,
+      setIndex, benchAngleDeg: 45, plannedExerciseId: undefined,
+      historyEntryId: 'incline', historyEntrySource: 'library' as const, historyEntryUnits: 'lb' as const,
+      historyEntryEffortScale: 'rir' as const, historyEntryEffortValue: 0, historyEntrySessionName: 'Upper day',
+      historyEntryNote: 'Same bench and grip.', historyEnteredAt: '2026-08-10T13:00:00.000Z'
+    }))
+    current.history = [...current.history, ...entered]
+    current.records = derivePersonalRecords(current.history)
+    current.historyMutations = [{
+      id: 'history-entry-1', type: 'history-entered', createdAt: '2026-08-10T13:00:00.000Z', reason: 'Athlete-entered exact movement history',
+      description: '3 past Incline Barbell Bench Press sets added from the Library.', affectedSetIds: entered.map((workSet) => workSet.id),
+      before: { history: beforeHistory, exercises: structuredClone(current.exercises), sessions: structuredClone(current.sessions) },
+      after: { history: structuredClone(current.history), exercises: structuredClone(current.exercises), sessions: structuredClone(current.sessions) },
+      recordsBefore: derivePersonalRecords(beforeHistory), recordsAfter: derivePersonalRecords(current.history),
+      volumeBefore: historyVolume(beforeHistory), volumeAfter: historyVolume(current.history)
+    }]
+    const parsed = parseBackup(JSON.stringify(createBackup(current)))
+    expect(parsed.backup.data.history.slice(-3)).toHaveLength(3)
+    expect(parsed.backup.data.history.at(-1)).toMatchObject({ historyEntryId: 'incline', historyEntrySource: 'library', load: 135, reps: 8, rir: 0, benchAngleDeg: 45, setIndex: 2 })
+    expect(parsed.backup.data.historyMutations[0].type).toBe('history-entered')
+
+    current.history.at(-1)!.sessionId = 'different-history-entry-session'
+    current.records = derivePersonalRecords(current.history)
+    current.historyMutations[0].after.history = structuredClone(current.history)
+    current.historyMutations[0].recordsAfter = structuredClone(current.records)
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/inconsistent set provenance/i)
   })
 
   it('preserves explicit unknown survey answers and rejects fabricated unknown values', () => {

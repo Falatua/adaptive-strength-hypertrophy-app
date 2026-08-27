@@ -1,5 +1,13 @@
 # Product
 
+## Direct Historical Performance Entry
+
+An athlete who begins ForgePath with useful training history must be able to open an exact movement in the Exercise Library and add a truthful past performance without creating a fake planned workout. The first complete flow captures training date, number of sets, repetitions, weight, pounds or kilograms, RIR or RPE, and an optional incline angle. Optional technique, pain or irritation, session name, and setup note add useful context without becoming required onboarding friction.
+
+Every entered set belongs to the exact selected movement and appears in completed history, records, placement evidence, and later exact-movement load selection. RPE is preserved as the athlete entered it while the deterministic engine converts it to the shared RIR scale. Skipped effort, technique, or pain remains explicitly unknown. The system does not infer readiness, recovery, plan completion, or quality from numbers alone.
+
+Direct history is reversible and auditable. The athlete sees a complete preview before saving, may correct or delete individual sets later, and may undo the latest entry or correction. Entries persist through the same validated cloud-authoritative snapshot as completed workouts and survive app updates, refreshes, and backup migration.
+
 ## Register
 
 product

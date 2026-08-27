@@ -556,6 +556,15 @@ export interface CompletedSetRecord {
   importSourceName?: string
   importFingerprint?: string
   importUnits?: 'lb' | 'kg'
+  /** Stable provenance for a past performance entered directly from one movement's Library detail. */
+  historyEntryId?: string
+  historyEntrySource?: 'library'
+  historyEntryUnits?: 'lb' | 'kg'
+  historyEntryEffortScale?: 'rir' | 'rpe' | 'unknown'
+  historyEntryEffortValue?: number
+  historyEntrySessionName?: string
+  historyEntryNote?: string
+  historyEnteredAt?: string
 }
 
 export interface SubstitutionCandidateSnapshot {
@@ -722,7 +731,7 @@ export interface RecordOpportunity {
   ruleVersion: 'opportunity-v1'
 }
 
-export type HistoryMutationType = 'set-corrected' | 'set-deleted' | 'exercise-merged' | 'exercise-edited' | 'history-imported'
+export type HistoryMutationType = 'set-corrected' | 'set-deleted' | 'exercise-merged' | 'exercise-edited' | 'history-imported' | 'history-entered'
 
 export interface HistoryMutationSnapshot {
   history: CompletedSetRecord[]

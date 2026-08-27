@@ -2649,7 +2649,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Persist athlete-approved block movement and incline choices through local testing state, versioned backup, cloud-authoritative snapshot save, refresh, update, and later-round generation. Safely migrate version 26 into backup schema 27 without inventing choices, reject malformed or unsafe overrides, open the editor at the top, prioritize the blueprint on compact screens, and prevent horizontal overflow.
 - Detail: `src/domain/backup.ts`, `src/screens/PlanScreen.test.tsx`, and Build Bible Chapter 90
 
+### R-421 Direct Past Performance from an Exact Library Movement
+- Status: implemented
+- Provenance: from-user
+- Requirement: Every active Exercise Library movement must let the athlete enter completed training performed before or outside ForgePath without creating a fake planned workout. The selected canonical movement identity must remain exact and the action must be available from its detail surface.
+- Detail: `src/screens/LibraryScreen.tsx`, `src/domain/history-entry-engine.ts`, and Build Bible Chapter 91
+
+### R-422 Historical Set, Load, Unit, and Date Capture
+- Status: implemented
+- Provenance: from-user
+- Requirement: Direct history must capture a nonfuture training date, whole set count, whole repetition count, nonnegative load, and pounds or kilograms, then create the requested number of completed sets with stable ordering and visible pre-save confirmation.
+- Detail: `src/domain/history-entry-engine.ts` and Build Bible Chapter 91
+
+### R-423 Historical Effort, Incline, and Quality Context
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Direct history must accept RIR, RPE, or explicit unknown effort; preserve the raw scale and value; convert known RPE visibly to the shared deterministic RIR scale; accept an optional zero-to-ninety-degree incline angle for compatible movements; and accept optional technique and pain evidence only as a complete pair. Session name and bounded setup notes may preserve useful context.
+- Detail: `src/domain/history-entry-engine.ts`, `src/screens/LibraryScreen.tsx`, and Build Bible Chapter 91
+
+### R-424 Historical Truth, Programming, and Athlete Control
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Athlete-entered sets may inform exact-movement records, placement evidence, calibration, and later load selection, but must not imply readiness, recovery, planned-work completion, or confirmed quality from numbers alone. Each entry must preserve source provenance, appear in the history audit ledger, support correction and deletion per set, and support latest-change undo.
+- Detail: `src/store/useAppStore.ts`, `src/domain/history-entry-engine.test.ts`, and Build Bible Chapter 91
+
+### R-425 Direct History Persistence, Migration, and Responsive Acceptance
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Persist direct Library history through local testing state, backup, the existing cloud-authoritative Supabase snapshot, refresh, and app updates. Backup schema 28 must migrate schema 27 without inventing history, reject incomplete or mixed provenance, allow legitimate per-set corrections, and pass desktop Chromium, mobile Chromium, iPhone WebKit, console, persistence, and horizontal-containment acceptance without requiring a new Supabase table or function.
+- Detail: `src/domain/backup.ts`, `tests/e2e/exercise-library-expansion.spec.ts`, and Build Bible Chapter 91
+
 ## Thread Coverage Audit
+
+### 2026-08-26 Direct Exact-Movement Historical Performance Entry
+- Scope: JB requested a way to seed ForgePath with existing movement performance so a fresh athlete does not start programming from zero, using Incline Barbell Bench Press at 135 pounds, 45 degrees, three sets of eight, and RIR zero as the acceptance example.
+- Result: Added R-421 through R-425 and Build Bible Chapter 91. Private alpha 0.64.0 adds exact movement past-performance entry with date, sets, repetitions, load, units, RIR or RPE, incline angle, optional quality and context, direct-source provenance, correction, deletion, undo, exact programming evidence, and backup schema 28.
+- Status: Implemented and verified with 458 deterministic tests, 135 desktop and phone browser journeys, and a passing Pages artifact gate. Exact-source workflow, security workflow, deployment, and live-marker matching remain mandatory per-build release gates.
 
 ### 2026-08-26 Training-Block Blueprint and Next-Block Review
 - Scope: JB requested an organized whole-block preview inspired by the useful planning behavior of established hypertrophy apps, with primary through accessory roles, weekly and whole-block visibility, block-level movement swaps, exact incline angles, deload expectations, and a repeat-or-change decision after completion.

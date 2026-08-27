@@ -49,6 +49,14 @@ tokens:
 
 # Overview
 
+## Historical Performance Entry
+
+Past-performance entry uses progressive disclosure inside the selected Exercise Library movement detail. It does not open a second modal. The collapsed action stays near that movement's existing history, and the expanded panel presents familiar labeled controls in a compact responsive grid.
+
+The panel must show the exact movement, a plain-language truth boundary, and a live summary such as `3 sets of 8 at 135 lb · RIR 0 · 45° bench` before the athlete commits. RPE conversion is disclosed rather than hidden. Technique and pain are paired optional evidence: both may be entered or both remain unknown. Session name and setup notes are secondary context, not programming requirements.
+
+On compact phones the grid becomes one column, actions remain at least 44 pixels tall, and the primary save action spans the available width. The saved history labels its Library source and numeric-only quality state. Color supports, but never replaces, those written states.
+
 ForgePath should feel like a private training field guide carried through an original strength adventure. Its North Star is the compact confidence and tactile clarity of a beloved handheld interface, interpreted through an original world rather than copied characters, names, maps, or assets. Training is always the foreground. The adventure layer helps JB understand the route, notice progress, and enjoy returning.
 
 The product is dark, grounded, and dense enough for an experienced athlete without becoming a control room. Large outcomes, compact evidence, clear hierarchy, and one obvious next action matter more than decoration. Pixel craft belongs in avatars, environmental scenes, selectors, badges, and earned celebrations. Prescription numbers, charts, forms, and explanations use modern type and familiar controls.

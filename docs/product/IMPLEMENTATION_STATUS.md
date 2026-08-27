@@ -5,12 +5,22 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.63.0
+app_version: 0.64.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.64.0 Direct Movement History Delta
+
+- Adds `Enter past sets` to every active Exercise Library movement so a new athlete can seed exact history without fabricating a planned workout.
+- Captures date, sets, repetitions, weight, pounds or kilograms, RIR or RPE, optional incline angle, optional paired technique and pain feedback, session name, and setup notes.
+- Preserves raw RPE provenance while converting it to shared RIR for deterministic programming; skipped effort and quality remain explicit unknowns.
+- Feeds exact saved sets into records, placement evidence, movement calibration, and later exact-movement load selection.
+- Keeps every entry auditable and athlete-controlled through a `history-entered` event, per-set correction or deletion, and latest-change undo.
+- Advances backup schema to 28, safely migrates schema 27 without inventing history, and persists through the existing Supabase cloud-authoritative snapshot and pending-save recovery path without a database migration.
+- Passes 458 deterministic tests and 135 desktop Chromium, mobile Chromium, and iPhone WebKit journeys, including exact entry, persistence, console integrity, and horizontal containment. The Pages artifact gate also passes.
 
 ## Private Alpha 0.63.0 Training-Block Blueprint Delta
 

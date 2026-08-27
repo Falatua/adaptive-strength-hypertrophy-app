@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
-import { AlertTriangle, BookOpen, BrainCircuit, ChevronDown, ChevronRight, Clock3, Download, Dumbbell, FileCheck2, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Target, ThumbsDown, ThumbsUp, Trash2, Undo2, Upload } from 'lucide-react'
+import { AlertTriangle, BookOpen, BrainCircuit, CalendarPlus, ChevronDown, ChevronRight, Clock3, Download, Dumbbell, FileCheck2, Filter, GitMerge, Heart, History, ListChecks, Pencil, Plus, RefreshCcw, Search, ShieldCheck, Target, ThumbsDown, ThumbsUp, Trash2, Undo2, Upload } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { duplicateCandidates, volumeLoad } from '../domain/training-engine'
 import { findExerciseDuplicateGroups } from '../domain/catalog-engine'
@@ -15,6 +15,7 @@ import { movementNotesForExercise } from '../domain/movement-note-engine'
 import { bodyRegionFilters as regionFilters, bodyRegionFilterIds } from './library-filters'
 import { benchAngleLabel, normalizeBenchAngle, supportsBenchAngle } from '../domain/bench-angle-engine'
 import { BodyRegionGlyph, ForgeGlyph, MovementPatternGlyph } from '../components/ForgeGlyph'
+import { normalizeHistoricalLoad, type HistoricalEffortScale, type HistoricalLoadUnit } from '../domain/history-entry-engine'
 
 const muscleLabel = new Map(muscleDefinitions.map((muscle) => [muscle.id, muscle.label]))
 type BrowseDimension = 'body' | 'favorites'
@@ -31,9 +32,20 @@ const patternLabels: Record<MovementPattern, string> = {
   carry: 'Carry'
 }
 
+const localDateInput = () => {
+  const now = new Date()
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
+}
+
+const freshHistoryEntry = (units: HistoricalLoadUnit) => ({
+  date: localDateInput(), setCount: '3', reps: '8', load: '', loadUnit: units,
+  effortScale: 'rir' as HistoricalEffortScale, effortValue: '2', benchAngleDeg: '',
+  technique: '', pain: '', sessionName: '', note: ''
+})
+
 
 export function LibraryScreen() {
-  const { athlete, activeSessionId, exercises, equipmentProfiles, history, movementNotes, historyMutations, substitutionEvents, settings, setExercisePreference, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, undoLatestHistoryMutation, restartOnboarding, setNotice } = useAppStore()
+  const { athlete, activeSessionId, exercises, equipmentProfiles, history, movementNotes, historyMutations, substitutionEvents, settings, setExercisePreference, setJointFeeling, addCustomExercise, updateExerciseCatalog, correctHistorySet, deleteHistorySet, mergeExercises, importCompletedHistory, addHistoricalPerformance, undoLatestHistoryMutation, restartOnboarding, setNotice } = useAppStore()
   const [placementEvidenceAssessedAt] = useState(() => new Date().toISOString())
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState<BodyRegion | 'all'>('all')
@@ -70,6 +82,8 @@ export function LibraryScreen() {
   const [importPreview, setImportPreview] = useState<TrainingHistoryImportPreview | null>(null)
   const [importMappings, setImportMappings] = useState<Record<string, string>>({})
   const [importError, setImportError] = useState<string | null>(null)
+  const [historyEntryOpen, setHistoryEntryOpen] = useState(false)
+  const [historyEntryValues, setHistoryEntryValues] = useState(() => freshHistoryEntry(settings.units))
 
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const filtered = useMemo(() => exercises.filter((exercise) => {
@@ -130,6 +144,35 @@ export function LibraryScreen() {
       benchAngleDeg: workSet.benchAngleDeg === undefined ? '' : String(workSet.benchAngleDeg), qualityConfirmed: workSet.qualityConfirmed === true,
       completedAt: new Date(new Date(workSet.completedAt).getTime() - new Date(workSet.completedAt).getTimezoneOffset() * 60_000).toISOString().slice(0, 16), reason: ''
     })
+  }
+
+  const openHistoryEntry = () => {
+    setHistoryEntryValues(freshHistoryEntry(settings.units))
+    setFormError(null)
+    setHistoryEntryOpen(true)
+  }
+
+  const submitHistoryEntry = () => {
+    if (!selected) return
+    const completedAt = new Date(`${historyEntryValues.date}T12:00:00`)
+    const result = addHistoricalPerformance({
+      exerciseId: selected.id,
+      completedAt: completedAt.toISOString(),
+      setCount: Number(historyEntryValues.setCount),
+      reps: Number(historyEntryValues.reps),
+      load: Number(historyEntryValues.load),
+      loadUnit: historyEntryValues.loadUnit,
+      effortScale: historyEntryValues.effortScale,
+      effortValue: historyEntryValues.effortScale === 'unknown' ? null : Number(historyEntryValues.effortValue),
+      benchAngleDeg: supportsBenchAngle(selected) && historyEntryValues.benchAngleDeg !== '' ? normalizeBenchAngle(Number(historyEntryValues.benchAngleDeg)) : null,
+      technique: historyEntryValues.technique === '' ? null : Number(historyEntryValues.technique),
+      pain: historyEntryValues.pain === '' ? null : Number(historyEntryValues.pain),
+      sessionName: historyEntryValues.sessionName,
+      note: historyEntryValues.note
+    })
+    if (!result.ok) return setFormError(result.error ?? 'That past performance could not be added.')
+    setHistoryEntryOpen(false)
+    setFormError(null)
   }
 
   const submitCorrection = () => {
@@ -345,7 +388,7 @@ export function LibraryScreen() {
         <div className="placement-history-action"><span><ShieldCheck size={17} /><small>Reviewing creates a new starting plan going forward. Your completed history is never rewritten.</small></span><button className="button button--secondary" disabled={Boolean(activeSessionId) || !placementEvidence.some((evidence) => evidence.totalSetCount > 0)} onClick={() => restartOnboarding(1)}>Review my starting plan</button></div>
       </section>
 
-      <Modal open={Boolean(selected)} onClose={() => setSelected(null)} title={selected?.name ?? 'Movement'} description={selected?.description} wide>
+      <Modal open={Boolean(selected)} onClose={() => { setSelected(null); setHistoryEntryOpen(false) }} title={selected?.name ?? 'Movement'} description={selected?.description} wide>
         {selected && (
           <div className="exercise-detail">
             <div className="exercise-detail__summary">
@@ -360,6 +403,30 @@ export function LibraryScreen() {
               <div><small>Joint response</small><strong>{selected.jointFeeling}</strong></div>
               <div><small>Saved notes</small><strong>{selectedMovementNotes.length}</strong></div>
             </div>
+            <section className={`history-entry-panel ${historyEntryOpen ? 'is-open' : ''}`} aria-labelledby="history-entry-title">
+              <div className="history-entry-panel__header"><span><CalendarPlus size={20} /><span><p className="eyebrow">Start with what you know</p><h3 id="history-entry-title">Add a past performance</h3><small>Give ForgePath an exact baseline without creating a fake planned workout.</small></span></span><button className="button button--secondary" disabled={Boolean(activeSessionId)} aria-expanded={historyEntryOpen} onClick={() => historyEntryOpen ? setHistoryEntryOpen(false) : openHistoryEntry()}>{historyEntryOpen ? 'Close entry' : 'Enter past sets'}</button></div>
+              {activeSessionId && <p className="control-reason">Finish or leave the active workout before changing completed history.</p>}
+              {historyEntryOpen && <div className="history-entry-form">
+                <div className="history-entry-form__truth"><ShieldCheck size={18} /><span><strong>Exact movement evidence</strong><p>These sets can inform future load, repetitions, setup, and confidence for {selected.name}. They do not prove readiness, recovery, technique, pain, or plan completion unless you enter those fields.</p></span></div>
+                <div className="form-grid history-entry-grid">
+                  <label><span className="field-label">Training date</span><input aria-label="Past performance date" type="date" max={localDateInput()} value={historyEntryValues.date} onChange={(event) => setHistoryEntryValues({ ...historyEntryValues, date: event.target.value })} /></label>
+                  <label><span className="field-label">Sets</span><input aria-label="Past performance sets" type="number" inputMode="numeric" min="1" max="50" step="1" value={historyEntryValues.setCount} onChange={(event) => setHistoryEntryValues({ ...historyEntryValues, setCount: event.target.value })} /></label>
+                  <label><span className="field-label">Repetitions per set</span><input aria-label="Past performance repetitions" type="number" inputMode="numeric" min="1" max="1000" step="1" value={historyEntryValues.reps} onChange={(event) => setHistoryEntryValues({ ...historyEntryValues, reps: event.target.value })} /></label>
+                  <label><span className="field-label">Weight</span><span className="history-entry-load"><input aria-label="Past performance weight" type="number" inputMode="decimal" min="0" max="100000" step="0.5" placeholder="135" value={historyEntryValues.load} onChange={(event) => setHistoryEntryValues({ ...historyEntryValues, load: event.target.value })} /><select aria-label="Past performance weight unit" value={historyEntryValues.loadUnit} onChange={(event) => setHistoryEntryValues({ ...historyEntryValues, loadUnit: event.target.value as HistoricalLoadUnit })}><option value="lb">lb</option><option value="kg">kg</option></select></span></label>
+                  <label><span className="field-label">Effort scale</span><select aria-label="Past performance effort scale" value={historyEntryValues.effortScale} onChange={(event) => { const effortScale = event.target.value as HistoricalEffortScale; setHistoryEntryValues({ ...historyEntryValues, effortScale, effortValue: effortScale === 'unknown' ? '' : effortScale === 'rpe' ? '8' : '2' }) }}><option value="rir">RIR, reps left</option><option value="rpe">RPE, exertion</option><option value="unknown">I do not know</option></select></label>
+                  {historyEntryValues.effortScale !== 'unknown' && <label><span className="field-label">{historyEntryValues.effortScale === 'rpe' ? 'RPE' : 'RIR'}</span><input aria-label="Past performance effort value" type="number" inputMode="decimal" min={historyEntryValues.effortScale === 'rpe' ? '1' : '0'} max="10" step="0.5" value={historyEntryValues.effortValue} onChange={(event) => setHistoryEntryValues({ ...historyEntryValues, effortValue: event.target.value })} /><small className="field-help">{historyEntryValues.effortScale === 'rpe' ? '10 means no repetitions were left.' : '0 means no repetitions were left.'}</small></label>}
+                  {supportsBenchAngle(selected) && <label><span className="field-label">Incline angle (optional)</span><input aria-label="Past performance bench angle" type="number" inputMode="decimal" min="0" max="90" step="1" placeholder="45" value={historyEntryValues.benchAngleDeg} onChange={(event) => setHistoryEntryValues({ ...historyEntryValues, benchAngleDeg: event.target.value })} /><small className="field-help">Blank means the angle is unknown, not zero.</small></label>}
+                  <label><span className="field-label">Technique (optional)</span><select aria-label="Past performance technique" value={historyEntryValues.technique} onChange={(event) => setHistoryEntryValues({ ...historyEntryValues, technique: event.target.value })}><option value="">Unknown</option><option value="1">1 · broke down</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5 · consistent</option></select></label>
+                  <label><span className="field-label">Pain or irritation (optional)</span><select aria-label="Past performance pain" value={historyEntryValues.pain} onChange={(event) => setHistoryEntryValues({ ...historyEntryValues, pain: event.target.value })}><option value="">Unknown</option><option value="0">0 · none</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5 · severe</option></select></label>
+                  <label className="history-entry-grid__wide"><span className="field-label">Session name (optional)</span><input aria-label="Past performance session name" maxLength={120} placeholder="Example: Upper day" value={historyEntryValues.sessionName} onChange={(event) => setHistoryEntryValues({ ...historyEntryValues, sessionName: event.target.value })} /></label>
+                  <label className="history-entry-grid__wide"><span className="field-label">Setup or context note (optional)</span><textarea aria-label="Past performance note" maxLength={500} rows={3} placeholder="Grip, machine, tempo, equipment, or anything that makes this performance comparable later" value={historyEntryValues.note} onChange={(event) => setHistoryEntryValues({ ...historyEntryValues, note: event.target.value })} /></label>
+                </div>
+                <div className="history-entry-preview" aria-live="polite"><span><strong>{Number(historyEntryValues.setCount) || 0} × {Number(historyEntryValues.reps) || 0} at {Number(historyEntryValues.load) || 0} {historyEntryValues.loadUnit}</strong><small>{((Number(historyEntryValues.setCount) || 0) * (Number(historyEntryValues.reps) || 0) * (Number(historyEntryValues.load) || 0)).toLocaleString()} {historyEntryValues.loadUnit} volume{historyEntryValues.benchAngleDeg ? ` · ${historyEntryValues.benchAngleDeg}° bench` : ''}{historyEntryValues.effortScale === 'unknown' ? ' · effort unknown' : ` · ${historyEntryValues.effortScale.toUpperCase()} ${historyEntryValues.effortValue}`}</small></span>{historyEntryValues.loadUnit !== settings.units && <span><small>Stored in your current unit</small><strong>{normalizeHistoricalLoad(Number(historyEntryValues.load) || 0, historyEntryValues.loadUnit, settings.units)} {settings.units}</strong></span>}</div>
+                {(historyEntryValues.technique === '') !== (historyEntryValues.pain === '') && <p className="form-guidance">Enter both technique and pain to confirm quality, or leave both unknown.</p>}
+                {formError && <p className="form-error" role="alert">{formError}</p>}
+                <div className="history-entry-actions"><button className="button button--ghost" onClick={() => setHistoryEntryOpen(false)}>Cancel</button><button className="button button--primary" disabled={!historyEntryValues.date || !historyEntryValues.load || !historyEntryValues.setCount || !historyEntryValues.reps || (historyEntryValues.effortScale !== 'unknown' && historyEntryValues.effortValue === '') || ((historyEntryValues.technique === '') !== (historyEntryValues.pain === ''))} onClick={submitHistoryEntry}><CalendarPlus size={17} /> Add {Number(historyEntryValues.setCount) || 0} past set{Number(historyEntryValues.setCount) === 1 ? '' : 's'}</button></div>
+              </div>}
+            </section>
             {supportsBenchAngle(selected) && <section className="angle-history"><div className="panel__header"><div><p className="eyebrow">What each setup shows</p><h3>Progress by bench angle</h3></div><Target size={18} /></div><p>Each recorded angle keeps its own targets and records. Untracked older work stays visible but is never assumed to match a tracked setup.</p>{selectedAngleSummary.length ? <div className="angle-history__grid">{selectedAngleSummary.map((item) => <article key={item.label}><strong>{item.label}</strong><span>{item.sets} set{item.sets === 1 ? '' : 's'} · {item.volume.toLocaleString()} volume</span><small>Last used {new Date(item.latestAt).toLocaleDateString()}</small></article>)}</div> : <div className="compact-empty"><Target size={24} /><strong>No angles recorded yet</strong><p>Open Bench angle during a workout whenever the setup matters.</p></div>}</section>}
             <div className="preference-picker"><span><Target size={18} /><span><strong>Should ForgePath program this movement?</strong><small>Preferred movements rank higher. Avoided movements are excluded from new secondary work, accessories, and substitution suggestions. A current main lift stays protected until you approve a training-block change.</small></span></span><div><button className={selected.favorite ? 'selected preferred' : ''} aria-pressed={selected.favorite} onClick={() => { const preference = selected.favorite ? 'neutral' : 'preferred'; setExercisePreference(selected.id, preference); setSelected({ ...selected, favorite: preference === 'preferred', disliked: false }) }}><ThumbsUp size={17} /> Prefer</button><button className={!selected.favorite && !selected.disliked ? 'selected neutral' : ''} aria-pressed={!selected.favorite && !selected.disliked} onClick={() => { setExercisePreference(selected.id, 'neutral'); setSelected({ ...selected, favorite: false, disliked: false }) }}>Neutral</button><button className={selected.disliked ? 'selected avoid' : ''} aria-pressed={Boolean(selected.disliked)} onClick={() => { const preference = selected.disliked ? 'neutral' : 'avoid'; setExercisePreference(selected.id, preference); setSelected({ ...selected, favorite: false, disliked: preference === 'avoid' }) }}><ThumbsDown size={17} /> Avoid</button></div></div>
             <div className={`exercise-muscle-map ${selectedMuscleCredits ? '' : 'is-unmapped'}`}>
@@ -373,7 +440,7 @@ export function LibraryScreen() {
               {selectedMovementNotes.length ? <div className="movement-note-history__list">{selectedMovementNotes.slice(0, 16).map((note) => <article key={note.id}><div><strong>{new Date(note.sessionDate).toLocaleDateString()}</strong><small>{note.microcycleNumber ? `Week ${note.microcycleNumber}` : 'Outside a numbered microcycle'} · {note.sessionTitle}</small>{note.originalExerciseName && <small>Originally written for {note.originalExerciseName}</small>}</div><p>{note.body}</p></article>)}</div> : <div className="compact-empty"><BookOpen size={24} /><strong>No movement notes yet</strong><p>Workout notes about setup, tempo, cues, joint feel, and discoveries will stay attached to this exact movement here.</p></div>}
             </section>
             <section><div className="panel__header"><div><p className="eyebrow">Exact movement only</p><h3>When you trained it</h3></div><History size={18} /></div>
-              <div className="history-table history-table--editable">{Object.entries(groupedDates).slice(0, 8).map(([date, sets]) => <div className="history-day" key={date}><span><Clock3 size={14} />{new Date(`${date}T12:00:00`).toLocaleDateString()} · {volumeLoad(sets).toLocaleString()} volume</span>{sets.map((workSet) => <div className="history-set-row" key={workSet.id}><span><strong>{workSet.load} × {workSet.reps}</strong><small>Set {workSet.setIndex + 1} · {benchAngleLabel(workSet.benchAngleDeg)} · {workSet.rirKnown === false ? 'RIR unknown' : `${workSet.rir} RIR`} · {workSet.qualityConfirmed ? `technique ${workSet.technique} · pain ${workSet.pain}` : 'quality not confirmed'}</small>{workSet.originalExerciseName && <small>Originally logged as {workSet.originalExerciseName}{workSet.importSourceName ? ` · ${workSet.importSourceName} row ${workSet.importRow}` : ''}</small>}</span><span><button aria-label={`Correct ${workSet.load} by ${workSet.reps} set`} onClick={() => openCorrection(workSet)}><Pencil size={15} /> Correct</button><button className="danger-link" aria-label={`Delete ${workSet.load} by ${workSet.reps} set`} onClick={() => { setSelected(null); setDeleteOpen(workSet); setDeleteReason(''); setFormError(null) }}><Trash2 size={15} /> Delete</button></span></div>)}</div>)}</div>
+              <div className="history-table history-table--editable">{Object.entries(groupedDates).slice(0, 8).map(([date, sets]) => <div className="history-day" key={date}><span><Clock3 size={14} />{new Date(`${date}T12:00:00`).toLocaleDateString()} · {volumeLoad(sets).toLocaleString()} volume</span>{sets.map((workSet) => <div className="history-set-row" key={workSet.id}><span><strong>{workSet.load} × {workSet.reps}</strong><small>Set {workSet.setIndex + 1} · {benchAngleLabel(workSet.benchAngleDeg)} · {workSet.rirKnown === false ? 'RIR unknown' : workSet.historyEntryEffortScale === 'rpe' ? `RPE ${workSet.historyEntryEffortValue}` : `${workSet.rir} RIR`} · {workSet.qualityConfirmed ? `technique ${workSet.technique} · pain ${workSet.pain}` : 'quality not confirmed'}</small>{workSet.historyEntrySource === 'library' && <small>Athlete-entered history · {workSet.historyEntrySessionName}{workSet.historyEntryNote ? ` · ${workSet.historyEntryNote}` : ''}</small>}{workSet.originalExerciseName && <small>Originally logged as {workSet.originalExerciseName}{workSet.importSourceName ? ` · ${workSet.importSourceName} row ${workSet.importRow}` : ''}</small>}</span><span><button aria-label={`Correct ${workSet.load} by ${workSet.reps} set`} onClick={() => openCorrection(workSet)}><Pencil size={15} /> Correct</button><button className="danger-link" aria-label={`Delete ${workSet.load} by ${workSet.reps} set`} onClick={() => { setSelected(null); setDeleteOpen(workSet); setDeleteReason(''); setFormError(null) }}><Trash2 size={15} /> Delete</button></span></div>)}</div>)}</div>
             </section>
             <div className="builder-callout"><Target size={21} /><div><strong>Builder relationship</strong><p>{selected.roleTags.includes('secondary builder') ? 'This movement is currently linked to one of your main lifts. Whether it carries over is a starting guess until your own results back it up.' : 'No protected builder relationship has been assigned yet.'}</p></div></div>
           </div>
@@ -382,7 +449,7 @@ export function LibraryScreen() {
 
       <section className="panel mutation-ledger">
         <div className="panel__header"><div><p className="eyebrow">Auditable data</p><h3>History and movement changes</h3></div>{historyMutations.some((event) => !event.undoneAt) && <button className="button button--secondary" onClick={() => { const result = undoLatestHistoryMutation(); if (!result.ok) setNotice(result.error ?? 'Nothing to undo.') }}><Undo2 size={16} /> Undo latest change</button>}</div>
-        {historyMutations.length ? <div className="mutation-list">{[...historyMutations].reverse().slice(0, 6).map((event) => <div key={event.id} className={event.undoneAt ? 'is-undone' : ''}><span className="record-medal">{event.type === 'history-imported' ? 'I' : event.type === 'exercise-merged' ? '↗' : event.type === 'exercise-edited' ? 'A' : event.type === 'set-deleted' ? '−' : '±'}</span><span><strong>{event.description}</strong><small>{event.reason} · {new Date(event.createdAt).toLocaleString()}{event.undoneAt ? ' · undone' : ''}</small></span><span>{event.volumeAfter - event.volumeBefore >= 0 ? '+' : ''}{(event.volumeAfter - event.volumeBefore).toLocaleString()} volume</span></div>)}</div> : <div className="compact-empty"><ShieldCheck size={24} /><strong>No data changes yet</strong><p>Imports, catalog edits, corrections, deletions, and merges will appear here with their reasons and consequences.</p></div>}
+        {historyMutations.length ? <div className="mutation-list">{[...historyMutations].reverse().slice(0, 6).map((event) => <div key={event.id} className={event.undoneAt ? 'is-undone' : ''}><span className="record-medal">{event.type === 'history-imported' ? 'I' : event.type === 'history-entered' ? '+' : event.type === 'exercise-merged' ? '↗' : event.type === 'exercise-edited' ? 'A' : event.type === 'set-deleted' ? '−' : '±'}</span><span><strong>{event.description}</strong><small>{event.reason} · {new Date(event.createdAt).toLocaleString()}{event.undoneAt ? ' · undone' : ''}</small></span><span>{event.volumeAfter - event.volumeBefore >= 0 ? '+' : ''}{(event.volumeAfter - event.volumeBefore).toLocaleString()} volume</span></div>)}</div> : <div className="compact-empty"><ShieldCheck size={24} /><strong>No data changes yet</strong><p>Past-performance entries, imports, catalog edits, corrections, deletions, and merges will appear here with their reasons and consequences.</p></div>}
       </section>
 
       <section className="panel substitution-ledger">

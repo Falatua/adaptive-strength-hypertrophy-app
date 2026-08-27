@@ -32,8 +32,8 @@ import { missedOpportunityEventError } from './schedule-adaptation-engine'
 import { movementNoteError } from './movement-note-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 27
-export const BACKUP_APP_VERSION = '0.63.0'
+export const BACKUP_SCHEMA_VERSION = 28
+export const BACKUP_APP_VERSION = '0.64.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -424,6 +424,33 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
     if (workSet.numbersEntered !== undefined && typeof workSet.numbersEntered !== 'boolean') errors.push('A completed set has an invalid entered-numbers state.')
     const hasImportMetadata = ['importBatchId', 'importRow', 'importSourceName', 'importFingerprint', 'importUnits'].some((key) => workSet[key] !== undefined)
     if (hasImportMetadata && (typeof workSet.importBatchId !== 'string' || !Number.isInteger(workSet.importRow) || Number(workSet.importRow) < 2 || typeof workSet.importSourceName !== 'string' || typeof workSet.importFingerprint !== 'string' || !['lb', 'kg'].includes(String(workSet.importUnits)))) errors.push('An imported completed set has incomplete source provenance.')
+    const historyEntryKeys = ['historyEntryId', 'historyEntrySource', 'historyEntryUnits', 'historyEntryEffortScale', 'historyEntryEffortValue', 'historyEntrySessionName', 'historyEntryNote', 'historyEnteredAt']
+    const hasHistoryEntryMetadata = historyEntryKeys.some((key) => workSet[key] !== undefined)
+    if (hasHistoryEntryMetadata) {
+      const effortScale = String(workSet.historyEntryEffortScale)
+      const effortValue = workSet.historyEntryEffortValue
+      if (typeof workSet.historyEntryId !== 'string' || !workSet.historyEntryId.trim() || workSet.historyEntrySource !== 'library' || !['lb', 'kg'].includes(String(workSet.historyEntryUnits)) || !['rir', 'rpe', 'unknown'].includes(effortScale) || typeof workSet.historyEntrySessionName !== 'string' || !workSet.historyEntrySessionName.trim() || !isValidDate(workSet.historyEnteredAt) || workSet.numbersEntered !== true) errors.push('An athlete-entered completed set has incomplete source provenance.')
+      if (effortScale === 'unknown' ? effortValue !== undefined || workSet.rirKnown !== false : effortScale === 'rir' ? !Number.isFinite(effortValue) || Number(effortValue) < 0 || Number(effortValue) > 10 || workSet.rirKnown === false : !Number.isFinite(effortValue) || Number(effortValue) < 1 || Number(effortValue) > 10 || workSet.rirKnown === false) errors.push('An athlete-entered completed set has invalid effort provenance.')
+      if (typeof workSet.historyEntryNote === 'string' && workSet.historyEntryNote.length > 500) errors.push('An athlete-entered completed set note is too long.')
+      if (typeof workSet.historyEntrySessionName === 'string' && workSet.historyEntrySessionName.length > 120) errors.push('An athlete-entered session name is too long.')
+      if (isValidDate(workSet.historyEnteredAt) && isValidDate(workSet.completedAt) && new Date(String(workSet.completedAt)).getTime() > new Date(String(workSet.historyEnteredAt)).getTime() + 5 * 60_000) errors.push('An athlete-entered completed set is dated after it was entered.')
+      if (hasImportMetadata) errors.push('A completed set cannot be both a CSV import and a direct Library history entry.')
+    }
+  })
+
+  const directEntryGroups = new Map<string, Array<Record<string, unknown>>>()
+  history.forEach((workSet) => {
+    if (!isRecord(workSet) || typeof workSet.historyEntryId !== 'string') return
+    directEntryGroups.set(workSet.historyEntryId, [...(directEntryGroups.get(workSet.historyEntryId) ?? []), workSet])
+  })
+  directEntryGroups.forEach((sets) => {
+    const ordered = [...sets].sort((left, right) => Number(left.setIndex) - Number(right.setIndex))
+    const positions = ordered.map((workSet) => Number(workSet.setIndex))
+    if (positions.some((position) => !Number.isInteger(position) || position < 0 || position >= 50) || new Set(positions).size !== positions.length) errors.push('An athlete-entered performance has invalid set positions.')
+    // Training values are intentionally allowed to diverge after an athlete corrects
+    // one set. Only the entry identity and group-level audit context must remain stable.
+    const stableKeys = ['sessionId', 'exerciseId', 'historyEntrySource', 'historyEntrySessionName', 'historyEntryNote', 'historyEnteredAt']
+    if (stableKeys.some((key) => ordered.some((workSet) => stableJsonStringify(workSet[key]) !== stableJsonStringify(ordered[0]?.[key])))) errors.push('An athlete-entered performance has inconsistent set provenance.')
   })
 
   sessions.forEach((session) => {
@@ -517,7 +544,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   if (stableStringify(records) !== stableStringify(derivePersonalRecords(history as CompletedSetRecord[]))) errors.push('Personal records do not match the completed source sets.')
 
   historyMutations.forEach((event) => {
-    if (!isRecord(event) || !['set-corrected', 'set-deleted', 'exercise-merged', 'exercise-edited', 'history-imported'].includes(String(event.type)) || !isValidDate(event.createdAt) || typeof event.reason !== 'string' || !Array.isArray(event.affectedSetIds) || !isRecord(event.before) || !isRecord(event.after) || !Array.isArray(event.recordsBefore) || !Array.isArray(event.recordsAfter) || !isFiniteNonNegative(event.volumeBefore) || !isFiniteNonNegative(event.volumeAfter)) errors.push('A history change is invalid.')
+    if (!isRecord(event) || !['set-corrected', 'set-deleted', 'exercise-merged', 'exercise-edited', 'history-imported', 'history-entered'].includes(String(event.type)) || !isValidDate(event.createdAt) || typeof event.reason !== 'string' || !Array.isArray(event.affectedSetIds) || !isRecord(event.before) || !isRecord(event.after) || !Array.isArray(event.recordsBefore) || !Array.isArray(event.recordsAfter) || !isFiniteNonNegative(event.volumeBefore) || !isFiniteNonNegative(event.volumeAfter)) errors.push('A history change is invalid.')
     if (isRecord(event) && event.undoneAt !== undefined && !isValidDate(event.undoneAt)) errors.push('A history change has an invalid undo date.')
     if (isRecord(event) && isRecord(event.before) && isRecord(event.after) && Array.isArray(event.before.history) && Array.isArray(event.after.history) && (stableStringify(event.recordsBefore) !== stableStringify(derivePersonalRecords(event.before.history as CompletedSetRecord[])) || stableStringify(event.recordsAfter) !== stableStringify(derivePersonalRecords(event.after.history as CompletedSetRecord[])))) errors.push('A history change record projection does not match its source snapshots.')
     if (isRecord(event) && isRecord(event.before) && isRecord(event.after)) {
@@ -1014,6 +1041,18 @@ function migrateV26(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV27(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  validateState(candidate.data, true)
+  return {
+    data: candidate.data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 27 backup migrated safely. Existing training and block choices remain intact; direct Library history-entry provenance begins with future athlete entries.'
+  }
+}
+
 function migrateV24(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
   if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
@@ -1144,6 +1183,10 @@ export function parseBackup(raw: string): BackupPreview {
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 26) {
     const migrated = migrateV26(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 27) {
+    const migrated = migrateV27(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
