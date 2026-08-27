@@ -314,6 +314,10 @@ test('opens touch-safe workout reasoning and preserves an active workout across 
   // session rather than in screen state.
   await page.getByRole('button', { name: 'Stop the workout clock' }).click()
   await expect(clock).toContainText('Stopped')
+  // Let the final in-flight timer render settle before recording the frozen value. A stop can land
+  // exactly on a second boundary on slower WebKit runners, where the label legitimately advances
+  // once while React commits the persisted stopped timestamp.
+  await page.waitForTimeout(250)
   const stopped = String(await clock.textContent()).match(/\d\d:\d\d/)?.[0]
   await page.waitForTimeout(1500)
   await expect(clock).toContainText(String(stopped))
