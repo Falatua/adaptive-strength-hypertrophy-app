@@ -1,10 +1,10 @@
-# ForgePath Private Alpha 0.74.0
+# ForgePath Private Alpha 0.75.0
 
 ForgePath is an athlete-controlled adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed. The hosted private alpha uses Supabase as the authoritative training store; local development keeps a browser-only test mode.
 
-Private alpha 0.74.0 keeps returning and undertrained programming out of low-repetition loading. Rebuild and Calibration prescribe at least eight repetitions for primary work and ten for secondary work. Six repetitions or fewer requires stable continuity plus demonstrated current training, movement-skill, intensity-tolerance, and exact-evidence readiness. Leg extensions and curls always stay above ten repetitions, with Freak Athlete Leg Developer work starting at fifteen. Older approved plans remain unchanged until the athlete reviews and applies a new version.
+Private alpha 0.75.0 slows Forge journal leveling into a long-term progression curve. Level 2 requires 200 points and each later level costs 75 more than the one before it. Completed and honest partial workouts receive bounded awards, all record views from one workout share one small bonus, and raw tonnage, extra sets, load, repetitions, and duration do not accelerate the character. A record-heavy first workout now remains level one. The recalculation changes only the derived journal display and leaves every completed set, record, plan, readiness assessment, and training prescription intact.
 
-The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 471 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
+The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 475 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
 ## Run locally
 
@@ -49,8 +49,9 @@ npm run check:pages
 
 ## Current verification
 
+- 520 deterministic domain, persistence, and cloud-boundary tests
 - deterministic domain and cloud-boundary tests, including corrupted outbox, network retry, pending-state replay, stale conflict, response tampering, and restore acceptance
-- 147 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys covering Set 1 workout-entry autofill, protected manual exceptions, separate set logging, Freak Athlete Home Gym search and ABX presets, direct exact-movement past-performance entry, editable training-block blueprints, exact angle persistence, update notification, year-scale history, cloud boundaries, authentication continuity, console integrity, and horizontal containment
+- 150 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys covering the slower Forge level curve, record-heavy first-workout protection, Set 1 workout-entry autofill, protected manual exceptions, separate set logging, Freak Athlete Home Gym search and ABX presets, direct exact-movement past-performance entry, editable training-block blueprints, exact angle persistence, update notification, year-scale history, cloud boundaries, authentication continuity, console integrity, and horizontal containment
 - automated UI boundary QC for original game-inspired expression, the technique-video exclusion, readable typography, focus and reduced-motion support, compact mobile coverage, and required product-design context
 - lint clean
 - production PWA build clean

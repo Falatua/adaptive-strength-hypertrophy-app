@@ -113,7 +113,7 @@ Avoid stacking multiple floating glass panels. Use blur only for persistent navi
 - Sound cue: original synthesized pocket-console feedback under 700 milliseconds, low-volume, meaningful rather than ambient, off by default, previewable, and always suppressed by quiet mode.
 - Loading moment: an original compact visual tied to a real wait state, with written status, a static reduced-motion fallback, no fake delay, and no effect on training logic.
 - Progressive disclosure: Today shows one dominant start path, Workout puts the current set before notes, Library collapses filters on compact screens, and Progress exposes three primary time ranges with the rest under More.
-- Forge level: describes recorded journal depth only. Its badge spells out `Level`, sits inside the avatar footprint below the athlete, and casts no shadow. It must never rank athlete ability, training age, readiness, or identity.
+- Forge level: describes recorded journal depth only. Its badge spells out `Level`, sits inside the avatar footprint below the athlete, and casts no shadow. It must never rank athlete ability, training age, readiness, or identity. The progress view explains that rewards are bounded per workout, ignores raw tonnage and extra sets, and shows the increasing points needed for the next level. A record-heavy first workout remains level one rather than creating a multi-level jump.
 
 ## Training-Block Blueprint
 

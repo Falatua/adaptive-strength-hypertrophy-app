@@ -1832,6 +1832,40 @@ test('shows an earned athlete form and level that trace back to completed work',
   expect(browserErrors).toEqual([])
 })
 
+test('keeps a record-heavy first workout at Forge level one', async ({ page }) => {
+  await enterRecommendedProfile(page)
+  await page.evaluate(() => {
+    const key = 'forgepath-private-alpha-v1'
+    const persisted = JSON.parse(localStorage.getItem(key) ?? '{"state":{}}')
+    const firstSession = { ...persisted.state.sessions[0], id: 'first-workout', status: 'completed' }
+    persisted.state.sessions = [firstSession]
+    persisted.state.history = persisted.state.history.slice(0, 15).map((workSet: Record<string, unknown>, index: number) => ({
+      ...workSet,
+      id: `first-set-${index}`,
+      sessionId: 'first-workout',
+      exerciseId: `first-movement-${index % 5}`,
+      exerciseName: `First movement ${index % 5}`
+    }))
+    persisted.state.records = persisted.state.records.slice(0, 30).map((record: Record<string, unknown>, index: number) => ({
+      ...record,
+      id: `first-record-${index}`,
+      sourceSessionId: 'first-workout',
+      validation: 'validated'
+    }))
+    localStorage.setItem(key, JSON.stringify(persisted))
+  })
+  await page.reload()
+  await page.getByRole('button', { name: 'You', exact: true }).click()
+
+  const levelPanel = page.getByLabel('ForgePath journal level and visual form')
+  await expect(levelPanel).toContainText('Forge level 1')
+  await expect(levelPanel).toContainText('125 journal points')
+  await expect(levelPanel).toContainText('125 of 200 toward Forge level 2')
+  await expect(levelPanel).toContainText('1 source-backed workout')
+  await expect(levelPanel).not.toContainText('Volume moved')
+  await expect(levelPanel).toContainText('each later level requires 75 more points')
+})
+
 test('warns before finishing with unlogged work and records a deliberate skip', async ({ page }) => {
   await enterRecommendedProfile(page)
   await page.getByRole('button', { name: 'Today' }).click()

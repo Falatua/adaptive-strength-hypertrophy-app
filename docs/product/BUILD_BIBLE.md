@@ -5,12 +5,40 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-27
 status: canonical-build-reference-and-active-implementation
-version: 1.70.0
+version: 1.71.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.71.0 Change Entry
+
+- Advanced the working application to private alpha 0.75.0 and `athlete-level-v2` without changing backup schema 29, local persistence 30, route-session-v4, the 251-movement catalog, or the Supabase cloud-authoritative boundary.
+- Added R-472 through R-475 and Chapter 102 for progressively slower levels, bounded per-workout rewards, record-burst protection, anti-grind source rules, and transparent recalculation from unchanged training truth.
+- Raised level 2 to 200 points and made every later level cost 75 more points than the prior level.
+
+## 102. Progressively Slower Forge Journal Levels
+
+### 102.1 Curve
+
+Forge level 2 requires 200 points. The cost of each following level is `200 + 75 × (current level - 1)`. Level 3 therefore costs 275, level 4 costs 350, and level 10 costs 875. This steadily increasing requirement keeps the early loop understandable while making higher journal levels meaningfully longer-term.
+
+### 102.2 Bounded Source Awards
+
+A completed workout earns 100 points. An honest partial workout that completed primary work earns 70. Any number of validated record views sourced from the same workout share one 25-point bonus. Numeric-only record views share one 10-point bonus only when that source workout does not already own a validated bonus. A movement earns one 25-point breadth award after appearing in three distinct completed workouts.
+
+### 102.3 Anti-Grind Boundary
+
+Raw tonnage, absolute load, repetitions, working-set count, athlete-added sets, workout duration, surveys, and multiple record categories from the same source workout do not award additional level points. A five-movement first workout may create many legitimate record views, but it remains one completed-workout award and one bounded record-workout bonus. More work than prescribed is never the fastest route to a cosmetic level.
+
+### 102.4 Recalculation and Training Separation
+
+Forge level is derived display state. Version 2 recalculates it from the athlete's unchanged completed sessions, source records, and exact movement exposures. A v1 level inflated by raw tonnage or many record rows may display lower after correction. That is an economy repair, not a deletion or a judgment: completed sets, records, plans, placement, readiness, and programming remain unchanged. The interface states that rewards are bounded and each later level requires more points.
+
+### 102.5 Acceptance
+
+Deterministic acceptance covers a blank journal, completed and partial sessions, record-workout deduplication, validated-over-numeric precedence, tonnage invariance, set-count invariance, three-workout movement breadth, increasing level cost, form reachability, and source explanation. Browser acceptance proves that a first workout containing fifteen sets, five movements, and thirty validated record views remains Forge level 1 at 125 of 200 points across desktop Chromium, Android-style mobile Chromium, and iPhone WebKit.
 
 ### Version 1.70.0 Change Entry
 

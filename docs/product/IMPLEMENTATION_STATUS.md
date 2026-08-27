@@ -5,12 +5,23 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-27
 status: working-private-alpha
-app_version: 0.74.0
+app_version: 0.75.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.75.0 Progressively Slower Forge Level Delta
+
+- Advances journal leveling to `athlete-level-v2` without changing athlete placement, training programming, completed sets, records, or readiness.
+- Raises the first level requirement from 50 to 200 points and adds 75 points to every successive level cost.
+- Awards 100 bounded points for a completed workout and 70 for an honest partial workout with primary work completed.
+- Collapses every validated record view owned by one workout into one 25-point bonus. Numeric-only records receive one 10-point workout bonus only when that source workout has no validated bonus.
+- Removes raw tonnage and set-count leveling. A movement breadth award requires the movement to appear in three distinct completed workouts, so one high-volume session cannot manufacture mastery.
+- Recalculates the derived journal level from unchanged source truth. An inflated v1 display may become lower under the corrected economy, but no training data or athlete-training status changes.
+- Keeps backup schema 29, local persistence 30, the 251-movement catalog, route-session-v4, Home Gym preference v3, and the Supabase cloud-authoritative contract unchanged.
+- All 520 deterministic tests, all 150 desktop Chromium, mobile Chromium, and iPhone WebKit journeys, the production build, and Pages artifact gate pass. GitHub workflows, deployment, and live-source checks remain release gates.
 
 ## Private Alpha 0.74.0 Returning and Undertrained Repetition Delta
 
@@ -931,7 +942,7 @@ Screenshots are stored inside the code project at `output/playwright/` and are d
 - Browser storage is not yet SQLite or Postgres. Versioned local backup now reduces private-alpha loss risk but does not replace cloud or native durability.
 - The version-controlled Supabase schema, forced Row Level Security, invite-only client boundary, event outbox, explicit snapshot save, cloud review, athlete-confirmed restore, and conflict-preserving server function now exist. The dedicated remote ForgePath project and both migrations are active, but hosted phone and laptop instances still hold independent local state until invite-only Auth and live acceptance are complete. Automatic entity-level merge, device revocation UI, background hydration, and active-workout handoff remain deferred.
 - No OpenAI, Anthropic, retrieval, statistical calibration service, or unstructured-feedback interpretation exists yet.
-- The original evolving training companion, source-backed XP ledger, levels, three-stage evolution, and post-workout ceremony are specified in Chapter 66 but are not implemented. Actual Pokémon characters, names, likenesses, mechanics, and presentation are prohibited.
+- The original pixel athlete and first derived Forge journal level slice are implemented through athlete-level-v2. A durable append-only XP ledger, athlete-confirmed form evolution, post-workout level ceremony, cosmetic selection, and replay controls remain specified in Chapter 66 but unimplemented. Actual Pokémon characters, names, likenesses, mechanics, and presentation are prohibited.
 - The current athlete-learning display is seeded and deterministic. It is not a trained personal model.
 - Starting placement is deterministic, explainable, productively verified across up to three eligible sessions per exact protected movement, and connected to route-specific, equipment-aware, exact-movement future-session generation. Imported exact history can propose bounded confidence and heavy-work-tolerance values only after athlete review. Matching plan-route and exact-movement evidence now produce separate athlete-reviewed criterion checkpoints, but calibrated thresholds, structured coach history, reliable estimates, family transfer, measured-velocity power work, complete event peaks, automatic route application, and silent automatic reclassification remain incomplete or prohibited. Athlete technique video is explicitly out of product scope.
 - Editable mesocycles, exposure-round date bounds, criterion reviews, extension, recovery, completion, and pivot entry are executable. Waived or substituted round roles, automatic review reminders, macrocycles, annual plans, fixed-event replanning, and quadrennial transitions remain incomplete.

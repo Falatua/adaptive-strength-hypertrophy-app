@@ -164,6 +164,10 @@ Calibration is a permanent learning loop, not a one-time onboarding gate. Confid
 - The athlete badge always spells out `Level` followed by the number. It stays contained within the avatar footprint, remains shadow-free, and never abbreviates the label as `FL`.
 - Journal progress never labels the athlete as a beginner, novice, or apprentice and never overrides stated training age, movement skill, current readiness, or athlete judgment.
 - Points come only from completed work and source-backed records. They are a return-and-recall layer, not a skill score or compliance grade.
+- One completed workout earns a bounded 100 points. An honest partial workout with primary work completed earns 70. A workout that owns at least one validated record earns one 25-point bonus, no matter how many record views the same sets create. A numeric-only record workout earns one 10-point bonus only when it has no validated record bonus.
+- Raw tonnage, load, repetitions, extra sets, duration, surveys, and multiple record categories from the same workout do not accelerate Forge levels. A movement earns one 25-point breadth award after appearing in three distinct completed workouts, not from accumulating more sets in one session.
+- Forge level 2 requires 200 points. Every later level requires 75 more points than the preceding level, so early progress teaches the loop while higher levels take progressively longer.
+- Athlete level v2 recalculates the derived display from unchanged completed training and record evidence. A level that was inflated by the old per-record and raw-tonnage economy may display lower after the correction; no workout, set, record, or athlete-training status is deleted or altered.
 
 ## Angle-Aware Incline Setups
 

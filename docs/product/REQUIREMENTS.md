@@ -1906,13 +1906,13 @@ This is the canonical traceability index for every durable requirement JB states
 - Detail: [[Pixel Training Adventure Visual and Interaction System]]
 
 ### R-297 Completed-Workout Experience Points
-- Status: captured
+- Status: implemented-first-slice
 - Provenance: from-user
 - Requirement: Award visible experience points from completed workout events so consistent use gradually raises the companion's level. XP must derive from stored training truth and remain auditable after corrections, restore, and sync.
 - Detail: [[Pixel Training Adventure Visual and Interaction System]]
 
 ### R-298 Anti-Grind Experience Economy
-- Status: captured
+- Status: implemented-first-slice
 - Provenance: product-decision
 - Requirement: Use bounded session and achievement XP rather than raw tonnage, extra sets, maximum load, or workout duration so cosmetic leveling never encourages junk volume, unsafe effort, pain continuation, survey gaming, or fabricated sessions.
 - Detail: [[Pixel Training Adventure Visual and Interaction System]]
@@ -2955,7 +2955,36 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: New movement-placed generation must store route-session-v4 provenance. Backup schema 29 must preserve versions 1 through 28 and route-session-v1 through v3 history. Deterministic and browser acceptance must cover re-entry floors, readiness gating, Leg Developer targets, substitutions, athlete-approved upgrade, responsive containment, and unchanged completed data.
 - Detail: `src/domain/backup.ts`, `src/domain/route-session-engine.test.ts`, `src/domain/rep-prescription-policy.test.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 101
 
+### R-472 Progressively Slower Forge Level Curve
+- Status: implemented
+- Provenance: from-user
+- Requirement: Forge level 2 must require 200 points, and every successive level must require 75 more points than the preceding level so leveling becomes steadily harder across the long-term journal.
+- Detail: `src/domain/athlete-level-engine.ts`, `src/domain/athlete-level-engine.test.ts`, and Build Bible Chapter 102
+
+### R-473 Bounded Workout and Record Rewards
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: One completed workout earns a bounded 100 points and one honest partial workout earns 70. All validated record views owned by the same workout share one 25-point bonus, while numeric-only record views share one 10-point bonus only when that workout has no validated bonus.
+- Detail: `src/domain/athlete-level-engine.ts`, `PRODUCT.md`, and Build Bible Chapter 102
+
+### R-474 Anti-Grind Leveling Inputs
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Raw tonnage, maximum load, repetitions, working-set count, extra sets, workout duration, surveys, and multiple record categories from the same workout cannot accelerate Forge levels. Movement breadth credit requires three distinct completed exposures rather than more sets in one session.
+- Detail: `src/domain/athlete-level-engine.ts`, `src/domain/athlete-level-engine.test.ts`, and Build Bible Chapters 66 and 102
+
+### R-475 Level-Economy Correction and Acceptance
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Athlete level v2 must derive from unchanged completed training and record evidence, disclose its bounded sources and rising next-level cost, keep a record-heavy first workout at level one, and never alter training placement, programming, completed history, or record truth. The corrected derived display may be lower than the inflated v1 display.
+- Detail: `src/screens/YouScreen.tsx`, `tests/e2e/private-alpha-gamification.spec.ts`, `src/domain/backup.ts`, and Build Bible Chapter 102
+
 ## Thread Coverage Audit
+
+### 2026-08-27 Progressively Slower Forge Levels
+- Scope: JB reported that completing one workout immediately raised the character to level six and requested a slower curve that requires progressively more experience at higher levels.
+- Result: Added R-472 through R-475 and Build Bible Chapter 102. Private alpha 0.75.0 bounds rewards by source workout, removes raw-tonnage and extra-set acceleration, keeps a record-heavy first workout at level one, starts level 2 at 200 points, and adds 75 points to each later level requirement.
+- Status: Implemented and locally verified with all 520 deterministic tests, all 150 desktop Chromium, mobile Chromium, and iPhone WebKit journeys, production build, and Pages artifact gate passing. GitHub workflows, deployment, and live-source checks remain release gates.
 
 ### 2026-08-27 Returning and Undertrained Repetition Safety
 - Scope: JB rejected six-repetition squat, bench, deadlift, and leg-press prescriptions for a returning or undertrained athlete and requested consistently higher repetitions for Freak Athlete Leg Developer extensions and curls.
@@ -3342,6 +3371,7 @@ This is the canonical traceability index for every durable requirement JB states
 ## Change Log
 
 - 2026-08-26: Added R-461 through R-463 and Build Bible Chapter 99 for independently collapsible Plan days, truthful closed-day summaries, collapsed secondary detail, and accessible desktop and phone acceptance. Private alpha 0.72.0 preserves backup schema 28, local persistence 30, Home Gym preference v3, and the Supabase snapshot contract.
+- 2026-08-27: Added R-472 through R-475 and Build Bible Chapter 102 for a progressively slower Forge level curve, bounded workout and record rewards, raw-tonnage and extra-set exclusion, three-exposure movement breadth, and transparent athlete-level-v2 recalculation. Private alpha 0.75.0 preserves completed training, programming, backup schema 29, local persistence 30, and the Supabase snapshot contract.
 - 2026-08-27: Added R-467 through R-471 and Build Bible Chapter 101 for returning and undertrained repetition floors, demonstrated readiness before low-repetition work, fifteen-repetition Freak Athlete Leg Developer targets, athlete-approved existing-plan review, route-session-v4, and backup schema 29. Private alpha 0.74.0 preserves completed training, approved plans, local persistence 30, Home Gym preference v3, and the Supabase snapshot contract.
 - 2026-08-27: Added R-464 through R-466 and Build Bible Chapter 100 for Set 1 active-workout autofill, field-level manual exceptions, separate log actions, and no outcome or progression claims. Private alpha 0.73.0 preserves backup schema 28, local persistence 30, Home Gym preference v3, and the Supabase snapshot contract.
 - 2026-08-26: Added R-456 through R-460 and Build Bible Chapter 98 for Home Gym preference v3, incline-first pressing, block-stable Two-Board, Close-Grip, and Spoto rotation, exact-history separation, bench-board availability, and athlete-choice preservation. Private alpha 0.71.0 preserves backup schema 28 and the Supabase snapshot contract while advancing local persistence to 30.

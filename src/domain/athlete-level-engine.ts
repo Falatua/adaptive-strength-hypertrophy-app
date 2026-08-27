@@ -1,6 +1,6 @@
 import type { CompletedSetRecord, PersonalRecord, TrainingSession } from './types'
 
-export const ATHLETE_LEVEL_RULE = 'athlete-level-v1'
+export const ATHLETE_LEVEL_RULE = 'athlete-level-v2'
 
 /** Four forms the athlete's avatar takes as training accumulates. */
 export type AthleteForm = 'apprentice' | 'forged' | 'champion' | 'apex'
@@ -44,21 +44,25 @@ export interface AthleteLevel {
 }
 
 /**
- * Levelling is cumulative and cannot fall. Points come only from work that actually happened, so a
- * level is a statement about training history rather than about time spent in the app. Sources are
- * returned individually so the athlete can see exactly what earned it.
+ * Missing days and conservative training never subtract points. The derived display is recomputed
+ * from source truth when evidence is corrected or the versioned economy changes, so an inflated old
+ * display can be repaired without touching the training itself. Sources remain individually visible.
  */
 const POINTS = {
-  session: 10,
-  validatedRecord: 25,
-  numericRecord: 10,
-  volumePerThousand: 1,
-  masteredMovement: 15
+  completedSession: 100,
+  partialSession: 70,
+  validatedRecordSession: 25,
+  numericRecordSession: 10,
+  establishedMovement: 25
 }
 
-/** Each level costs a little more than the last, so the early arc moves and the late arc endures. */
+/**
+ * Level 2 takes two ordinary workouts instead of arriving from one record-heavy first session. Each
+ * later level costs another 75 points, creating a steadily slower long-term arc without tying progress
+ * to unsafe loading, extra sets, workout duration, or raw tonnage.
+ */
 export function pointsForLevel(level: number): number {
-  return 50 + Math.max(0, level - 1) * 25
+  return 200 + Math.max(0, level - 1) * 75
 }
 
 function totalPointsThroughLevel(level: number): number {
@@ -74,27 +78,32 @@ export function athleteLevel(input: {
 }): AthleteLevel {
   // Counted the same way badges count them: a session that produced completed work happened, whether
   // or not a planned session record exists for it.
+  const sessionStatus = new Map(input.sessions.map((session) => [session.id, session.status]))
   const finishedSessions = new Set(input.sessions.filter((session) => session.status === 'completed' || session.status === 'partial-primary').map((session) => session.id))
   for (const workSet of input.history) finishedSessions.add(workSet.sessionId)
-  const completedSessions = finishedSessions.size
-  const validatedRecords = input.records.filter((record) => record.validation === 'validated').length
-  const numericRecords = input.records.length - validatedRecords
-  const volumeLoad = input.history.reduce((total, workSet) => total + workSet.load * workSet.reps, 0)
-  const volumeThousands = Math.floor(volumeLoad / 1000)
+  const partialSessions = [...finishedSessions].filter((sessionId) => sessionStatus.get(sessionId) === 'partial-primary')
+  const completedSessions = finishedSessions.size - partialSessions.length
 
-  // A movement counts as mastered once it has been trained enough times to have a real history.
-  const exposuresByExercise = new Map<string, number>()
+  // A workout can create many record views from the same completed sets. Reward the source workout
+  // once, not every record row, so a first workout cannot leap several levels.
+  const validatedRecordSessions = new Set(input.records.filter((record) => record.validation === 'validated').map((record) => record.sourceSessionId))
+  const numericRecordSessions = new Set(input.records.filter((record) => record.validation === 'numeric-only' && !validatedRecordSessions.has(record.sourceSessionId)).map((record) => record.sourceSessionId))
+
+  // Breadth comes from repeated exposures, not piling more sets into one workout.
+  const exposuresByExercise = new Map<string, Set<string>>()
   for (const workSet of input.history) {
-    exposuresByExercise.set(workSet.exerciseId, (exposuresByExercise.get(workSet.exerciseId) ?? 0) + 1)
+    const exposures = exposuresByExercise.get(workSet.exerciseId) ?? new Set<string>()
+    exposures.add(workSet.sessionId)
+    exposuresByExercise.set(workSet.exerciseId, exposures)
   }
-  const masteredMovements = [...exposuresByExercise.values()].filter((count) => count >= 9).length
+  const establishedMovements = [...exposuresByExercise.values()].filter((exposures) => exposures.size >= 3).length
 
   const sources: LevelSource[] = [
-    { label: 'Sessions finished', detail: `${completedSessions} completed`, points: completedSessions * POINTS.session },
-    { label: 'Validated records', detail: `${validatedRecords} with confirmed quality`, points: validatedRecords * POINTS.validatedRecord },
-    { label: 'Numeric records', detail: `${numericRecords} without confirmed quality`, points: numericRecords * POINTS.numericRecord },
-    { label: 'Volume moved', detail: `${volumeLoad.toLocaleString()} total`, points: volumeThousands * POINTS.volumePerThousand },
-    { label: 'Movements mastered', detail: `${masteredMovements} with nine or more logged sets`, points: masteredMovements * POINTS.masteredMovement }
+    { label: 'Workouts completed', detail: `${completedSessions} completed`, points: completedSessions * POINTS.completedSession },
+    { label: 'Honest partial workouts', detail: `${partialSessions.length} with primary work completed`, points: partialSessions.length * POINTS.partialSession },
+    { label: 'Validated record workouts', detail: `${validatedRecordSessions.size} source-backed workout${validatedRecordSessions.size === 1 ? '' : 's'}`, points: validatedRecordSessions.size * POINTS.validatedRecordSession },
+    { label: 'Numeric-only record workouts', detail: `${numericRecordSessions.size} source-backed workout${numericRecordSessions.size === 1 ? '' : 's'}`, points: numericRecordSessions.size * POINTS.numericRecordSession },
+    { label: 'Established movements', detail: `${establishedMovements} trained in three or more workouts`, points: establishedMovements * POINTS.establishedMovement }
   ].filter((source) => source.points > 0)
 
   const points = sources.reduce((total, source) => total + source.points, 0)
