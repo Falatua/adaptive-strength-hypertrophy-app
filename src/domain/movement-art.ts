@@ -92,6 +92,7 @@ export function movementSceneFor(exercise: MovementArtSubject): MovementScene {
   if (exercise.pattern === 'isolation') {
     if (exercise.primaryRegion === 'trunk') return 'trunk'
     if (exercise.primaryRegion === 'shoulders') return 'lateralRaise'
+    if (exercise.primaryRegion === 'traps') return 'shrug'
     if (exercise.primaryRegion === 'triceps') return 'triceps'
     if (exercise.primaryRegion === 'biceps') return 'curl'
     if (exercise.primaryRegion === 'hamstrings') return 'legCurl'

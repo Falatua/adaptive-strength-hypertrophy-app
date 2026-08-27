@@ -5,12 +5,18 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-26
 status: canonical-build-reference-and-active-implementation
-version: 1.63.0
+version: 1.64.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.64.0 Change Entry
+
+- Advanced the working application to private alpha 0.68.0 while keeping backup schema 28 and every Supabase cloud-authoritative data boundary unchanged.
+- Added R-441 through R-445 and Chapter 95 for a separate Traps Library region, curated movement base, Plan and split integration, dedicated trapezius dose, and preservation-safe migration.
+- Advanced local test persistence to version 27 so existing profiles receive the protected catalog taxonomy without splitting Barbell Shrug history or replacing athlete preferences.
 
 ### Version 1.63.0 Change Entry
 
@@ -3260,7 +3266,7 @@ The sum across muscle rows can exceed the number of completed sets because one c
 | Trunk | Spinal erectors, abdominals, obliques |
 | Arms subset | Triceps, biceps, forearms and grip |
 
-The arms lens is an explicit subset of upper body, not another mutually exclusive whole-body region. The taxonomy does not yet separate upper and lower pectorals, individual quadriceps heads, individual hamstrings, soleus and gastrocnemius, biceps and brachialis, or specific scapular muscles. That extra precision requires a deliberate later version rather than silent inference.
+The arms lens is an explicit subset of upper body, not another mutually exclusive whole-body region. The taxonomy separates trapezius from generic upper back but does not silently subdivide upper, middle, and lower traps as independent dose lanes. It also does not yet separate upper and lower pectorals, individual quadriceps heads, individual hamstrings, soleus and gastrocnemius, or biceps and brachialis. That extra precision requires a deliberate later version rather than silent inference.
 
 ### Built-In Exercise Credit Map
 
@@ -6788,7 +6794,7 @@ Release acceptance verifies all five destination asset paths, more than ten rend
 
 ### 94.1 Body-Region Identity
 
-Library browse and filter controls use twelve original body-region emblems. Chest, back, shoulders, quadriceps, hamstrings, glutes, biceps, triceps, forearms, calves, trunk, and whole body use the front or rear view that makes the selected anatomy most legible. One effort-orange target is the visual authority, and the written region label remains the semantic authority.
+Library browse and filter controls use thirteen original body-region emblems. Chest, back, traps, shoulders, quadriceps, hamstrings, glutes, biceps, triceps, forearms, calves, trunk, and whole body use the front or rear view that makes the selected anatomy most legible. One effort-orange target is the visual authority, and the written region label remains the semantic authority.
 
 ### 94.2 Preference Symbol
 
@@ -6800,11 +6806,35 @@ The image map distinguishes materially different postures and equipment. Push-up
 
 ### 94.4 Asset Integrity and Runtime Boundary
 
-The release contains five destination files, twelve body-region files, forty movement files, six location files, four athlete-form files, and the ForgePath mark. Automated QC validates the required inventories, PNG signatures, dimensions, transparency-capable color type, SVG structure, and referenced paths before lint, deterministic tests, or compilation. GPT Images remains an authoring tool only, with source atlases and prompt direction retained beside the specification and no runtime provider dependency.
+The release contains five destination files, thirteen body-region files, forty movement files, six location files, four athlete-form files, and the ForgePath mark. Automated QC validates the required inventories, PNG signatures, dimensions, transparency-capable color type, SVG structure, and referenced paths before lint, deterministic tests, or compilation. GPT Images remains an authoring tool only, with source atlases and prompt direction retained beside the specification and no runtime provider dependency.
 
 ### 94.5 Rendered Acceptance
 
 Browser acceptance opens onboarding and all five primary destinations, asserts every rendered image has completed with nonzero natural dimensions, verifies no page creates horizontal overflow, and checks the exact body-region and representative movement asset paths. The matrix covers desktop Chromium, mobile Chromium, and iPhone WebKit. Final visual review includes body-region, movement-supplement, category-card, filter-chip, exercise-grid, and location-art screenshots.
+
+## 95. Separate Traps Library, Programming, and Dose
+
+### 95.1 Taxonomy and Library Contract
+
+`traps` is a first-class body region beside Back and Shoulders. Library Body part browsing exposes its own chip, written label, movement count, and rear-view emblem that highlights only the upper, middle, and lower trapezius. Back continues to represent lats and non-trapezius upper-back work. A movement may belong to both regions when its mechanics materially involve both.
+
+### 95.2 Canonical Movement Base
+
+The direct trap base includes Barbell Shrug, Dumbbell Shrug, Trap Bar Shrug, Cable Shrug, Machine Shrug, Chest-Supported Dumbbell Shrug, Cable Y-Raise, and Prone Trap Raise. Cable Upright Row, face pulls, Farmer Carry, and Yoke Walk remain primary work for their written regions but appear under Traps as secondary contributors. This gives home and commercial athletes direct upper-, middle-, and lower-trapezius options without pretending every row or deadlift is trap isolation.
+
+### 95.3 Programming and Split Integration
+
+Traps is selectable as a Plan priority or maintenance region. It belongs to upper and pull split emphasis, is accepted by schedule priority-dose validation, and can receive direct available accessory work during deterministic mesocycle generation. Existing athlete approval, exact exercise choice, equipment fit, pain, dislike, and protected-anchor boundaries remain unchanged.
+
+### 95.4 Dose, Analytics, and Starting Landmarks
+
+The individual-muscle layer adds `trapezius` as a dedicated upper-body lane. A direct trap movement credits one trap set-equivalent, secondary involvement credits one-half, and generic upper-back work remains separate. High-level volume still rolls Traps into Upper body. Starting weekly landmarks are MV 4, MEV 6, MAV 14, and MRV 20 before athlete volume-tolerance scaling; they are reference points only and cannot overrule recovery, pain, performance, or athlete approval.
+
+### 95.5 Identity, Migration, and Acceptance
+
+Barbell Shrug retains its stable ID, so completed sets, notes, preferences, aliases, and progression history do not split. System-catalog merge replaces protected taxonomy while preserving athlete-owned fields and appends the five new canonical movements. Local test persistence advances to 27 to run that merge for existing profiles. Backup schema stays 28 because the cloud-authoritative snapshot already carries the complete validated catalog and training state without a database-contract change.
+
+Acceptance verifies 248 unique canonical movements, at least eight direct trap movements, thirteen body-region assets, transparent image integrity, dedicated trapezius credit, upper and pull split membership, priority programming under Home Gym equipment, preservation-safe catalog merge, rendered Traps browsing, zero console errors, and horizontal containment across desktop Chromium, mobile Chromium, and iPhone WebKit.
 
 ### Version 1.47.0 Change Entry
 

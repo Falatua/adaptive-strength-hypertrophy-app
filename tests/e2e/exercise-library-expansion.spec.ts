@@ -11,6 +11,7 @@ async function enterCleanProfile(page: import('@playwright/test').Page) {
 async function expectHealthyImages(page: import('@playwright/test').Page) {
   const images = page.locator('img')
   expect(await images.count()).toBeGreaterThan(0)
+  await page.waitForFunction(() => [...document.images].every((image) => image.complete), undefined, { timeout: 5_000 })
   const results = await images.evaluateAll((elements) => elements.map((element) => ({
     src: element.getAttribute('src'), complete: element.complete,
     naturalWidth: element.naturalWidth, naturalHeight: element.naturalHeight
@@ -59,8 +60,8 @@ test('finds leg press in the expanded library and replaces a squat through full-
   await expect(page.locator('.exercise-card').first()).toContainText("The replaced movement's load was not copied")
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(26)
-  expect(persisted.state.exercises).toHaveLength(243)
+  expect(persisted.version).toBe(27)
+  expect(persisted.state.exercises).toHaveLength(248)
   expect(persisted.state.substitutionEvents.at(-1)).toMatchObject({ originalExerciseId: 'competition-squat', selectedExerciseId: 'leg-press-45' })
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
@@ -112,10 +113,16 @@ test('uses the generated ForgePath destination and movement-family icon system',
   await expect(page.locator('.library-categories img[src*="/icons/body-regions/all.png"]')).toBeVisible()
   await expect(page.locator('.library-categories').getByText('My preferences').locator('..').locator('svg.lucide-thumbs-up')).toBeVisible()
   await page.getByRole('button', { name: 'Body part' }).click()
-  await expect(page.locator('.filter-chips img[src*="/icons/body-regions/"]')).toHaveCount(12)
-  for (const region of ['all', 'chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']) {
+  await expect(page.locator('.filter-chips img[src*="/icons/body-regions/"]')).toHaveCount(13)
+  for (const region of ['all', 'chest', 'back', 'traps', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']) {
     await expect(page.locator(`.filter-chips img[src*="/icons/body-regions/${region}.png"]`)).toHaveCount(1)
   }
+  await page.getByRole('button', { name: 'Traps', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Barbell Shrug', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Dumbbell Shrug', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Chest-Supported Dumbbell Shrug', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Prone Trap Raise', exact: true })).toBeVisible()
+  if (testInfo.project.name === 'mobile-chromium') await page.locator('.library-browser').screenshot({ path: 'output/playwright/traps-library-mobile.png' })
   const movementArt = page.locator('.exercise-grid .movement-art img[src*="/icons/movements/"]')
   await expect(movementArt.first()).toBeVisible()
   expect(await movementArt.count()).toBeGreaterThan(10)
@@ -126,6 +133,8 @@ test('uses the generated ForgePath destination and movement-family icon system',
     await page.locator('.filter-stack').screenshot({ path: 'output/playwright/body-region-filters-mobile.png' })
     await page.locator('.exercise-grid').screenshot({ path: 'output/playwright/generated-library-movements-mobile.png' })
   }
+
+  await page.getByLabel('Body part and weak point filter').getByRole('button', { name: 'All', exact: true }).click()
 
   const librarySearch = page.getByPlaceholder('Search a movement or its other names...')
   for (const [movement, asset] of [

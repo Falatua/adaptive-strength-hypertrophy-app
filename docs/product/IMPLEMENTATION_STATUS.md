@@ -5,12 +5,22 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.67.0
+app_version: 0.68.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.68.0 Traps Library and Programming Delta
+
+- Separates Traps from Back across the Exercise Library, Plan priority and maintenance controls, upper and pull split emphasis, schedule evidence, and upper-body analytics.
+- Adds a GPT Images-authored rear-view trapezius emblem with the upper, middle, and lower fibers highlighted independently from lats and rear delts.
+- Adds Dumbbell Shrug, Trap Bar Shrug, Cable Shrug, Machine Shrug, and Chest-Supported Dumbbell Shrug, expanding the canonical catalog from 243 to 248 movements.
+- Reclassifies the stable Barbell Shrug, Cable Y-Raise, and Prone Trap Raise identities as direct trap movements; adds appropriate secondary trap discovery to upright rows, face pulls, Farmer Carry, and Yoke Walk.
+- Adds a dedicated trapezius muscle-dose lane and conservative starting volume landmarks while preserving missing-is-unknown feedback, recovery and pain gates, and athlete approval.
+- Advances local test persistence to 27 so the system catalog re-merges without splitting completed history, notes, aliases, favorites, dislikes, or joint response. Backup schema 28 and the Supabase snapshot contract are unchanged.
+- Passes 488 deterministic tests and targeted desktop Chromium, mobile Chromium, and iPhone WebKit Traps Library acceptance before the full 144-journey release gate.
 
 ## Private Alpha 0.67.0 Image Accuracy Delta
 

@@ -8,12 +8,31 @@ describe('exercise catalog governance', () => {
   })
 
   it('ships a deep catalog with stable unique identities and no exact alias collision', () => {
-    expect(exercises).toHaveLength(243)
+    expect(exercises).toHaveLength(248)
     expect(new Set(exercises.map((exercise) => exercise.id)).size).toBe(exercises.length)
     expect(new Set(exercises.map((exercise) => exercise.name.toLowerCase())).size).toBe(exercises.length)
     const exactNames = new Map<string, string[]>()
     exercises.forEach((exercise) => [exercise.name, ...exercise.aliases].forEach((name) => exactNames.set(name.toLowerCase(), [...(exactNames.get(name.toLowerCase()) ?? []), exercise.id])))
     expect([...exactNames.entries()].filter(([, ids]) => new Set(ids).size > 1)).toEqual([])
+  })
+
+  it('ships a separate trap movement base without splitting existing Barbell Shrug identity', () => {
+    const trapExercises = exercises.filter((exercise) => exercise.regions.includes('traps'))
+    expect(trapExercises.map((exercise) => exercise.name)).toEqual(expect.arrayContaining([
+      'Barbell Shrug', 'Dumbbell Shrug', 'Trap Bar Shrug', 'Cable Shrug', 'Machine Shrug',
+      'Chest-Supported Dumbbell Shrug', 'Prone Trap Raise', 'Cable Y-Raise'
+    ]))
+    expect(trapExercises.filter((exercise) => exercise.primaryRegion === 'traps').length).toBeGreaterThanOrEqual(8)
+
+    const priorShrug = structuredClone(exercises.find((exercise) => exercise.id === 'barbell-shrug')!)
+    priorShrug.primaryRegion = 'back'
+    priorShrug.regions = ['back', 'forearms']
+    priorShrug.favorite = true
+    priorShrug.jointFeeling = 'good'
+    const merged = mergeSystemExerciseCatalog([priorShrug], exercises)
+    expect(merged.find((exercise) => exercise.id === 'barbell-shrug')).toMatchObject({
+      id: 'barbell-shrug', primaryRegion: 'traps', favorite: true, jointFeeling: 'good'
+    })
   })
 
   it('adds new system movements without erasing athlete preferences or custom movements', () => {

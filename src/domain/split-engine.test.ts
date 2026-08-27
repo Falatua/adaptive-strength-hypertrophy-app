@@ -33,6 +33,7 @@ describe('trainingSplitFor', () => {
     expect(split.shape).toBe('push-pull-legs')
     expect(split.days.map((day) => day.label)).toEqual(['Push', 'Pull', 'Legs', 'Push', 'Pull', 'Legs'])
     expect(split.frequencyPerMuscle).toBe(2)
+    expect(split.days.filter((day) => day.label === 'Pull').every((day) => day.emphasis.includes('traps'))).toBe(true)
   })
 
   it('keeps per-muscle frequency in the productive range at every schedule', () => {

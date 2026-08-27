@@ -2742,7 +2742,7 @@ This is the canonical traceability index for every durable requirement JB states
 ### R-436 Anatomically Accurate Body-Region Art
 - Status: implemented
 - Provenance: from-user
-- Requirement: Every Library body-part browse and filter option must use a fitting front or rear figure with only the selected chest, back, shoulders, quadriceps, hamstrings, glutes, biceps, triceps, forearms, calves, trunk, or whole-body region emphasized. The written label remains authoritative.
+- Requirement: Every Library body-part browse and filter option must use a fitting front or rear figure with only the selected chest, back, traps, shoulders, quadriceps, hamstrings, glutes, biceps, triceps, forearms, calves, trunk, or whole-body region emphasized. The written label remains authoritative.
 - Detail: `public/icons/body-regions/`, `src/components/ForgeGlyph.tsx`, and Build Bible Chapter 94
 
 ### R-437 Clear My Preferences Symbol
@@ -2769,7 +2769,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Release acceptance must inspect onboarding plus Today, Plan, Progress, Library, and You, verify every rendered image loads with nonzero natural dimensions, verify representative corrected movement paths and all body-region paths, and retain console and horizontal-containment checks across desktop Chromium, mobile Chromium, and iPhone WebKit.
 - Detail: `tests/e2e/exercise-library-expansion.spec.ts` and Build Bible Chapter 94
 
+### R-441 Separate Traps Body Region
+- Status: implemented
+- Provenance: from-user
+- Requirement: Traps must be a separate Exercise Library body part and athlete-selectable programming region rather than being hidden inside Back. The filter uses its own written label and anatomically specific emblem.
+- Detail: `src/domain/types.ts`, `src/screens/library-filters.ts`, `public/icons/body-regions/traps.png`, and Build Bible Chapter 95
+
+### R-442 Canonical Trap Movement Base
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: The built-in catalog must include direct upper-, middle-, and lower-trapezius options across home and commercial equipment, including barbell, dumbbell, trap-bar, cable, machine, chest-supported, and Y-raise patterns. Related carries and face pulls may appear under Traps as secondary contributors without becoming direct trap work.
+- Detail: `src/domain/exercise-catalog-expansion.ts`, `src/domain/exercise-catalog-extras.ts`, and Build Bible Chapter 95
+
+### R-443 Trap Programming Integration
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Traps must be eligible as a Plan priority or maintenance region, belong to upper and pull split emphasis, participate in schedule evidence validation, and produce available direct trap work when declared as a priority. Exact athlete choice remains authoritative.
+- Detail: `src/screens/PlanScreen.tsx`, `src/domain/mesocycle-engine.ts`, `src/domain/split-engine.ts`, `src/domain/schedule-adaptation-engine.ts`, and Build Bible Chapter 95
+
+### R-444 Separate Trapezius Dose and Analytics
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Direct trap work must credit a dedicated trapezius muscle lane instead of silently counting as generic upper back. Secondary involvement receives fractional credit, and the high-level analytics rollup remains Upper body. Volume landmarks are conservative starting references subject to athlete feedback and approval.
+- Detail: `src/domain/muscle-dose.ts`, `src/domain/volume-progression-engine.ts`, `src/domain/analytics.ts`, and Build Bible Chapter 95
+
+### R-445 Preservation-Safe Trap Migration and Acceptance
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Existing Barbell Shrug identity, history, favorites, dislikes, joint response, and aliases must survive the taxonomy upgrade. Local test persistence must re-merge the protected system catalog; Supabase snapshot and backup schema boundaries remain unchanged. Release acceptance covers catalog uniqueness, dose separation, programming, image integrity, phone Chromium, and iPhone WebKit.
+- Detail: `src/domain/catalog-engine.ts`, `src/store/useAppStore.ts`, `tests/e2e/exercise-library-expansion.spec.ts`, and Build Bible Chapter 95
+
 ## Thread Coverage Audit
+
+### 2026-08-26 Separate Traps Library and Movement Base
+- Scope: JB requested a separate exercise library and movement base for traps.
+- Result: Added R-441 through R-445 and Build Bible Chapter 95. Private alpha 0.68.0 separates Traps from Back across Library browsing, anatomical art, Plan priorities, split emphasis, schedule evidence, direct trapezius dose, volume references, and upper-body analytics. The catalog adds five canonical trap movements while preserving the existing Barbell Shrug ID and athlete data.
+- Status: Implemented and locally verified with 488 deterministic tests plus targeted browser acceptance across desktop Chromium, mobile Chromium, and iPhone WebKit. Full browser, Pages-artifact, deployment, and live-source verification remain the release gates for this build.
 
 ### 2026-08-26 Anatomical and Movement Image Accuracy
 - Scope: JB requested more fitting and accurate body-part images, a thumbs-up for `My preferences`, and thorough image QC across all tabs, flows, and interfaces.
@@ -3119,6 +3154,8 @@ This is the canonical traceability index for every durable requirement JB states
 - Exact boundary and default setting for focused-training or low-decoration mode.
 
 ## Change Log
+
+- 2026-08-26: Added R-441 through R-445 and Build Bible Chapter 95 for a separate Traps body region, curated direct and secondary movement base, planning and split integration, dedicated trapezius dose, preservation-safe local migration, and phone acceptance. Private alpha 0.68.0 preserves backup schema 28 and advances local persistence to 27.
 
 - 2026-08-26: Added R-436 through R-440 and Build Bible Chapter 94 for anatomically targeted body-region art, a clear `My preferences` thumbs-up, movement-specific visual mapping, automatic shipped-image integrity, and onboarding plus all-destination rendered acceptance. Private alpha 0.67.0 preserves backup schema 28 and local persistence 26.
 

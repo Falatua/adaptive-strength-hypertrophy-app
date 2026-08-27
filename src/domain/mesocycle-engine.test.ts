@@ -62,6 +62,21 @@ describe('criterion-driven mesocycle planning', () => {
     expect(programmed).toContain('lying-leg-curl')
   })
 
+  it('programs an available direct trap movement when Traps is a declared priority', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const next = { ...draft(), priorityRegions: ['traps' as const], maintenanceRegions: [] }
+    const preview = buildMesocyclePreview(next, {
+      exercises,
+      currentSessions: sessions,
+      history,
+      planId: 'trap-priority-plan',
+      planVersion: 2,
+      equipmentProfile: home
+    })
+    const programmed = preview.sessions.flatMap((session) => session.exercises.map((planned) => planned.exerciseId))
+    expect(programmed.some((id) => ['barbell-shrug', 'dumbbell-shrug', 'chest-supported-db-shrug', 'prone-trap-raise'].includes(id))).toBe(true)
+  })
+
   it('starts reacclimation conservatively without adding catch-up volume', () => {
     const next = { ...draft(), dominantAdaptation: 'reacclimation' as const, entryRoute: undefined, generationRuleVersion: undefined, placementCreatedAt: undefined }
     const preview = buildMesocyclePreview(next, {

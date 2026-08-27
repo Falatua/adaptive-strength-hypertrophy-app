@@ -6,6 +6,11 @@ import { bodyRegionFilterIds } from '../screens/library-filters'
 // effectively hidden. This guards the case that already happened once: trunk, calves, and
 // forearms movements existed with no chip to find them.
 describe('library body part coverage', () => {
+  it('exposes Traps as its own body part instead of folding it into Back', () => {
+    expect(bodyRegionFilterIds).toHaveLength(12)
+    expect(bodyRegionFilterIds).toContain('traps')
+  })
+
   it('reaches every shipped movement from at least one body part chip', () => {
     const unreachable = exercises
       .filter((exercise) => !exercise.retired)

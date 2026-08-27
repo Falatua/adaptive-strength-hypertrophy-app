@@ -36,7 +36,8 @@ describe('movementSceneFor', () => {
     ['Dumbbell Pullover', 'Pullover', 'vertical-pull', 'back', 'pullover'],
     ['Cable Upright Row', 'Upright Row', 'horizontal-pull', 'shoulders', 'uprightRow'],
     ['Cable Face Pull', 'Face Pull', 'horizontal-pull', 'shoulders', 'facePull'],
-    ['Barbell Shrug', 'Shrug', 'carry', 'back', 'shrug'],
+    ['Barbell Shrug', 'Shrug', 'carry', 'traps', 'shrug'],
+    ['Chest-Supported Dumbbell Shrug', 'Shrug', 'horizontal-pull', 'traps', 'shrug'],
     ['Sled Push', 'Sled', 'carry', 'quadriceps', 'sledPush'],
     ['Seated Calf Raise', 'Calf Raise', 'isolation', 'calves', 'seatedCalf'],
     ['Tibialis Raise', 'Shin', 'isolation', 'calves', 'tibialisRaise']

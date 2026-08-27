@@ -26,7 +26,7 @@ function pngMetadata(bytes, file) {
 
 const expected = {
   'public/icons/navigation': ['today', 'plan', 'progress', 'library', 'you'],
-  'public/icons/body-regions': ['all', 'chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk'],
+  'public/icons/body-regions': ['all', 'chest', 'back', 'traps', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk'],
   'public/athlete-forms': ['apprentice', 'forged', 'champion', 'apex'],
   'public/locations': ['bodyweight', 'commercial-gym', 'custom', 'home-gym', 'hotel', 'travel']
 }
@@ -69,5 +69,5 @@ if (failures.length) {
   console.error(`Image asset QC failed:\n${failures.map((failure) => `- ${failure}`).join('\n')}`)
   process.exitCode = 1
 } else {
-  console.log(`Image asset QC passed across ${files.length} shipped images, including 40 movement scenes and 12 body-region emblems.`)
+  console.log(`Image asset QC passed across ${files.length} shipped images, including 40 movement scenes and 13 body-region emblems.`)
 }

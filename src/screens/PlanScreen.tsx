@@ -30,7 +30,7 @@ import { exerciseEquipmentFit } from '../domain/equipment-engine'
 import { benchAngleLabel, normalizeBenchAngle, supportsBenchAngle } from '../domain/bench-angle-engine'
 import type { BodyRegion, CycleReviewDecision, Exercise, ExerciseRole, MesocycleDraft, PlannedExercise } from '../domain/types'
 
-const regions: BodyRegion[] = ['chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']
+const regions: BodyRegion[] = ['chest', 'back', 'traps', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']
 
 const readable = (value: string) => value.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 

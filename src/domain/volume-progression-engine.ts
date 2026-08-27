@@ -23,6 +23,7 @@ const baseLandmarks: Record<MuscleId, VolumeLandmarks> = {
   pectorals: { mv: 4, mev: 8, mav: 16, mrv: 22 },
   latissimus: { mv: 6, mev: 10, mav: 18, mrv: 25 },
   'upper-back': { mv: 6, mev: 10, mav: 18, mrv: 25 },
+  trapezius: { mv: 4, mev: 6, mav: 14, mrv: 20 },
   'anterior-deltoids': { mv: 0, mev: 6, mav: 12, mrv: 16 },
   'lateral-deltoids': { mv: 6, mev: 8, mav: 18, mrv: 26 },
   'posterior-deltoids': { mv: 4, mev: 6, mav: 14, mrv: 20 },

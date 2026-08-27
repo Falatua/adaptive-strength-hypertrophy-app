@@ -63,8 +63,16 @@ describe('muscle-dose-v1', () => {
     const summary = muscleDoseFor([setFor('custom-1', 'custom-ring-press', 'Ring Press Arc')])
     expect(summary).toMatchObject({ mappedSourceSetCount: 0, unmappedSourceSetCount: 1, totalMuscleSetEquivalents: 0 })
     expect(summary.unmappedExerciseNames).toEqual(['Ring Press Arc'])
-    expect(summary.muscles).toHaveLength(17)
+    expect(summary.muscles).toHaveLength(18)
     expect(summary.muscles.every((point) => point.totalDose === 0 && point.sourceSetCount === 0)).toBe(true)
+  })
+
+  it('tracks direct trap work separately from upper-back work', () => {
+    expect(muscleCreditsFor('barbell-shrug', exercises)).toMatchObject({ trapezius: 1, forearms: 0.5 })
+    expect(muscleCreditsFor('chest-supported-db-shrug', exercises)).toMatchObject({ trapezius: 1, 'upper-back': 0.5 })
+    const summary = muscleDoseFor([setFor('shrug-1', 'barbell-shrug', 'Barbell Shrug')], exercises)
+    expect(summary.muscles.find((point) => point.muscle === 'trapezius')).toMatchObject({ directDose: 1, fractionalDose: 0 })
+    expect(summary.muscles.find((point) => point.muscle === 'upper-back')).toMatchObject({ directDose: 0, fractionalDose: 0 })
   })
 
   it('filters individual muscle evidence by upper, lower, arms, and trunk lenses', () => {

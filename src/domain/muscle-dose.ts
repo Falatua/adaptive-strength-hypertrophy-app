@@ -22,6 +22,7 @@ export const muscleDefinitions: MuscleDefinition[] = [
   { id: 'forearms', label: 'Forearms and grip', area: 'upper' },
   { id: 'latissimus', label: 'Latissimus', area: 'upper' },
   { id: 'upper-back', label: 'Upper back', area: 'upper' },
+  { id: 'trapezius', label: 'Trapezius', area: 'upper' },
   { id: 'spinal-erectors', label: 'Spinal erectors', area: 'trunk' },
   { id: 'quadriceps', label: 'Quadriceps', area: 'lower' },
   { id: 'hamstrings', label: 'Hamstrings', area: 'lower' },
@@ -82,6 +83,7 @@ export const builtInMuscleCredits: Readonly<Record<string, ExerciseCreditMap>> =
 const regionMuscle = (exercise: Exercise, region: Exercise['primaryRegion']): MuscleId => {
   if (region === 'chest') return 'pectorals'
   if (region === 'back') return exercise.roleTags.some((tag) => ['lats', 'pullover'].includes(tag)) || exercise.pattern === 'vertical-pull' ? 'latissimus' : 'upper-back'
+  if (region === 'traps') return 'trapezius'
   if (region === 'shoulders') return exercise.roleTags.includes('rear delts') ? 'posterior-deltoids' : exercise.roleTags.includes('lateral delts') ? 'lateral-deltoids' : 'anterior-deltoids'
   if (region === 'quadriceps') return 'quadriceps'
   if (region === 'hamstrings') return 'hamstrings'

@@ -241,7 +241,7 @@ test('shows an honest local test boundary without weakening backup or responsive
   await expect(page.getByRole('heading', { name: 'Backup and recovery' })).toBeVisible()
   await openPanel(page, 'backup and recovery')
   await expect(page.getByRole('button', { name: 'Export verified backup' })).toBeEnabled()
-  await expect(page.getByText('Local test state v26')).toBeVisible()
+  await expect(page.getByText('Local test state v27')).toBeVisible()
 
   await cloudPanel.screenshot({ path: `output/playwright/cloud-foundation-${testInfo.project.name === 'mobile-chromium' ? 'mobile' : 'desktop'}.png` })
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
@@ -266,7 +266,7 @@ test('organizes the exercise library and saves programming preferences', async (
   await expect(page.locator('#library-filter-panel')).toHaveCount(0)
   await page.getByRole('button', { name: 'Show filters' }).click()
   await page.getByRole('button', { name: 'Reset' }).click()
-  await expect(page.getByText('243 movements', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('248 movements', { exact: true }).first()).toBeVisible()
   await page.getByPlaceholder('Search a movement or its other names...').fill('Conventional Deadlift')
 
   const conventional = page.locator('.library-card').filter({ has: page.getByRole('heading', { name: 'Conventional Deadlift', exact: true }) }).first()
@@ -374,7 +374,7 @@ test('autosaves exact-movement workout notes and recalls them in the Exercise Li
   await expect(page.getByText('Saved notes').locator('..')).toContainText('1')
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(26)
+  expect(persisted.version).toBe(27)
   expect(persisted.state.movementNotes).toHaveLength(1)
   expect(persisted.state.movementNotes[0]).toMatchObject({
     ruleVersion: 'movement-note-v1', exerciseId: 'competition-bench', exerciseName: 'Competition Bench Press', body: note
@@ -555,7 +555,7 @@ test('defers optional feedback without blocking training and replays quality evi
   await expect(page.getByText('185 heaviest completed load', { exact: false }).first()).toBeVisible()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted?.version).toBe(26)
+  expect(persisted?.version).toBe(27)
   expect(persisted?.state?.deferredFeedback?.at(-1)).toMatchObject({ mode: 'minimal', status: 'completed' })
   expect(persisted?.state?.deferredFeedback?.at(-1)?.surveyId).toBeTruthy()
   expect(persisted?.state?.history?.filter((workSet: { sessionId: string }) => workSet.sessionId === persisted.state.deferredFeedback.at(-1).sessionId).every((workSet: { qualityConfirmed?: boolean }) => workSet.qualityConfirmed === true)).toBe(true)
@@ -721,7 +721,7 @@ test('records a missed opportunity and rebuilds only the open exposure queue fro
   }
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(26)
+  expect(persisted.version).toBe(27)
   expect(persisted.state.sessions).toHaveLength(before.sessions)
   expect(persisted.state.history).toHaveLength(before.history)
   expect(persisted.state.missedOpportunityEvents).toHaveLength(1)
@@ -1041,7 +1041,7 @@ test('turns imported exact history into athlete-reviewed placement evidence with
   }
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(26)
+  expect(persisted.version).toBe(27)
   expect(persisted.state.athlete.placement.ruleVersion).toBe('placement-v3')
   const benchInput = persisted.state.athlete.placement.inputs.movementProfiles.find((profile: { exerciseId: string }) => profile.exerciseId === 'competition-bench')
   const benchPlacement = persisted.state.athlete.placement.movementPlacements.find((placement: { exerciseId: string }) => placement.exerciseId === 'competition-bench')
@@ -1150,7 +1150,7 @@ test('filters the initial route queue through the selected training location', a
       planProfileId: state.mesocycles.find((plan: { id: string }) => plan.id === state.activeMesocycleId)?.generationEquipment?.profileId
     }
   })
-  expect(generated).toMatchObject({ persistenceVersion: 26, supportFits: true, planProfileId: 'equipment-home-gym' })
+  expect(generated).toMatchObject({ persistenceVersion: 27, supportFits: true, planProfileId: 'equipment-home-gym' })
   expect(generated.ruleVersions.every((value: string) => value === 'route-session-v3')).toBe(true)
   expect(generated.profileIds.every((value: string) => value === 'equipment-home-gym')).toBe(true)
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
@@ -1221,7 +1221,7 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
   await expect(page.getByText(/first work sets/i)).toBeVisible()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(26)
+  expect(persisted.version).toBe(27)
   expect(persisted.state.athlete.placement).toMatchObject({ ruleVersion: 'placement-v3', recommendedRoute: 'bridge-calibration', selectedRoute: 'reacclimation', confidence: 'high', decision: 'conservative' })
   expect(persisted.state.athlete.placement.movementPlacements.map((movement: { exerciseId: string; selectedRoute: string }) => [movement.exerciseId, movement.selectedRoute])).toEqual([
     ['competition-squat', 'introductory-skill'], ['competition-bench', 'reacclimation'], ['conventional-deadlift', 'reacclimation']
@@ -1308,7 +1308,7 @@ test('turns warm-up, first-set, session, and recovery evidence into an auditable
   if (testInfo.project.name === 'mobile-chromium') await page.locator('.placement-profile-evidence').screenshot({ path: 'output/playwright/placement-verification-profile-mobile.png' })
 
   let persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(26)
+  expect(persisted.version).toBe(27)
   expect(persisted.state.placementVerifications).toHaveLength(1)
   expect(persisted.state.placementVerifications[0]).toMatchObject({ ruleVersion: 'placement-verification-v1', status: 'resolved', verdict: 'supports-route', warmupResponse: 'as-expected', recoveryResponse: 'recovered' })
   expect(persisted.state.history.some((workSet: { id: string }) => workSet.id === persisted.state.placementVerifications[0].firstSet.sourceSetId)).toBe(true)
@@ -1401,7 +1401,7 @@ test('turns repeated productive checks into an athlete-reviewed placement checkp
   await expect(checkpoint.getByRole('button', { name: 'Checkpoint reviewed' })).toBeDisabled()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(26)
+  expect(persisted.version).toBe(27)
   expect(persisted.state.placementExitReviews).toHaveLength(1)
   expect(persisted.state.placementExitReviews[0]).toMatchObject({
     ruleVersion: 'placement-exit-review-v1',
@@ -1478,7 +1478,7 @@ test('keeps productive checkpoints independent per exact movement and saves the 
   await expect(lane.getByRole('button', { name: 'Starting-plan evidence reviewed' })).toBeDisabled()
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(26)
+  expect(persisted.version).toBe(27)
   expect(persisted.state.movementPlacementExitReviews).toHaveLength(1)
   expect(persisted.state.movementPlacementExitReviews[0]).toMatchObject({
     ruleVersion: 'movement-placement-exit-review-v1', exerciseId: 'competition-bench', decision: 'continue-current',

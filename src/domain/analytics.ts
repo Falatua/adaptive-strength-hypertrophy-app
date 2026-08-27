@@ -157,7 +157,7 @@ export function regionVolumeFor(history: CompletedSetRecord[]) {
 }
 
 const areaFor = (region: BodyRegion) => {
-  if (['chest', 'back', 'shoulders'].includes(region)) return 'Upper body'
+  if (['chest', 'back', 'traps', 'shoulders'].includes(region)) return 'Upper body'
   if (['quadriceps', 'hamstrings', 'glutes', 'calves'].includes(region)) return 'Lower body'
   if (['biceps', 'triceps', 'forearms'].includes(region)) return 'Arms'
   return 'Trunk'

@@ -53,7 +53,7 @@ export type MissedOpportunityReplanResult =
 const OPEN_STATUSES: SessionStatus[] = ['planned', 'deferred']
 const TERMINAL_STATUSES: SessionStatus[] = ['completed', 'partial-primary', 'partial-no-primary', 'expired', 'stopped']
 const PHYSIOLOGICAL_REASONS = new Set(['illness', 'pain'])
-const BODY_REGIONS: BodyRegion[] = ['chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']
+const BODY_REGIONS: BodyRegion[] = ['chest', 'back', 'traps', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']
 
 const setCount = (session: TrainingSession) => session.exercises.reduce((total, exercise) => total + exercise.sets.length, 0)
 

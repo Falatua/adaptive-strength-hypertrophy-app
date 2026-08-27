@@ -23,10 +23,10 @@ export interface TrainingSplit {
   reasons: string[]
 }
 
-const UPPER: BodyRegion[] = ['chest', 'back', 'shoulders', 'biceps', 'triceps']
+const UPPER: BodyRegion[] = ['chest', 'back', 'traps', 'shoulders', 'biceps', 'triceps']
 const LOWER: BodyRegion[] = ['quadriceps', 'hamstrings', 'glutes', 'calves']
 const PUSH: BodyRegion[] = ['chest', 'shoulders', 'triceps']
-const PULL: BodyRegion[] = ['back', 'biceps', 'forearms']
+const PULL: BodyRegion[] = ['back', 'traps', 'biceps', 'forearms']
 
 /**
  * How narrow each training day should be follows directly from how often the athlete trains.
