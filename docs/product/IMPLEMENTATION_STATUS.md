@@ -19,7 +19,8 @@ confidence: verified
 - Collapses the complete upcoming-session queue and long life-aware missed-work explanation until requested, reducing Plan scroll without removing any detail.
 - Uses touch-sized buttons, written Show or Hide state, chevrons, visible focus, `aria-expanded`, `aria-controls`, and hidden-content semantics.
 - Changes interface state only. The 251-movement catalog, backup schema 28, local persistence 30, Home Gym preference v3, plan data, completed history, Supabase Auth, and cloud-authoritative snapshot contract are unchanged.
-- Passes targeted component and desktop Chromium, mobile Chromium, and iPhone WebKit blueprint checks. The complete deterministic and 144-journey browser matrix, Pages artifact, deployment, and live-source verification remain release gates for this build.
+- Aligns the Plan editor with the engine's existing seven-opportunity limit and proves a real seven-day generated blueprint keeps Day 1 open, Days 2 through 7 closed, and every day independently available.
+- Passes 502 deterministic tests plus targeted desktop Chromium, mobile Chromium, and iPhone WebKit blueprint checks. The complete 144-journey browser matrix, Pages artifact, deployment, and live-source verification remain release gates for this build.
 
 ## Private Alpha 0.71.0 Home Gym Preference v3 Delta
 

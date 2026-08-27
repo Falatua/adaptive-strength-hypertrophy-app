@@ -83,6 +83,24 @@ describe('training-block blueprint', () => {
     expect(benchDay.exercises[1].sets.every((workSet) => workSet.benchAngleDeg === 45)).toBe(true)
   })
 
+  it('keeps a seven-day blueprint scannable while every day remains independently available', () => {
+    render(<PlanScreen />)
+    fireEvent.click(screen.getByRole('button', { name: 'Review and edit blueprint' }))
+    const dialog = screen.getByRole('dialog', { name: 'Preview training-block version 2' })
+    fireEvent.change(within(dialog).getByLabelText('Opportunities / week'), { target: { value: '7' } })
+    fireEvent.change(within(dialog).getByLabelText('Why are you changing the plan?'), { target: { value: 'Use a seven-day route without showing every workout at once.' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Apply version 2' }))
+
+    const blueprint = screen.getByRole('region', { name: 'See the whole route before you train it.' })
+    const dayToggles = within(blueprint).getAllByRole('button', { name: /day \d+:/i })
+    expect(dayToggles).toHaveLength(7)
+    expect(dayToggles[0]).toHaveAttribute('aria-expanded', 'true')
+    dayToggles.slice(1).forEach((toggle) => expect(toggle).toHaveAttribute('aria-expanded', 'false'))
+    fireEvent.click(dayToggles[6])
+    expect(dayToggles[6]).toHaveAttribute('aria-expanded', 'true')
+    expect(dayToggles[0]).toHaveAttribute('aria-expanded', 'true')
+  })
+
   it('carries a completed blueprint forward and flags movement feedback for the next block', () => {
     useAppStore.setState((state) => ({
       ...state,

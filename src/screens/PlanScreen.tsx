@@ -490,7 +490,7 @@ export function PlanScreen() {
             </div>
             <label><span className="field-label">Objective</span><textarea value={draft.objective} onChange={(event) => setDraft({ ...draft, objective: event.target.value })} /></label>
             <div className="plan-editor__numbers">
-              <label><span className="field-label">Opportunities / week</span><input type="number" min="2" max="5" value={draft.weeklyOpportunities} onChange={(event) => setDraft({ ...draft, weeklyOpportunities: Math.min(5, Math.max(2, Number(event.target.value))) })} /></label>
+              <label><span className="field-label">Opportunities / week</span><input type="number" min="2" max="7" value={draft.weeklyOpportunities} onChange={(event) => setDraft({ ...draft, weeklyOpportunities: Math.min(7, Math.max(2, Number(event.target.value))) })} /></label>
               <label><span className="field-label">Minutes / session</span><select value={draft.defaultMinutes} onChange={(event) => setDraft({ ...draft, defaultMinutes: Number(event.target.value) })}>{[30, 45, 60, 75, 90].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}</select></label>
               <label><span className="field-label">Number of training rounds</span><input type="number" min="3" max="8" value={draft.targetMicrocycles} onChange={(event) => setDraft({ ...draft, targetMicrocycles: Math.min(8, Math.max(3, Number(event.target.value))) })} /></label>
             </div>
