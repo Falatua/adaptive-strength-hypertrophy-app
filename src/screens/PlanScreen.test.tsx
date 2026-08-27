@@ -52,6 +52,14 @@ describe('training-block blueprint', () => {
     expect(blueprint).toHaveTextContent('Accessory')
     expect(blueprint).toHaveTextContent('Tertiary')
     expect(blueprint).toHaveTextContent('Deload is proposed from evidence')
+    const dayToggles = within(blueprint).getAllByRole('button', { name: /day \d+:/i })
+    expect(dayToggles).toHaveLength(sessions.filter((session) => (session.microcycleNumber ?? 1) === 1).length)
+    expect(dayToggles[0]).toHaveAttribute('aria-expanded', 'true')
+    expect(dayToggles[1]).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(dayToggles[1])
+    expect(dayToggles[1]).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'Show the upcoming session queue' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: 'Show how life-aware planning works' })).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('commits one secondary movement and incline setup across future training rounds', () => {

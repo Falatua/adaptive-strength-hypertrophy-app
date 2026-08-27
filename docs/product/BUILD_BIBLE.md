@@ -5,12 +5,36 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-26
 status: canonical-build-reference-and-active-implementation
-version: 1.67.0
+version: 1.68.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.68.0 Change Entry
+
+- Advanced the working application to private alpha 0.72.0 without changing the 251-movement catalog, backup schema 28, local persistence 30, Home Gym preference v3, or any Supabase cloud-authoritative data boundary.
+- Added R-461 through R-463 and Chapter 99 for independently collapsible training days, truthful closed-day summaries, and progressive disclosure of the upcoming-session queue and long life-aware explanation.
+- Kept Day 1 open for immediate orientation, later days closed for scanability, and every disclosure keyboard, touch, focus, and screen-reader operable.
+
+## 99. Plan Progressive Disclosure
+
+### 99.1 Collapsible Training-Day Contract
+
+Every training day in the repeatable weekly blueprint is independently collapsible. Day 1 opens by default to establish the workout grammar. Every later day begins collapsed so a seven-day schedule remains scannable. The closed summary retains the written day number, session title, objective, estimated duration, movement count, and planned working-set count. Expanding or collapsing changes presentation only and never mutates the plan.
+
+### 99.2 Secondary Detail Hierarchy
+
+The upcoming-session queue and the long life-aware missed-work explanation are secondary Plan material. Both remain available behind labeled disclosure controls and begin collapsed. The weekly route, block facts, movement-stability contract, recovery checkpoint, review state, and primary edit action remain visible because they define the current plan rather than explain optional depth.
+
+### 99.3 Interaction and Accessibility
+
+Each training-day control uses one full-width button with at least a 44-pixel target, written Show or Hide language, a state chevron, visible hover and focus states, `aria-expanded`, and `aria-controls`. Closed content is removed from the accessibility tree. Compact layouts preserve the summary hierarchy without horizontal scrolling at 320 pixels or wider. Desktop Chromium, Android-style mobile Chromium, and iPhone WebKit must prove independent expand and collapse behavior.
+
+### 99.4 Preservation Boundary
+
+Progressive disclosure is interface state only. It does not enter the backup, Supabase snapshot, plan version, workout history, movement override, schedule evidence, or programming engine. App updates may reset which panels are visually open without losing or changing athlete data.
 
 ### Version 1.67.0 Change Entry
 

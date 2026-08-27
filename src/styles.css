@@ -493,10 +493,20 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .block-blueprint__facts small { margin-top: 4px; color: var(--muted); font-size: .6rem; line-height: 1.4; }
 .block-blueprint__sessions { display: grid; gap: 10px; margin-top: 14px; }
 .blueprint-day { overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: #10140e; }
-.blueprint-day > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 13px; padding: 14px; }
-.blueprint-day > header h3 { margin: 0 0 8px; font-size: .88rem; }
-.blueprint-day > header p { margin: 0; color: var(--muted); font-size: .67rem; line-height: 1.45; }
-.blueprint-day > header > small { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: .62rem; }
+.blueprint-day > header { margin: 0; }
+.blueprint-day__toggle { display: grid; width: 100%; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 13px; min-height: 66px; padding: 14px; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.blueprint-day__toggle:hover { background: rgb(255 255 255 / 2%); }
+.blueprint-day__toggle:focus-visible { position: relative; z-index: 1; outline: 2px solid var(--blue); outline-offset: -3px; }
+.blueprint-day__summary strong, .blueprint-day__summary small { display: block; }
+.blueprint-day__summary strong { font-size: .88rem; }
+.blueprint-day__summary small { margin-top: 6px; color: var(--muted); font-size: .67rem; line-height: 1.45; }
+.blueprint-day__meta { display: grid; justify-items: end; gap: 5px; color: var(--muted); }
+.blueprint-day__meta small { display: flex; align-items: center; gap: 5px; font-size: .62rem; white-space: nowrap; }
+.blueprint-day__action { display: flex; align-items: center; gap: 7px; color: var(--muted); }
+.blueprint-day__action small { font: 750 .56rem/1.2 ui-monospace, monospace; text-transform: uppercase; white-space: nowrap; }
+.blueprint-day__action svg { transition: transform 180ms cubic-bezier(.22, 1, .36, 1); }
+.blueprint-day.is-open .blueprint-day__action { color: var(--lime); }
+.blueprint-day.is-open .blueprint-day__action svg { transform: rotate(180deg); }
 .blueprint-day__number { display: grid; min-width: 52px; height: 34px; place-items: center; border-radius: 7px; background: var(--lime); color: #11140d; font: 850 .62rem/1 ui-monospace, monospace; }
 .blueprint-day__movements { border-top: 1px solid var(--line); }
 .blueprint-movement { display: grid; grid-template-columns: 82px minmax(180px, 1.4fr) minmax(145px, .7fr) auto; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; border-top: 1px solid var(--line); }
@@ -1587,8 +1597,10 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .block-route { display: flex; overflow-x: auto; }
   .block-route__round, .block-route__review { flex: 0 0 112px; }
   .block-blueprint__facts { grid-template-columns: 1fr 1fr; }
-  .blueprint-day > header { grid-template-columns: auto minmax(0, 1fr); }
-  .blueprint-day > header > small { grid-column: 2; }
+  .blueprint-day__toggle { grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; padding: 12px; }
+  .blueprint-day__meta { grid-column: 2; justify-items: start; grid-template-columns: auto auto; }
+  .blueprint-day__action { grid-column: 3; grid-row: 1 / span 2; }
+  .blueprint-day__action small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
   .blueprint-movement { grid-template-columns: 66px minmax(0, 1fr); gap: 8px; }
   .blueprint-movement__dose { grid-column: 2; }
   .blueprint-movement > .status-chip { grid-column: 2; justify-self: start; }

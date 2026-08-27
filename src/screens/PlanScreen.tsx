@@ -3,6 +3,7 @@ import {
   AlertCircle,
   CalendarDays,
   Check,
+  ChevronDown,
   ChevronRight,
   CircleDashed,
   Clock3,
@@ -22,6 +23,7 @@ import {
 import { useAppStore } from '../store/useAppStore'
 import { checkInAgeLabels, scheduleChangeLabels, scheduleReadinessOutcomeLabels } from '../domain/readable-labels'
 import { Modal } from '../components/Modal'
+import { CollapsiblePanel } from '../components/CollapsiblePanel'
 import { buildMesocyclePreview, draftFromPlan } from '../domain/mesocycle-engine'
 import { buildCycleReview } from '../domain/cycle-review-engine'
 import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION } from '../domain/route-session-engine'
@@ -105,6 +107,7 @@ export function PlanScreen() {
   const [reviewDecision, setReviewDecision] = useState<CycleReviewDecision>('continue-hold')
   const [reviewReason, setReviewReason] = useState('')
   const [reviewError, setReviewError] = useState<string | null>(null)
+  const [openBlueprintDays, setOpenBlueprintDays] = useState<Record<string, boolean>>({})
   const [placementExitAssessedAt] = useState(() => new Date().toISOString())
   const [draft, setDraft] = useState<MesocycleDraft>(() => sourcePlan ? draftFromPlan(sourcePlan) : blankDraft())
   const [editorError, setEditorError] = useState<string | null>(null)
@@ -316,13 +319,28 @@ export function PlanScreen() {
           </div>
 
           <div className="block-blueprint__sessions">
-            {blueprintSessions.map((session, sessionIndex) => <article key={session.id} className="blueprint-day">
+            {blueprintSessions.map((session, sessionIndex) => {
+              const dayOpen = openBlueprintDays[session.id] ?? sessionIndex === 0
+              const movementCount = session.exercises.length
+              const setCount = session.exercises.reduce((total, planned) => total + planned.sets.length, 0)
+              const movementListId = `blueprint-day-${session.id}`
+              return <article key={session.id} className={`blueprint-day ${dayOpen ? 'is-open' : 'is-closed'}`}>
               <header>
-                <span className="blueprint-day__number">Day {sessionIndex + 1}</span>
-                <div><h3>{session.title}</h3><p>{session.objective}</p></div>
-                <small><Clock3 size={14} /> {session.durationMinutes} min</small>
+                <button
+                  type="button"
+                  className="blueprint-day__toggle"
+                  aria-expanded={dayOpen}
+                  aria-controls={movementListId}
+                  aria-label={`${dayOpen ? 'Collapse' : 'Expand'} day ${sessionIndex + 1}: ${session.title}`}
+                  onClick={() => setOpenBlueprintDays((current) => ({ ...current, [session.id]: !dayOpen }))}
+                >
+                  <span className="blueprint-day__number">Day {sessionIndex + 1}</span>
+                  <span className="blueprint-day__summary"><strong>{session.title}</strong><small>{session.objective}</small></span>
+                  <span className="blueprint-day__meta"><small><Clock3 size={14} /> {session.durationMinutes} min</small><small>{movementCount} movement{movementCount === 1 ? '' : 's'} · {setCount} sets</small></span>
+                  <span className="blueprint-day__action"><small>{dayOpen ? 'Hide workout' : 'Show workout'}</small><ChevronDown size={18} /></span>
+                </button>
               </header>
-              <div className="blueprint-day__movements">
+              <div className="blueprint-day__movements" id={movementListId} hidden={!dayOpen}>
                 {session.exercises.map((planned, slotIndex) => {
                   const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)
                   const athleteChosen = sourcePlan.movementOverrides?.some((choice) => choice.sessionIndex === sessionIndex && choice.slotIndex === slotIndex)
@@ -334,7 +352,8 @@ export function PlanScreen() {
                   </div>
                 })}
               </div>
-            </article>)}
+            </article>
+            })}
           </div>
 
           <div className="block-blueprint__contract">
@@ -353,8 +372,7 @@ export function PlanScreen() {
       </section>
 
       <div className="plan-layout">
-        <section className="panel panel--flush">
-          <div className="panel__header panel__header--padded"><div><p className="eyebrow">Rolling priority queue</p><h3>Next sessions</h3></div><span>{activePlan?.weeklyOpportunities ?? athlete.weeklyOpportunities} opportunities / week</span></div>
+        <CollapsiblePanel className="panel panel--flush" label="the upcoming session queue" header={<div className="panel__header panel__header--padded"><div><p className="eyebrow">Rolling priority queue</p><h3>Next sessions</h3></div><span>{planSessions.filter((session) => ['planned', 'deferred'].includes(session.status)).length} open · {activePlan?.weeklyOpportunities ?? athlete.weeklyOpportunities} / week</span></div>}>
           <div className="queue-list">
             {planSessions.map((session, index) => {
               const primary = session.exercises.find((exercise) => exercise.role === 'primary')
@@ -376,7 +394,7 @@ export function PlanScreen() {
               )
             })}
           </div>
-        </section>
+        </CollapsiblePanel>
 
         <aside className="plan-aside">
           <section className="panel">
@@ -387,8 +405,7 @@ export function PlanScreen() {
             </div>
             <p className="callout-copy">If Wednesday passes without benching, ForgePath records a schedule change, not a completed bench workout. The calendar moves forward; your training progress does not pretend the work happened.</p>
           </section>
-          <section className="panel life-aware-explainer" aria-label="How the life-aware plan works">
-            <div className="panel__header"><div><p className="eyebrow">Life-aware plan</p><h3>What happens when you miss a workout</h3></div><RefreshCcw size={19} /></div>
+          <CollapsiblePanel className="panel life-aware-explainer" ariaLabel="How the life-aware plan works" label="how life-aware planning works" header={<div className="panel__header"><div><p className="eyebrow">Life-aware plan</p><h3>What happens when you miss a workout</h3></div><RefreshCcw size={19} /></div>}>
             <div className="life-aware-steps">
               <article><span>1</span><div><strong>Record what actually happened</strong><p>Completed sets remain completed. A partial workout keeps only the sets you finished. A missed workout receives no sets, repetitions, load, volume, or progress credit.</p></div></article>
               <article><span>2</span><div><strong>Rebuild only unfinished plans</strong><p>ForgePath moves or reorders open workouts around your next realistic date, available minutes, equipment, joint feedback, and current readiness. Past completed workouts never change.</p></div></article>
@@ -401,7 +418,7 @@ export function PlanScreen() {
               <div><small>Long-term development</small><strong>Learn your sustainable plan</strong><p>ForgePath compares what was planned with what you repeatedly complete and recover from, then proposes a plan that fits your real life more accurately.</p></div>
             </div>
             <p className="life-aware-definition"><strong>Volume debt means missed planned work is treated as something you must repay later.</strong> ForgePath does not use volume debt. Missed work still matters because it leaves less evidence for progression, but it never becomes punishment or catch-up volume.</p>
-          </section>
+          </CollapsiblePanel>
           {latestScheduleChange && <section className="panel schedule-change-card" aria-label="Latest missed opportunity decision">
             <div className="panel__header"><div><p className="eyebrow">Rebuild {activeScheduleChanges.length}</p><h3>Latest queue rebuild</h3></div><RefreshCcw size={19} /></div>
             <div className="schedule-change-card__headline"><strong>{scheduleChangeLabels[latestScheduleChange.mode]}</strong><small>{latestScheduleChange.input.reason.replaceAll('-', ' ')} · {latestScheduleChange.input.constraintState} · next {new Date(latestScheduleChange.input.nextOpportunityAt).toLocaleDateString()}</small></div>

@@ -1,10 +1,10 @@
-# ForgePath Private Alpha 0.71.0
+# ForgePath Private Alpha 0.72.0
 
 ForgePath is an athlete-controlled adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed. The hosted private alpha uses Supabase as the authoritative training store; local development keeps a browser-only test mode.
 
-Private alpha 0.71.0 advances JB Home Gym preference v3. Automatic rounds now emphasize ABX incline pressing over general flat assistance while preserving any athlete-selected flat primary. Two-Board Press, Close-Grip Bench Press, and Spoto Press rotate by new block version as stable, exact-history triceps builders. The Home Gym profile now declares bench boards so all three are executable. Athlete-approved block choices, time, pain, equipment, and protected anchors remain authoritative. The 251-movement catalog, backup schema 28, and Supabase cloud-authoritative data contract are unchanged; local persistence advances to 30 for the untouched Home Gym profile upgrade.
+Private alpha 0.72.0 makes the Plan screen calmer on phones and high-frequency schedules. Every blueprint day is independently collapsible, with Day 1 open for orientation and every later day reduced to a labeled summary of time, movements, and sets. The upcoming-session queue and the long life-aware explanation are collapsed until requested. Keyboard, touch, and screen-reader controls expose the same state, and no training plan, movement choice, completed history, Supabase contract, backup schema, or Home Gym preference changes.
 
-The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 460 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
+The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 463 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
 ## Run locally
 

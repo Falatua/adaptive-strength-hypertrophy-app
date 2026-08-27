@@ -97,6 +97,13 @@ test('previews and preserves an athlete-edited training-block blueprint', async 
   await expect(blueprint).toContainText('Pull-Up')
   await expect(blueprint).toContainText('3 × 5')
   await expect(blueprint).toContainText('Deload is proposed from evidence')
+  const dayToggles = blueprint.getByRole('button', { name: /day \d+:/i })
+  await expect(dayToggles).toHaveCount(3)
+  await expect(dayToggles.first()).toHaveAttribute('aria-expanded', 'true')
+  await expect(dayToggles.nth(1)).toHaveAttribute('aria-expanded', 'false')
+  await dayToggles.nth(1).click()
+  await expect(dayToggles.nth(1)).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByRole('button', { name: 'Show the upcoming session queue' })).toHaveAttribute('aria-expanded', 'false')
 
   await blueprint.getByRole('button', { name: 'Review and edit blueprint' }).click()
   const dialog = page.getByRole('dialog', { name: 'Preview training-block version 2' })
@@ -341,6 +348,7 @@ test('opens touch-safe workout reasoning and preserves an active workout across 
   await page.getByRole('button', { name: 'Leave workout open' }).click()
   await expect(page.getByRole('button', { name: 'Resume active workout' })).toBeVisible()
   await page.getByRole('button', { name: 'Plan', exact: true }).click()
+  await page.getByRole('button', { name: 'Show the upcoming session queue' }).click()
   await page.getByRole('button', { name: /Pin Hinge Calibration Session as next priority/ }).click()
   const pinned = await page.evaluate(() => {
     const state = JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state

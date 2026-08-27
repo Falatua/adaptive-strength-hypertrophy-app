@@ -5,12 +5,21 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.71.0
+app_version: 0.72.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.72.0 Plan Progressive Disclosure Delta
+
+- Makes every weekly blueprint day independently collapsible while keeping Day 1 open for immediate orientation and later days closed for faster scanning.
+- Keeps each closed day informative with its written day, session title, objective, duration, movement count, and planned set count.
+- Collapses the complete upcoming-session queue and long life-aware missed-work explanation until requested, reducing Plan scroll without removing any detail.
+- Uses touch-sized buttons, written Show or Hide state, chevrons, visible focus, `aria-expanded`, `aria-controls`, and hidden-content semantics.
+- Changes interface state only. The 251-movement catalog, backup schema 28, local persistence 30, Home Gym preference v3, plan data, completed history, Supabase Auth, and cloud-authoritative snapshot contract are unchanged.
+- Passes targeted component and desktop Chromium, mobile Chromium, and iPhone WebKit blueprint checks. The complete deterministic and 144-journey browser matrix, Pages artifact, deployment, and live-source verification remain release gates for this build.
 
 ## Private Alpha 0.71.0 Home Gym Preference v3 Delta
 

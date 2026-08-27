@@ -110,6 +110,8 @@ The engine explains decisions at three horizons: what to do today, what happens 
 ## Training-Block Blueprint
 
 - Before the athlete starts or revises a training block, ForgePath shows the complete repeatable weekly structure: every training day, primary movement, secondary builder, accessory, tertiary movement, planned role, set and repetition target, approximate time, number of rounds, and recovery-review point.
+- Each training day is independently collapsible. Day 1 opens as the initial orientation while later days begin as compact summaries with the written day, title, objective, duration, movement count, and planned set count. Expanding a day reveals the exact workout and never changes the plan.
+- Secondary Plan material uses progressive disclosure. The complete upcoming-session queue and the long missed-work explanation stay available behind clearly labeled controls instead of forcing every athlete to scroll through them on every visit.
 - ForgePath suggestions are a starting blueprint, not a command. The athlete can replace a main lift, builder, accessory, or tertiary movement once at the block level instead of repeating the same change in every workout.
 - A block-level movement choice, including an optional incline back-pad angle, stays stable in later training rounds until the athlete approves another revision. Load, repetitions, recoverable dose, scheduling, and recovery recommendations may adapt from completed evidence without changing that movement contract silently.
 - Planned block sets, minutes, and dates are visibly estimates. They never enter completed volume, records, progression, or confidence until the work is actually completed.

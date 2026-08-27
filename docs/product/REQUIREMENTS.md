@@ -2889,7 +2889,30 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Preference v3 must preserve athlete-selected flat primaries, saved block overrides, time limits, pain and equipment gates, completed history, backup schema, and Supabase authority. Acceptance must prove incline priority, three-version rotation, exact identity, board availability, and non-Home-Gym isolation.
 - Detail: `src/domain/home-gym-programming.test.ts`, `src/domain/mesocycle-engine.test.ts`, and Build Bible Chapter 98
 
+### R-461 Independently Collapsible Blueprint Days
+- Status: implemented
+- Provenance: from-user
+- Requirement: Every training day in the Plan blueprint must expand and collapse independently so schedules up to seven days remain scannable. Day 1 opens by default and later days begin collapsed.
+- Detail: `src/screens/PlanScreen.tsx`, `src/screens/PlanScreen.test.tsx`, and Build Bible Chapter 99
+
+### R-462 Truthful Closed-Day Summary
+- Status: implemented
+- Provenance: product-decision
+- Requirement: A collapsed training day must retain its written day, session title, objective, duration, movement count, and planned working-set count. Disclosure state must never change the plan or completed data.
+- Detail: `src/screens/PlanScreen.tsx`, `src/styles.css`, and Build Bible Chapter 99
+
+### R-463 Secondary Plan Progressive Disclosure and Acceptance
+- Status: implemented-first-slice
+- Provenance: from-user
+- Requirement: The upcoming-session queue and long life-aware explanation must begin collapsed behind labeled controls. All Plan disclosures must support keyboard, touch, visible focus, screen readers, compact-phone containment, and independent state changes across the browser acceptance matrix.
+- Detail: `src/components/CollapsiblePanel.tsx`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 99
+
 ## Thread Coverage Audit
+
+### 2026-08-26 Plan Progressive Disclosure
+- Scope: JB requested collapsible training days and one or two additional collapsible Plan areas so high-frequency schedules do not become visually overwhelming or require excessive scrolling.
+- Result: Added R-461 through R-463 and Build Bible Chapter 99. Private alpha 0.72.0 keeps Day 1 open, collapses later days with truthful summaries, and collapses the upcoming-session queue and long life-aware explanation until requested.
+- Status: Implemented and targeted across component, desktop Chromium, mobile Chromium, and iPhone WebKit checks. The complete deterministic, browser, Pages-artifact, deployment, and live-source checks remain release gates.
 
 ### 2026-08-26 Incline and Triceps Press Priorities
 - Scope: JB prioritized more incline pressing than flat pressing while identifying Two-Board Press, Close-Grip Bench Press, and Spoto Press as valuable triceps builders.
@@ -3260,6 +3283,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-26: Added R-461 through R-463 and Build Bible Chapter 99 for independently collapsible Plan days, truthful closed-day summaries, collapsed secondary detail, and accessible desktop and phone acceptance. Private alpha 0.72.0 preserves backup schema 28, local persistence 30, Home Gym preference v3, and the Supabase snapshot contract.
 - 2026-08-26: Added R-456 through R-460 and Build Bible Chapter 98 for Home Gym preference v3, incline-first pressing, block-stable Two-Board, Close-Grip, and Spoto rotation, exact-history separation, bench-board availability, and athlete-choice preservation. Private alpha 0.71.0 preserves backup schema 28 and the Supabase snapshot contract while advancing local persistence to 30.
 
 - 2026-08-26: Added R-451 through R-455 and Build Bible Chapter 97 for Home Gym preference v2, explicit deficit-platform availability, preferred barbell hinge and shrug work, rows in most sessions, weekly pull-up progression from a provisional 3 × 5 capacity, exact-history takeover, upper-body support bias, low calf frequency, and athlete-choice preservation. Private alpha 0.70.0 preserves backup schema 28 and the Supabase snapshot contract while advancing local persistence to 29.
