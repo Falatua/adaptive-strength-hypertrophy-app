@@ -57,6 +57,8 @@ Home Gym movement detail and block previews keep exact written identity authorit
 
 The same angle identity appears in the block blueprint and active workout. Chest-supported row history is separated by recorded angle just like incline pressing history, so changing the back pad cannot silently borrow progression or record prompts from another setup. On compact phones, the preset controls wrap without horizontal scrolling and remain at least 44 pixels high.
 
+Home Gym preference v2 remains visible through the ordinary block blueprint rather than a hidden coaching mode. A normal three-day route should show the cambered-bar chest-supported row on two days and the pull-up lane on one day when those reserved support slots fit. The first no-history pull-up target must read as provisional 3 × 5 context, never as completed work or a demonstrated record. Exact logged pull-up sets replace that estimate. Calf support appears at most once automatically per round, while direct athlete choices remain unchanged.
+
 ## Historical Performance Entry
 
 Past-performance entry uses progressive disclosure inside the selected Exercise Library movement detail. It does not open a second modal. The collapsed action stays near that movement's existing history, and the expanded panel presents familiar labeled controls in a compact responsive grid.

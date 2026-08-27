@@ -2829,7 +2829,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: The system catalog and untouched Home Gym profile gain current capabilities without replacing athlete-owned locations, preferences, aliases, plans, completed history, or Supabase snapshot data. Local persistence advances while backup schema and cloud authority remain unchanged.
 - Detail: `src/domain/catalog-engine.ts`, `src/store/useAppStore.ts`, and Build Bible Chapter 96
 
+### R-451 Home Gym Barbell Hinge and Shrug Priority
+- Status: implemented
+- Provenance: from-user
+- Requirement: Automatic Home Gym selection must strongly prefer Conventional Deficit Deadlift, Romanian Deadlift, and Stiff-Leg Deadlift as barbell hinge builders and Barbell Shrug as direct trap work after safety, equipment, exact history, and athlete choice.
+- Detail: `src/domain/home-gym-programming.ts`, `src/domain/mesocycle-engine.ts`, and Build Bible Chapter 97
+
+### R-452 Frequent Home Gym Rowing and Upper-Body Support Bias
+- Status: implemented
+- Provenance: from-user
+- Requirement: Normal Home Gym rounds must reserve a low-fatigue row in at least two thirds of sessions when time and equipment permit, favoring the ABX Cambered-Bar Chest-Supported Row, without silently reflowing athlete-approved movement overrides.
+- Detail: `src/domain/home-gym-programming.ts`, `src/domain/mesocycle-engine.ts`, and Build Bible Chapter 97
+
+### R-453 Provisional Pull-Up Capacity and Weekly Exposure
+- Status: implemented
+- Provenance: from-user
+- Requirement: When no exact pull-up history or existing prescription exists, Home Gym planning must schedule one weekly pull-up exposure from a clearly provisional 3 × 5 capacity estimate. The estimate is not completed history, and exact logged pull-up work replaces it.
+- Detail: `src/domain/home-gym-programming.ts`, `src/domain/mesocycle-engine.ts`, and Build Bible Chapter 97
+
+### R-454 Low-Calf Automatic Frequency Ceiling
+- Status: implemented
+- Provenance: from-user
+- Requirement: Calf movements remain available for direct athlete choice, but automatic Home Gym accessory rotation must rank them low and expose no more than one calf opportunity per training round.
+- Detail: `src/domain/home-gym-programming.ts`, `src/domain/mesocycle-engine.ts`, and Build Bible Chapter 97
+
+### R-455 Preference-v2 Preservation and Acceptance
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Preference v2 must preserve protected anchors, saved block choices, exact history, local persistence, backup schema, and Supabase cloud authority. Acceptance must prove row frequency, pull-up calibration and history takeover, calf ceiling, hinge and shrug ranking, and non-Home-Gym isolation.
+- Detail: `src/domain/home-gym-programming.test.ts`, `src/domain/mesocycle-engine.test.ts`, and Build Bible Chapter 97
+
 ## Thread Coverage Audit
+
+### 2026-08-26 Home Gym Hinge, Pull-Up, Row, and Calf Priorities
+- Scope: JB prioritized barbell deficit, Romanian, and stiff-leg deadlifts, barbell shrugs, pull-up progression from approximately 3 × 5, rows in most workouts with the cambered-bar chest-supported row favored, more upper-body than lower-body support work, and very little automatic calf work.
+- Result: Added R-451 through R-455 and Build Bible Chapter 97. Private alpha 0.70.0 advances `home-gym-preference-v2`, reserves two row exposures and one pull-up exposure in a normal three-session round, treats 3 × 5 as provisional rather than completed truth, allows exact history to take over, and caps automatic calf opportunities at one per round.
+- Status: Implemented and locally verified with 498 deterministic tests. The complete browser, Pages-artifact, deployment, and live-source checks remain release gates.
 
 ### 2026-08-26 JB Home Gym Programming Priorities
 - Scope: JB identified ABX angle pressing, chest-supported cambered-bar rows, Squat Press, SSB or high-bar work, Leg Developer movements, red-band pull-aparts, dips, flat-only cambered-bar bench, and Bulgarian split squats as core Home Gym preferences, with low-bar and excess squatting avoided.
@@ -3189,6 +3224,8 @@ This is the canonical traceability index for every durable requirement JB states
 - Exact boundary and default setting for focused-training or low-decoration mode.
 
 ## Change Log
+
+- 2026-08-26: Added R-451 through R-455 and Build Bible Chapter 97 for Home Gym preference v2, explicit deficit-platform availability, preferred barbell hinge and shrug work, rows in most sessions, weekly pull-up progression from a provisional 3 × 5 capacity, exact-history takeover, upper-body support bias, low calf frequency, and athlete-choice preservation. Private alpha 0.70.0 preserves backup schema 28 and the Supabase snapshot contract while advancing local persistence to 29.
 
 - 2026-08-26: Added R-441 through R-445 and Build Bible Chapter 95 for a separate Traps body region, curated direct and secondary movement base, planning and split integration, dedicated trapezius dose, preservation-safe local migration, and phone acceptance. Private alpha 0.68.0 preserves backup schema 28 and advances local persistence to 27.
 

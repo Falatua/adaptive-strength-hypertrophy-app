@@ -1,10 +1,10 @@
-# ForgePath Private Alpha 0.69.0
+# ForgePath Private Alpha 0.70.0
 
 ForgePath is an athlete-controlled adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed. The hosted private alpha uses Supabase as the authoritative training store; local development keeps a browser-only test mode.
 
-Private alpha 0.69.0 adds JB Home Gym preference v1, three canonical home movements, expanded equipment capabilities, flat-only cambered-bar bench identity, and preservation-safe automatic planning. Backup schema remains 28, local persistence advances to 28, and the Supabase cloud-authoritative data contract is unchanged.
+Private alpha 0.70.0 advances JB Home Gym preference v2 with an explicit deficit platform, barbell hinge priority, barbell shrugs, rows in most normal sessions, a weekly pull-up exposure calibrated from an explicitly provisional 3 × 5 capacity estimate, upper-body-biased support work, and at most one automatic calf opportunity per training round. Exact completed pull-up history replaces the estimate. Athlete-approved block choices, pain, equipment, and protected anchors remain authoritative. Backup schema remains 28, local persistence advances to 29, and the Supabase cloud-authoritative data contract is unchanged.
 
-The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 450 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
+The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 455 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
 ## Run locally
 

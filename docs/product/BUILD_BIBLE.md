@@ -5,12 +5,29 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-26
 status: canonical-build-reference-and-active-implementation
-version: 1.65.0
+version: 1.66.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.66.0 Change Entry
+
+- Advanced the working application to private alpha 0.70.0 while keeping backup schema 28 and every Supabase cloud-authoritative data boundary unchanged.
+- Added R-451 through R-455 and Chapter 97 for Home Gym preference v2, preferred barbell hinge and shrug work, frequent cambered-bar rowing, provisional pull-up calibration, upper-body support priority, and low calf frequency.
+- Added the Home Gym deficit-platform capability and advanced local persistence to 29 so untouched system profiles receive it without replacing athlete-owned locations.
+- Added deterministic acceptance proving two row exposures and one pull-up exposure in a normal three-session round, exact pull-up history superseding the estimate, no more than one calf opportunity, and preservation of protected anchors and athlete-approved movement choices.
+
+## 97. JB Home Gym Programming Preference v2
+
+The second versioned Home Gym policy expands the preferred repertoire without changing the athlete-control hierarchy. The system Home Gym profile explicitly includes a deficit platform. Conventional deficit deadlifts, Romanian deadlifts, and stiff-leg deadlifts are the preferred barbell hinge builders. Barbell Shrug is the preferred direct upper-trapezius accessory. Pain, avoid status, exact equipment availability, protected anchors, and athlete-approved block choices remain stronger than every automatic preference.
+
+In a normal three-session round, automatic support work reserves the ABX Cambered-Bar Chest-Supported Row in two sessions and Pull-Up in the remaining session when the declared time budget can contain them. Larger rounds reserve rows in at least two thirds of sessions and one pull-up exposure in the final session. Reserved back work receives an accessory role so upper-body development remains present even when the declared region rotation would otherwise omit it. A saved block with athlete movement overrides is not silently reflowed to make room for the new reservations.
+
+JB's stated current pull-up ability becomes a provisional three-set, five-repetition starting target only when there is no exact completed pull-up history or existing planned pull-up prescription. It remains load zero, does not create history, records, confidence, or progression evidence, and is visibly described as an estimate. Exact logged pull-up sets replace the estimate, including their completed set count, repetitions, load, effort, and later progression evidence.
+
+Calves remain available in the Exercise Library and through athlete choice, but automatic Home Gym accessory rotation allows calves in no more than the final session of a training round and applies a strong negative ranking. This is a low-priority ceiling, not a ban. The policy changes no stored data shape, backup contract, cloud table, authentication rule, or Supabase snapshot behavior.
 
 ### Version 1.65.0 Change Entry
 

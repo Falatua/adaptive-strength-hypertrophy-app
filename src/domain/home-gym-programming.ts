@@ -1,6 +1,6 @@
-import type { EquipmentProfile, Exercise } from './types'
+import type { BodyRegion, EquipmentProfile, Exercise } from './types'
 
-export const HOME_GYM_PROGRAMMING_RULE_VERSION = 'home-gym-preference-v1' as const
+export const HOME_GYM_PROGRAMMING_RULE_VERSION = 'home-gym-preference-v2' as const
 
 const preferredScores: Readonly<Record<string, number>> = {
   'squat-press': 24,
@@ -12,18 +12,43 @@ const preferredScores: Readonly<Record<string, number>> = {
   'ssb-squat': 14,
   'high-bar-squat': 10,
   'bulgarian-split-squat': 14,
-  'leg-extension': 14,
+  'leg-extension': 16,
   'single-leg-extension': 12,
   'lying-leg-curl': 14,
   'red-band-pull-apart': 13,
   'weighted-dip': 13,
-  'parallel-bar-dip': 11
+  'parallel-bar-dip': 11,
+  'deficit-conventional': 22,
+  'romanian-deadlift': 20,
+  'stiff-leg-deadlift': 18,
+  'pull-up': 21,
+  'barbell-shrug': 17
 }
 
 const isJbHomeGym = (profile?: EquipmentProfile) => {
   if (!profile || profile.kind !== 'home-gym') return false
   const available = new Set(profile.equipment.map((item) => item.toLowerCase()))
   return profile.id === 'equipment-home-gym' || available.has('freak athlete abx bench')
+}
+
+export const homeGymInitialPrescription = (exercise: Exercise, profile?: EquipmentProfile) => {
+  if (!isJbHomeGym(profile) || exercise.id !== 'pull-up') return null
+  return { sets: 3, reps: 5 }
+}
+
+export const homeGymFrequentRowTarget = (sessionIndex: number, sessionCount: number, profile?: EquipmentProfile) => {
+  if (!isJbHomeGym(profile) || sessionCount <= 0) return false
+  return sessionIndex < Math.ceil(sessionCount * 2 / 3)
+}
+
+export const homeGymPullUpTarget = (sessionIndex: number, sessionCount: number, profile?: EquipmentProfile) => {
+  if (!isJbHomeGym(profile) || sessionCount <= 0) return false
+  return sessionIndex === sessionCount - 1
+}
+
+export const homeGymAccessoryRegionAllowed = (region: BodyRegion, sessionIndex: number, sessionCount: number, profile?: EquipmentProfile) => {
+  if (!isJbHomeGym(profile) || region !== 'calves') return true
+  return sessionCount > 0 && sessionIndex === sessionCount - 1
 }
 
 /** Soft ranking applies only to automatic support-work selection. Protected anchors remain athlete-controlled. */
@@ -33,10 +58,10 @@ export const homeGymProgrammingPreference = (exercise: Exercise, profile?: Equip
 
   const preferred = preferredScores[exercise.id] ?? 0
   const squatPenalty = exercise.pattern === 'squat' && preferred === 0 ? -12 : 0
+  const calfPenalty = exercise.primaryRegion === 'calves' ? -20 : 0
   return {
     automaticEligible: true,
-    score: preferred + squatPenalty,
+    score: preferred + squatPenalty + calfPenalty,
     ruleVersion: HOME_GYM_PROGRAMMING_RULE_VERSION
   }
 }
-

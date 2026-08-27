@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildMesocyclePreview, createMesocyclePlan, draftFromPlan, replaceFuturePlan } from './mesocycle-engine'
 import { equipmentProfiles, exercises, history, mesocycles, sessions } from './seed'
+import type { CompletedSetRecord } from './types'
 
 const draft = () => ({ ...draftFromPlan(mesocycles[0]), revisionReason: 'Testing a deliberate plan revision.' })
 
@@ -45,7 +46,7 @@ describe('criterion-driven mesocycle planning', () => {
     expect(preview.sessions.some((session) => session.exercises.some((item) => item.role === 'tertiary'))).toBe(true)
   })
 
-  it('prioritizes the athlete-owned ABX bench and Leg Developer within Home Gym programming', () => {
+  it('prioritizes the athlete-owned ABX bench, lower-body equipment, and preferred hinges within Home Gym programming', () => {
     const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
     const next = { ...draft(), defaultMinutes: 90, priorityRegions: ['back' as const, 'quadriceps' as const, 'hamstrings' as const], maintenanceRegions: [] }
     const preview = buildMesocyclePreview(next, {
@@ -59,7 +60,7 @@ describe('criterion-driven mesocycle planning', () => {
     const programmed = preview.sessions.flatMap((session) => session.exercises.map((planned) => planned.exerciseId))
     expect(programmed.some((id) => ['abx-chest-supported-db-row', 'abx-cambered-bar-chest-supported-row'].includes(id))).toBe(true)
     expect(programmed.some((id) => ['squat-press', 'leg-extension', 'single-leg-extension'].includes(id))).toBe(true)
-    expect(programmed).toContain('lying-leg-curl')
+    expect(programmed.some((id) => ['lying-leg-curl', 'deficit-conventional', 'romanian-deadlift', 'stiff-leg-deadlift'].includes(id))).toBe(true)
   })
 
   it('encodes JB Home Gym movement priorities without automatically selecting low-bar squats', () => {
@@ -71,6 +72,54 @@ describe('criterion-driven mesocycle planning', () => {
     expect(programmed).toContain('incline-barbell-press')
     expect(programmed).toContain('abx-cambered-bar-chest-supported-row')
     expect(programmed).not.toContain('low-bar-squat')
+  })
+
+  it('programs a cambered supported row in most Home Gym sessions and pull-ups at a provisional three by five', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const next = { ...draft(), defaultMinutes: 60, priorityRegions: ['chest' as const, 'back' as const, 'triceps' as const], maintenanceRegions: ['hamstrings' as const, 'calves' as const] }
+    const preview = buildMesocyclePreview(next, { exercises, currentSessions: [], history: [], planId: 'home-upper-priority', planVersion: 1, equipmentProfile: home })
+    const rowSessions = preview.sessions.filter((session) => session.exercises.some((planned) => planned.exerciseId === 'abx-cambered-bar-chest-supported-row'))
+    const pullUps = preview.sessions.flatMap((session) => session.exercises).filter((planned) => planned.exerciseId === 'pull-up')
+    const calfSessions = preview.sessions.filter((session) => session.exercises.some((planned) => exercises.find((exercise) => exercise.id === planned.exerciseId)?.primaryRegion === 'calves'))
+
+    expect(rowSessions).toHaveLength(2)
+    expect(pullUps).toHaveLength(1)
+    expect(pullUps[0].sets).toHaveLength(3)
+    expect(pullUps[0].sets.every((workSet) => workSet.targetReps === 5 && workSet.targetLoad === 0)).toBe(true)
+    expect(calfSessions.length).toBeLessThanOrEqual(1)
+    expect(preview.explanations).toContain('The initial pull-up target is a provisional 3 × 5 capacity estimate, not completed history; exact logged sets replace it.')
+  })
+
+  it('uses the available Home Gym deficit platform for the highest-ranked barbell hinge builder', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const next = { ...draft(), strengthAnchors: ['conventional-deadlift'], weeklyOpportunities: 1, defaultMinutes: 60, priorityRegions: ['hamstrings' as const], maintenanceRegions: [] }
+    const preview = buildMesocyclePreview(next, { exercises, currentSessions: [], history: [], planId: 'home-deficit-hinge', planVersion: 1, equipmentProfile: home })
+    expect(preview.sessions[0].exercises[1].exerciseId).toBe('deficit-conventional')
+  })
+
+  it('lets exact pull-up history replace the provisional Home Gym capacity target', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const pullUpHistory = Array.from({ length: 4 }, (_, setIndex): CompletedSetRecord => ({
+      id: `pull-up-history-${setIndex}`,
+      sessionId: 'pull-up-history-session',
+      exerciseId: 'pull-up',
+      exerciseName: 'Pull-Up',
+      family: 'Vertical Pull',
+      primaryRegion: 'back',
+      completedAt: '2026-08-25T12:00:00.000Z',
+      reps: 6,
+      load: 0,
+      rir: 1,
+      technique: 4,
+      pain: 0,
+      qualityConfirmed: true,
+      setIndex
+    }))
+    const next = { ...draft(), defaultMinutes: 60 }
+    const preview = buildMesocyclePreview(next, { exercises, currentSessions: [], history: pullUpHistory, planId: 'home-pull-up-history', planVersion: 1, equipmentProfile: home })
+    const pullUp = preview.sessions.flatMap((session) => session.exercises).find((planned) => planned.exerciseId === 'pull-up')!
+    expect(pullUp.sets).toHaveLength(4)
+    expect(pullUp.sets.every((workSet) => workSet.targetReps === 6 && workSet.targetRir === 1)).toBe(true)
   })
 
   it('keeps an explicitly protected low-bar anchor while excluding it from automatic support work', () => {

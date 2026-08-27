@@ -5,12 +5,21 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.69.0
+app_version: 0.70.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.70.0 Home Gym Preference v2 Delta
+
+- Advances automatic Home Gym planning to `home-gym-preference-v2` without changing the 251-movement catalog, backup schema 28, or Supabase cloud-authoritative snapshot contract. Local persistence advances to 29 so untouched Home Gym profiles receive the deficit-platform capability.
+- Strongly ranks Conventional Deficit Deadlift, Romanian Deadlift, and Stiff-Leg Deadlift as the preferred barbell hinge builders and Barbell Shrug as preferred direct trap work.
+- Reserves the ABX Cambered-Bar Chest-Supported Row in at least two thirds of normal Home Gym sessions and one weekly Pull-Up exposure, while leaving athlete-approved movement overrides and protected anchors intact.
+- Uses JB's approximate current pull-up ability only as a provisional 3 × 5 target. The estimate creates no completed history or record and is replaced by the first exact logged pull-up exposure.
+- Makes upper-back support present across a standard training round and caps automatic calf opportunities at one per round without blocking athlete-authored calf work.
+- Passes 498 deterministic tests. The complete 144-journey browser matrix, Pages artifact, deployment, and live-source verification remain the release gates for this build.
 
 ## Private Alpha 0.69.0 JB Home Gym Preference Delta
 

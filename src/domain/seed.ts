@@ -129,8 +129,8 @@ export const equipmentProfiles: EquipmentProfile[] = [
   },
   {
     id: 'equipment-home-gym', name: 'Home Gym', kind: 'home-gym', source: 'seed', incrementUnit: 'lb',
-    equipment: ['ab wheel', 'adjustable bench', 'barbell', 'bench', 'bodyweight', 'cambered bar', 'dip station', 'dumbbells', 'freak athlete abx bench', 'freak athlete hyper pro', 'freak athlete leg developer', 'leg extension machine', 'lying leg curl machine', 'plates', 'pull-up bar', 'rack', 'resistance bands', 'safety squat bar', 'squat press machine', ...extraPortableEquipment],
-    increments: { barbell: 5, dumbbell: 5, cable: 5, machine: 10, other: 5 }, constraints: ['Freak Athlete Hyper Pro with ABX bench and Leg Developer', 'Squat Press, safety squat bar, cambered bar, dip station, and red resistance bands available', 'Avoid automatic low-bar squat programming; minimize free-weight squat volume', 'Cambered-bar bench press is flat-bench only', 'No cable or selectorized machine work'], updatedAt: '2026-08-26T18:00:00.000Z'
+    equipment: ['ab wheel', 'adjustable bench', 'barbell', 'bench', 'bodyweight', 'cambered bar', 'deficit platform', 'dip station', 'dumbbells', 'freak athlete abx bench', 'freak athlete hyper pro', 'freak athlete leg developer', 'leg extension machine', 'lying leg curl machine', 'plates', 'pull-up bar', 'rack', 'resistance bands', 'safety squat bar', 'squat press machine', ...extraPortableEquipment],
+    increments: { barbell: 5, dumbbell: 5, cable: 5, machine: 10, other: 5 }, constraints: ['Freak Athlete Hyper Pro with ABX bench and Leg Developer', 'Squat Press, safety squat bar, cambered bar, deficit platform, dip station, and red resistance bands available', 'Avoid automatic low-bar squat programming; minimize free-weight squat volume', 'Cambered-bar bench press is flat-bench only', 'No cable or selectorized machine work'], updatedAt: '2026-08-26T21:30:00.000Z'
   },
   {
     id: 'equipment-travel', name: 'Travel Setup', kind: 'travel', source: 'seed', incrementUnit: 'lb',
