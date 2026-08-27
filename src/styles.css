@@ -1305,6 +1305,9 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .decision-info strong { margin-top: 6px; text-transform: capitalize; }
 .decision-info > p { grid-column: 1 / -1; }
 .set-table { padding: 10px 16px 15px; }
+.set-autofill-note { display: flex; gap: 7px; align-items: flex-start; margin: 4px 16px 0; color: var(--muted); font-size: .68rem; line-height: 1.4; }
+.set-autofill-note svg { flex: none; margin-top: 1px; color: var(--blue); }
+.set-autofill-note strong { color: var(--text); }
 .set-table__head, .set-row { display: grid; grid-template-columns: 48px 1fr .75fr .7fr 132px; gap: 8px; align-items: center; }
 .set-table__head { min-height: 34px; color: var(--dim); font: 700 .6rem/1 ui-monospace, monospace; text-transform: uppercase; }
 .set-row { min-height: 53px; border-top: 1px solid var(--line); }

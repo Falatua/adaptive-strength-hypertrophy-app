@@ -58,7 +58,9 @@ function replacementPrescription(input: {
       completed: false,
       completedLoad: undefined,
       completedReps: undefined,
-      actualRir: undefined
+      actualRir: undefined,
+      valuesEntered: undefined,
+      entryOrigins: undefined
     }))
     return {
       sets,
@@ -92,7 +94,9 @@ function replacementPrescription(input: {
     completed: false,
     completedLoad: undefined,
     completedReps: undefined,
-    actualRir: undefined
+    actualRir: undefined,
+    valuesEntered: undefined,
+    entryOrigins: undefined
   }))
   return {
     sets,

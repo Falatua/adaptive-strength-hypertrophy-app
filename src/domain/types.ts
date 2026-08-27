@@ -343,8 +343,10 @@ export interface SetPrescription {
   completedLoad?: number
   actualRir?: number
   completed: boolean
-  /** True only when the athlete typed a value. Undefined on sets saved before version 26. */
+  /** True when the athlete typed a value or accepted it through Set 1 autofill. Undefined on older sets. */
   valuesEntered?: boolean
+  /** Field-level provenance keeps later manual edits safe from subsequent Set 1 changes. */
+  entryOrigins?: Partial<Record<SetEntryField, SetEntryOrigin>>
   /** True when the athlete deliberately skipped this set. Simply not finishing a set is not a skip. */
   skipped?: boolean
   athleteAdded?: boolean
@@ -352,6 +354,9 @@ export interface SetPrescription {
   /** Optional back-pad angle. Undefined means it was not tracked. */
   benchAngleDeg?: number
 }
+
+export type SetEntryField = 'load' | 'reps' | 'rir'
+export type SetEntryOrigin = 'manual' | 'top-set-autofill'
 
 export interface PlannedExercise {
   id: string

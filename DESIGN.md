@@ -103,6 +103,7 @@ Avoid stacking multiple floating glass panels. Use blur only for persistent navi
 - Training Field Guide: compact framed route, next-win, and evidence rows with one tactile selector that opens the full explanation.
 - Quest bubble: one-pixel accent frame, dark readable fill, short source-backed coaching sentence, no animated typing.
 - Data input: familiar native control proportions, one-pixel trail-line, clear focus ring, explicit label and help when needed.
+- Set-entry autofill: Set 1 acts as the visible template for untouched later straight sets in the same movement. A short note explains that load, repetitions, and effort are copied for convenience, every row stays editable, and every set still logs separately. Manual exceptions, completed or skipped work, structured technique rows, and angle ladders remain unchanged.
 - Modal: native dialog behavior, sticky header, visible close action, contained mobile width, and a single primary completion action.
 - Sound cue: original synthesized pocket-console feedback under 700 milliseconds, low-volume, meaningful rather than ambient, off by default, previewable, and always suppressed by quiet mode.
 - Loading moment: an original compact visual tied to a real wait state, with written status, a static reduced-motion fallback, no fake delay, and no effect on training logic.

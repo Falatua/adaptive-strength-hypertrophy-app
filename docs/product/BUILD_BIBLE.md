@@ -3,14 +3,38 @@ type: product-build-bible
 aliases: [Adaptive Training App Build Bible, App Build Bible]
 tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
-updated: 2026-08-26
+updated: 2026-08-27
 status: canonical-build-reference-and-active-implementation
-version: 1.68.0
+version: 1.69.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.69.0 Change Entry
+
+- Advanced the working application to private alpha 0.73.0 without changing the 251-movement catalog, backup schema 28, local persistence 30, Home Gym preference v3, or the Supabase cloud-authoritative boundary.
+- Added R-464 through R-466 and Chapter 100 for Set 1 workout-entry autofill, protected manual exceptions, and separate set completion.
+- Added field-level entry provenance so later straight sets can follow a corrected Set 1 value without overwriting athlete-authored exceptions or structured technique rows.
+
+## 100. Active Workout Set Autofill
+
+### 100.1 Set 1 Template Contract
+
+Set 1 is the entry template for each exact movement's ordinary straight sets. When the athlete enters load, repetitions, or RIR/RPE, ForgePath copies only that field into later unfinished straight sets in the same planned exercise. Each movement has its own template boundary. No value crosses into another exercise.
+
+### 100.2 Manual Exception and Structure Protection
+
+Autofill records field-level origin. A later field the athlete edits manually becomes an exception and remains unchanged if Set 1 is corrected again. A field that still came from Set 1 may follow that correction. Completed sets, skipped sets, drop-set rows, and myo-rep rows are protected. Bench angle is excluded because a valid set ladder may intentionally use different angles.
+
+### 100.3 Truth and Completion Boundary
+
+Copied values count as accepted draft entry but never as completed training. Autofill does not press `Log set`, change prescribed targets, judge success or failure, create a record, trigger progression, or change the plan. Each row remains editable and retains its own explicit completion action. Only completed source sets enter history, volume, records, placement evidence, and later programming.
+
+### 100.4 Persistence and Acceptance
+
+Field-level entry provenance persists inside the existing validated session snapshot. Backup schema 28 and local persistence 30 remain compatible because the metadata is optional and older sessions without it remain valid. Deterministic tests prove copy, correction, exception, legacy-value, completion, skip, and structured-row behavior. Browser acceptance proves the visible helper copy, load/repetition/effort propagation, edit protection, separate log actions, persistence, and phone and desktop containment.
 
 ### Version 1.68.0 Change Entry
 

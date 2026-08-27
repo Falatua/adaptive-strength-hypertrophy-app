@@ -38,6 +38,26 @@ describe('clean first-use state', () => {
     expect(useAppStore.getState().sessions[0].painStatus).toBe('no-change')
   })
 
+  it('persists Set 1 autofill as editable draft data without completing later sets', () => {
+    const session = {
+      id: 'autofill-session', title: 'Autofill session', objective: 'Fast honest entry.', dayLabel: 'Today',
+      plannedDate: '2026-08-27T12:00:00.000Z', status: 'active' as const, durationMinutes: 45,
+      exercises: [{
+        id: 'autofill-bench', exerciseId: 'competition-bench', role: 'primary' as const, purpose: 'Test Set 1 entry.', restSeconds: 180, estimatedMinutes: 15, optional: false,
+        sets: Array.from({ length: 3 }, (_, index) => ({ id: `autofill-set-${index + 1}`, targetLoad: 100, targetReps: 8, targetRir: 2, completed: false }))
+      }]
+    }
+    useAppStore.setState({ sessions: [session], activeSessionId: session.id, workoutVisible: true })
+    useAppStore.getState().updateSet(session.id, session.exercises[0].id, session.exercises[0].sets[0].id, { load: 135, reps: 10, rir: 4 })
+
+    const sets = useAppStore.getState().sessions[0].exercises[0].sets
+    expect(sets[1]).toMatchObject({ completedLoad: 135, completedReps: 10, actualRir: 4, completed: false, valuesEntered: true, entryOrigins: { load: 'top-set-autofill', reps: 'top-set-autofill', rir: 'top-set-autofill' } })
+    expect(sets.every((workSet) => !workSet.completed)).toBe(true)
+
+    const restored = parseBackup(JSON.stringify(createBackup(backupStateFrom(useAppStore.getState()))))
+    expect(restored.backup.data.sessions[0].exercises[0].sets[1]).toMatchObject({ completed: false, entryOrigins: { load: 'top-set-autofill', reps: 'top-set-autofill', rir: 'top-set-autofill' } })
+  })
+
   it('adds and reverses exact past performance from a Library movement', () => {
     const store = useAppStore.getState()
     const incline = store.exercises.find((exercise) => exercise.id === 'incline-barbell-press')!

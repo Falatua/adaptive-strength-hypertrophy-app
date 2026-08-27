@@ -26,6 +26,14 @@ Every entered set belongs to the exact selected movement and appears in complete
 
 Direct history is reversible and auditable. The athlete sees a complete preview before saving, may correct or delete individual sets later, and may undo the latest entry or correction. Entries persist through the same validated cloud-authoritative snapshot as completed workouts and survive app updates, refreshes, and backup migration.
 
+## Active Workout Set Autofill
+
+Set 1 is the editable entry template for ordinary straight-set work. When the athlete enters load, repetitions, or RIR/RPE on Set 1, ForgePath pre-fills that field in the later unfinished straight sets for the same exact movement. The athlete may then log those sets without retyping the same numbers.
+
+Autofill is field-specific and protective. A value the athlete already changed on a later set remains an exception, while fields previously copied from Set 1 may follow a later Set 1 correction. Completed sets, skipped sets, drop sets, and myo-rep rows never change through autofill. Bench angle remains separately controlled because angle ladders may intentionally vary by set.
+
+Copied values are draft data only. Autofill never completes a set, marks success or failure, creates a record, changes a target, or earns progression. Every set still requires its own explicit `Log set` action, and every copied field remains editable before or after logging.
+
 ## Register
 
 product

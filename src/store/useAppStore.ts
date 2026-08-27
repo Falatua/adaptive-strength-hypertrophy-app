@@ -22,6 +22,7 @@ import { buildAddedMovement, buildAddedSet, sessionExtensionGate } from '../doma
 import { buildDropSet, buildMyoReps, canPairForSuperset, structureAllowedForRole } from '../domain/set-structure-engine'
 import { sameJsonValue } from '../domain/stable-json'
 import { buildHistoricalPerformance, type HistoricalPerformanceInput } from '../domain/history-entry-engine'
+import { applyWorkoutSetEntry } from '../domain/set-entry-autofill'
 import type {
   AppSettings,
   AthleteProfile,
@@ -417,14 +418,9 @@ export const useAppStore = create<AppState>()(
           ...session,
           exercises: session.exercises.map((exercise) => exercise.id !== plannedExerciseId ? exercise : {
             ...exercise,
-            sets: exercise.sets.map((workSet) => workSet.id === setId ? withOptionalBenchAngle({
-              ...workSet,
-              completedReps: data.reps ?? workSet.completedReps,
-              completedLoad: data.load ?? workSet.completedLoad,
-              actualRir: data.rir ?? workSet.actualRir,
-              // Only the athlete typing a number counts as entered. Completing a set never sets this.
-              valuesEntered: workSet.valuesEntered || data.reps !== undefined || data.load !== undefined || data.rir !== undefined
-            }, data.benchAngleDeg === null ? undefined : data.benchAngleDeg ?? workSet.benchAngleDeg) : workSet)
+            sets: applyWorkoutSetEntry(exercise.sets, setId, data).map((workSet) => workSet.id === setId
+              ? withOptionalBenchAngle(workSet, data.benchAngleDeg === null ? undefined : data.benchAngleDeg ?? workSet.benchAngleDeg)
+              : workSet)
           })
         })
       })),

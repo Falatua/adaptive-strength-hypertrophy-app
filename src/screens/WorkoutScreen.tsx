@@ -435,6 +435,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                     </div>
                   </details>
                 )}
+                {planned.sets.length > 1 && <p className="set-autofill-note"><Sparkles size={15} /><span><strong>Set 1 fills the untouched sets below.</strong> Load, reps, and effort stay editable, and every set still logs separately.</span></p>}
                 <div className="set-table" role="table" aria-label={`${exercise.name} sets`}>
                   <div className="set-table__head" role="row"><span>Set</span><span>Load</span><span>Reps</span><span title={effortDisplayFor(0, effortMetric).hint}>{effortDisplayFor(0, effortMetric).label}</span><span>Status</span></div>
                   {planned.sets.map((workSet, index) => {

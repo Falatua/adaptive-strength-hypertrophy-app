@@ -2907,7 +2907,30 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: The upcoming-session queue and long life-aware explanation must begin collapsed behind labeled controls. All Plan disclosures must support keyboard, touch, visible focus, screen readers, compact-phone containment, and independent state changes across the browser acceptance matrix.
 - Detail: `src/components/CollapsiblePanel.tsx`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 99
 
+### R-464 Set 1 Entry Autofill
+- Status: implemented
+- Provenance: from-user
+- Requirement: Entering load, repetitions, or RIR/RPE on Set 1 must pre-fill the corresponding fields in later sets for that same exercise so repeated straight-set work does not require repeated data entry.
+- Detail: `src/domain/set-entry-autofill.ts`, `src/store/useAppStore.ts`, `src/screens/WorkoutScreen.tsx`, and Build Bible Chapter 100
+
+### R-465 Editable and Protective Autofill
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Every pre-filled value must remain editable. Later athlete edits, completed sets, skipped sets, structured drop or myo-rep rows, and separate bench-angle ladders must not be overwritten by Set 1 changes.
+- Detail: `src/domain/set-entry-autofill.ts`, `src/domain/types.ts`, and Build Bible Chapter 100
+
+### R-466 Entry Convenience Without Outcome Claims
+- Status: implemented
+- Provenance: from-user
+- Requirement: Autofill must streamline data entry only. It cannot complete a set, judge success or failure, create a record, change programming, or earn progression. Every set retains its own explicit Log set action and source-truth status.
+- Detail: `src/screens/WorkoutScreen.tsx`, `src/domain/set-entry-autofill.test.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 100
+
 ## Thread Coverage Audit
+
+### 2026-08-27 Active Workout Set Autofill
+- Scope: JB requested that entering load, repetitions, and RIR/RPE on the first set pre-fill later sets for the same movement while keeping every set editable and making no success or failure claim.
+- Result: Added R-464 through R-466 and Build Bible Chapter 100. Private alpha 0.73.0 uses field-level provenance so Set 1 fills untouched later straight sets, manual exceptions stay protected, and every set still requires an explicit log action.
+- Status: Implemented and locally verified with 506 deterministic tests, all 147 browser journeys, production and Pages builds, and mobile visual inspection. GitHub workflows, deployment, and live-source checks remain release gates.
 
 ### 2026-08-26 Plan Progressive Disclosure
 - Scope: JB requested collapsible training days and one or two additional collapsible Plan areas so high-frequency schedules do not become visually overwhelming or require excessive scrolling.
@@ -3284,6 +3307,7 @@ This is the canonical traceability index for every durable requirement JB states
 ## Change Log
 
 - 2026-08-26: Added R-461 through R-463 and Build Bible Chapter 99 for independently collapsible Plan days, truthful closed-day summaries, collapsed secondary detail, and accessible desktop and phone acceptance. Private alpha 0.72.0 preserves backup schema 28, local persistence 30, Home Gym preference v3, and the Supabase snapshot contract.
+- 2026-08-27: Added R-464 through R-466 and Build Bible Chapter 100 for Set 1 active-workout autofill, field-level manual exceptions, separate log actions, and no outcome or progression claims. Private alpha 0.73.0 preserves backup schema 28, local persistence 30, Home Gym preference v3, and the Supabase snapshot contract.
 - 2026-08-26: Added R-456 through R-460 and Build Bible Chapter 98 for Home Gym preference v3, incline-first pressing, block-stable Two-Board, Close-Grip, and Spoto rotation, exact-history separation, bench-board availability, and athlete-choice preservation. Private alpha 0.71.0 preserves backup schema 28 and the Supabase snapshot contract while advancing local persistence to 30.
 
 - 2026-08-26: Added R-451 through R-455 and Build Bible Chapter 97 for Home Gym preference v2, explicit deficit-platform availability, preferred barbell hinge and shrug work, rows in most sessions, weekly pull-up progression from a provisional 3 × 5 capacity, exact-history takeover, upper-body support bias, low calf frequency, and athlete-choice preservation. Private alpha 0.70.0 preserves backup schema 28 and the Supabase snapshot contract while advancing local persistence to 29.

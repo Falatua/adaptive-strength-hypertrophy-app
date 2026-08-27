@@ -3,7 +3,7 @@ type: product-traceability-matrix
 aliases: [App Build Bible Traceability, Requirement Coverage Matrix]
 tags: [fitness, app, requirements, traceability, build, qa]
 created: 2026-08-10
-updated: 2026-08-26
+updated: 2026-08-27
 status: canonical-build-reference
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
@@ -17,16 +17,16 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Coverage Summary
 
-- Total requirement headings: 458.
-- Sequential range: R-001 through R-463.
-- Missing IDs: none after the 2026-08-26 verification.
-- Duplicate IDs: none after the 2026-08-26 verification.
+- Total requirement headings: 461.
+- Sequential range: R-001 through R-466.
+- Missing IDs: none after the 2026-08-27 verification.
+- Duplicate IDs: none after the 2026-08-27 verification.
 - Primary implementation authority: [[Adaptive Strength and Hypertrophy App Build Bible]].
 - Requirement wording and provenance authority: [[App Requirements Register]].
 
 ## Current Implementation Evidence
 
-Private alpha 0.72.0 and Build Bible 1.68.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current gate includes 502 deterministic tests and the existing 144 desktop Chromium, mobile Chromium, and iPhone WebKit journeys covering independently collapsible blueprint days, truthful closed-day summaries, a real seven-opportunity route, secondary Plan disclosure, Home Gym preference v3, incline-first support work, block-stable Two-Board, Close-Grip, and Spoto rotation, protected flat primaries, separate exact histories, angle-only override stability, the v2 hinge, row, pull-up, and calf boundaries, Library art, direct history, editable block blueprints, durable Auth, update awareness, year-scale replay, backup recovery, Supabase authority, Pages compilation, console integrity, and horizontal containment. Backup schema remains 28 and local persistence remains 30. Dedicated-origin hosting, custom SMTP, complete offline startup, real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
+Private alpha 0.73.0 and Build Bible 1.69.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current gate includes 506 deterministic tests and 147 desktop Chromium, mobile Chromium, and iPhone WebKit journeys covering Set 1 workout-entry autofill, protected manual exceptions, separate set logging, independently collapsible blueprint days, truthful closed-day summaries, a real seven-opportunity route, secondary Plan disclosure, Home Gym preference v3, incline-first support work, block-stable Two-Board, Close-Grip, and Spoto rotation, protected flat primaries, separate exact histories, angle-only override stability, the v2 hinge, row, pull-up, and calf boundaries, Library art, direct history, editable block blueprints, durable Auth, update awareness, year-scale replay, backup recovery, Supabase authority, Pages compilation, console integrity, and horizontal containment. Backup schema remains 28 and local persistence remains 30. Dedicated-origin hosting, custom SMTP, complete offline startup, real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
 
 ## Product and Training Traceability
 
@@ -116,6 +116,7 @@ Private alpha 0.72.0 and Build Bible 1.68.0 are the current boundary. Evidence i
 | R-451 to R-455 | Home Gym hinge, shrug, frequent-row, pull-up calibration, upper-body support, low-calf, and preservation rules | 6.7, 10, 15, 20, 22, 24, 27, 97 | `PRODUCT.md`, `DESIGN.md`, `src/domain/home-gym-programming.ts`, `src/domain/mesocycle-engine.ts` | 1A to 1C | hinge and shrug ranking, two-thirds row reservation, weekly pull-up target, provisional-to-exact-history takeover, calf ceiling, athlete-choice preservation, browser and phone acceptance |
 | R-456 to R-460 | Home Gym incline-first pressing, targeted triceps press rotation, exact histories, boards capability, and preservation rules | 6.7, 10, 15, 20, 21, 22, 24, 27, 98 | `PRODUCT.md`, `DESIGN.md`, `src/domain/home-gym-programming.ts`, `src/domain/mesocycle-engine.ts`, `src/domain/seed.ts` | 1A to 1C | incline-over-flat ranking, three-version rotation, stable in-block selection, exact-history isolation, protected flat primary, profile merge, browser and phone acceptance |
 | R-461 to R-463 | Independently collapsible Plan days, truthful summaries, secondary detail hierarchy, and accessible acceptance | 18, 24, 27, 90, 99 | `PRODUCT.md`, `DESIGN.md`, `src/screens/PlanScreen.tsx`, `src/components/CollapsiblePanel.tsx` | 1A and ongoing | independent day toggles, first-open defaults, truthful closed summaries, queue and explainer disclosure, keyboard, focus, screen reader, desktop, mobile Chromium, iPhone WebKit, and containment |
+| R-464 to R-466 | Set 1 active-workout autofill, manual exceptions, separate completion, and no outcome claims | 10, 18, 20, 22, 24, 27, 100 | `PRODUCT.md`, `DESIGN.md`, `src/domain/set-entry-autofill.ts`, `src/store/useAppStore.ts`, `src/screens/WorkoutScreen.tsx` | 1A | deterministic field propagation and protection tests, backup validation, desktop Chromium, mobile Chromium, iPhone WebKit, persistence, separate log actions, console, and containment |
 
 ## Delivery Phase Key
 

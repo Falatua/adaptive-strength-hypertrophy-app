@@ -33,7 +33,7 @@ import { movementNoteError } from './movement-note-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
 export const BACKUP_SCHEMA_VERSION = 28
-export const BACKUP_APP_VERSION = '0.72.0'
+export const BACKUP_APP_VERSION = '0.73.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -494,6 +494,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
       planned.sets.forEach((workSet) => {
         if (!isRecord(workSet) || !isFiniteNonNegative(workSet.targetLoad) || !isFiniteNonNegative(workSet.targetReps)) errors.push('A planned set has invalid targets.')
         if (isRecord(workSet) && workSet.benchAngleDeg !== undefined && (!Number.isFinite(workSet.benchAngleDeg) || Number(workSet.benchAngleDeg) < 0 || Number(workSet.benchAngleDeg) > 90)) errors.push('A planned set has an invalid bench angle.')
+        if (isRecord(workSet) && workSet.entryOrigins !== undefined && (!isRecord(workSet.entryOrigins) || Object.entries(workSet.entryOrigins).some(([field, origin]) => !['load', 'reps', 'rir'].includes(field) || !['manual', 'top-set-autofill'].includes(String(origin))))) errors.push('A planned set has invalid entry provenance.')
       })
     })
   })

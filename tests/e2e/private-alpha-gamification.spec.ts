@@ -364,6 +364,41 @@ test('opens touch-safe workout reasoning and preserves an active workout across 
   expect(persisted.workoutVisible).toBe(true)
 })
 
+test('uses Set 1 to prefill untouched sets without logging or overwriting athlete edits', async ({ page }, testInfo) => {
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Start without check-in' }).click()
+
+  const movement = page.locator('.exercise-card--primary').first()
+  await expect(movement).toContainText('Set 1 fills the untouched sets below')
+  const rows = movement.locator('.set-row')
+  await expect(rows.nth(2)).toBeVisible()
+
+  // A later athlete edit becomes an exception to the shared Set 1 template.
+  await rows.nth(2).locator('input[inputmode="numeric"]').fill('7')
+  await rows.first().locator('input[inputmode="decimal"]').fill('135')
+  await rows.first().locator('input[inputmode="numeric"]').fill('10')
+  await rows.first().locator('select').selectOption('4')
+
+  await expect(rows.nth(1).locator('input[inputmode="decimal"]')).toHaveValue('135')
+  await expect(rows.nth(1).locator('input[inputmode="numeric"]')).toHaveValue('10')
+  await expect(rows.nth(1).locator('select')).toHaveValue('4')
+  await expect(rows.nth(2).locator('input[inputmode="decimal"]')).toHaveValue('135')
+  await expect(rows.nth(2).locator('input[inputmode="numeric"]')).toHaveValue('7')
+  await expect(rows.nth(2).locator('select')).toHaveValue('4')
+  await expect(movement.getByRole('button', { name: 'Done' })).toHaveCount(0)
+  if (testInfo.project.name === 'mobile-chromium') await movement.screenshot({ path: 'output/playwright/set-entry-autofill-mobile.png' })
+
+  await rows.first().getByRole('button', { name: 'Log set' }).click()
+  await expect(movement.getByRole('button', { name: 'Done' })).toHaveCount(1)
+
+  const savedSets = await page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state
+    return state.sessions.find((session: { status: string }) => session.status === 'active').exercises[0].sets
+  })
+  expect(savedSets[1]).toMatchObject({ completedLoad: 135, completedReps: 10, actualRir: 4, completed: false, valuesEntered: true, entryOrigins: { load: 'top-set-autofill', reps: 'top-set-autofill', rir: 'top-set-autofill' } })
+  expect(savedSets[2]).toMatchObject({ completedLoad: 135, completedReps: 7, actualRir: 4, completed: false, entryOrigins: { load: 'top-set-autofill', reps: 'manual', rir: 'top-set-autofill' } })
+})
+
 test('autosaves exact-movement workout notes and recalls them in the Exercise Library', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })

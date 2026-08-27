@@ -74,7 +74,7 @@ export function buildDropSet(input: {
   const drops = Array.from({ length: dropCount }, (_, index) => {
     const load = roundToIncrement(input.topSet.targetLoad * Math.pow(1 - dropPercent, index + 1))
     return withGrouping(
-      { ...input.topSet, id: `${input.topSet.id}-drop-${index + 1}`, targetLoad: load, targetRir: 0, completed: false, completedLoad: undefined, completedReps: undefined, actualRir: undefined },
+      { ...input.topSet, id: `${input.topSet.id}-drop-${index + 1}`, targetLoad: load, targetRir: 0, completed: false, completedLoad: undefined, completedReps: undefined, actualRir: undefined, valuesEntered: undefined, entryOrigins: undefined },
       input.groupId, 'drop-set', 'drop', index + 2
     )
   })
@@ -95,7 +95,7 @@ export function buildMyoReps(input: {
   const miniCount = Math.max(2, Math.min(5, input.miniCount ?? 3))
   const miniReps = Math.max(3, Math.min(10, input.miniReps ?? 5))
   const minis = Array.from({ length: miniCount }, (_, index) => withGrouping(
-    { ...input.activationSet, id: `${input.activationSet.id}-mini-${index + 1}`, targetReps: miniReps, targetRir: 0, completed: false, completedLoad: undefined, completedReps: undefined, actualRir: undefined },
+    { ...input.activationSet, id: `${input.activationSet.id}-mini-${index + 1}`, targetReps: miniReps, targetRir: 0, completed: false, completedLoad: undefined, completedReps: undefined, actualRir: undefined, valuesEntered: undefined, entryOrigins: undefined },
     input.groupId, 'myo-reps', 'mini', index + 2
   ))
   return [withGrouping({ ...input.activationSet }, input.groupId, 'myo-reps', 'activation', 1), ...minis]

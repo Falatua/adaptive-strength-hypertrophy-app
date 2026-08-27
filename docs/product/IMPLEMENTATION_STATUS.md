@@ -3,14 +3,24 @@ type: implementation-status
 aliases: [ForgePath Private Alpha, Adaptive Training App Private Alpha]
 tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
-updated: 2026-08-26
+updated: 2026-08-27
 status: working-private-alpha
-app_version: 0.72.0
+app_version: 0.73.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.73.0 Active Workout Set Autofill Delta
+
+- Uses Set 1 as the entry template for load, repetitions, and RIR/RPE within each exact workout movement.
+- Pre-fills later unfinished straight sets while keeping every copied value editable and requiring each set's own explicit `Log set` action.
+- Stores field-level entry provenance so later manual changes stay protected while prior Set 1 copies can follow a corrected top-set value.
+- Leaves completed sets, skipped sets, drop-set and myo-rep rows, and bench-angle ladders unchanged.
+- Changes data entry only. It does not mark success or failure, complete training, create records, earn progression, or rewrite targets and plans.
+- Keeps the 251-movement catalog, backup schema 28, local persistence 30, Home Gym preference v3, Supabase Auth, and cloud-authoritative snapshot boundary unchanged.
+- Passes 506 deterministic tests, all 147 desktop Chromium, mobile Chromium, and iPhone WebKit journeys, production build, mobile visual inspection, and the Pages artifact gate. GitHub source and security workflows, deployment, and live-source verification remain release gates for this build.
 
 ## Private Alpha 0.72.0 Plan Progressive Disclosure Delta
 
