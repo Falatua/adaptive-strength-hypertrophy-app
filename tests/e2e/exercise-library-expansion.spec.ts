@@ -42,6 +42,7 @@ test('finds leg press in the expanded library and replaces a squat through full-
     const planned = persisted.state.sessions.find((session: { status: string }) => session.status === 'planned')
     planned.exercises[0].exerciseId = 'competition-squat'
     planned.exercises[0].purpose = 'Main lift'
+    planned.exercises = planned.exercises.filter((exercise: { exerciseId: string }) => exercise.exerciseId !== 'squat-press')
     localStorage.setItem(key, JSON.stringify(persisted))
   })
   await page.reload()
@@ -60,8 +61,8 @@ test('finds leg press in the expanded library and replaces a squat through full-
   await expect(page.locator('.exercise-card').first()).toContainText("The replaced movement's load was not copied")
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}'))
-  expect(persisted.version).toBe(27)
-  expect(persisted.state.exercises).toHaveLength(248)
+  expect(persisted.version).toBe(28)
+  expect(persisted.state.exercises).toHaveLength(251)
   expect(persisted.state.substitutionEvents.at(-1)).toMatchObject({ originalExerciseId: 'competition-squat', selectedExerciseId: 'leg-press-45' })
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
@@ -92,6 +93,23 @@ test('finds the Freak Athlete home-gym movements and offers ABX angle presets', 
   await librarySearch.fill('Freak Athlete Leg Developer')
   await expect(page.getByRole('heading', { name: 'Leg Extension', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Lying Leg Curl', exact: true })).toBeVisible()
+
+  await librarySearch.fill('Cybex Squat Press')
+  await expect(page.getByRole('heading', { name: 'Squat Press', exact: true })).toBeVisible()
+  await librarySearch.fill('Freak Athlete ABX Cambered Row')
+  await page.getByRole('button', { name: 'View details for ABX Cambered-Bar Chest-Supported Row' }).click()
+  await page.getByRole('button', { name: 'Enter past sets' }).click()
+  await expect(page.getByLabel('ABX back-pad presets')).toBeVisible()
+  await page.getByRole('button', { name: 'Close ABX Cambered-Bar Chest-Supported Row', exact: true }).click()
+
+  await librarySearch.fill('Cambered Bar Bench Press')
+  await page.getByRole('button', { name: 'View details for Cambered Bar Bench Press' }).click()
+  await page.getByRole('button', { name: 'Enter past sets' }).click()
+  await expect(page.getByLabel('ABX back-pad presets')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Close Cambered Bar Bench Press', exact: true }).click()
+
+  await librarySearch.fill('red band pull apart')
+  await expect(page.getByRole('heading', { name: 'Red-Band Pull-Apart', exact: true })).toBeVisible()
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
   expect(browserErrors).toEqual([])

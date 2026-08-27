@@ -8,6 +8,10 @@ The Exercise Library must make ABX incline pressing, ABX chest-supported dumbbel
 
 When Home Gym is active, ForgePath should prefer these implements within the athlete's declared back, quadriceps, and hamstring priorities. Equipment preference never overrides pain, avoid status, protected main lifts, or the athlete's block-level choices. Existing accounts and cloud snapshots gain new system catalog and untouched Home Gym capabilities without losing custom profiles, preferences, completed history, or training plans.
 
+JB's Home Gym programming preference is versioned and explicit. Automatic planning strongly favors ABX dumbbell and barbell incline presses across recorded angles, ABX cambered-bar and dumbbell chest-supported rows, Squat Press, Safety Squat Bar or high-bar squats when a squat is useful, Bulgarian split squats, Leg Developer extensions and curls, red-band pull-aparts, dips, weighted dips, and flat cambered-bar bench press. Squat Press may serve as a primary athlete-selected anchor or a high-priority secondary builder.
+
+Automatic Home Gym support selection excludes low-bar squats and de-prioritizes non-preferred free-weight squat volume. A protected athlete-selected anchor is never silently removed. Cambered-bar bench press is flat-bench only; incline angle controls belong to adjustable-bench pressing and chest-supported rowing identities, never that movement.
+
 ## Direct Historical Performance Entry
 
 An athlete who begins ForgePath with useful training history must be able to open an exact movement in the Exercise Library and add a truthful past performance without creating a fake planned workout. The first complete flow captures training date, number of sets, repetitions, weight, pounds or kilograms, RIR or RPE, and an optional incline angle. Optional technique, pain or irritation, session name, and setup note add useful context without becoming required onboarding friction.

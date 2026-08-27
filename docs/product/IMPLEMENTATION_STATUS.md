@@ -5,12 +5,23 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-26
 status: working-private-alpha
-app_version: 0.68.0
+app_version: 0.69.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.69.0 JB Home Gym Preference Delta
+
+- Adds versioned `home-gym-preference-v1` automatic planning rules for JB's actual equipment and movement priorities.
+- Adds Squat Press, ABX Cambered-Bar Chest-Supported Row, and Red-Band Pull-Apart, expanding the canonical catalog from 248 to 251 movements.
+- Expands Home Gym capabilities with the squat press, safety squat bar, cambered bar, dip station, and resistance bands.
+- Strongly favors ABX incline pressing, cambered-bar and dumbbell chest-supported rows, Squat Press, SSB and high-bar options, Bulgarian split squats, Leg Developer work, dips, weighted dips, red-band pull-aparts, and flat cambered-bar bench.
+- Excludes low-bar squat from automatic Home Gym support work, de-prioritizes other free-weight squat volume, and never silently replaces an athlete-protected anchor.
+- Keeps cambered-bar bench flat-only while retaining exact ABX angle identity for the chest-supported cambered-bar row.
+- Advances local test persistence to 28 so the system catalog and untouched Home Gym template re-merge safely. Backup schema 28 and the Supabase snapshot contract remain unchanged.
+- Passes 493 deterministic tests, the 144-journey desktop Chromium, mobile Chromium, and iPhone WebKit gate after fixture reconciliation, and the Pages-specific PWA build gate.
 
 ## Private Alpha 0.68.0 Traps Library and Programming Delta
 

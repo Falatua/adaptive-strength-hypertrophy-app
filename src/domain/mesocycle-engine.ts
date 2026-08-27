@@ -2,6 +2,7 @@ import { addDays } from 'date-fns'
 import { makeSets } from './training-engine'
 import { equipmentGenerationEvidence, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad } from './equipment-engine'
 import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION, prescriptionForRole, routeSessionProfile, type RouteSessionProfile } from './route-session-engine'
+import { homeGymProgrammingPreference } from './home-gym-programming'
 import type {
   BodyRegion,
   CompletedSetRecord,
@@ -66,11 +67,7 @@ const titleFor = (exercise: Exercise, suffix: string) => {
 }
 
 const homeEquipmentPreferenceScore = (exercise: Exercise, equipmentProfile?: EquipmentProfile) => {
-  if (!equipmentProfile || equipmentProfile.kind !== 'home-gym') return 0
-  const available = new Set(equipmentProfile.equipment.map((item) => item.toLowerCase()))
-  if (available.has('freak athlete abx bench') && exercise.id === 'abx-chest-supported-db-row') return 9
-  if (available.has('freak athlete leg developer') && ['leg-extension', 'single-leg-extension', 'lying-leg-curl'].includes(exercise.id)) return 9
-  return 0
+  return homeGymProgrammingPreference(exercise, equipmentProfile).score
 }
 
 const exerciseScore = (exercise: Exercise, role: 'secondary' | 'accessory', priorityRegions: BodyRegion[], equipmentProfile?: EquipmentProfile) => {
@@ -162,6 +159,7 @@ function plannedExercise(
 function chooseSecondary(anchor: Exercise, exercises: Exercise[], excluded: Set<string>, priorityRegions: BodyRegion[], equipmentProfile?: EquipmentProfile) {
   return exercises
     .filter((exercise) => !excluded.has(exercise.id) && exercise.jointFeeling !== 'avoid' && !exercise.disliked)
+    .filter((exercise) => homeGymProgrammingPreference(exercise, equipmentProfile).automaticEligible)
     .filter((exercise) => !equipmentProfile || exerciseEquipmentFit(exercise, equipmentProfile).available)
     .filter((exercise) => exercise.pattern === anchor.pattern || exercise.family === anchor.family)
     .sort((a, b) => exerciseScore(b, 'secondary', priorityRegions, equipmentProfile) - exerciseScore(a, 'secondary', priorityRegions, equipmentProfile) || a.name.localeCompare(b.name))[0]
@@ -175,6 +173,7 @@ function chooseAccessories(exercises: Exercise[], excluded: Set<string>, regions
     if (selected.length >= count) return
     const match = exercises
       .filter((exercise) => !excluded.has(exercise.id) && !selected.some((item) => item.id === exercise.id) && exercise.jointFeeling !== 'avoid' && !exercise.disliked && exercise.primaryRegion === region)
+      .filter((exercise) => homeGymProgrammingPreference(exercise, equipmentProfile).automaticEligible)
       .filter((exercise) => !equipmentProfile || exerciseEquipmentFit(exercise, equipmentProfile).available)
       .sort((a, b) => exerciseScore(b, 'accessory', regions, equipmentProfile) - exerciseScore(a, 'accessory', regions, equipmentProfile) || a.name.localeCompare(b.name))[0]
     if (match) selected.push(match)

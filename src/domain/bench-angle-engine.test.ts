@@ -13,6 +13,8 @@ describe('bench angle evidence', () => {
   it('shows angle controls for incline and chest-supported adjustable-bench movements', () => {
     expect(supportsBenchAngle(exercises.find((exercise) => exercise.id === 'incline-db-press')!)).toBe(true)
     expect(supportsBenchAngle(exercises.find((exercise) => exercise.id === 'abx-chest-supported-db-row')!)).toBe(true)
+    expect(supportsBenchAngle(exercises.find((exercise) => exercise.id === 'abx-cambered-bar-chest-supported-row')!)).toBe(true)
+    expect(supportsBenchAngle(exercises.find((exercise) => exercise.id === 'cambered-bar-bench')!)).toBe(false)
     expect(supportsBenchAngle(exercises.find((exercise) => exercise.id === 'helms-row')!)).toBe(true)
     expect(supportsBenchAngle(exercises.find((exercise) => exercise.id === 'competition-bench')!)).toBe(false)
   })

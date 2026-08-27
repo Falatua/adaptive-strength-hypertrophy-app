@@ -2799,7 +2799,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Existing Barbell Shrug identity, history, favorites, dislikes, joint response, and aliases must survive the taxonomy upgrade. Local test persistence must re-merge the protected system catalog; Supabase snapshot and backup schema boundaries remain unchanged. Release acceptance covers catalog uniqueness, dose separation, programming, image integrity, phone Chromium, and iPhone WebKit.
 - Detail: `src/domain/catalog-engine.ts`, `src/store/useAppStore.ts`, `tests/e2e/exercise-library-expansion.spec.ts`, and Build Bible Chapter 95
 
+### R-446 JB Home Gym Preference Policy
+- Status: implemented-first-slice
+- Provenance: from-user
+- Requirement: Most Home Gym programming must explicitly favor JB's real equipment and preferred movements after safety, equipment, protected-anchor, and athlete-choice boundaries.
+- Detail: `src/domain/home-gym-programming.ts` and Build Bible Chapter 96
+
+### R-447 ABX Pressing and Cambered-Row Priority
+- Status: implemented-first-slice
+- Provenance: from-user
+- Requirement: Automatic planning must strongly rank barbell and dumbbell pressing across ABX angles plus chest-supported cambered-bar rows. Exact recorded angle remains a separate progression lane.
+- Detail: `src/domain/home-gym-programming.ts`, `src/domain/bench-angle-engine.ts`, and Build Bible Chapter 96
+
+### R-448 Home Lower-Body Equipment and Squat Boundary
+- Status: implemented-first-slice
+- Provenance: from-user
+- Requirement: Squat Press may be an athlete-selected primary or high-priority secondary. Safety Squat Bar, high-bar squat, Bulgarian split squat, leg extension, and lying leg curl rank above other Home Gym squat work. Automatic support work excludes low-bar squat and minimizes other free-weight squatting without altering protected anchors.
+- Detail: `src/domain/home-gym-programming.ts`, `src/domain/mesocycle-engine.ts`, and Build Bible Chapter 96
+
+### R-449 Dips Rear Delts and Flat Cambered Press
+- Status: implemented-first-slice
+- Provenance: from-user
+- Requirement: Parallel-bar dips, weighted dips, red-band pull-aparts, and flat cambered-bar bench press must be available and preferred at Home Gym. Cambered-bar bench press must never expose incline programming.
+- Detail: `src/domain/exercise-catalog-extras.ts`, `src/domain/bench-angle-engine.ts`, and Build Bible Chapter 96
+
+### R-450 Preservation-Safe Home Gym Upgrade
+- Status: implemented
+- Provenance: product-decision
+- Requirement: The system catalog and untouched Home Gym profile gain current capabilities without replacing athlete-owned locations, preferences, aliases, plans, completed history, or Supabase snapshot data. Local persistence advances while backup schema and cloud authority remain unchanged.
+- Detail: `src/domain/catalog-engine.ts`, `src/store/useAppStore.ts`, and Build Bible Chapter 96
+
 ## Thread Coverage Audit
+
+### 2026-08-26 JB Home Gym Programming Priorities
+- Scope: JB identified ABX angle pressing, chest-supported cambered-bar rows, Squat Press, SSB or high-bar work, Leg Developer movements, red-band pull-aparts, dips, flat-only cambered-bar bench, and Bulgarian split squats as core Home Gym preferences, with low-bar and excess squatting avoided.
+- Result: Added R-446 through R-450 and Build Bible Chapter 96. Private alpha 0.69.0 adds a versioned preference policy, three canonical movements, complete equipment capabilities, the flat-only specialty-bar boundary, and preservation-safe automatic selection.
+- Status: Implemented and locally verified with 493 deterministic tests, all 144 browser journeys across desktop Chromium, mobile Chromium, and iPhone WebKit after targeted reconciliation, and the Pages artifact gate. Deployment and live-source verification remain release gates.
 
 ### 2026-08-26 Separate Traps Library and Movement Base
 - Scope: JB requested a separate exercise library and movement base for traps.

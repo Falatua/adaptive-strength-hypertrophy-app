@@ -53,6 +53,8 @@ tokens:
 
 The Library uses canonical movement names with searchable Freak Athlete, Hyper Pro, ABX, and Leg Developer aliases. Movement detail shows whether every required capability is available at Home Gym. Angle-aware history entry labels the field `ABX back-pad angle`, presents eleven touch-friendly preset buttons, allows any 0 to 90 degree value, and explains that blank means unknown.
 
+Home Gym movement detail and block previews keep exact written identity authoritative. Squat Press, ABX Cambered-Bar Chest-Supported Row, and Red-Band Pull-Apart use searchable home-equipment language. The cambered-bar bench detail never presents an incline-angle control because that movement is flat-only; the chest-supported cambered row does present the ABX angle control.
+
 The same angle identity appears in the block blueprint and active workout. Chest-supported row history is separated by recorded angle just like incline pressing history, so changing the back pad cannot silently borrow progression or record prompts from another setup. On compact phones, the preset controls wrap without horizontal scrolling and remain at least 44 pixels high.
 
 ## Historical Performance Entry

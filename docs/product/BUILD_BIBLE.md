@@ -5,12 +5,28 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-26
 status: canonical-build-reference-and-active-implementation
-version: 1.64.0
+version: 1.65.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.65.0 Change Entry
+
+- Advanced the working application to private alpha 0.69.0 while keeping backup schema 28 and every Supabase cloud-authoritative data boundary unchanged.
+- Added R-446 through R-450 and Chapter 96 for JB Home Gym preference v1, exact equipment capabilities, three canonical movement identities, automatic planning boundaries, and preservation-safe migration.
+- Advanced local test persistence to version 28 so existing profiles receive the current protected catalog and untouched Home Gym template without replacing athlete-owned data.
+
+## 96. JB Home Gym Programming Preference v1
+
+JB expects most training to occur at Home Gym. The first versioned preference policy ranks movements only after pain, avoid state, equipment availability, protected anchors, and athlete-approved block choices have been respected.
+
+The strongly preferred repertoire is ABX dumbbell and barbell incline pressing at recorded angles, ABX cambered-bar and dumbbell chest-supported rows, Squat Press, Safety Squat Bar and high-bar squats when squatting is useful, Bulgarian split squats, Leg Developer extensions and lying curls, red-band pull-aparts, parallel-bar and weighted dips, and flat cambered-bar bench press. Squat Press is eligible as an athlete-selected primary anchor and is the strongest automatic squat-pattern secondary builder.
+
+Automatic Home Gym support selection excludes Low-Bar Back Squat and de-prioritizes other free-weight squat volume. This rule never removes a protected anchor. Cambered Bar Bench Press remains a flat-bench movement and never exposes incline controls. ABX Cambered-Bar Chest-Supported Row retains optional exact-angle tracking because the adjustable back pad changes its repeatable setup identity.
+
+The canonical catalog adds Squat Press with Cybex and athlete-language aliases, ABX Cambered-Bar Chest-Supported Row, and Red-Band Pull-Apart. The Home Gym template adds squat press machine, safety squat bar, cambered bar, dip station, and resistance bands. Existing athlete-owned locations, movement preferences, aliases, plans, completed sets, and Supabase snapshots remain authoritative.
 
 ### Version 1.64.0 Change Entry
 

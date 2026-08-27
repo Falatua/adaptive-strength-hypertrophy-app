@@ -8,7 +8,7 @@ describe('exercise catalog governance', () => {
   })
 
   it('ships a deep catalog with stable unique identities and no exact alias collision', () => {
-    expect(exercises).toHaveLength(248)
+    expect(exercises).toHaveLength(251)
     expect(new Set(exercises.map((exercise) => exercise.id)).size).toBe(exercises.length)
     expect(new Set(exercises.map((exercise) => exercise.name.toLowerCase())).size).toBe(exercises.length)
     const exactNames = new Map<string, string[]>()
@@ -59,7 +59,7 @@ describe('exercise catalog governance', () => {
     const athleteHome = { ...structuredClone(priorHome), id: 'athlete-home', name: 'My Garage', source: 'athlete' as const, equipment: ['barbell'], constraints: ['Athlete choice'] }
     const merged = mergeSystemEquipmentProfiles([priorHome, athleteHome], equipmentProfiles)
     const upgraded = merged.find((profile) => profile.id === 'equipment-home-gym')!
-    expect(upgraded.equipment).toEqual(expect.arrayContaining(['freak athlete abx bench', 'freak athlete leg developer', 'leg extension machine', 'lying leg curl machine']))
+    expect(upgraded.equipment).toEqual(expect.arrayContaining(['freak athlete abx bench', 'freak athlete leg developer', 'leg extension machine', 'lying leg curl machine', 'cambered bar', 'safety squat bar', 'squat press machine', 'dip station', 'resistance bands']))
     expect(upgraded.constraints).toContain('Freak Athlete Hyper Pro with ABX bench and Leg Developer')
     expect(merged.find((profile) => profile.id === athleteHome.id)).toEqual(athleteHome)
   })

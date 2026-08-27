@@ -47,7 +47,7 @@ describe('criterion-driven mesocycle planning', () => {
 
   it('prioritizes the athlete-owned ABX bench and Leg Developer within Home Gym programming', () => {
     const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
-    const next = { ...draft(), priorityRegions: ['back' as const, 'quadriceps' as const, 'hamstrings' as const], maintenanceRegions: [] }
+    const next = { ...draft(), defaultMinutes: 90, priorityRegions: ['back' as const, 'quadriceps' as const, 'hamstrings' as const], maintenanceRegions: [] }
     const preview = buildMesocyclePreview(next, {
       exercises,
       currentSessions: sessions,
@@ -57,9 +57,28 @@ describe('criterion-driven mesocycle planning', () => {
       equipmentProfile: home
     })
     const programmed = preview.sessions.flatMap((session) => session.exercises.map((planned) => planned.exerciseId))
-    expect(programmed).toContain('abx-chest-supported-db-row')
-    expect(programmed).toContain('leg-extension')
+    expect(programmed.some((id) => ['abx-chest-supported-db-row', 'abx-cambered-bar-chest-supported-row'].includes(id))).toBe(true)
+    expect(programmed.some((id) => ['squat-press', 'leg-extension', 'single-leg-extension'].includes(id))).toBe(true)
     expect(programmed).toContain('lying-leg-curl')
+  })
+
+  it('encodes JB Home Gym movement priorities without automatically selecting low-bar squats', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const next = { ...draft(), strengthAnchors: ['competition-squat', 'competition-bench', 'cambered-row'], priorityRegions: ['quadriceps' as const, 'chest' as const, 'back' as const, 'shoulders' as const], maintenanceRegions: ['hamstrings' as const] }
+    const preview = buildMesocyclePreview(next, { exercises, currentSessions: [], history: [], planId: 'jb-home-priorities', planVersion: 1, equipmentProfile: home })
+    const programmed = preview.sessions.flatMap((session) => session.exercises.map((planned) => planned.exerciseId))
+    expect(programmed).toContain('squat-press')
+    expect(programmed).toContain('incline-barbell-press')
+    expect(programmed).toContain('abx-cambered-bar-chest-supported-row')
+    expect(programmed).not.toContain('low-bar-squat')
+  })
+
+  it('keeps an explicitly protected low-bar anchor while excluding it from automatic support work', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const next = { ...draft(), strengthAnchors: ['low-bar-squat'], priorityRegions: ['quadriceps' as const], maintenanceRegions: [] }
+    const preview = buildMesocyclePreview(next, { exercises, currentSessions: [], history: [], planId: 'protected-low-bar', planVersion: 1, equipmentProfile: home })
+    expect(preview.sessions[0].exercises[0].exerciseId).toBe('low-bar-squat')
+    expect(preview.sessions[0].exercises.slice(1).some((planned) => planned.exerciseId === 'low-bar-squat')).toBe(false)
   })
 
   it('programs an available direct trap movement when Traps is a declared priority', () => {

@@ -20,7 +20,7 @@ describe('equipment-profile-v1', () => {
 
   it('makes the ABX bench and Leg Developer movements executable at Home Gym', () => {
     const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
-    const movementIds = ['incline-db-press', 'abx-chest-supported-db-row', 'leg-extension', 'single-leg-extension', 'lying-leg-curl']
+    const movementIds = ['incline-db-press', 'incline-barbell-press', 'abx-chest-supported-db-row', 'abx-cambered-bar-chest-supported-row', 'squat-press', 'ssb-squat', 'cambered-bar-bench', 'leg-extension', 'single-leg-extension', 'lying-leg-curl', 'red-band-pull-apart', 'parallel-bar-dip', 'weighted-dip', 'bulgarian-split-squat']
     movementIds.forEach((exerciseId) => expect(exerciseEquipmentFit(exercises.find((exercise) => exercise.id === exerciseId)!, home).available).toBe(true))
     expect(home.equipment).toEqual(expect.arrayContaining(['freak athlete abx bench', 'freak athlete hyper pro', 'freak athlete leg developer']))
   })
