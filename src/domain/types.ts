@@ -31,7 +31,7 @@ export type PlacementConfidence = 'low' | 'medium' | 'high'
 export type PlacementDecision = 'confirmed' | 'conservative' | 'aggressive-test' | 'quick-start'
 export type PlacementPainState = 'none' | 'manageable' | 'modifying' | 'unknown'
 export type PlacementRuleVersion = 'placement-v1' | 'placement-v2' | 'placement-v3'
-export type RouteSessionRuleVersion = 'route-session-v1' | 'route-session-v2' | 'route-session-v3'
+export type RouteSessionRuleVersion = 'route-session-v1' | 'route-session-v2' | 'route-session-v3' | 'route-session-v4'
 
 export type PlacementHistoryAcceptedField = 'dataConfidence' | 'strengthTolerance'
 

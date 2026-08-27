@@ -61,6 +61,10 @@ Home Gym preference v2 remains visible through the ordinary block blueprint rath
 
 Home Gym preference v3 makes the pressing hierarchy visible in that same blueprint. ABX incline work should appear more often than ordinary flat assistance when the declared time budget permits. Competition Bench Press and any other athlete-selected primary stay fixed. One written Two-Board Press, Close-Grip Bench Press, or Spoto Press exposure is the block's targeted triceps exception; it remains stable throughout the block and can rotate only when a new plan version is created. Exact names remain visible so the athlete never mistakes the three histories for one interchangeable bench lane.
 
+Returning and undertrained plans must look visibly different from low-repetition strength work. Rebuild and Calibration primary rows show at least eight repetitions, secondary rows show at least ten, and Freak Athlete Leg Developer extension and curl rows show fifteen. The explanation states that RIR does not independently authorize heavy low-repetition work. Six repetitions or fewer appears only after stable continuity and demonstrated current readiness support a direct strength-expression route.
+
+When an approved plan predates the current repetition policy, Plan shows one calm evidence-blue review notice. The notice says the current plan is unchanged, summarizes the new floors, and opens the ordinary versioned blueprint preview. It never applies the change directly. On compact phones, the notice stacks its full-width action below the explanation without horizontal overflow.
+
 ## Historical Performance Entry
 
 Past-performance entry uses progressive disclosure inside the selected Exercise Library movement detail. It does not open a second modal. The collapsed action stays near that movement's existing history, and the expanded panel presents familiar labeled controls in a compact responsive grid.
@@ -104,6 +108,7 @@ Avoid stacking multiple floating glass panels. Use blur only for persistent navi
 - Quest bubble: one-pixel accent frame, dark readable fill, short source-backed coaching sentence, no animated typing.
 - Data input: familiar native control proportions, one-pixel trail-line, clear focus ring, explicit label and help when needed.
 - Set-entry autofill: Set 1 acts as the visible template for untouched later straight sets in the same movement. A short note explains that load, repetitions, and effort are copied for convenience, every row stays editable, and every set still logs separately. Manual exceptions, completed or skipped work, structured technique rows, and angle ladders remain unchanged.
+- Repetition-policy review: evidence-blue status panel with a written safer-range summary and one Review repetition update action. It previews a versioned plan, never mutates the current plan, and never uses warning-red for an ordinary policy upgrade.
 - Modal: native dialog behavior, sticky header, visible close action, contained mobile width, and a single primary completion action.
 - Sound cue: original synthesized pocket-console feedback under 700 milliseconds, low-volume, meaningful rather than ambient, off by default, previewable, and always suppressed by quiet mode.
 - Loading moment: an original compact visual tied to a real wait state, with written status, a static reduced-motion fallback, no fake delay, and no effect on training logic.

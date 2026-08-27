@@ -75,6 +75,19 @@ describe('explainable exercise substitutions', () => {
     expect(legPress.snapshot).toMatchObject({ tier: expect.stringMatching(/best-match|good-alternative/), preserves: expect.stringMatching(/quadriceps.*squat/i) })
     expect(legPress.prescriptionMethod).toBe('baseline-calibration')
     expect(legPress.prescription.every((workSet) => workSet.targetLoad === 0 && workSet.targetRir >= 3)).toBe(true)
+    expect(legPress.prescription.every((workSet) => workSet.targetReps >= 8)).toBe(true)
+  })
+
+  it('keeps Home Gym Leg Developer substitutions at fifteen repetitions or higher', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const returning = { ...structuredClone(athlete), continuity: 'returning' as const }
+    const result = rankExerciseSubstitutions({
+      planned: structuredClone(squatPlan), original: squat, exercises: structuredClone(exercises), history: [],
+      athlete: returning, readiness: 'reacclimate', reason: 'preference', equipmentProfile: home
+    })
+    const legExtension = result.find((item) => item.candidate.id === 'leg-extension')!
+    expect(legExtension.prescriptionMethod).toBe('baseline-calibration')
+    expect(legExtension.prescription.every((workSet) => workSet.targetReps >= 15 && workSet.targetRir >= 3)).toBe(true)
   })
 
   it('never recommends a movement the athlete marked avoid', () => {

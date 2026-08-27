@@ -13,6 +13,7 @@ import type {
 } from './types'
 import { recommendProgression } from './training-engine'
 import { exerciseEquipmentFit, loadIncrementFor } from './equipment-engine'
+import { applyRepPrescriptionPolicy, repRangeForExercise } from './rep-prescription-policy'
 
 export interface RankedSubstitution {
   candidate: Exercise
@@ -31,12 +32,6 @@ const latestExactSession = (history: CompletedSetRecord[], exerciseId: string) =
 
 const tierFor = (score: number): SubstitutionTier => score >= 11 ? 'best-match' : score >= 7 ? 'good-alternative' : 'changes-focus'
 
-const repRangeFor = (planned: PlannedExercise): [number, number] => {
-  if (planned.role === 'primary') return [3, 6]
-  if (planned.role === 'secondary') return [6, 10]
-  return [8, 15]
-}
-
 function replacementPrescription(input: {
   planned: PlannedExercise
   candidate: Exercise
@@ -48,12 +43,14 @@ function replacementPrescription(input: {
 }) {
   const { planned, candidate, history, athlete, readiness, equipmentProfile, surveys } = input
   const exactHistory = history.filter((workSet) => workSet.exerciseId === candidate.id)
+  const repRange = repRangeForExercise({ exercise: candidate, role: planned.role, athlete, readiness, equipmentProfile })
   const latest = latestExactSession(history, candidate.id)
   if (!latest.length) {
     const count = planned.role === 'primary' ? Math.min(2, planned.sets.length) : planned.sets.length
     const sets = planned.sets.slice(0, count).map((workSet) => ({
       ...workSet,
       targetLoad: 0,
+      targetReps: applyRepPrescriptionPolicy({ exercise: candidate, role: planned.role, suggestedReps: workSet.targetReps, athlete, readiness, equipmentProfile }),
       targetRir: Math.max(3, workSet.targetRir),
       completed: false,
       completedLoad: undefined,
@@ -70,7 +67,6 @@ function replacementPrescription(input: {
   }
 
   const reference = latest[0]
-  const repRange = repRangeFor(planned)
   const targetReps = Math.min(repRange[1], Math.max(repRange[0], reference.reps))
   const targetSets = Math.min(planned.sets.length, latest.length)
   const increment = equipmentProfile ? loadIncrementFor(candidate, equipmentProfile).value : reference.load > 0 && reference.load < 100 ? 2.5 : 5

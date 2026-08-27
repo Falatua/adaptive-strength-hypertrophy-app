@@ -18,6 +18,16 @@ JB's current pull-up capacity begins as an explicitly provisional 3 × 5 target.
 
 Automatic Home Gym support selection excludes low-bar squats and de-prioritizes non-preferred free-weight squat volume. A protected athlete-selected anchor is never silently removed. Cambered-bar bench press is flat-bench only; incline angle controls belong to adjustable-bench pressing and chest-supported rowing identities, never that movement.
 
+## Returning and Undertrained Repetition Policy
+
+Returning, introductory, calibration, and base-building routes use moderate repetitions before any low-repetition strength expression. Primary work begins at eight repetitions or higher and secondary work begins at ten repetitions or higher. A conservative RIR does not by itself make a six-repetition prescription appropriate because the absolute loading and skill demands can still be too high for an athlete whose current tolerance is not established.
+
+ForgePath may select work at six repetitions or fewer only after the athlete has stable recent continuity, at least two years of structured training, and current movement-skill, intensity-tolerance, and exact-evidence scores that all support direct low-repetition work. Returning, interrupted, undertrained, uncertain, and not-currently-ready states remain in higher-repetition routes. This is a programming gate, not a claim that one repetition range is universally safe for every athlete.
+
+Leg extensions and leg curls always stay above ten repetitions. On the Freak Athlete Leg Developer, Leg Extension, Single-Leg Extension, and Lying Leg Curl start at fifteen repetitions and use a fifteen-to-twenty progression range when substituted. The exact movement, setup, pain response, and athlete edit remain authoritative.
+
+Existing completed training and approved plans never change silently. A plan created under an older route rule can show that the safer repetition policy is available, preview the new targets, and require the athlete to approve a new version before future sessions change.
+
 ## Direct Historical Performance Entry
 
 An athlete who begins ForgePath with useful training history must be able to open an exact movement in the Exercise Library and add a truthful past performance without creating a fake planned workout. The first complete flow captures training date, number of sets, repetitions, weight, pounds or kilograms, RIR or RPE, and an optional incline angle. Optional technique, pain or irritation, session name, and setup note add useful context without becoming required onboarding friction.

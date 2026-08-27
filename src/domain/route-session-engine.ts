@@ -1,8 +1,9 @@
-import type { ExerciseRole, PlacementRoute, RouteSessionGenerationEvidence } from './types'
+import type { ExerciseRole, PlacementRoute, RouteSessionGenerationEvidence, RouteSessionRuleVersion } from './types'
 import { equipmentGenerationEvidenceError } from './equipment-engine'
 import { movementPlacementEvidenceError, placementRouteLabels } from './placement-engine'
 
-export const ROUTE_SESSION_RULE_VERSION = 'route-session-v3' as const
+export const ROUTE_SESSION_RULE_VERSION = 'route-session-v4' as const
+export const PREVIOUS_ROUTE_SESSION_RULE_VERSION = 'route-session-v3' as const
 export const EQUIPMENT_ROUTE_SESSION_RULE_VERSION = 'route-session-v2' as const
 export const LEGACY_ROUTE_SESSION_RULE_VERSION = 'route-session-v1' as const
 
@@ -17,7 +18,7 @@ export interface RouteRolePrescription {
 export type EffortMetric = 'rpe' | 'rir'
 
 export interface RouteSessionProfile {
-  ruleVersion: typeof ROUTE_SESSION_RULE_VERSION
+  ruleVersion: RouteSessionRuleVersion
   route: PlacementRoute
   label: string
   strategy: string
@@ -35,9 +36,9 @@ export interface RouteSessionProfile {
 
 const sharedProgression = 'Progress load first when comparable performance and recovery support it, then repetitions, then a recoverable set. Hold or reduce when evidence does not support overload.'
 
-const profiles: Record<PlacementRoute, RouteSessionProfile> = {
+const legacyProfiles: Record<PlacementRoute, RouteSessionProfile> = {
   'introductory-skill': {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'introductory-skill', label: 'Skill Building',
+    ruleVersion: PREVIOUS_ROUTE_SESSION_RULE_VERSION, route: 'introductory-skill', label: 'Skill Building',
     strategy: 'Technique-first practice with repeatable submaximal work and a small exercise menu.',
     primary: { sets: 2, reps: 8, rir: 4, intensity: 0.60, restSeconds: 150 },
     secondary: { sets: 2, reps: 10, rir: 4, intensity: 0.56, restSeconds: 105 },
@@ -46,7 +47,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['Skill practice takes priority over load expression.', 'Low set count leaves room to learn without manufacturing fatigue.']
   },
   reacclimation: {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'reacclimation', label: 'Rebuild',
+    ruleVersion: PREVIOUS_ROUTE_SESSION_RULE_VERSION, route: 'reacclimation', label: 'Rebuild',
     strategy: 'Restore tolerance through familiar movements, conservative loading, and no catch-up volume.',
     primary: { sets: 2, reps: 6, rir: 4, intensity: 0.65, restSeconds: 165 },
     secondary: { sets: 2, reps: 8, rir: 3, intensity: 0.60, restSeconds: 120 },
@@ -55,7 +56,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['Past skill is preserved while current tolerance is re-established.', 'Volume is intentionally below a normal development route.']
   },
   'bridge-calibration': {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'bridge-calibration', label: 'Calibration',
+    ruleVersion: PREVIOUS_ROUTE_SESSION_RULE_VERSION, route: 'bridge-calibration', label: 'Calibration',
     strategy: 'Collect representative non-maximal performance while every exact movement establishes its own baseline.',
     primary: { sets: 3, reps: 6, rir: 3, intensity: 0.70, restSeconds: 180 },
     secondary: { sets: 2, reps: 8, rir: 3, intensity: 0.62, restSeconds: 120 },
@@ -64,7 +65,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['The session produces useful work and placement evidence at the same time.', 'Unknown exact movements keep zero-load calibration instead of borrowing another variation.']
   },
   'base-building': {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'base-building', label: 'Base Building',
+    ruleVersion: PREVIOUS_ROUTE_SESSION_RULE_VERSION, route: 'base-building', label: 'Base Building',
     strategy: 'Build repeatable work capacity through moderate repetitions, controlled effort, and stable exercise exposure.',
     primary: { sets: 3, reps: 8, rir: 3, intensity: 0.67, restSeconds: 165 },
     secondary: { sets: 3, reps: 10, rir: 3, intensity: 0.60, restSeconds: 105 },
@@ -73,7 +74,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['Moderate work builds tolerance before more specific loading.', 'The queue protects your main lifts while keeping fatigue recoverable.']
   },
   hypertrophy: {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'hypertrophy', label: 'Muscle Growth',
+    ruleVersion: PREVIOUS_ROUTE_SESSION_RULE_VERSION, route: 'hypertrophy', label: 'Muscle Growth',
     strategy: 'Keep your main lifts practiced while allocating more recoverable sets to priority regions.',
     primary: { sets: 3, reps: 8, rir: 3, intensity: 0.67, restSeconds: 150 },
     secondary: { sets: 3, reps: 10, rir: 2, intensity: 0.62, restSeconds: 105 },
@@ -82,7 +83,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['Priority accessories receive the largest route-specific dose.', 'Anchor work stays present without consuming the whole fatigue budget.']
   },
   powerbuilding: {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'powerbuilding', label: 'Strength and Size',
+    ruleVersion: PREVIOUS_ROUTE_SESSION_RULE_VERSION, route: 'powerbuilding', label: 'Strength and Size',
     strategy: 'Protect specific strength practice first, then use secondary and accessory work to build the main lift and priority muscles.',
     primary: { sets: 4, reps: 5, rir: 2, intensity: 0.77, restSeconds: 180 },
     secondary: { sets: 3, reps: 8, rir: 2, intensity: 0.67, restSeconds: 135 },
@@ -91,7 +92,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['Primary work protects strength specificity.', 'Secondary builders and priority accessories retain meaningful hypertrophy dose.']
   },
   strength: {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'strength', label: 'Strength',
+    ruleVersion: PREVIOUS_ROUTE_SESSION_RULE_VERSION, route: 'strength', label: 'Strength',
     strategy: 'Emphasize high-quality lower-repetition work on the main lift while limiting nonessential fatigue.',
     primary: { sets: 4, reps: 4, rir: 2, intensity: 0.82, restSeconds: 210 },
     secondary: { sets: 3, reps: 6, rir: 3, intensity: 0.72, restSeconds: 150 },
@@ -100,7 +101,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['Lower-repetition work on the main lift receives the largest time and recovery budget.', 'Accessory work remains sufficient to support the main lift without obscuring performance.']
   },
   power: {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'power', label: 'Power',
+    ruleVersion: PREVIOUS_ROUTE_SESSION_RULE_VERSION, route: 'power', label: 'Power',
     strategy: 'Practice fast, technically repeatable repetitions with conservative fatigue and full intent.',
     primary: { sets: 5, reps: 3, rir: 4, intensity: 0.60, restSeconds: 180 },
     secondary: { sets: 3, reps: 5, rir: 3, intensity: 0.65, restSeconds: 135 },
@@ -109,7 +110,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['Submaximal loading preserves movement speed and intent.', 'Longer rest and lower accessory dose protect power quality.']
   },
   'event-specific': {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'event-specific', label: 'Meet Prep',
+    ruleVersion: PREVIOUS_ROUTE_SESSION_RULE_VERSION, route: 'event-specific', label: 'Meet Prep',
     strategy: 'Prioritize your declared main lifts and event-relevant execution while retaining only useful support work.',
     primary: { sets: 4, reps: 3, rir: 2, intensity: 0.82, restSeconds: 210 },
     secondary: { sets: 3, reps: 5, rir: 3, intensity: 0.72, restSeconds: 150 },
@@ -118,7 +119,7 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     reasons: ['Specific practice on the main lift receives priority.', 'The route does not claim a complete peak without a validated event and taper plan.']
   },
   'pain-aware-modified': {
-    ruleVersion: ROUTE_SESSION_RULE_VERSION, route: 'pain-aware-modified', label: 'Pain-Aware',
+    ruleVersion: PREVIOUS_ROUTE_SESSION_RULE_VERSION, route: 'pain-aware-modified', label: 'Pain-Aware',
     strategy: 'Pause automatic generation until restrictions and movement choices are reviewed.',
     primary: { sets: 0, reps: 0, rir: 4, intensity: 0, restSeconds: 0 },
     secondary: { sets: 0, reps: 0, rir: 4, intensity: 0, restSeconds: 0 },
@@ -126,6 +127,23 @@ const profiles: Record<PlacementRoute, RouteSessionProfile> = {
     progressionPolicy: 'No overload decision is generated while the placement restriction gate is active.',
     reasons: ['Pain or restriction changes what can be trained.', 'The app cannot diagnose, treat, or clear an injury.']
   }
+}
+
+const profiles = Object.fromEntries(Object.entries(legacyProfiles).map(([route, profile]) => [route, { ...profile, ruleVersion: ROUTE_SESSION_RULE_VERSION }])) as Record<PlacementRoute, RouteSessionProfile>
+
+profiles.reacclimation = {
+  ...profiles.reacclimation,
+  primary: { ...profiles.reacclimation.primary, reps: 8, intensity: 0.60 },
+  secondary: { ...profiles.reacclimation.secondary, reps: 10, intensity: 0.56 },
+  reasons: ['Past skill is preserved while current tolerance is re-established with moderate repetitions.', 'Six-rep work waits for stable continuity and demonstrated intensity readiness.']
+}
+
+profiles['bridge-calibration'] = {
+  ...profiles['bridge-calibration'],
+  primary: { ...profiles['bridge-calibration'].primary, reps: 8, intensity: 0.65 },
+  secondary: { ...profiles['bridge-calibration'].secondary, reps: 10, intensity: 0.58 },
+  accessory: { ...profiles['bridge-calibration'].accessory, reps: 12, intensity: 0.55 },
+  reasons: ['The session produces useful work and placement evidence without using low-repetition loading as a test.', 'Six-rep work waits for stable continuity and demonstrated intensity readiness.']
 }
 
 /**
@@ -165,8 +183,16 @@ export function effortDisplayFor(rir: number, metric: EffortMetric): EffortDispl
   }
 }
 
-export function routeSessionProfile(route: PlacementRoute) {
-  return profiles[route]
+export function isMovementRouteSessionRuleVersion(ruleVersion?: RouteSessionRuleVersion) {
+  return ruleVersion === PREVIOUS_ROUTE_SESSION_RULE_VERSION || ruleVersion === ROUTE_SESSION_RULE_VERSION
+}
+
+export function isEquipmentRouteSessionRuleVersion(ruleVersion?: RouteSessionRuleVersion) {
+  return ruleVersion === EQUIPMENT_ROUTE_SESSION_RULE_VERSION || isMovementRouteSessionRuleVersion(ruleVersion)
+}
+
+export function routeSessionProfile(route: PlacementRoute, ruleVersion: RouteSessionRuleVersion = ROUTE_SESSION_RULE_VERSION) {
+  return ruleVersion === ROUTE_SESSION_RULE_VERSION ? profiles[route] : legacyProfiles[route]
 }
 
 export function prescriptionForRole(profile: RouteSessionProfile, role: ExerciseRole) {
@@ -178,16 +204,16 @@ export function prescriptionForRole(profile: RouteSessionProfile, role: Exercise
 export function routeSessionGenerationError(value: unknown) {
   if (!value || typeof value !== 'object') return 'Route session generation evidence is missing.'
   const evidence = value as Partial<RouteSessionGenerationEvidence>
-  if ((evidence.ruleVersion !== LEGACY_ROUTE_SESSION_RULE_VERSION && evidence.ruleVersion !== EQUIPMENT_ROUTE_SESSION_RULE_VERSION && evidence.ruleVersion !== ROUTE_SESSION_RULE_VERSION) || !evidence.route || !(evidence.route in profiles)) return 'Route session generation has an unsupported identity.'
+  if ((evidence.ruleVersion !== LEGACY_ROUTE_SESSION_RULE_VERSION && evidence.ruleVersion !== EQUIPMENT_ROUTE_SESSION_RULE_VERSION && evidence.ruleVersion !== PREVIOUS_ROUTE_SESSION_RULE_VERSION && evidence.ruleVersion !== ROUTE_SESSION_RULE_VERSION) || !evidence.route || !(evidence.route in profiles)) return 'Route session generation has an unsupported identity.'
   if (typeof evidence.placementCreatedAt !== 'string' || Number.isNaN(new Date(evidence.placementCreatedAt).getTime())) return 'Route session generation has an invalid placement date.'
-  const canonical = profiles[evidence.route]
+  const canonical = routeSessionProfile(evidence.route, evidence.ruleVersion)
   if (evidence.strategy !== canonical.strategy) return 'Route session generation strategy does not match its route.'
   if (!Array.isArray(evidence.reasons) || evidence.reasons.length !== canonical.reasons.length || evidence.reasons.some((reason, index) => reason !== canonical.reasons[index])) return 'Route session generation reasons do not match its route.'
-  if (evidence.ruleVersion === EQUIPMENT_ROUTE_SESSION_RULE_VERSION || evidence.ruleVersion === ROUTE_SESSION_RULE_VERSION) {
+  if (isEquipmentRouteSessionRuleVersion(evidence.ruleVersion)) {
     const equipmentError = equipmentGenerationEvidenceError(evidence.equipment)
     if (equipmentError) return `Route session generation equipment is invalid: ${equipmentError}`
   }
-  if (evidence.ruleVersion === ROUTE_SESSION_RULE_VERSION) {
+  if (isMovementRouteSessionRuleVersion(evidence.ruleVersion)) {
     if (!evidence.planRoute || !(evidence.planRoute in placementRouteLabels)) return 'Route session generation is missing its plan route.'
     const movementError = movementPlacementEvidenceError(evidence.movementPlacement)
     if (movementError) return `Route session generation movement placement is invalid: ${movementError}`

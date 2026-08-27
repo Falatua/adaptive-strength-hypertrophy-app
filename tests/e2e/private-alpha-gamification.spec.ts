@@ -341,7 +341,7 @@ test('opens touch-safe workout reasoning and preserves an active workout across 
   await expect(reps).toHaveValue('7')
 
   await page.getByRole('button', { name: 'More information about Competition Bench Press' }).click()
-  await expect(page.getByRole('dialog')).toContainText('The smallest available load increase is earned.')
+  await expect(page.getByRole('dialog')).toContainText('Hold before adding load, repetitions, or dose')
   await page.keyboard.press('Escape')
 
   await page.getByRole('button', { name: 'Log set' }).first().click()
@@ -1201,7 +1201,7 @@ test('filters the initial route queue through the selected training location', a
     }
   })
   expect(generated).toMatchObject({ persistenceVersion: 30, supportFits: true, planProfileId: 'equipment-home-gym' })
-  expect(generated.ruleVersions.every((value: string) => value === 'route-session-v3')).toBe(true)
+  expect(generated.ruleVersions.every((value: string) => value === 'route-session-v4')).toBe(true)
   expect(generated.profileIds.every((value: string) => value === 'equipment-home-gym')).toBe(true)
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
@@ -1238,7 +1238,7 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
   await expect(page.getByText('high confidence', { exact: true })).toBeVisible()
   await expect(page.getByText('Long-term experience remains an asset', { exact: false })).toBeVisible()
   await expect(page.getByText('Your starting sessions will actually change')).toBeVisible()
-  await expect(page.getByText('3 × 6', { exact: true })).toBeVisible()
+  await expect(page.getByText('3 × 8', { exact: true })).toBeVisible()
   await expect(page.locator('.movement-placement-preview')).toContainText('Competition Back Squat')
   await expect(page.locator('.movement-placement-preview')).toContainText('Skill-Building Cycle')
   await expect(page.locator('.movement-placement-preview')).toContainText('Competition Bench Press')
@@ -1277,9 +1277,9 @@ test('builds an explainable multi-dimensional placement and preserves athlete co
     ['competition-squat', 'introductory-skill'], ['competition-bench', 'reacclimation'], ['conventional-deadlift', 'reacclimation']
   ])
   expect(persisted.state.athlete.level.movementSkill).toBe(5)
-  expect(persisted.state.mesocycles.find((plan: { id: string }) => plan.id === persisted.state.activeMesocycleId)).toMatchObject({ dominantAdaptation: 'reacclimation', title: 'Easing Back In · Starting Cycle', entryRoute: 'reacclimation', generationRuleVersion: 'route-session-v3', generationEquipment: { profileId: 'equipment-home-gym' } })
+  expect(persisted.state.mesocycles.find((plan: { id: string }) => plan.id === persisted.state.activeMesocycleId)).toMatchObject({ dominantAdaptation: 'reacclimation', title: 'Easing Back In · Starting Cycle', entryRoute: 'reacclimation', generationRuleVersion: 'route-session-v4', generationEquipment: { profileId: 'equipment-home-gym' } })
   expect(new Set(persisted.state.sessions.map((session: { generation?: { route: string } }) => session.generation?.route))).toEqual(new Set(['introductory-skill', 'reacclimation']))
-  expect(persisted.state.sessions.every((session: { generation?: { ruleVersion: string; planRoute?: string; equipment?: { profileId: string }; movementPlacement?: { exerciseId: string } }; exercises: Array<{ role: string; exerciseId: string }> }) => session.generation?.ruleVersion === 'route-session-v3' && session.generation.planRoute === 'reacclimation' && session.generation.equipment?.profileId === 'equipment-home-gym' && session.generation.movementPlacement?.exerciseId === session.exercises.find((exercise) => exercise.role === 'primary')?.exerciseId)).toBe(true)
+  expect(persisted.state.sessions.every((session: { generation?: { ruleVersion: string; planRoute?: string; equipment?: { profileId: string }; movementPlacement?: { exerciseId: string } }; exercises: Array<{ role: string; exerciseId: string }> }) => session.generation?.ruleVersion === 'route-session-v4' && session.generation.planRoute === 'reacclimation' && session.generation.equipment?.profileId === 'equipment-home-gym' && session.generation.movementPlacement?.exerciseId === session.exercises.find((exercise) => exercise.role === 'primary')?.exerciseId)).toBe(true)
   expect(persisted.state.sessions[0].exercises[0].sets[0]).toMatchObject({ targetReps: 8, targetRir: 4 })
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)

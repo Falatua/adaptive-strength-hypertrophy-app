@@ -30,11 +30,20 @@ describe('route-specific session generation', () => {
   it('defines a bounded deterministic profile for every placement route', () => {
     expect(routeSessionProfiles).toHaveLength(10)
     routeSessionProfiles.forEach((profile) => {
-      expect(profile.ruleVersion).toBe('route-session-v3')
+      expect(profile.ruleVersion).toBe('route-session-v4')
       expect(profile.strategy.length).toBeGreaterThan(20)
       expect(profile.reasons.length).toBeGreaterThanOrEqual(2)
       expect(profile.route === 'pain-aware-modified' ? profile.primary.sets === 0 : profile.primary.sets > 0).toBe(true)
     })
+  })
+
+  it('keeps Rebuild and Calibration out of six-rep primary prescriptions', () => {
+    expect(routeSessionProfile('reacclimation').primary).toMatchObject({ reps: 8, rir: 4 })
+    expect(routeSessionProfile('bridge-calibration').primary).toMatchObject({ reps: 8, rir: 3 })
+    expect(routeSessionProfile('reacclimation').secondary.reps).toBe(10)
+    expect(routeSessionProfile('bridge-calibration').secondary.reps).toBe(10)
+    expect(routeSessionProfile('reacclimation', 'route-session-v3').primary.reps).toBe(6)
+    expect(routeSessionProfile('bridge-calibration', 'route-session-v3').primary.reps).toBe(6)
   })
 
   it('writes exact route provenance and route-specific primary prescriptions for every trainable route', () => {
@@ -136,7 +145,7 @@ describe('route-specific session generation', () => {
       ]
     }, '2026-08-10T16:00:00.000Z')
     const draft = {
-      ...draftFromPlan(mesocycles[0]), entryRoute: 'strength' as const, generationRuleVersion: 'route-session-v3' as const,
+      ...draftFromPlan(mesocycles[0]), entryRoute: 'strength' as const, generationRuleVersion: 'route-session-v4' as const,
       placementCreatedAt: placement.createdAt, movementPlacements: placement.movementPlacements
     }
     const preview = buildMesocyclePreview(draft, { exercises, currentSessions: sessions, history, planId: 'movement-plan', planVersion: 3, equipmentProfile: equipmentProfiles[0] })
@@ -146,7 +155,8 @@ describe('route-specific session generation', () => {
     expect(byPrimary.get('competition-bench')?.exercises[0].sets).toHaveLength(4)
     expect(byPrimary.get('competition-bench')?.exercises[0].sets[0]).toMatchObject({ targetReps: 4, targetRir: 2 })
     expect(byPrimary.get('conventional-deadlift')?.exercises[0].sets).toHaveLength(3)
-    expect(byPrimary.get('conventional-deadlift')?.generation).toMatchObject({ ruleVersion: 'route-session-v3', planRoute: 'strength', route: 'bridge-calibration', movementPlacement: { exerciseId: 'conventional-deadlift', selectedRoute: 'bridge-calibration' } })
+    expect(byPrimary.get('conventional-deadlift')?.exercises[0].sets[0]).toMatchObject({ targetReps: 8, targetRir: 3 })
+    expect(byPrimary.get('conventional-deadlift')?.generation).toMatchObject({ ruleVersion: 'route-session-v4', planRoute: 'strength', route: 'bridge-calibration', movementPlacement: { exerciseId: 'conventional-deadlift', selectedRoute: 'bridge-calibration' } })
     expect(preview.sessions.every((session) => routeSessionGenerationError(session.generation) === null)).toBe(true)
   })
 })

@@ -26,11 +26,11 @@ import { Modal } from '../components/Modal'
 import { CollapsiblePanel } from '../components/CollapsiblePanel'
 import { buildMesocyclePreview, draftFromPlan } from '../domain/mesocycle-engine'
 import { buildCycleReview } from '../domain/cycle-review-engine'
-import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION } from '../domain/route-session-engine'
+import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION } from '../domain/route-session-engine'
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from '../domain/placement-exit-engine'
 import { exerciseEquipmentFit } from '../domain/equipment-engine'
 import { benchAngleLabel, normalizeBenchAngle, supportsBenchAngle } from '../domain/bench-angle-engine'
-import type { BodyRegion, CycleReviewDecision, Exercise, ExerciseRole, MesocycleDraft, PlannedExercise } from '../domain/types'
+import type { BodyRegion, CycleReviewDecision, Exercise, ExerciseRole, MesocycleDraft, MesocyclePlan, PlannedExercise } from '../domain/types'
 
 const regions: BodyRegion[] = ['chest', 'back', 'traps', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']
 
@@ -101,6 +101,13 @@ export function PlanScreen() {
     priorityRegions: [...athlete.priorityRegions],
     maintenanceRegions: ['hamstrings', 'shoulders', 'biceps']
   })
+  const revisionDraft = (plan: MesocyclePlan) => {
+    const next = draftFromPlan(plan)
+    const hasCompleteMovementPlacement = next.strengthAnchors.every((exerciseId) => next.movementPlacements?.some((placement) => placement.exerciseId === exerciseId))
+    return next.entryRoute && hasCompleteMovementPlacement
+      ? { ...next, generationRuleVersion: ROUTE_SESSION_RULE_VERSION }
+      : next
+  }
   const [editorOpen, setEditorOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
@@ -109,11 +116,11 @@ export function PlanScreen() {
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [openBlueprintDays, setOpenBlueprintDays] = useState<Record<string, boolean>>({})
   const [placementExitAssessedAt] = useState(() => new Date().toISOString())
-  const [draft, setDraft] = useState<MesocycleDraft>(() => sourcePlan ? draftFromPlan(sourcePlan) : blankDraft())
+  const [draft, setDraft] = useState<MesocycleDraft>(() => sourcePlan ? revisionDraft(sourcePlan) : blankDraft())
   const [editorError, setEditorError] = useState<string | null>(null)
 
   const openEditor = () => {
-    setDraft(sourcePlan ? draftFromPlan(sourcePlan) : blankDraft())
+    setDraft(sourcePlan ? revisionDraft(sourcePlan) : blankDraft())
     setEditorError(null)
     setEditorOpen(true)
   }
@@ -145,6 +152,9 @@ export function PlanScreen() {
   const blueprintSessions = planSessions.filter((session) => (session.microcycleNumber ?? 1) === blueprintRound)
   const blueprintSetsPerRound = blueprintSessions.flatMap((session) => session.exercises).reduce((total, planned) => total + planned.sets.length, 0)
   const blueprintMinutesPerRound = blueprintSessions.reduce((total, session) => total + session.durationMinutes, 0)
+  const repetitionPolicyReviewAvailable = Boolean(sourcePlan?.generationRuleVersion
+    && sourcePlan.generationRuleVersion !== ROUTE_SESSION_RULE_VERSION
+    && sourcePlan.strengthAnchors.every((exerciseId) => sourcePlan.movementPlacements?.some((placement) => placement.exerciseId === exerciseId)))
   const nextBlockMovementRecommendations = useMemo<NextBlockMovementRecommendation[]>(() => {
     if (sourcePlan?.status !== 'completed') return []
     const sourceSessionIds = new Set(planSessions.map((session) => session.id))
@@ -186,7 +196,7 @@ export function PlanScreen() {
 
   const openPivot = () => {
     setReviewOpen(false)
-    setDraft(sourcePlan ? { ...draftFromPlan(sourcePlan), revisionReason: '' } : blankDraft())
+    setDraft(sourcePlan ? { ...revisionDraft(sourcePlan), revisionReason: '' } : blankDraft())
     setEditorError(null)
     setEditorOpen(true)
   }
@@ -302,6 +312,11 @@ export function PlanScreen() {
         </div>
 
         {sourcePlan ? <>
+          {repetitionPolicyReviewAvailable && <div className="rep-policy-review" role="status">
+            <Shield size={19} />
+            <div><strong>Safer return-to-training repetitions are ready to review.</strong><p>Your current plan is unchanged. Review the next version to use at least 8 reps for Rebuild and Calibration primary work, at least 10 for secondary work, and 15 for Freak Athlete Leg Developer extensions and curls.</p></div>
+            <button className="button button--secondary" onClick={openEditor}>Review repetition update</button>
+          </div>}
           <div className="block-route" aria-label={`${sourcePlan.targetMicrocycles} planned training rounds followed by a block review`}>
             {Array.from({ length: sourcePlan.targetMicrocycles }, (_, index) => {
               const round = index + 1

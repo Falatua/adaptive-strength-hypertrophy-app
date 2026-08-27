@@ -1,7 +1,8 @@
 import { addDays } from 'date-fns'
 import { makeSets } from './training-engine'
 import { equipmentGenerationEvidence, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad } from './equipment-engine'
-import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION, prescriptionForRole, routeSessionProfile, type RouteSessionProfile } from './route-session-engine'
+import { isEquipmentRouteSessionRuleVersion, isMovementRouteSessionRuleVersion, prescriptionForRole, routeSessionProfile, type RouteSessionProfile } from './route-session-engine'
+import { applyRepPrescriptionPolicy } from './rep-prescription-policy'
 import {
   HOME_GYM_TRICEPS_PRESS_IDS,
   homeGymAccessoryRegionAllowed,
@@ -148,7 +149,14 @@ function plannedExercise(
   const setCount = homeGymProvisional
     ? prior.sets
     : routePrescription?.sets ?? Math.max(2, prior.sets - (reacclimating ? 1 : 0))
-  const targetReps = homeGymProvisional ? prior.reps : routePrescription?.reps ?? prior.reps
+  const targetReps = homeGymProvisional ? prior.reps : applyRepPrescriptionPolicy({
+    exercise,
+    role,
+    suggestedReps: routePrescription?.reps ?? prior.reps,
+    route: routeProfile?.route,
+    reacclimating,
+    equipmentProfile: context.equipmentProfile
+  })
   const targetRir = routePrescription?.rir ?? (reacclimating ? Math.max(3, prior.rir) : prior.rir)
   const increment = context.equipmentProfile ? loadIncrementFor(exercise, context.equipmentProfile).value : 5
   const targetLoad = routePrescription ? routeLoad(prior, routePrescription.intensity, increment) : reacclimating ? nearestExecutableLoad(prior.load * 0.9, increment) : nearestExecutableLoad(prior.load, increment)
@@ -273,8 +281,8 @@ export function draftFromPlan(plan: MesocyclePlan): MesocycleDraft {
 }
 
 export function buildMesocyclePreview(draft: MesocycleDraft, context: GenerationContext): MesocyclePreview {
-  const planRouteProfile = draft.entryRoute && draft.generationRuleVersion ? routeSessionProfile(draft.entryRoute) : undefined
-  if ((draft.generationRuleVersion === EQUIPMENT_ROUTE_SESSION_RULE_VERSION || draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION) && !context.equipmentProfile) throw new Error(`${draft.generationRuleVersion} requires an equipment profile.`)
+  const planRouteProfile = draft.entryRoute && draft.generationRuleVersion ? routeSessionProfile(draft.entryRoute, draft.generationRuleVersion) : undefined
+  if (isEquipmentRouteSessionRuleVersion(draft.generationRuleVersion) && !context.equipmentProfile) throw new Error(`${draft.generationRuleVersion} requires an equipment profile.`)
   const anchors = draft.strengthAnchors
     .map((id) => context.exercises.find((exercise) => exercise.id === id))
     .filter((exercise): exercise is Exercise => Boolean(exercise))
@@ -282,12 +290,12 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
   const startsAt = context.startsAt ?? new Date()
   const sessions = Array.from({ length: requiredExposureCount }, (_, index) => {
     const anchor = anchors[index % Math.max(1, anchors.length)] ?? context.exercises.find((exercise) => exercise.jointFeeling !== 'avoid')!
-    const movementPlacement = draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION
+    const movementPlacement = isMovementRouteSessionRuleVersion(draft.generationRuleVersion)
       ? draft.movementPlacements?.find((placement) => placement.exerciseId === anchor.id)
       : undefined
-    if (draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION && !movementPlacement) throw new Error(`${ROUTE_SESSION_RULE_VERSION} requires placement evidence for ${anchor.name}.`)
+    if (isMovementRouteSessionRuleVersion(draft.generationRuleVersion) && !movementPlacement) throw new Error(`${draft.generationRuleVersion} requires placement evidence for ${anchor.name}.`)
     const routeProfile = movementPlacement
-      ? routeSessionProfile(movementPlacement.selectedRoute)
+      ? routeSessionProfile(movementPlacement.selectedRoute, draft.generationRuleVersion)
       : planRouteProfile
     const sessionKey = `${context.sessionKeyPrefix ?? context.planId}-session-${index + 1}`
     const excluded = new Set<string>([anchor.id])
@@ -398,10 +406,10 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
         route: routeProfile.route,
         strategy: routeProfile.strategy,
         reasons: [...routeProfile.reasons],
-        ...((draft.generationRuleVersion === EQUIPMENT_ROUTE_SESSION_RULE_VERSION || draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION) && context.equipmentProfile
+        ...(isEquipmentRouteSessionRuleVersion(draft.generationRuleVersion) && context.equipmentProfile
           ? { equipment: equipmentGenerationEvidence(context.equipmentProfile) }
           : {}),
-        ...(draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION && movementPlacement && draft.entryRoute
+        ...(isMovementRouteSessionRuleVersion(draft.generationRuleVersion) && movementPlacement && draft.entryRoute
           ? { planRoute: draft.entryRoute, movementPlacement: structuredClone(movementPlacement) }
           : {})
       } : undefined
@@ -426,10 +434,10 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     regionSets,
     protectedAnchors: anchors.map((anchor) => anchor.id),
     explanations: [
-      ...(draft.generationRuleVersion === ROUTE_SESSION_RULE_VERSION ? [
-        `Per-movement placement under ${ROUTE_SESSION_RULE_VERSION} lets each protected anchor use its own starting route without changing the cycle's ${planRouteProfile?.label ?? 'global'} goal.`,
+      ...(isMovementRouteSessionRuleVersion(draft.generationRuleVersion) ? [
+        `Per-movement placement under ${draft.generationRuleVersion} lets each protected anchor use its own starting route without changing the cycle's ${planRouteProfile?.label ?? 'global'} goal.`,
         ...(draft.movementPlacements ?? []).map((movement) => {
-          const profile = routeSessionProfile(movement.selectedRoute)
+          const profile = routeSessionProfile(movement.selectedRoute, draft.generationRuleVersion)
           return `${movement.exerciseName} uses ${profile.label}: ${profile.primary.sets} × ${profile.primary.reps} at ${profile.primary.rir} RIR.`
         })
       ] : planRouteProfile ? [`${planRouteProfile.label} uses ${planRouteProfile.primary.sets} × ${planRouteProfile.primary.reps} at ${planRouteProfile.primary.rir} RIR for primary work under ${planRouteProfile.ruleVersion}.`, ...planRouteProfile.reasons, planRouteProfile.progressionPolicy] : []),

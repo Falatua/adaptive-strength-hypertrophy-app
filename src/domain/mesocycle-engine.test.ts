@@ -63,6 +63,24 @@ describe('criterion-driven mesocycle planning', () => {
     expect(programmed.some((id) => ['lying-leg-curl', 'deficit-conventional', 'romanian-deadlift', 'stiff-leg-deadlift'].includes(id))).toBe(true)
   })
 
+  it('programs athlete-selected Freak Athlete Leg Developer work at fifteen repetitions or higher', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const previewFor = (exerciseId: 'leg-extension' | 'lying-leg-curl', region: 'quadriceps' | 'hamstrings') => buildMesocyclePreview({
+      ...draft(),
+      strengthAnchors: ['competition-bench'],
+      weeklyOpportunities: 1,
+      defaultMinutes: 90,
+      priorityRegions: [region],
+      maintenanceRegions: [],
+      movementOverrides: [{ sessionIndex: 0, slotIndex: 2, exerciseId, source: 'athlete' as const }]
+    }, { exercises, currentSessions: [], history: [], planId: `leg-developer-${exerciseId}`, planVersion: 1, equipmentProfile: home })
+
+    const legExtension = previewFor('leg-extension', 'quadriceps').sessions[0].exercises.find((planned) => planned.exerciseId === 'leg-extension')!
+    const legCurl = previewFor('lying-leg-curl', 'hamstrings').sessions[0].exercises.find((planned) => planned.exerciseId === 'lying-leg-curl')!
+    expect(legExtension.sets.every((workSet) => workSet.targetReps >= 15)).toBe(true)
+    expect(legCurl.sets.every((workSet) => workSet.targetReps >= 15)).toBe(true)
+  })
+
   it('encodes JB Home Gym movement priorities without automatically selecting low-bar squats', () => {
     const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
     const next = { ...draft(), strengthAnchors: ['competition-squat', 'competition-bench', 'cambered-row'], priorityRegions: ['quadriceps' as const, 'chest' as const, 'back' as const, 'shoulders' as const], maintenanceRegions: ['hamstrings' as const] }

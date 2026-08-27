@@ -75,9 +75,14 @@ function selectedRouteFor(inputs: PlacementInputs, dimensions: AthletePlacementA
   if (dimensions.scheduleStability <= 2 || dimensions.volumeTolerance <= 2 || dimensions.strengthTolerance <= 2) return 'base-building'
 
   const desired = goalRoute(inputs.goal)
+  const lowRepReady = dimensions.experience >= 3
+    && dimensions.movementSkill >= 3
+    && dimensions.strengthTolerance >= 3
+    && dimensions.dataConfidence >= 3
+    && inputs.continuity === 'stable'
   if (desired === 'power' && !(dimensions.experience >= 4 && dimensions.movementSkill >= 4 && dimensions.strengthTolerance >= 4 && inputs.continuity === 'stable')) return 'base-building'
-  if (desired === 'strength' && !(dimensions.experience >= 3 && dimensions.movementSkill >= 3 && dimensions.strengthTolerance >= 3)) return 'bridge-calibration'
-  if (desired === 'event-specific' && (!inputs.fixedEvent || dimensions.movementSkill < 3 || dimensions.strengthTolerance < 3)) return 'bridge-calibration'
+  if ((desired === 'strength' || desired === 'powerbuilding') && !lowRepReady) return 'base-building'
+  if (desired === 'event-specific' && (!inputs.fixedEvent || !lowRepReady)) return 'base-building'
   return desired
 }
 

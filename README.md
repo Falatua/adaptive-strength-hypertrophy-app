@@ -1,10 +1,10 @@
-# ForgePath Private Alpha 0.73.0
+# ForgePath Private Alpha 0.74.0
 
 ForgePath is an athlete-controlled adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed. The hosted private alpha uses Supabase as the authoritative training store; local development keeps a browser-only test mode.
 
-Private alpha 0.73.0 streamlines active-workout entry. Entering load, repetitions, or RIR/RPE on Set 1 pre-fills untouched later straight sets for the same movement. Every value remains editable, manual exceptions stay protected, and every set still requires its own Log set action. Completed, skipped, drop-set, myo-rep, and bench-angle-ladder data is not overwritten. Autofill never marks success or failure, completes training, creates records, or earns progression. No training plan, completed history, Supabase contract, backup schema, or Home Gym preference changes.
+Private alpha 0.74.0 keeps returning and undertrained programming out of low-repetition loading. Rebuild and Calibration prescribe at least eight repetitions for primary work and ten for secondary work. Six repetitions or fewer requires stable continuity plus demonstrated current training, movement-skill, intensity-tolerance, and exact-evidence readiness. Leg extensions and curls always stay above ten repetitions, with Freak Athlete Leg Developer work starting at fifteen. Older approved plans remain unchanged until the athlete reviews and applies a new version.
 
-The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 463 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
+The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 471 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
 ## Run locally
 
@@ -61,7 +61,7 @@ npm run check:pages
 - daily, weekly, rolling 28-day, calendar-month, calendar-quarter, yearly, and all-time analytics reconcile to completed source sets
 - editable training blocks show the complete weekly movement map, round route, estimated duration and working sets, primary through tertiary roles, athlete-approved swaps, and exact incline setups before applying a versioned plan
 - plan revisions preserve completed and partial session truth while replacing future planned work only
-- version 28 backup and restore adds direct Library history provenance to athlete-approved block choices, exact-movement workout notes, entered-number provenance, source-backed dose, placement evidence, equipment profiles, plan history, ledgers, and survey evidence, and safely migrates versions 1 through 27
+- version 29 backup and restore preserves route-session-v4 repetition-policy provenance alongside direct Library history, athlete-approved block choices, exact-movement notes, entered-number provenance, source-backed dose, placement evidence, equipment profiles, plan history, ledgers, and survey evidence, and safely migrates versions 1 through 28
 - placement-v3 separates experience, continuity, global movement skill, intensity tolerance, volume tolerance, schedule stability, and evidence confidence before selecting an introductory, reacclimation, bridge, base, hypertrophy, powerbuilding, strength, power, event-specific, or pain-aware cycle route
 - movement-placement-v2 separately records skill, heavy-work tolerance, evidence confidence, family context, reasons, unknowns, accepted exact-history review, and an effective starting route for every protected exact movement
 - placement-history-v1 summarizes only the exact movement's recent completed sets, exposure dates, source type, RIR availability, quality confirmation, latest exposure, bounded confidence and tolerance suggestions, limitations, and source-set IDs
@@ -84,7 +84,7 @@ npm run check:pages
 - one miss may defer and time-fit the highest-value exact exposure; repeated misses rebuild the open sequence and remove optional fatigue; ongoing illness, pain, or a longer interruption requests reacclimation without diagnosing the athlete
 - completed, partial, expired, and stopped sessions remain in the ledger; reported but unlogged training earns no credit; current plans move to the new date while the original missed date remains visible in Progress
 - painful verification pauses the next automatic workout start, while skipped warm-up, survey, or recovery answers remain unknown and never erase completed training
-- route-session-v3 lets each protected anchor use its own introductory, reacclimation, bridge, base-building, hypertrophy, powerbuilding, strength, power, or event-specific primary prescription inside the global cycle goal
+- route-session-v4 keeps Rebuild and Calibration primary work at eight repetitions or higher, secondary work at ten or higher, and gates six-repetition-or-lower routes behind stable demonstrated readiness while preserving each protected anchor's exact movement lane
 - the selected anchor lane controls that session's primary, secondary, accessory, repetition, RIR, intensity, rest, warm-up, and dose rules while retaining the global plan route separately
 - the selected training location filters secondary and accessory work before generation, while protected anchors remain visible with exact missing-equipment warnings instead of being silently replaced
 - generated loads use the selected profile's barbell, dumbbell, cable, machine, or other increment and preserve the complete profile snapshot that shaped the queue

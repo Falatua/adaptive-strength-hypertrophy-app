@@ -32,8 +32,8 @@ import { missedOpportunityEventError } from './schedule-adaptation-engine'
 import { movementNoteError } from './movement-note-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 28
-export const BACKUP_APP_VERSION = '0.73.0'
+export const BACKUP_SCHEMA_VERSION = 29
+export const BACKUP_APP_VERSION = '0.74.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -464,12 +464,13 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
       if (generationError) errors.push(`A route-generated session is invalid: ${generationError}`)
       if (isRecord(session.generation)) {
         const plan = mesocycles.find((candidate) => isRecord(candidate) && candidate.id === session.mesocycleId)
-        const routeMatches = session.generation.ruleVersion === 'route-session-v3'
+        const movementRouteGeneration = session.generation.ruleVersion === 'route-session-v3' || session.generation.ruleVersion === 'route-session-v4'
+        const routeMatches = movementRouteGeneration
           ? isRecord(plan) && plan.entryRoute === session.generation.planRoute
           : isRecord(plan) && plan.entryRoute === session.generation.route
         if (!routeMatches || !isRecord(plan) || plan.generationRuleVersion !== session.generation.ruleVersion || plan.placementCreatedAt !== session.generation.placementCreatedAt) errors.push('A route-generated session does not match its mesocycle placement provenance.')
         if (session.generation.ruleVersion === 'route-session-v2' && (session.microcycleNumber ?? 1) === 1 && (!isRecord(plan) || stableStringify(plan.generationEquipment) !== stableStringify(session.generation.equipment))) errors.push('An equipment-aware starting session does not match its mesocycle equipment snapshot.')
-        if (session.generation.ruleVersion === 'route-session-v3') {
+        if (movementRouteGeneration) {
           const plannedPrimary = Array.isArray(session.exercises) ? session.exercises.find((planned) => isRecord(planned) && planned.role === 'primary') : null
           const movementEvidence = session.generation.movementPlacement
           const planMovement = isRecord(plan) && Array.isArray(plan.movementPlacements) && isRecord(movementEvidence)
@@ -619,12 +620,12 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
     }
     if (!isValidDate(plan.createdAt) || !isValidDate(plan.effectiveAt)) errors.push('A mesocycle plan has an invalid date.')
     const hasRouteGeneration = plan.entryRoute !== undefined || plan.generationRuleVersion !== undefined || plan.placementCreatedAt !== undefined || plan.generationEquipment !== undefined || plan.movementPlacements !== undefined
-    if (hasRouteGeneration && (!['introductory-skill', 'reacclimation', 'bridge-calibration', 'base-building', 'hypertrophy', 'powerbuilding', 'strength', 'power', 'event-specific', 'pain-aware-modified'].includes(String(plan.entryRoute)) || !['route-session-v1', 'route-session-v2', 'route-session-v3'].includes(String(plan.generationRuleVersion)) || !isValidDate(plan.placementCreatedAt))) errors.push('A mesocycle has incomplete route-generation provenance.')
-    if (plan.generationRuleVersion === 'route-session-v2' || plan.generationRuleVersion === 'route-session-v3') {
+    if (hasRouteGeneration && (!['introductory-skill', 'reacclimation', 'bridge-calibration', 'base-building', 'hypertrophy', 'powerbuilding', 'strength', 'power', 'event-specific', 'pain-aware-modified'].includes(String(plan.entryRoute)) || !['route-session-v1', 'route-session-v2', 'route-session-v3', 'route-session-v4'].includes(String(plan.generationRuleVersion)) || !isValidDate(plan.placementCreatedAt))) errors.push('A mesocycle has incomplete route-generation provenance.')
+    if (plan.generationRuleVersion === 'route-session-v2' || plan.generationRuleVersion === 'route-session-v3' || plan.generationRuleVersion === 'route-session-v4') {
       const equipmentError = equipmentGenerationEvidenceError(plan.generationEquipment)
       if (equipmentError) errors.push(`A mesocycle equipment snapshot is invalid: ${equipmentError}`)
     }
-    if (plan.generationRuleVersion === 'route-session-v3') {
+    if (plan.generationRuleVersion === 'route-session-v3' || plan.generationRuleVersion === 'route-session-v4') {
       if (!Array.isArray(plan.movementPlacements) || plan.movementPlacements.length !== plan.strengthAnchors.length) errors.push('A movement-placed mesocycle must store one placement for every protected anchor.')
       else {
         if (new Set(plan.movementPlacements.flatMap((movement) => isRecord(movement) && typeof movement.exerciseId === 'string' ? [movement.exerciseId] : [])).size !== plan.movementPlacements.length) errors.push('A movement-placed mesocycle has duplicate movement identities.')
@@ -1054,6 +1055,18 @@ function migrateV27(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV28(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  validateState(candidate.data, true)
+  return {
+    data: candidate.data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 28 backup migrated safely. Existing plans and completed training remain intact; readiness-gated route-session-v4 prescriptions begin with future athlete-approved generation.'
+  }
+}
+
 function migrateV24(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
   if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
@@ -1190,6 +1203,10 @@ export function parseBackup(raw: string): BackupPreview {
     const migrated = migrateV27(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 28) {
+    const migrated = migrateV28(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
@@ -1220,7 +1237,7 @@ export function parseBackup(raw: string): BackupPreview {
       movementPlacedAnchors: backup.data.athlete.placement.movementPlacements?.length ?? 0,
       historyReviewedAnchors: backup.data.athlete.placement.movementPlacements?.filter((movement) => Boolean(movement.historyReview)).length ?? 0,
       routeGeneratedSessions: backup.data.sessions.filter((session) => Boolean(session.generation)).length,
-      equipmentGeneratedSessions: backup.data.sessions.filter((session) => session.generation?.ruleVersion === 'route-session-v2' || session.generation?.ruleVersion === 'route-session-v3').length,
+      equipmentGeneratedSessions: backup.data.sessions.filter((session) => session.generation?.ruleVersion === 'route-session-v2' || session.generation?.ruleVersion === 'route-session-v3' || session.generation?.ruleVersion === 'route-session-v4').length,
       equipmentProfiles: backup.data.equipmentProfiles.length,
       athleteName: backup.data.athlete.name,
       placementRoute: placementRouteLabels[backup.data.athlete.placement.selectedRoute],

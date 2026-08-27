@@ -5,12 +5,42 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-27
 status: canonical-build-reference-and-active-implementation
-version: 1.69.0
+version: 1.70.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.70.0 Change Entry
+
+- Advanced the working application to private alpha 0.74.0 and route-session-v4 with backup schema 29 while keeping the 251-movement catalog, local persistence 30, Home Gym preference v3, completed history, and Supabase cloud-authoritative boundary intact.
+- Added R-467 through R-471 and Chapter 101 for returning and undertrained repetition floors, demonstrated readiness before low-repetition work, high-repetition Leg Developer programming, and athlete-approved existing-plan upgrades.
+- Preserved route-session-v1 through v3 plans exactly. New v4 prescriptions apply only through new onboarding or an athlete-approved plan version.
+
+## 101. Returning and Undertrained Repetition Safety
+
+### 101.1 Transitional Route Floors
+
+Introductory Skill, Rebuild, Calibration, and Base Building are not low-repetition strength-expression routes. Their primary prescriptions are at least eight repetitions and their secondary prescriptions are at least ten. Rebuild changes from 2 by 6 to 2 by 8 and Calibration changes from 3 by 6 to 3 by 8. A high RIR remains useful effort evidence but cannot independently justify the greater absolute loading and skill demand of six-repetition work.
+
+### 101.2 Low-Repetition Readiness Gate
+
+Six repetitions or fewer requires stable current continuity, at least two years of structured training, and experience, movement-skill, intensity-tolerance, and exact-evidence levels of three or higher. Unknown, returning, interrupted, or undertrained state routes to Introductory Skill, Rebuild, Calibration, or Base Building. Power retains its stricter four-or-higher gate. This rule selects a training route and does not claim universal medical safety.
+
+### 101.3 Leg Extension and Curl Floor
+
+Knee Extension and Leg Curl movements never prescribe ten repetitions or fewer. The Freak Athlete Home Gym profile raises Leg Extension, Single-Leg Extension, and Lying Leg Curl to a fifteen-repetition starting target. A substituted Leg Developer movement progresses inside fifteen to twenty repetitions. Athlete edits, pain, exact setup, and separately logged history remain authoritative.
+
+### 101.4 Substitution and Existing-Plan Safety
+
+Substitutions use the same readiness and movement-specific floors. An athlete without demonstrated low-repetition readiness receives at least eight repetitions for a primary replacement, ten for a secondary replacement, and twelve for accessory or tertiary work. A Home Gym Leg Developer replacement begins at fifteen.
+
+Existing route-session-v3 sessions, prescriptions, completed work, and approved plan versions remain unchanged. Plan shows a calm review notice only when every protected anchor has the movement-placement evidence required for route-session-v4. The athlete previews the new prescription and supplies a revision reason before applying a new version.
+
+### 101.5 Persistence and Acceptance
+
+Backup schema 29 accepts route-session-v4 and migrates schema 28 without rewriting stored sessions. The current engine preserves version-specific route profiles so old v3 evidence continues to validate against its original six-repetition Rebuild and Calibration prescriptions. Deterministic acceptance covers route floors, readiness gates, Leg Developer targets, substitution ranges, old-policy validation, backup migration, and the athlete-approved Plan review. Browser acceptance covers onboarding output, stored v4 provenance, mobile layout, console integrity, and horizontal containment.
 
 ### Version 1.69.0 Change Entry
 

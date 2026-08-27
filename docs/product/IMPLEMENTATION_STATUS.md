@@ -5,12 +5,23 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-27
 status: working-private-alpha
-app_version: 0.73.0
+app_version: 0.74.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.74.0 Returning and Undertrained Repetition Delta
+
+- Moves Rebuild and Calibration primary work from six to eight repetitions and keeps their secondary work at ten.
+- Requires stable continuity, at least two years of structured training, and current experience, movement-skill, intensity-tolerance, and exact-evidence thresholds before selecting strength, powerbuilding, or event-specific low-repetition work. Power keeps its stricter gate.
+- Keeps all leg extensions and leg curls above ten repetitions. Freak Athlete Leg Developer extensions and lying curls start at fifteen and substitution progression uses fifteen to twenty.
+- Applies the same floors to no-history and exact-history workout substitutions when the athlete is returning, undertrained, or not currently confirmed ready.
+- Advances current movement-placed generation to `route-session-v4` while preserving route-session-v1 through v3 validation.
+- Adds an evidence-blue Plan review notice for eligible older plans, previews v4, and requires an athlete-authored versioned revision before any future session changes.
+- Advances backup schema to 29 with a no-rewrite version 28 migration. Local persistence 30, the 251-movement catalog, Home Gym preference v3, Supabase Auth, cloud snapshots, completed work, and approved plans remain unchanged.
+- Passes 516 deterministic tests. The complete browser matrix, production and Pages builds, workflows, deployment, and live-source checks remain release gates.
 
 ## Private Alpha 0.73.0 Active Workout Set Autofill Delta
 

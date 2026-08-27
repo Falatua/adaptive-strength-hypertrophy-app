@@ -116,6 +116,15 @@ describe('versioned backup and restore', () => {
     expect(parsed.warnings[0]).toMatch(/version 27/i)
   })
 
+  it('migrates a version 28 backup without rewriting existing route prescriptions', () => {
+    const prior = createBackup(state(), '2026-08-10T12:00:00.000Z') as unknown as Record<string, unknown>
+    prior.schemaVersion = 28
+    const parsed = parseBackup(JSON.stringify(prior))
+    expect(parsed.backup.schemaVersion).toBe(BACKUP_SCHEMA_VERSION)
+    expect(parsed.warnings[0]).toMatch(/version 28/i)
+    expect(parsed.backup.data.sessions).toEqual(state().sessions)
+  })
+
   it('restores an integrity-valid cloud snapshot after jsonb reorders object keys', () => {
     const backup = reorderJsonObjectKeys(createBackup(state(), '2026-08-10T12:00:00.000Z'))
     const parsed = parseBackup(JSON.stringify(backup))
@@ -713,7 +722,7 @@ describe('versioned backup and restore', () => {
     current.athlete.level = placement.dimensions
     const plan = current.mesocycles[0]
     plan.entryRoute = placement.selectedRoute
-    plan.generationRuleVersion = 'route-session-v3'
+    plan.generationRuleVersion = 'route-session-v4'
     plan.placementCreatedAt = placement.createdAt
     plan.generationEquipment = equipmentGenerationEvidence(current.equipmentProfiles[0])
     plan.movementPlacements = structuredClone(placement.movementPlacements)
@@ -726,7 +735,7 @@ describe('versioned backup and restore', () => {
     const parsed = parseBackup(JSON.stringify(createBackup(current)))
     expect(parsed.summary.movementPlacedAnchors).toBe(3)
     expect(new Set(parsed.backup.data.sessions.map((session) => session.generation?.route))).toEqual(new Set(['introductory-skill', 'strength', 'bridge-calibration']))
-    expect(parsed.backup.data.sessions.every((session) => session.generation?.ruleVersion === 'route-session-v3')).toBe(true)
+    expect(parsed.backup.data.sessions.every((session) => session.generation?.ruleVersion === 'route-session-v4')).toBe(true)
 
     current.sessions[0].generation!.movementPlacement!.exerciseName = 'Forged Squat'
     expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/movement snapshot|movement placement/i)

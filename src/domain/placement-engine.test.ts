@@ -44,6 +44,13 @@ describe('placement-v3 with placement-v1 and placement-v2 compatibility', () => 
     expect(buildPlacementAssessment(inputs({ goal: 'power', painState: 'modifying' })).recommendedRoute).toBe('pain-aware-modified')
   })
 
+  it('requires stable demonstrated readiness before selecting a low-repetition route', () => {
+    expect(buildPlacementAssessment(inputs({ goal: 'strength', continuity: 'interrupted' })).recommendedRoute).toBe('base-building')
+    expect(buildPlacementAssessment(inputs({ goal: 'powerbuilding', trainingAge: 1.5 })).recommendedRoute).toBe('base-building')
+    expect(buildPlacementAssessment(inputs({ goal: 'event-specific', fixedEvent: 'Meet', continuity: 'interrupted' })).recommendedRoute).toBe('base-building')
+    expect(buildPlacementAssessment(inputs({ goal: 'strength', continuity: 'stable' })).recommendedRoute).toBe('strength')
+  })
+
   it('turns skipped evidence into low confidence instead of fabricated readiness', () => {
     const result = buildPlacementAssessment(inputs({
       goal: null, trainingAge: null, continuity: null, movementSkill: null, strengthTolerance: null,

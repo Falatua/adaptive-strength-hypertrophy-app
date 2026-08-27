@@ -2925,7 +2925,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Autofill must streamline data entry only. It cannot complete a set, judge success or failure, create a record, change programming, or earn progression. Every set retains its own explicit Log set action and source-truth status.
 - Detail: `src/screens/WorkoutScreen.tsx`, `src/domain/set-entry-autofill.test.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 100
 
+### R-467 Returning and Undertrained Repetition Floors
+- Status: implemented
+- Provenance: from-user
+- Requirement: Introductory, Rebuild, Calibration, and Base-Building programming must keep primary work at eight repetitions or higher and secondary work at ten repetitions or higher. A high RIR cannot independently authorize a six-repetition prescription.
+- Detail: `src/domain/route-session-engine.ts`, `src/domain/rep-prescription-policy.ts`, and Build Bible Chapter 101
+
+### R-468 Demonstrated Readiness Before Low-Repetition Work
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: ForgePath may select a route containing six repetitions or fewer only when recent continuity is stable, structured training age is at least two years, and current experience, movement skill, intensity tolerance, and exact evidence meet the direct-route threshold. Returning, interrupted, undertrained, uncertain, or not-currently-ready athletes remain in a building route.
+- Detail: `src/domain/placement-engine.ts`, `src/domain/rep-prescription-policy.ts`, and Build Bible Chapter 101
+
+### R-469 High-Repetition Leg Extension and Curl Policy
+- Status: implemented
+- Provenance: from-user
+- Requirement: Leg extensions and leg curls must always stay above ten repetitions. Freak Athlete Leg Developer extensions, single-leg extensions, and lying curls start at fifteen repetitions and substitutions use a fifteen-to-twenty progression range.
+- Detail: `src/domain/rep-prescription-policy.ts`, `src/domain/mesocycle-engine.ts`, `src/domain/substitution-engine.ts`, and Build Bible Chapter 101
+
+### R-470 Athlete-Approved Existing-Plan Upgrade
+- Status: implemented
+- Provenance: product-decision
+- Requirement: An older movement-placed plan may show that the new repetition policy is available and preview route-session-v4 targets, but ForgePath must not rewrite the approved plan or completed work until the athlete applies a new version.
+- Detail: `src/screens/PlanScreen.tsx`, `src/screens/PlanScreen.test.tsx`, and Build Bible Chapter 101
+
+### R-471 Repetition-Policy Provenance and Acceptance
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: New movement-placed generation must store route-session-v4 provenance. Backup schema 29 must preserve versions 1 through 28 and route-session-v1 through v3 history. Deterministic and browser acceptance must cover re-entry floors, readiness gating, Leg Developer targets, substitutions, athlete-approved upgrade, responsive containment, and unchanged completed data.
+- Detail: `src/domain/backup.ts`, `src/domain/route-session-engine.test.ts`, `src/domain/rep-prescription-policy.test.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 101
+
 ## Thread Coverage Audit
+
+### 2026-08-27 Returning and Undertrained Repetition Safety
+- Scope: JB rejected six-repetition squat, bench, deadlift, and leg-press prescriptions for a returning or undertrained athlete and requested consistently higher repetitions for Freak Athlete Leg Developer extensions and curls.
+- Result: Added R-467 through R-471 and Build Bible Chapter 101. Private alpha 0.74.0 moves Rebuild and Calibration primary work to eight repetitions, secondary work to ten, gates every direct low-repetition route behind stable demonstrated readiness, starts Leg Developer extensions and curls at fifteen, and gives older approved plans an athlete-controlled v4 preview.
+- Status: Implemented with 516 deterministic tests passing. The complete browser, Pages artifact, workflow, deployment, and live-source checks remain release gates.
 
 ### 2026-08-27 Active Workout Set Autofill
 - Scope: JB requested that entering load, repetitions, and RIR/RPE on the first set pre-fill later sets for the same movement while keeping every set editable and making no success or failure claim.
@@ -3307,6 +3342,7 @@ This is the canonical traceability index for every durable requirement JB states
 ## Change Log
 
 - 2026-08-26: Added R-461 through R-463 and Build Bible Chapter 99 for independently collapsible Plan days, truthful closed-day summaries, collapsed secondary detail, and accessible desktop and phone acceptance. Private alpha 0.72.0 preserves backup schema 28, local persistence 30, Home Gym preference v3, and the Supabase snapshot contract.
+- 2026-08-27: Added R-467 through R-471 and Build Bible Chapter 101 for returning and undertrained repetition floors, demonstrated readiness before low-repetition work, fifteen-repetition Freak Athlete Leg Developer targets, athlete-approved existing-plan review, route-session-v4, and backup schema 29. Private alpha 0.74.0 preserves completed training, approved plans, local persistence 30, Home Gym preference v3, and the Supabase snapshot contract.
 - 2026-08-27: Added R-464 through R-466 and Build Bible Chapter 100 for Set 1 active-workout autofill, field-level manual exceptions, separate log actions, and no outcome or progression claims. Private alpha 0.73.0 preserves backup schema 28, local persistence 30, Home Gym preference v3, and the Supabase snapshot contract.
 - 2026-08-26: Added R-456 through R-460 and Build Bible Chapter 98 for Home Gym preference v3, incline-first pressing, block-stable Two-Board, Close-Grip, and Spoto rotation, exact-history separation, bench-board availability, and athlete-choice preservation. Private alpha 0.71.0 preserves backup schema 28 and the Supabase snapshot contract while advancing local persistence to 30.
 

@@ -62,6 +62,24 @@ describe('training-block blueprint', () => {
     expect(screen.getByRole('button', { name: 'Show how life-aware planning works' })).toHaveAttribute('aria-expanded', 'false')
   })
 
+  it('offers an athlete-approved route to the safer repetition policy without rewriting the active plan', () => {
+    useAppStore.setState((state) => ({
+      ...state,
+      mesocycles: state.mesocycles.map((plan) => ({
+        ...plan,
+        entryRoute: state.athlete.placement.selectedRoute,
+        generationRuleVersion: 'route-session-v3' as const,
+        placementCreatedAt: state.athlete.placement.createdAt,
+        movementPlacements: structuredClone(state.athlete.placement.movementPlacements)
+      }))
+    }))
+    render(<PlanScreen />)
+    expect(screen.getByRole('status')).toHaveTextContent('Safer return-to-training repetitions are ready to review')
+    expect(useAppStore.getState().mesocycles[0].generationRuleVersion).toBe('route-session-v3')
+    fireEvent.click(screen.getByRole('button', { name: 'Review repetition update' }))
+    expect(screen.getByRole('dialog', { name: 'Preview training-block version 2' })).toBeVisible()
+  })
+
   it('commits one secondary movement and incline setup across future training rounds', () => {
     render(<PlanScreen />)
     fireEvent.click(screen.getByRole('button', { name: 'Review and edit blueprint' }))
