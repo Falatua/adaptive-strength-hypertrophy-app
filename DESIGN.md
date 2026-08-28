@@ -133,6 +133,10 @@ Each blueprint day uses a full-width disclosure control with a written day numbe
 
 The editor keeps the same weekly structure instead of switching to an unrelated form. On wide screens, structural controls and the editable blueprint sit side by side. At tablet and phone widths, the blueprint appears first so the athlete can understand the proposed block before changing it. Native selects and number inputs retain visible labels, the dialog always opens at its top, and no horizontal overflow is allowed at 320 pixels or wider.
 
+Every visible blueprint movement has a written `Change for block` action. The revision preview compares the current block with the proposed version and presents every changed recurring slot as `Before → After`. The confirmation states that the replacement becomes the movement ForgePath schedules and progresses for future planned workouts in this block, while completed workouts and the former movement's history remain unchanged. The Apply action stays disabled until the athlete acknowledges that scope.
+
+Inside an active workout, `Change` opens a separate workout-only replacement flow. A blue scope panel says that the original movement remains in the training block and future training rounds. Selecting a candidate does not mutate the workout immediately; it opens a final comparison and `Change this workout only` action. Main-lift protection remains an additional confirmation, not a substitute for the scope explanation.
+
 Movement identity, role, setup angle, and the weekly route are labeled as stable until athlete approval. Load, repetitions, recoverable dose, scheduling, and recovery recommendations are labeled separately as adaptive. Planned block totals always say they are estimates. A completed-block review may label movements Keep suggested, Review suggested, Change suggested, or Keep or change, with a written evidence reason and no automatic replacement.
 
 # Motion and Generated Visual Assets

@@ -5,12 +5,20 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-27
 status: working-private-alpha
-app_version: 0.76.0
+app_version: 0.77.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.77.0 Movement Replacement Scope Delta
+
+- Separates active-workout replacement from recurring training-block revision. The workout modal now states `Scope: this workout only`, stages the candidate, compares original and replacement, and requires `Change this workout only` before mutation.
+- Adds a direct `Change for block` action to every visible blueprint movement. The version preview lists every recurring movement change as Before and After, identifies the new progression owner, preserves completed history, and disables Apply until the athlete acknowledges future-block scope.
+- Replaces remaining athlete-facing mesocycle and microcycle wording in the touched Plan, Library, restore, and notice surfaces with training block and training round.
+- Preserves backup schema 30, local persistence 31, the 251-movement catalog, completed sessions, exact histories, plan history, and the Supabase snapshot contract.
+- Passes 535 deterministic tests, lint, production compilation, all 153 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys, and the GitHub Pages artifact gate. Deployment and live-source verification remain release gates.
 
 ## Private Alpha 0.76.0 Exact-Movement Completion Feedback Delta
 

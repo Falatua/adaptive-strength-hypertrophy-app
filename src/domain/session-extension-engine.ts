@@ -38,7 +38,7 @@ export function sessionExtensionGate(input: {
   return {
     allowed: true,
     reason: 'Extra work is available.',
-    caution: 'Extra work is unrestricted and recorded as athlete-added dose. It can inform the next microcycle or mesocycle review, but each added set also raises fatigue and does not guarantee an automatic progression.'
+    caution: 'Extra work is unrestricted and recorded as athlete-added dose. It can inform the next training-round or training-block review, but each added set also raises fatigue and does not guarantee an automatic progression.'
   }
 }
 

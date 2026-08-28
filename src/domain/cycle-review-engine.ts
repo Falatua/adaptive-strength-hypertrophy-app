@@ -92,7 +92,7 @@ export function buildCycleReview(plan: MesocyclePlan, sessions: TrainingSession[
     recommendationReasons.push('Protected exposures remain unresolved and the target date has not forced an extension decision.')
   } else if (microcycleNumber >= plan.targetMicrocycles) {
     recommendation = 'complete'
-    recommendationReasons.push('The target number of productive exposure rounds is complete and the mesocycle is ready for an outcome decision.')
+    recommendationReasons.push('The target number of productive training rounds is complete and the training block is ready for an outcome decision.')
   } else if (evidence.averageSessionRpe !== null && evidence.maximumPain !== null && (evidence.averageTechnique ?? 0) >= 3.5 && (evidence.qualityCoverage ?? 0) >= 0.7 && evidence.averageSessionRpe <= 7.5 && evidence.maximumPain <= 2) {
     recommendation = 'continue-progress'
     recommendationReasons.push('The exposure round is complete with recoverable effort, confirmed repeatable technique, and no elevated pain signal.')

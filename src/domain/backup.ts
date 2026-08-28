@@ -33,7 +33,7 @@ import { movementNoteError } from './movement-note-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
 export const BACKUP_SCHEMA_VERSION = 30
-export const BACKUP_APP_VERSION = '0.76.0'
+export const BACKUP_APP_VERSION = '0.77.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -228,7 +228,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   if (!isRecord(candidate.settings)) errors.push('Settings are missing.')
   if (typeof candidate.onboardingComplete !== 'boolean') errors.push('Onboarding state is invalid.')
   if (!(candidate.activeSessionId === null || typeof candidate.activeSessionId === 'string')) errors.push('Active session ID is invalid.')
-  if (!(candidate.activeMesocycleId === null || typeof candidate.activeMesocycleId === 'string')) errors.push('Active mesocycle ID is invalid.')
+  if (!(candidate.activeMesocycleId === null || typeof candidate.activeMesocycleId === 'string')) errors.push('Active training-block ID is invalid.')
   if (errors.length) throw new Error(errors.join(' '))
 
   const athlete = candidate.athlete as Record<string, unknown>
@@ -322,7 +322,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
     if (isRecord(noteSession) && Array.isArray(noteSession.exercises) && !noteSession.exercises.some((planned) => isRecord(planned) && planned.id === note.plannedExerciseId)) errors.push('A movement note references an unknown planned exercise slot.')
     if (typeof note.exerciseId !== 'string' || !exerciseIds.has(note.exerciseId)) errors.push('A movement note references an unknown exercise.')
     if (note.originalExerciseId !== undefined && (typeof note.originalExerciseId !== 'string' || !exerciseIds.has(note.originalExerciseId))) errors.push('A movement note references an unknown original exercise.')
-    if (note.mesocycleId !== null && (typeof note.mesocycleId !== 'string' || !mesocycleIds.has(note.mesocycleId))) errors.push('A movement note references an unknown mesocycle.')
+    if (note.mesocycleId !== null && (typeof note.mesocycleId !== 'string' || !mesocycleIds.has(note.mesocycleId))) errors.push('A movement note references an unknown training block.')
     if (typeof note.sessionId === 'string' && typeof note.plannedExerciseId === 'string' && typeof note.exerciseId === 'string') {
       const key = `${note.sessionId}:${note.plannedExerciseId}:${note.exerciseId}`
       if (movementNoteKeys.has(key)) errors.push('Movement notes contain more than one note for the same workout movement.')
@@ -468,8 +468,8 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
         const routeMatches = movementRouteGeneration
           ? isRecord(plan) && plan.entryRoute === session.generation.planRoute
           : isRecord(plan) && plan.entryRoute === session.generation.route
-        if (!routeMatches || !isRecord(plan) || plan.generationRuleVersion !== session.generation.ruleVersion || plan.placementCreatedAt !== session.generation.placementCreatedAt) errors.push('A route-generated session does not match its mesocycle placement provenance.')
-        if (session.generation.ruleVersion === 'route-session-v2' && (session.microcycleNumber ?? 1) === 1 && (!isRecord(plan) || stableStringify(plan.generationEquipment) !== stableStringify(session.generation.equipment))) errors.push('An equipment-aware starting session does not match its mesocycle equipment snapshot.')
+        if (!routeMatches || !isRecord(plan) || plan.generationRuleVersion !== session.generation.ruleVersion || plan.placementCreatedAt !== session.generation.placementCreatedAt) errors.push('A route-generated session does not match its training-block placement provenance.')
+        if (session.generation.ruleVersion === 'route-session-v2' && (session.microcycleNumber ?? 1) === 1 && (!isRecord(plan) || stableStringify(plan.generationEquipment) !== stableStringify(session.generation.equipment))) errors.push('An equipment-aware starting session does not match its training-block equipment snapshot.')
         if (movementRouteGeneration) {
           const plannedPrimary = Array.isArray(session.exercises) ? session.exercises.find((planned) => isRecord(planned) && planned.role === 'primary') : null
           const movementEvidence = session.generation.movementPlacement
@@ -480,9 +480,9 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
           const governedMergeMatches = isRecord(placementExercise) && isRecord(plannedPrimary) && placementExercise.retired === true && placementExercise.mergedIntoId === plannedPrimary.exerciseId
           const primaryMatchesPlacement = isRecord(plannedPrimary) && isRecord(movementEvidence) && (plannedPrimary.exerciseId === movementEvidence.exerciseId || plannedPrimary.substitutedFrom === movementEvidence.exerciseId || governedMergeMatches)
           if (!primaryMatchesPlacement) errors.push('A movement-placed session does not match its protected primary identity or governed substitution.')
-          if (!isRecord(planMovement) || stableStringify(planMovement) !== stableStringify(movementEvidence)) errors.push('A movement-placed session does not match its mesocycle movement snapshot.')
+          if (!isRecord(planMovement) || stableStringify(planMovement) !== stableStringify(movementEvidence)) errors.push('A movement-placed session does not match its training-block movement snapshot.')
           validateHistoryReviewSources(movementEvidence, 'Movement-placed session')
-          if ((session.microcycleNumber ?? 1) === 1 && (!isRecord(plan) || stableStringify(plan.generationEquipment) !== stableStringify(session.generation.equipment))) errors.push('A movement-placed starting session does not match its mesocycle equipment snapshot.')
+          if ((session.microcycleNumber ?? 1) === 1 && (!isRecord(plan) || stableStringify(plan.generationEquipment) !== stableStringify(session.generation.equipment))) errors.push('A movement-placed starting session does not match its training-block equipment snapshot.')
         }
       }
     }
@@ -626,49 +626,49 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
 
   mesocycles.forEach((plan) => {
     if (!isRecord(plan) || typeof plan.title !== 'string' || !isFiniteNonNegative(plan.version) || !Array.isArray(plan.sessionIds) || !Array.isArray(plan.strengthAnchors)) {
-      errors.push('A mesocycle plan is invalid.')
+      errors.push('A training-block plan is invalid.')
       return
     }
-    if (!isValidDate(plan.createdAt) || !isValidDate(plan.effectiveAt)) errors.push('A mesocycle plan has an invalid date.')
+    if (!isValidDate(plan.createdAt) || !isValidDate(plan.effectiveAt)) errors.push('A training-block plan has an invalid date.')
     const hasRouteGeneration = plan.entryRoute !== undefined || plan.generationRuleVersion !== undefined || plan.placementCreatedAt !== undefined || plan.generationEquipment !== undefined || plan.movementPlacements !== undefined
-    if (hasRouteGeneration && (!['introductory-skill', 'reacclimation', 'bridge-calibration', 'base-building', 'hypertrophy', 'powerbuilding', 'strength', 'power', 'event-specific', 'pain-aware-modified'].includes(String(plan.entryRoute)) || !['route-session-v1', 'route-session-v2', 'route-session-v3', 'route-session-v4'].includes(String(plan.generationRuleVersion)) || !isValidDate(plan.placementCreatedAt))) errors.push('A mesocycle has incomplete route-generation provenance.')
+    if (hasRouteGeneration && (!['introductory-skill', 'reacclimation', 'bridge-calibration', 'base-building', 'hypertrophy', 'powerbuilding', 'strength', 'power', 'event-specific', 'pain-aware-modified'].includes(String(plan.entryRoute)) || !['route-session-v1', 'route-session-v2', 'route-session-v3', 'route-session-v4'].includes(String(plan.generationRuleVersion)) || !isValidDate(plan.placementCreatedAt))) errors.push('A training block has incomplete route-generation provenance.')
     if (plan.generationRuleVersion === 'route-session-v2' || plan.generationRuleVersion === 'route-session-v3' || plan.generationRuleVersion === 'route-session-v4') {
       const equipmentError = equipmentGenerationEvidenceError(plan.generationEquipment)
-      if (equipmentError) errors.push(`A mesocycle equipment snapshot is invalid: ${equipmentError}`)
+      if (equipmentError) errors.push(`A training-block equipment snapshot is invalid: ${equipmentError}`)
     }
     if (plan.generationRuleVersion === 'route-session-v3' || plan.generationRuleVersion === 'route-session-v4') {
-      if (!Array.isArray(plan.movementPlacements) || plan.movementPlacements.length !== plan.strengthAnchors.length) errors.push('A movement-placed mesocycle must store one placement for every protected anchor.')
+      if (!Array.isArray(plan.movementPlacements) || plan.movementPlacements.length !== plan.strengthAnchors.length) errors.push('A movement-placed training block must store one placement for every protected anchor.')
       else {
-        if (new Set(plan.movementPlacements.flatMap((movement) => isRecord(movement) && typeof movement.exerciseId === 'string' ? [movement.exerciseId] : [])).size !== plan.movementPlacements.length) errors.push('A movement-placed mesocycle has duplicate movement identities.')
+        if (new Set(plan.movementPlacements.flatMap((movement) => isRecord(movement) && typeof movement.exerciseId === 'string' ? [movement.exerciseId] : [])).size !== plan.movementPlacements.length) errors.push('A movement-placed training block has duplicate movement identities.')
         plan.movementPlacements.forEach((movement) => {
           const movementError = movementPlacementEvidenceError(movement)
-          if (movementError) errors.push(`A mesocycle movement placement is invalid: ${movementError}`)
-          if (isRecord(movement) && !(plan.strengthAnchors as unknown[]).includes(movement.exerciseId)) errors.push('A mesocycle movement placement is not a protected anchor.')
+          if (movementError) errors.push(`A training-block movement placement is invalid: ${movementError}`)
+          if (isRecord(movement) && !(plan.strengthAnchors as unknown[]).includes(movement.exerciseId)) errors.push('A training-block movement placement is not a protected anchor.')
           validateHistoryReviewSources(movement, 'Mesocycle movement placement')
         })
       }
-    } else if (plan.movementPlacements !== undefined) errors.push('A legacy mesocycle cannot invent per-movement placement evidence.')
+    } else if (plan.movementPlacements !== undefined) errors.push('A legacy training block cannot invent per-movement placement evidence.')
     plan.strengthAnchors.forEach((exerciseId) => {
-      if (typeof exerciseId !== 'string' || !exerciseIds.has(exerciseId)) errors.push('A mesocycle references an unknown strength anchor.')
+      if (typeof exerciseId !== 'string' || !exerciseIds.has(exerciseId)) errors.push('A training block references an unknown strength anchor.')
     })
     plan.sessionIds.forEach((sessionId) => {
-      if (typeof sessionId !== 'string' || (plan.status === 'active' && !sessionIds.has(sessionId))) errors.push('An active mesocycle references an unknown session.')
+      if (typeof sessionId !== 'string' || (plan.status === 'active' && !sessionIds.has(sessionId))) errors.push('An active training block references an unknown session.')
     })
     if (plan.movementOverrides !== undefined) {
-      if (!Array.isArray(plan.movementOverrides)) errors.push('A mesocycle movement blueprint is invalid.')
+      if (!Array.isArray(plan.movementOverrides)) errors.push('A training-block movement blueprint is invalid.')
       else {
         const overrideKeys = new Set<string>()
         const plannedSlots = Math.max((plan.strengthAnchors as unknown[]).length, Number(plan.weeklyOpportunities) || 0)
         plan.movementOverrides.forEach((override) => {
           if (!isRecord(override) || !Number.isInteger(override.sessionIndex) || Number(override.sessionIndex) < 0 || Number(override.sessionIndex) >= plannedSlots || !Number.isInteger(override.slotIndex) || Number(override.slotIndex) < 0 || typeof override.exerciseId !== 'string' || !exerciseIds.has(override.exerciseId) || override.source !== 'athlete') {
-            errors.push('A mesocycle movement blueprint choice is invalid.')
+            errors.push('A training-block movement blueprint choice is invalid.')
             return
           }
           const key = `${override.sessionIndex}:${override.slotIndex}`
-          if (overrideKeys.has(key)) errors.push('A mesocycle movement blueprint repeats a session slot.')
+          if (overrideKeys.has(key)) errors.push('A training-block movement blueprint repeats a session slot.')
           overrideKeys.add(key)
-          if (override.slotIndex === 0 && override.exerciseId !== (plan.strengthAnchors as unknown[])[Number(override.sessionIndex) % Math.max(1, (plan.strengthAnchors as unknown[]).length)]) errors.push('A mesocycle movement blueprint cannot replace a protected anchor outside the anchor controls.')
-          if (override.benchAngleDeg !== undefined && override.benchAngleDeg !== null && (!Number.isFinite(override.benchAngleDeg) || Number(override.benchAngleDeg) < 0 || Number(override.benchAngleDeg) > 90)) errors.push('A mesocycle movement blueprint has an invalid bench angle.')
+          if (override.slotIndex === 0 && override.exerciseId !== (plan.strengthAnchors as unknown[])[Number(override.sessionIndex) % Math.max(1, (plan.strengthAnchors as unknown[]).length)]) errors.push('A training-block movement blueprint cannot replace a protected anchor outside the anchor controls.')
+          if (override.benchAngleDeg !== undefined && override.benchAngleDeg !== null && (!Number.isFinite(override.benchAngleDeg) || Number(override.benchAngleDeg) < 0 || Number(override.benchAngleDeg) > 90)) errors.push('A training-block movement blueprint has an invalid bench angle.')
         })
       }
     }
@@ -677,12 +677,12 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   const activeSessionId = candidate.activeSessionId
   if (typeof activeSessionId === 'string' && !sessionIds.has(activeSessionId)) errors.push('The active workout references a session that is not present.')
   const activeMesocycleId = candidate.activeMesocycleId
-  if (typeof activeMesocycleId === 'string' && !mesocycleIds.has(activeMesocycleId)) errors.push('The active mesocycle is not present.')
+  if (typeof activeMesocycleId === 'string' && !mesocycleIds.has(activeMesocycleId)) errors.push('The active training block is not present.')
   if (typeof activeMesocycleId === 'string') {
     const activePlan = mesocycles.find((plan) => isRecord(plan) && plan.id === activeMesocycleId)
-    if (isRecord(activePlan) && activePlan.status !== 'active') errors.push('The active mesocycle pointer does not reference an active plan.')
+    if (isRecord(activePlan) && activePlan.status !== 'active') errors.push('The active training-block pointer does not reference an active plan.')
   }
-  if (mesocycles.filter((plan) => isRecord(plan) && plan.status === 'active').length > 1) errors.push('More than one mesocycle is marked active.')
+  if (mesocycles.filter((plan) => isRecord(plan) && plan.status === 'active').length > 1) errors.push('More than one training block is marked active.')
   if (errors.length) throw new Error([...new Set(errors)].join(' '))
 }
 
@@ -734,7 +734,7 @@ function migrateV2(candidate: Record<string, unknown>): { data: RestorableAppSta
   return {
     data,
     exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
-    warning: 'Version 2 backup migrated safely. Training history is intact; create a mesocycle to begin versioned planning.'
+    warning: 'Version 2 backup migrated safely. Training history is intact; create a training block to begin versioned planning.'
   }
 }
 

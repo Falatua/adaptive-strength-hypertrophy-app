@@ -52,6 +52,7 @@ describe('training-block blueprint', () => {
     expect(blueprint).toHaveTextContent('Accessory')
     expect(blueprint).toHaveTextContent('Tertiary')
     expect(blueprint).toHaveTextContent('Deload is proposed from evidence')
+    expect(within(blueprint).getAllByRole('button', { name: /for the current training block/i }).length).toBeGreaterThan(0)
     const dayToggles = within(blueprint).getAllByRole('button', { name: /day \d+:/i })
     expect(dayToggles).toHaveLength(sessions.filter((session) => (session.microcycleNumber ?? 1) === 1).length)
     expect(dayToggles[0]).toHaveAttribute('aria-expanded', 'true')
@@ -88,7 +89,13 @@ describe('training-block blueprint', () => {
     fireEvent.change(within(dialog).getByLabelText('Secondary exercise for day 2'), { target: { value: 'incline-db-press' } })
     fireEvent.change(within(dialog).getByLabelText('Incline Dumbbell Press back-pad angle'), { target: { value: '45' } })
     fireEvent.change(within(dialog).getByLabelText('Why are you changing the plan?'), { target: { value: 'Use one repeatable incline setup for this block.' } })
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Apply version 2' }))
+    expect(dialog).toHaveTextContent('Scope: future workouts in this block')
+    expect(dialog).toHaveTextContent('Completed workouts do not change')
+    const applyButton = within(dialog).getByRole('button', { name: 'Apply version 2' })
+    expect(applyButton).toBeDisabled()
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: /Apply these changes to future planned workouts/i }))
+    expect(applyButton).toBeEnabled()
+    fireEvent.click(applyButton)
 
     const state = useAppStore.getState()
     const plan = state.mesocycles.find((candidate) => candidate.id === state.activeMesocycleId)!
@@ -107,6 +114,8 @@ describe('training-block blueprint', () => {
     const dialog = screen.getByRole('dialog', { name: 'Preview training-block version 2' })
     fireEvent.change(within(dialog).getByLabelText('Opportunities / week'), { target: { value: '7' } })
     fireEvent.change(within(dialog).getByLabelText('Why are you changing the plan?'), { target: { value: 'Use a seven-day route without showing every workout at once.' } })
+    const movementConfirmation = within(dialog).queryByRole('checkbox', { name: /Apply these changes to future planned workouts/i })
+    if (movementConfirmation) fireEvent.click(movementConfirmation)
     fireEvent.click(within(dialog).getByRole('button', { name: 'Apply version 2' }))
 
     const blueprint = screen.getByRole('region', { name: 'See the whole route before you train it.' })

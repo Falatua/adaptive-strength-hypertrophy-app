@@ -1295,7 +1295,7 @@ export const useAppStore = create<AppState>()(
             priorityRegions: [...draft.priorityRegions]
           },
           settings: { ...state.settings, availableMinutes: draft.defaultMinutes },
-          notice: `Mesocycle version ${nextVersion} is active. Completed work and prior plan versions were preserved.`
+          notice: `Training-block version ${nextVersion} is active. Completed work and prior plan versions were preserved.`
         })
         return { ok: true }
       },
@@ -1350,9 +1350,9 @@ export const useAppStore = create<AppState>()(
         set({
           sessions, mesocycles, activeMesocycleId, cycleReviews: [...state.cycleReviews, event],
           notice: decision === 'complete'
-            ? 'Mesocycle completed from exposure evidence. Prior versions and completed work remain intact.'
+            ? 'Training block completed from workout evidence. Prior versions and completed work remain intact.'
             : generated.length
-              ? `Exposure round ${summary.microcycleNumber + 1} is queued from the recorded review decision.`
+              ? `Training round ${summary.microcycleNumber + 1} is queued from the recorded review decision.`
               : decision === 'extend'
                 ? 'The unfinished training round was extended without adding catch-up work.'
                 : 'The current training round remains active at the same targets.'

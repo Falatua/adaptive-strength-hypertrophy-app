@@ -363,7 +363,7 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
               : exercise.id === tricepsPressId
                 ? 'Build triceps with this block’s selected flat-press exception.'
                 : 'Keep low-fatigue rowing present across most Home Gym sessions for upper-back development.'
-          : draft.priorityRegions.includes(exercise.primaryRegion) ? `Develop ${exercise.primaryRegion} for the active mesocycle.` : `Maintain ${exercise.primaryRegion} with a recoverable dose.`,
+          : draft.priorityRegions.includes(exercise.primaryRegion) ? `Develop ${exercise.primaryRegion} for the active training block.` : `Maintain ${exercise.primaryRegion} with a recoverable dose.`,
         sessionKey,
         context,
         draft.dominantAdaptation,

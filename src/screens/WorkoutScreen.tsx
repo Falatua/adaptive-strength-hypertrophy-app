@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Layers, Pause, Play, Plus, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, TrendingUp, Trophy } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Layers, MoveRight, Pause, Play, Plus, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, TrendingUp, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
@@ -40,6 +40,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const [swapReason, setSwapReason] = useState<SubstitutionReason>('none')
   const [swapBrowseMode, setSwapBrowseMode] = useState<'recommended' | 'library'>('recommended')
   const [swapSearch, setSwapSearch] = useState('')
+  const [swapSelectionId, setSwapSelectionId] = useState<string | null>(null)
   const [primaryOverrideConfirmed, setPrimaryOverrideConfirmed] = useState(false)
   const [swapError, setSwapError] = useState<string | null>(null)
   const [cancelledPlacementName, setCancelledPlacementName] = useState<string | null>(null)
@@ -174,6 +175,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     ...candidate.aliases, ...candidate.regions, ...candidate.equipment, ...candidate.roleTags
   ].some((value) => value.toLowerCase().includes(normalizedSwapSearch))) : rankedSwaps
   const visibleSwaps = swapBrowseMode === 'recommended' ? rankedSwaps.slice(0, 6) : librarySwaps
+  const selectedSwap = swapSelectionId ? rankedSwaps.find(({ candidate }) => candidate.id === swapSelectionId) : undefined
 
   const openSwap = (planned: PlannedExercise) => {
     setSwapTarget(planned)
@@ -181,17 +183,20 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     setSwapReason(exercise && !exerciseEquipmentFit(exercise, activeEquipmentProfile).available ? 'equipment' : 'none')
     setSwapBrowseMode('recommended')
     setSwapSearch('')
+    setSwapSelectionId(null)
     setPrimaryOverrideConfirmed(false)
     setSwapError(null)
   }
 
-  const chooseSwap = (exerciseId: string) => {
+  const confirmSwap = () => {
+    if (!swapSelectionId) return
     if (!swapTarget) return
     const originalName = exercises.find((exercise) => exercise.id === swapTarget.exerciseId)?.name ?? 'the original movement'
-    const result = swapExercise(session.id, swapTarget.id, exerciseId, swapReason, primaryOverrideConfirmed)
+    const result = swapExercise(session.id, swapTarget.id, swapSelectionId, swapReason, primaryOverrideConfirmed)
     if (!result.ok) return setSwapError(result.error ?? 'That movement could not be selected.')
     if (result.placementVerificationCancelled) setCancelledPlacementName(originalName)
     setSwapTarget(null)
+    setSwapSelectionId(null)
   }
 
   const finishWithoutSurvey = (mode: EffectiveSurveyMode = 'off') => {
@@ -415,7 +420,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                 <details className="movement-note-editor" aria-label={`${exercise.name} movement notebook`}>
                   <summary className="movement-note-editor__heading"><BookOpen size={18} /><span><strong>Movement note</strong><small>{currentMovementNote?.body ? 'Saved note for this workout' : priorMovementNote ? 'Prior note available' : 'Optional setup or joint context'}</small></span><ChevronDown size={17} /></summary>
                   <div className="movement-note-editor__body">
-                    {priorMovementNote && <div className="movement-note-recall"><span><b>Last note</b><small>{new Date(priorMovementNote.sessionDate).toLocaleDateString()}{priorMovementNote.microcycleNumber ? ` · Week ${priorMovementNote.microcycleNumber}` : ''} · {priorMovementNote.sessionTitle}</small></span><p>{priorMovementNote.body}</p></div>}
+                    {priorMovementNote && <div className="movement-note-recall"><span><b>Last note</b><small>{new Date(priorMovementNote.sessionDate).toLocaleDateString()}{priorMovementNote.microcycleNumber ? ` · Training round ${priorMovementNote.microcycleNumber}` : ''} · {priorMovementNote.sessionTitle}</small></span><p>{priorMovementNote.body}</p></div>}
                     <label>
                       <span className="sr-only">{exercise.name} workout note</span>
                       <textarea aria-label={`${exercise.name} workout note`} maxLength={MOVEMENT_NOTE_MAX_LENGTH} value={currentMovementNote?.body ?? ''} onChange={(event) => updateMovementNote(session.id, planned.id, event.target.value)} placeholder="Angle, tempo, setup, cue, joint feel, or what changed today..." />
@@ -585,7 +590,11 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         </div>
       </Modal>
 
-      <Modal open={Boolean(swapTarget)} onClose={() => { setSwapTarget(null); setSwapSearch(''); setSwapBrowseMode('recommended') }} title="Choose an educated replacement" description="Start with the strongest matches or search every compatible movement available at this location. The replacement keeps its own history and load progression." wide>
+      <Modal open={Boolean(swapTarget)} onClose={() => { setSwapTarget(null); setSwapSearch(''); setSwapBrowseMode('recommended'); setSwapSelectionId(null) }} title="Change this workout's movement" description="Choose a compatible replacement, review exactly what changes, then confirm." wide>
+        <section className="swap-scope" aria-labelledby="swap-scope-title">
+          <RefreshCcw size={19} />
+          <div><p className="eyebrow">Scope: this workout only</p><strong id="swap-scope-title">{swapOriginal?.name ?? 'This movement'} stays in your training block.</strong><small>A replacement changes only this workout. ForgePath will keep scheduling and progressing {swapOriginal?.name ?? 'the original movement'} in future training rounds. To change the recurring movement, use Plan and edit the training-block blueprint.</small></div>
+        </section>
         <div className="swap-controls">
           <label><span className="field-label">Why are you changing this movement? <small>Optional</small></span><select aria-label="Substitution reason" value={swapReason} onChange={(event) => { setSwapReason(event.target.value as SubstitutionReason); setSwapError(null) }}>
             <option value="none">No reason</option><option value="pain">Pain or joint irritation</option><option value="equipment">Equipment unavailable</option><option value="time">Short on time</option><option value="fatigue">Fatigue is high</option><option value="target-feel">Not feeling the target</option><option value="variety">Want variety</option><option value="preference">Prefer something else</option><option value="harder">Need a harder option</option><option value="easier">Need an easier option</option><option value="other">Other</option>
@@ -603,7 +612,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         </div>
         <div className="swap-list">
           {visibleSwaps.map(({ candidate, snapshot, prescription, prescriptionMethod, prescriptionNote }) => (
-            <button key={candidate.id} className="swap-option" onClick={() => chooseSwap(candidate.id)}>
+            <button type="button" key={candidate.id} className={`swap-option ${swapSelectionId === candidate.id ? 'selected' : ''}`} aria-pressed={swapSelectionId === candidate.id} onClick={() => { setSwapSelectionId(candidate.id); setSwapError(null) }}>
               <span className="swap-rank">{snapshot.rank}</span>
               <div><span className="eyebrow">{snapshot.tier.replace('-', ' ')}</span><strong>{candidate.name}</strong><small><b>Why:</b> {snapshot.reasons.join(' · ') || 'safe active alternative'}</small><small><b>Preserves:</b> {snapshot.preserves}</small><small><b>Changes:</b> {snapshot.changes}</small><small><b>History:</b> {snapshot.lastExposureAt ? `${snapshot.priorSetCount} exact sets · last ${new Date(snapshot.lastExposureAt).toLocaleDateString()}` : 'No exact exposure yet'}</small><small className="swap-prescription"><b>{prescriptionMethod === 'exact-history' ? 'History-based' : 'Calibration'}:</b> {prescription.length} set{prescription.length === 1 ? '' : 's'} · {prescription[0]?.targetLoad || 'choose load'} × {prescription[0]?.targetReps ?? 0} · {prescription[0]?.targetRir ?? 0} RIR</small><small>{prescriptionNote}</small></div>
               <span className="swap-score">{snapshot.score} pts<ChevronDown size={15} /></span>
@@ -611,7 +620,12 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
           ))}
           {visibleSwaps.length === 0 && <div className="compact-empty"><AlertTriangle size={24} /><strong>{normalizedSwapSearch ? 'No compatible movement matches that search' : `No available replacement at ${activeEquipmentProfile.name}`}</strong><p>{normalizedSwapSearch ? 'Try a common name, alias, body part, movement type, or equipment name. ForgePath will not silently relax the active equipment or joint constraints.' : 'Edit the location profile if equipment is missing from it, or skip this non-primary movement. ForgePath will not relax equipment constraints silently.'}</p></div>}
         </div>
-        <p className="modal-note">Candidates satisfy every equipment item in {activeEquipmentProfile.name}. The selected movement receives a prescription from its own exact history or a conservative calibration, using the profile's executable load increment. The original exact-movement progression clock remains frozen.</p>
+        {selectedSwap && <section className="swap-confirmation" aria-labelledby="swap-confirmation-title">
+          <div className="swap-confirmation__change"><span><small>This workout</small><strong>{swapOriginal?.name ?? 'Original movement'}</strong></span><MoveRight size={18} /><span><small>Replacement</small><strong id="swap-confirmation-title">{selectedSwap.candidate.name}</strong></span></div>
+          <p><strong>{selectedSwap.candidate.name}</strong> gets its own prescription and exact movement history for this workout. <strong>{swapOriginal?.name ?? 'The original movement'}</strong> remains the recurring choice and keeps its progression path for future workouts in this training block.</p>
+          <div className="swap-confirmation__actions"><button type="button" className="button button--ghost" onClick={() => setSwapSelectionId(null)}>Keep looking</button><button type="button" className="button button--primary" disabled={swapTarget?.role === 'primary' && !primaryOverrideConfirmed} onClick={confirmSwap}>Change this workout only</button></div>
+        </section>}
+        <p className="modal-note">Candidates satisfy every equipment item in {activeEquipmentProfile.name}. The replacement receives a prescription from its own exact history or a conservative calibration, using the profile's executable load increment. The original movement's progression clock remains frozen for this workout only.</p>
       </Modal>
 
       <Modal open={Boolean(decisionInfo)} onClose={() => setDecisionInfo(null)} title={decisionInfo ? `${decisionInfo.name} target for this lift` : 'Progression decision'} description="The recommendation follows fixed rules and uses this exact movement's completed history.">

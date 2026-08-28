@@ -209,10 +209,10 @@ describe('versioned backup and restore', () => {
     expect(() => parseBackup(JSON.stringify(createBackup(invalid)))).toThrow(/unknown exercise/i)
   })
 
-  it('rejects ambiguous active mesocycle identity', () => {
+  it('rejects ambiguous active training-block identity', () => {
     const invalid = state()
     invalid.mesocycles.push({ ...structuredClone(invalid.mesocycles[0]), id: 'second-active-plan', version: 2 })
-    expect(() => parseBackup(JSON.stringify(createBackup(invalid)))).toThrow(/more than one mesocycle/i)
+    expect(() => parseBackup(JSON.stringify(createBackup(invalid)))).toThrow(/more than one training block/i)
   })
 
   it('rejects a correction ledger whose record projection no longer matches its source snapshots', () => {

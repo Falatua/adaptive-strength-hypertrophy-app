@@ -21,7 +21,7 @@ describe('sessionExtensionGate', () => {
     const gate = sessionExtensionGate({ sessionStatus: 'active', readiness: 'normal', painReported: false })
     expect(gate.allowed).toBe(true)
     expect(gate.caution).toContain('unrestricted')
-    expect(gate.caution).toContain('microcycle or mesocycle')
+    expect(gate.caution).toContain('training-round or training-block')
   })
 
   it('refuses extra work when the session is not open', () => {

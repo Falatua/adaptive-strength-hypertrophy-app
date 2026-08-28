@@ -5,12 +5,36 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-27
 status: canonical-build-reference-and-active-implementation
-version: 1.72.0
+version: 1.73.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.73.0 Change Entry
+
+- Advanced the working application to private alpha 0.77.0 without changing backup schema 30, local persistence 31, the 251-movement catalog, or the Supabase cloud-authoritative boundary.
+- Added R-481 through R-484 and Chapter 104 for explicit workout-only versus training-block replacement scope, staged confirmation, before-and-after recurring movement changes, plain terminology, and preservation acceptance.
+- Kept exact movement histories independent and preserved every completed workout and prior block version.
+
+## 104. Movement Replacement Scope and Progression Ownership
+
+### 104.1 Two Different Decisions
+
+An active-workout replacement changes one workout only. A training-block replacement changes one recurring blueprint slot for future planned workouts in the current block. Athlete-facing screens call these `this workout only` and `future workouts in this training block`. Internal schemas may retain mesocycle and microcycle names, but ordinary interface copy uses training block and training round.
+
+### 104.2 Workout-Only Flow
+
+The active workout opens with a visible scope panel stating that the original movement remains in the training block. Candidate selection stages a choice and shows the exact original and replacement names before mutation. The final action reads `Change this workout only`. The replacement receives a prescription and progression evidence from its own exact history or conservative calibration. The original movement stays scheduled in future rounds and its exact progression clock is frozen only for the substituted workout.
+
+### 104.3 Training-Block Flow
+
+Every expanded blueprint movement exposes `Change for block`. The ordinary versioned editor remains the only block-level mutation path. Before application, the preview compares the current block with the proposed version and lists every recurring movement change, including changes proposed by regeneration. Each row identifies Before and After and states that the new movement will be scheduled and progressed for the rest of the block while the former movement keeps its completed history. The athlete must acknowledge the scope before Apply becomes available.
+
+### 104.4 Preservation and Acceptance
+
+Workout-only substitution never edits movement overrides or the block blueprint. Block revisions replace only future planned work, create an append-only version, and preserve completed or partial workouts. Exact histories never merge because two exercises serve a similar role. Deterministic acceptance covers direct blueprint actions, disabled Apply before acknowledgement, future-round replay, and plan-version preservation. Browser acceptance covers staged workout choice, protected-primary confirmation, exact-history calibration, desktop Chromium, Android-style mobile Chromium, iPhone WebKit, console integrity, and horizontal containment.
 
 ### Version 1.72.0 Change Entry
 

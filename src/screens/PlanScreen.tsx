@@ -118,10 +118,12 @@ export function PlanScreen() {
   const [placementExitAssessedAt] = useState(() => new Date().toISOString())
   const [draft, setDraft] = useState<MesocycleDraft>(() => sourcePlan ? revisionDraft(sourcePlan) : blankDraft())
   const [editorError, setEditorError] = useState<string | null>(null)
+  const [blockMovementChangeConfirmed, setBlockMovementChangeConfirmed] = useState(false)
 
   const openEditor = () => {
     setDraft(sourcePlan ? revisionDraft(sourcePlan) : blankDraft())
     setEditorError(null)
+    setBlockMovementChangeConfirmed(false)
     setEditorOpen(true)
   }
 
@@ -133,6 +135,14 @@ export function PlanScreen() {
     planVersion: nextVersion,
     equipmentProfile: activeEquipmentProfile
   }), [draft, exercises, sessions, history, nextVersion, activeEquipmentProfile])
+  const sourcePreview = useMemo(() => sourcePlan ? buildMesocyclePreview(revisionDraft(sourcePlan), {
+    exercises,
+    currentSessions: sessions,
+    history,
+    planId: sourcePlan.id,
+    planVersion: sourcePlan.version,
+    equipmentProfile: activeEquipmentProfile
+  }) : null, [activeEquipmentProfile, exercises, history, sessions, sourcePlan])
 
   const planSessions = sourcePlan
     ? sessions.filter((session) => session.mesocycleId === sourcePlan.id || sourcePlan.sessionIds.includes(session.id))
@@ -152,6 +162,16 @@ export function PlanScreen() {
   const blueprintSessions = planSessions.filter((session) => (session.microcycleNumber ?? 1) === blueprintRound)
   const blueprintSetsPerRound = blueprintSessions.flatMap((session) => session.exercises).reduce((total, planned) => total + planned.sets.length, 0)
   const blueprintMinutesPerRound = blueprintSessions.reduce((total, session) => total + session.durationMinutes, 0)
+  const movementChanges = useMemo(() => sourcePreview ? preview.sessions.flatMap((previewSession, sessionIndex) => previewSession.exercises.flatMap((planned, slotIndex) => {
+    const current = sourcePreview.sessions[sessionIndex]?.exercises[slotIndex]
+    if (!current || current.exerciseId === planned.exerciseId) return []
+    return [{
+      sessionIndex,
+      slotIndex,
+      beforeName: exercises.find((exercise) => exercise.id === current.exerciseId)?.name ?? current.exerciseId,
+      afterName: exercises.find((exercise) => exercise.id === planned.exerciseId)?.name ?? planned.exerciseId
+    }]
+  })) : [], [exercises, preview.sessions, sourcePreview])
   const repetitionPolicyReviewAvailable = Boolean(sourcePlan?.generationRuleVersion
     && sourcePlan.generationRuleVersion !== ROUTE_SESSION_RULE_VERSION
     && sourcePlan.strengthAnchors.every((exerciseId) => sourcePlan.movementPlacements?.some((placement) => placement.exerciseId === exerciseId)))
@@ -198,10 +218,13 @@ export function PlanScreen() {
     setReviewOpen(false)
     setDraft(sourcePlan ? { ...revisionDraft(sourcePlan), revisionReason: '' } : blankDraft())
     setEditorError(null)
+    setBlockMovementChangeConfirmed(false)
     setEditorOpen(true)
   }
 
-  const updateAnchor = (slot: number, exerciseId: string) => setDraft((current) => {
+  const updateAnchor = (slot: number, exerciseId: string) => {
+    setBlockMovementChangeConfirmed(false)
+    setDraft((current) => {
     const anchors = [...current.strengthAnchors]
     anchors[slot] = exerciseId
     const strengthAnchors = [...new Set(anchors.filter(Boolean))]
@@ -218,9 +241,12 @@ export function PlanScreen() {
       movementOverrides,
       ...(current.entryRoute && !movementPlacementsComplete ? { generationRuleVersion: EQUIPMENT_ROUTE_SESSION_RULE_VERSION, movementPlacements: undefined } : {})
     }
-  })
+    })
+  }
 
-  const setMovementChoice = (sessionIndex: number, slotIndex: number, exerciseId: string) => setDraft((current) => {
+  const setMovementChoice = (sessionIndex: number, slotIndex: number, exerciseId: string) => {
+    setBlockMovementChangeConfirmed(false)
+    setDraft((current) => {
     const previous = current.movementOverrides?.find((choice) => choice.sessionIndex === sessionIndex && choice.slotIndex === slotIndex)
     const movementOverrides = (current.movementOverrides ?? []).filter((choice) => choice.sessionIndex !== sessionIndex || choice.slotIndex !== slotIndex)
     return {
@@ -233,7 +259,8 @@ export function PlanScreen() {
         ...(previous?.exerciseId === exerciseId && previous.benchAngleDeg !== undefined ? { benchAngleDeg: previous.benchAngleDeg } : {})
       }]
     }
-  })
+    })
+  }
 
   const setMovementAngle = (sessionIndex: number, slotIndex: number, exerciseId: string, raw: string) => setDraft((current) => {
     const movementOverrides = (current.movementOverrides ?? []).filter((choice) => choice.sessionIndex !== sessionIndex || choice.slotIndex !== slotIndex)
@@ -244,10 +271,13 @@ export function PlanScreen() {
     }
   })
 
-  const resetMovementChoice = (sessionIndex: number, slotIndex: number) => setDraft((current) => ({
-    ...current,
-    movementOverrides: current.movementOverrides?.filter((choice) => choice.sessionIndex !== sessionIndex || choice.slotIndex !== slotIndex)
-  }))
+  const resetMovementChoice = (sessionIndex: number, slotIndex: number) => {
+    setBlockMovementChangeConfirmed(false)
+    setDraft((current) => ({
+      ...current,
+      movementOverrides: current.movementOverrides?.filter((choice) => choice.sessionIndex !== sessionIndex || choice.slotIndex !== slotIndex)
+    }))
+  }
 
   const toggleRegion = (field: 'priorityRegions' | 'maintenanceRegions', region: BodyRegion) => setDraft((current) => {
     const selected = current[field]
@@ -284,7 +314,7 @@ export function PlanScreen() {
 
       <section className="cycle-hero">
         <div className="cycle-hero__copy">
-          <span className="status-chip status-chip--orange">{cycleReview && cycleReview.evidence.unresolvedSessions === 0 ? 'Ready for review' : cycleReview?.targetPassed ? 'Review window open' : 'Cycle in progress'}</span>
+          <span className="status-chip status-chip--orange">{cycleReview && cycleReview.evidence.unresolvedSessions === 0 ? 'Ready for review' : cycleReview?.targetPassed ? 'Review window open' : 'Training block in progress'}</span>
           <p className="eyebrow">{activePlan ? `${activePlan.entryRoute ? readable(activePlan.entryRoute) : readable(activePlan.dominantAdaptation)} · Plan v${activePlan.version}` : 'Legacy plan · Create first version'}</p>
           <h2>{activePlan?.title ?? 'Protect the next useful workout.'}</h2>
           <p>{activePlan?.objective ?? athlete.goal}</p>
@@ -364,6 +394,7 @@ export function PlanScreen() {
                     <span><strong>{exercise?.name ?? planned.exerciseId}</strong><small>{planned.purpose}</small></span>
                     <span className="blueprint-movement__dose"><strong>{prescriptionSummary(planned)}</strong>{exercise && supportsBenchAngle(exercise) && <small>{plannedAngleSummary(planned)}</small>}</span>
                     <span className={`status-chip status-chip--${athleteChosen ? 'lime' : 'default'}`}>{athleteChosen ? 'Your choice' : 'Suggested'}</span>
+                    <button type="button" className="text-button blueprint-movement__change" aria-label={`Change ${exercise?.name ?? planned.exerciseId} for the current training block`} onClick={openEditor}>Change for block</button>
                   </div>
                 })}
               </div>
@@ -557,11 +588,20 @@ export function PlanScreen() {
                 })}
               </div>
             </article>)}</div>
+            {movementChanges.length > 0 && <section className="block-change-confirmation" aria-labelledby="block-change-confirmation-title">
+              <div className="block-change-confirmation__header"><RefreshCcw size={18} /><div><p className="eyebrow">Scope: future workouts in this block</p><strong id="block-change-confirmation-title">Confirm the movement progression change</strong></div></div>
+              <div className="block-change-confirmation__list">{movementChanges.map((change) => <article key={`${change.sessionIndex}:${change.slotIndex}`}>
+                <small>Day {change.sessionIndex + 1}</small>
+                <div><strong>{change.beforeName}</strong><MoveRight size={16} /><strong>{change.afterName}</strong></div>
+                <p>{change.afterName} will now be scheduled and progressed in this recurring slot for the rest of the training block. {change.beforeName} keeps its completed history, but will no longer be scheduled in this slot. Completed workouts do not change.</p>
+              </article>)}</div>
+              <label><input type="checkbox" checked={blockMovementChangeConfirmed} onChange={(event) => setBlockMovementChangeConfirmed(event.target.checked)} /><span><strong>Apply these changes to future planned workouts</strong><small>I understand this creates a new training-block version and changes which movement ForgePath progresses in these recurring slots.</small></span></label>
+            </section>}
             <div className="preview-rationale"><strong>Why this queue</strong>{preview.explanations.map((explanation) => <p key={explanation}><Check size={14} />{explanation}</p>)}</div>
             <p className="modal-note">Block totals are estimates, not completed volume. ForgePath reviews recovery after each round and proposes a deload, extension, or next block only from completed work and feedback. You approve the decision.</p>
           </aside>
         </div>
-        <div className="modal__actions"><button className="button button--ghost" onClick={() => setEditorOpen(false)}>Cancel</button><button className="button button--primary" disabled={Boolean(activeSessionId) || !draft.revisionReason.trim()} onClick={saveRevision}>Apply version {nextVersion}</button></div>
+        <div className="modal__actions"><button className="button button--ghost" onClick={() => setEditorOpen(false)}>Cancel</button><button className="button button--primary" disabled={Boolean(activeSessionId) || !draft.revisionReason.trim() || (movementChanges.length > 0 && !blockMovementChangeConfirmed)} onClick={saveRevision}>Apply version {nextVersion}</button></div>
       </Modal>
 
       <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title="Training-block revision history" description="Each version keeps its original goal, targets, timing, and why it changed." wide>

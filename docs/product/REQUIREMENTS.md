@@ -3009,7 +3009,36 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Movement feedback may inform future suggestions but must never diagnose pain, change today's workout, silently rewrite a future plan, or independently earn more work. Backup schema 30 must validate exact provenance and migrate schema 29 without rewriting existing training. Deterministic and browser acceptance must cover safety, missingness, progression, persistence, desktop, Android-style mobile, iPhone WebKit, console integrity, and containment.
 - Detail: `PRODUCT.md`, `DESIGN.md`, `src/domain/backup.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 103
 
+### R-481 Explicit Movement-Replacement Scope
+- Status: implemented
+- Provenance: from-user
+- Requirement: Every movement replacement must state whether it changes only the active workout or the recurring slot for future planned workouts in the current training block. Athlete-facing screens must use `training block` and `training round`, not unexplained mesocycle or microcycle terminology.
+- Detail: `PRODUCT.md`, `DESIGN.md`, `src/screens/WorkoutScreen.tsx`, `src/screens/PlanScreen.tsx`, and Build Bible Chapter 104
+
+### R-482 Workout-Only Replacement Confirmation
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Selecting a replacement inside an active workout must stage the candidate before mutation, show the original and replacement names, preserve the original movement as the recurring training-block choice, and require an explicit `Change this workout only` action. The replacement keeps its own prescription and exact progression history.
+- Detail: `src/screens/WorkoutScreen.tsx`, `src/store/useAppStore.ts`, `tests/e2e/exercise-library-expansion.spec.ts`, and Build Bible Chapter 104
+
+### R-483 Training-Block Movement Progression Revision
+- Status: implemented
+- Provenance: from-user
+- Requirement: Plan must provide an easy per-movement `Change for block` route. Before applying a new version, ForgePath must list every recurring slot whose exact movement changes, identify the old and new movements, explain which movement will now be scheduled and progressed, preserve completed workouts and prior exact history, and require explicit acknowledgement.
+- Detail: `src/screens/PlanScreen.tsx`, `src/domain/mesocycle-engine.ts`, `src/store/useAppStore.ts`, and Build Bible Chapter 104
+
+### R-484 Replacement Acceptance and Preservation
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Deterministic and browser acceptance must prove that workout-only replacement does not edit the block contract, block-level changes create a new version for future planned work, proposed movement changes cannot be applied without acknowledgement, completed history remains intact, terminology is plain, and the flows remain contained on desktop Chromium, Android-style mobile Chromium, and iPhone WebKit.
+- Detail: `src/screens/PlanScreen.test.tsx`, `tests/e2e/exercise-library-expansion.spec.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 104
+
 ## Thread Coverage Audit
+
+### 2026-08-27 Movement Replacement Scope
+- Scope: JB asked for an easy way to replace a movement either for one workout or for the rest of a training block, with clear language about which exact movement ForgePath will progress afterward.
+- Result: Added R-481 through R-484 and Build Bible Chapter 104. Private alpha 0.77.0 separates `Change this workout only` from `Change for block`, stages workout candidates before mutation, lists before-and-after recurring block changes, requires block-scope acknowledgement, and removes remaining athlete-facing mesocycle and microcycle wording from the touched flows.
+- Status: Implemented and locally verified with 535 deterministic tests, all 153 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys, production and Pages builds, scope persistence, console integrity, and responsive containment. Workflow, deployment, and live-source checks remain release gates.
 
 ### 2026-08-27 Exact-Movement Completion Feedback
 - Scope: JB requested RP Hypertrophy-style intra-workout feedback after every completed movement, deep research on RP's post-exercise and post-workout loop, and progression changes based on discomfort, load, repetitions, volume, and response.
@@ -3405,6 +3434,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-27: Added R-481 through R-484 and Build Bible Chapter 104 for explicit workout-only versus training-block movement replacement scope, staged workout confirmation, before-and-after recurring progression changes, plain terminology, preservation rules, and cross-device acceptance. Private alpha 0.77.0 preserves backup schema 30, local persistence 31, completed work, prior plan versions, and the Supabase snapshot contract.
 - 2026-08-27: Added R-476 through R-480 and Build Bible Chapter 103 for optional exact-movement completion feedback, joint, technique, stimulus, load-fit, volume-fit, conditional recovery questions, source-set provenance, feedback-gated progression, athlete authority, and backup schema 30. Private alpha 0.76.0 advances local persistence to 31 while preserving completed training, approved plans, and the Supabase snapshot contract.
 - 2026-08-26: Added R-461 through R-463 and Build Bible Chapter 99 for independently collapsible Plan days, truthful closed-day summaries, collapsed secondary detail, and accessible desktop and phone acceptance. Private alpha 0.72.0 preserves backup schema 28, local persistence 30, Home Gym preference v3, and the Supabase snapshot contract.
 - 2026-08-27: Added R-472 through R-475 and Build Bible Chapter 102 for a progressively slower Forge level curve, bounded workout and record rewards, raw-tonnage and extra-set exclusion, three-exposure movement breadth, and transparent athlete-level-v2 recalculation. Private alpha 0.75.0 preserves completed training, programming, backup schema 29, local persistence 30, and the Supabase snapshot contract.
