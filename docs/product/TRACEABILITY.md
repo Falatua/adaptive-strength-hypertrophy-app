@@ -17,8 +17,8 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Coverage Summary
 
-- Total requirement headings: 475.
-- Sequential range: R-001 through R-475.
+- Total requirement headings: 480.
+- Sequential range: R-001 through R-480.
 - Missing IDs: none after the 2026-08-27 verification.
 - Duplicate IDs: none after the 2026-08-27 verification.
 - Primary implementation authority: [[Adaptive Strength and Hypertrophy App Build Bible]].
@@ -26,7 +26,7 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Current Implementation Evidence
 
-Private alpha 0.75.0 and Build Bible 1.71.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current local gate includes 520 deterministic tests and 150 desktop Chromium, mobile Chromium, and iPhone WebKit journeys covering athlete-level-v2 bounded workout rewards, a 200-point first level, 75-point rising costs, record-burst protection, raw-tonnage and extra-set exclusion, three-workout movement breadth, readiness-gated repetitions, Set 1 workout-entry autofill, Home Gym preference v3, direct history, editable plans, durable Auth, update awareness, year-scale replay, backup recovery, Supabase authority, Pages compilation, console integrity, and horizontal containment. Backup schema is 29 and local persistence remains 30. Dedicated-origin hosting, custom SMTP, complete offline startup, real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
+Private alpha 0.76.0 and Build Bible 1.72.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/RP_MOVEMENT_FEEDBACK_RESEARCH_2026-08-27.md`, `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current local gate includes 535 deterministic tests and 153 desktop Chromium, mobile Chromium, and iPhone WebKit journeys covering exact-movement completion feedback, feedback-gated progression, athlete-level-v2 bounded rewards, readiness-gated repetitions, Set 1 workout-entry autofill, Home Gym preference v3, direct history, editable plans, durable Auth, update awareness, year-scale replay, backup recovery, Supabase authority, Pages compilation, console integrity, and horizontal containment. Backup schema is 30 and local persistence is 31. Dedicated-origin hosting, custom SMTP, complete offline startup, real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
 
 ## Product and Training Traceability
 
@@ -119,6 +119,7 @@ Private alpha 0.75.0 and Build Bible 1.71.0 are the current boundary. Evidence i
 | R-464 to R-466 | Set 1 active-workout autofill, manual exceptions, separate completion, and no outcome claims | 10, 18, 20, 22, 24, 27, 100 | `PRODUCT.md`, `DESIGN.md`, `src/domain/set-entry-autofill.ts`, `src/store/useAppStore.ts`, `src/screens/WorkoutScreen.tsx` | 1A | deterministic field propagation and protection tests, backup validation, desktop Chromium, mobile Chromium, iPhone WebKit, persistence, separate log actions, console, and containment |
 | R-467 to R-471 | Returning and undertrained repetition floors, low-rep readiness gates, Leg Developer targets, versioned plan review, and v4 provenance | 1, 4.5, 10, 15, 18, 20, 22, 24, 27, 101 | `PRODUCT.md`, `DESIGN.md`, `src/domain/rep-prescription-policy.ts`, `src/domain/route-session-engine.ts`, `src/domain/placement-engine.ts`, `src/screens/PlanScreen.tsx` | 1A to 1B | route-profile, placement, mesocycle, substitution, backup migration, component, desktop Chromium, mobile Chromium, iPhone WebKit, console, and containment tests |
 | R-472 to R-475 | Progressively slower Forge level curve, bounded workout and record rewards, anti-grind inputs, transparent v2 recalculation, and acceptance | 18, 24, 27, 66, 102 | `PRODUCT.md`, `DESIGN.md`, `src/domain/athlete-level-engine.ts`, `src/screens/YouScreen.tsx` | 1A | curve, source-deduplication, partial-session, tonnage-invariance, set-count-invariance, breadth, form, desktop Chromium, mobile Chromium, iPhone WebKit, console, and containment tests |
+| R-476 to R-480 | Optional exact-movement completion feedback, question missingness, exact provenance, progression consequences, athlete authority, persistence, and acceptance | 10, 13, 18, 20, 22, 24, 27, 103 | `PRODUCT.md`, `DESIGN.md`, `docs/research/RP_MOVEMENT_FEEDBACK_RESEARCH_2026-08-27.md`, `src/domain/movement-feedback-engine.ts`, `src/domain/training-engine.ts`, `src/domain/volume-progression-engine.ts`, `src/screens/WorkoutScreen.tsx` | 1A to 1B | question-budget, safety-preview, exact-provenance, progression, monotonicity, backup migration, desktop Chromium, mobile Chromium, iPhone WebKit, console, and containment tests |
 
 ## Delivery Phase Key
 

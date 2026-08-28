@@ -2979,7 +2979,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Athlete level v2 must derive from unchanged completed training and record evidence, disclose its bounded sources and rising next-level cost, keep a record-heavy first workout at level one, and never alter training placement, programming, completed history, or record truth. The corrected derived display may be lower than the inflated v1 display.
 - Detail: `src/screens/YouScreen.tsx`, `tests/e2e/private-alpha-gamification.spec.ts`, `src/domain/backup.ts`, and Build Bible Chapter 102
 
+### R-476 Intra-Workout Movement Completion Check
+- Status: implemented
+- Provenance: from-user
+- Requirement: Logging the final set of every movement must reveal a brief optional feedback check inside that workout movement, without blocking the athlete from continuing.
+- Detail: `src/components/MovementFeedbackPanel.tsx`, `src/screens/WorkoutScreen.tsx`, and Build Bible Chapter 103
+
+### R-477 Movement Feedback Questions and Missingness
+- Status: implemented
+- Provenance: from-user and research-supported
+- Requirement: Movement feedback must capture joint response, technique, target stimulus, load and repetition fit, hard-set volume, and conditional prior exact-exposure recovery. Every question and the whole check remain optional, and missing answers stay unknown.
+- Detail: `src/domain/movement-feedback-engine.ts`, `src/domain/survey-engine.ts`, and `docs/research/RP_MOVEMENT_FEEDBACK_RESEARCH_2026-08-27.md`
+
+### R-478 Exact-Movement Feedback Provenance
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Every movement response must retain its exact session, planned movement, canonical exercise, completed planned-set IDs, and common angle when every completed set shares it. Feedback cannot cross exercise, variation, setup, or angle lanes.
+- Detail: `src/domain/types.ts`, `src/store/useAppStore.ts`, `src/domain/backup.ts`, and Build Bible Chapter 103
+
+### R-479 Feedback-Gated Progression Consequences
+- Status: implemented
+- Provenance: from-user, research-supported, and product-decision
+- Requirement: Pain that changed training must block overload; a too-heavy target or broken technique must hold load or repetition progression; `At my limit` must cap added sets; `Too much` may reduce one set; `Just right` must hold set dose; and `Could do more` may support more work only when performance and later recovery agree.
+- Detail: `src/domain/training-engine.ts`, `src/domain/volume-progression-engine.ts`, and Build Bible Chapter 103
+
+### R-480 Athlete Authority, Persistence, and Acceptance
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Movement feedback may inform future suggestions but must never diagnose pain, change today's workout, silently rewrite a future plan, or independently earn more work. Backup schema 30 must validate exact provenance and migrate schema 29 without rewriting existing training. Deterministic and browser acceptance must cover safety, missingness, progression, persistence, desktop, Android-style mobile, iPhone WebKit, console integrity, and containment.
+- Detail: `PRODUCT.md`, `DESIGN.md`, `src/domain/backup.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 103
+
 ## Thread Coverage Audit
+
+### 2026-08-27 Exact-Movement Completion Feedback
+- Scope: JB requested RP Hypertrophy-style intra-workout feedback after every completed movement, deep research on RP's post-exercise and post-workout loop, and progression changes based on discomfort, load, repetitions, volume, and response.
+- Result: Added R-476 through R-480 and Build Bible Chapter 103. Private alpha 0.76.0 adds optional exact-movement joint, technique, stimulus, load-fit, volume-fit, and conditional recovery feedback with source-set provenance and athlete-approved progression consequences.
+- Status: Implemented and locally verified with all 535 deterministic tests, all 153 desktop Chromium, mobile Chromium, and iPhone WebKit journeys, production build, mobile visual inspection, and Pages artifact gate passing. GitHub workflows, deployment, and live-source checks remain release gates.
 
 ### 2026-08-27 Progressively Slower Forge Levels
 - Scope: JB reported that completing one workout immediately raised the character to level six and requested a slower curve that requires progressively more experience at higher levels.
@@ -3370,6 +3405,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-27: Added R-476 through R-480 and Build Bible Chapter 103 for optional exact-movement completion feedback, joint, technique, stimulus, load-fit, volume-fit, conditional recovery questions, source-set provenance, feedback-gated progression, athlete authority, and backup schema 30. Private alpha 0.76.0 advances local persistence to 31 while preserving completed training, approved plans, and the Supabase snapshot contract.
 - 2026-08-26: Added R-461 through R-463 and Build Bible Chapter 99 for independently collapsible Plan days, truthful closed-day summaries, collapsed secondary detail, and accessible desktop and phone acceptance. Private alpha 0.72.0 preserves backup schema 28, local persistence 30, Home Gym preference v3, and the Supabase snapshot contract.
 - 2026-08-27: Added R-472 through R-475 and Build Bible Chapter 102 for a progressively slower Forge level curve, bounded workout and record rewards, raw-tonnage and extra-set exclusion, three-exposure movement breadth, and transparent athlete-level-v2 recalculation. Private alpha 0.75.0 preserves completed training, programming, backup schema 29, local persistence 30, and the Supabase snapshot contract.
 - 2026-08-27: Added R-467 through R-471 and Build Bible Chapter 101 for returning and undertrained repetition floors, demonstrated readiness before low-repetition work, fifteen-repetition Freak Athlete Leg Developer targets, athlete-approved existing-plan review, route-session-v4, and backup schema 29. Private alpha 0.74.0 preserves completed training, approved plans, local persistence 30, Home Gym preference v3, and the Supabase snapshot contract.

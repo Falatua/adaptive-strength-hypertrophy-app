@@ -32,8 +32,8 @@ import { missedOpportunityEventError } from './schedule-adaptation-engine'
 import { movementNoteError } from './movement-note-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 29
-export const BACKUP_APP_VERSION = '0.75.0'
+export const BACKUP_SCHEMA_VERSION = 30
+export const BACKUP_APP_VERSION = '0.76.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -501,7 +501,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   })
 
   surveys.forEach((survey) => {
-    if (!isRecord(survey) || typeof survey.sessionId !== 'string' || !sessionIds.has(survey.sessionId) || !['pre', 'post'].includes(String(survey.type)) || typeof survey.skipped !== 'boolean' || !Array.isArray(survey.answers) || !isValidDate(survey.completedAt)) errors.push('A survey record is invalid.')
+    if (!isRecord(survey) || typeof survey.sessionId !== 'string' || !sessionIds.has(survey.sessionId) || !['pre', 'movement', 'post'].includes(String(survey.type)) || typeof survey.skipped !== 'boolean' || !Array.isArray(survey.answers) || !isValidDate(survey.completedAt)) errors.push('A survey record is invalid.')
     if (isRecord(survey) && Array.isArray(survey.answers) && survey.answers.some((answer) => !isRecord(answer) || typeof answer.id !== 'string' || !['answered', 'skipped', 'not-sure', 'prefer-not', 'not-answered'].includes(String(answer.status)) || (answer.status === 'answered' ? !(typeof answer.value === 'number' || typeof answer.value === 'string') : answer.value !== null))) errors.push('A survey answer has invalid missing-data semantics.')
     if (isRecord(survey) && survey.mode !== undefined && !['full', 'quick', 'minimal', 'off'].includes(String(survey.mode))) errors.push('A survey record has an invalid effective mode.')
     if (isRecord(survey) && survey.answeredCount !== undefined && !isFiniteNonNegative(survey.answeredCount)) errors.push('A survey record has an invalid answered count.')
@@ -510,6 +510,17 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
     if (isRecord(survey) && Array.isArray(survey.answers) && typeof survey.skipped === 'boolean' && survey.answeredCount !== undefined && survey.unknownCount !== undefined && survey.confidence !== undefined) {
       const evidence = summarizeSurveyEvidence(survey.answers as SurveyRecord['answers'], survey.skipped)
       if (survey.answeredCount !== evidence.answeredCount || survey.unknownCount !== evidence.unknownCount || survey.confidence !== evidence.confidence) errors.push('A survey record does not reconcile with its answer evidence.')
+    }
+    if (isRecord(survey) && survey.type === 'movement') {
+      const sourceSession = sessions.find((session) => isRecord(session) && session.id === survey.sessionId)
+      const planned = isRecord(sourceSession) && Array.isArray(sourceSession.exercises)
+        ? sourceSession.exercises.find((candidate) => isRecord(candidate) && candidate.id === survey.plannedExerciseId)
+        : undefined
+      const plannedSets = isRecord(planned) && Array.isArray(planned.sets) ? planned.sets : []
+      const plannedSetIds = new Set(plannedSets.flatMap((workSet) => isRecord(workSet) && workSet.completed === true && typeof workSet.id === 'string' ? [workSet.id] : []))
+      if (survey.ruleVersion !== 'movement-feedback-v1' || !isRecord(planned) || survey.exerciseId !== planned.exerciseId || typeof survey.exerciseName !== 'string' || !Array.isArray(survey.sourceSetIds) || survey.sourceSetIds.length === 0 || new Set(survey.sourceSetIds).size !== survey.sourceSetIds.length || survey.sourceSetIds.some((id) => typeof id !== 'string' || !plannedSetIds.has(id))) errors.push('A movement feedback record has invalid exact-movement provenance.')
+      if (survey.benchAngleDeg !== undefined && survey.benchAngleDeg !== null && (!Number.isFinite(survey.benchAngleDeg) || Number(survey.benchAngleDeg) < 0 || Number(survey.benchAngleDeg) > 90)) errors.push('A movement feedback record has an invalid bench angle.')
+      if (survey.note !== undefined && (typeof survey.note !== 'string' || survey.note.length > 500)) errors.push('A movement feedback record has an invalid note.')
     }
   })
 
@@ -1067,6 +1078,18 @@ function migrateV28(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV29(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  validateState(candidate.data, true)
+  return {
+    data: candidate.data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 29 backup migrated safely. Existing workouts and feedback remain intact; exact-movement completion feedback begins with future training.'
+  }
+}
+
 function migrateV24(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
   if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
@@ -1205,6 +1228,10 @@ export function parseBackup(raw: string): BackupPreview {
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 28) {
     const migrated = migrateV28(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 29) {
+    const migrated = migrateV29(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {

@@ -125,6 +125,15 @@ describe('versioned backup and restore', () => {
     expect(parsed.backup.data.sessions).toEqual(state().sessions)
   })
 
+  it('migrates a version 29 backup without inventing movement feedback', () => {
+    const prior = createBackup(state(), '2026-08-10T12:00:00.000Z') as unknown as Record<string, unknown>
+    prior.schemaVersion = 29
+    const parsed = parseBackup(JSON.stringify(prior))
+    expect(parsed.backup.schemaVersion).toBe(BACKUP_SCHEMA_VERSION)
+    expect(parsed.backup.data.surveys).toEqual([])
+    expect(parsed.warnings[0]).toMatch(/exact-movement completion feedback begins/i)
+  })
+
   it('restores an integrity-valid cloud snapshot after jsonb reorders object keys', () => {
     const backup = reorderJsonObjectKeys(createBackup(state(), '2026-08-10T12:00:00.000Z'))
     const parsed = parseBackup(JSON.stringify(backup))
@@ -168,6 +177,24 @@ describe('versioned backup and restore', () => {
     expect(parsed.backup.data.movementNotes[0].body).toMatch(/four-second eccentric/i)
     current.movementNotes[0].exerciseId = 'missing-exercise'
     expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/movement note references an unknown exercise/i)
+  })
+
+  it('round-trips movement completion feedback and rejects forged set provenance', () => {
+    const current = state()
+    const session = current.sessions[0]
+    const planned = session.exercises[0]
+    const exercise = current.exercises.find((candidate) => candidate.id === planned.exerciseId)!
+    planned.sets.forEach((workSet) => { workSet.completed = true })
+    current.surveys = [{
+      id: 'movement-feedback-1', sessionId: session.id, type: 'movement', completedAt: '2026-08-10T12:00:00.000Z', skipped: false,
+      mode: 'quick', ruleVersion: 'movement-feedback-v1', plannedExerciseId: planned.id, exerciseId: exercise.id, exerciseName: exercise.name,
+      sourceSetIds: planned.sets.map((workSet) => workSet.id), benchAngleDeg: null, note: 'Repeat this setup.',
+      answers: [{ id: 'volumeFit', value: 2, status: 'answered' }]
+    }]
+    const parsed = parseBackup(JSON.stringify(createBackup(current)))
+    expect(parsed.backup.data.surveys[0]).toMatchObject({ type: 'movement', exerciseId: exercise.id, note: 'Repeat this setup.' })
+    current.surveys[0].sourceSetIds = ['forged-set']
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/exact-movement provenance/i)
   })
 
   it('rejects a backup changed after export', () => {

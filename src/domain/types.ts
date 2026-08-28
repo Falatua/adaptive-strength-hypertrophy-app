@@ -626,7 +626,7 @@ export interface SurveyAnswer {
 export interface SurveyRecord {
   id: string
   sessionId: string
-  type: 'pre' | 'post'
+  type: 'pre' | 'movement' | 'post'
   completedAt: string
   answers: SurveyAnswer[]
   skipped: boolean
@@ -634,6 +634,14 @@ export interface SurveyRecord {
   answeredCount?: number
   unknownCount?: number
   confidence?: EvidenceConfidence
+  /** Exact-movement provenance for the intra-workout feedback layer. */
+  ruleVersion?: 'movement-feedback-v1'
+  plannedExerciseId?: string
+  exerciseId?: string
+  exerciseName?: string
+  sourceSetIds?: string[]
+  benchAngleDeg?: number | null
+  note?: string
 }
 
 export type DeferredFeedbackStatus = 'pending' | 'completed' | 'dismissed' | 'expired'

@@ -44,6 +44,16 @@ Autofill is field-specific and protective. A value the athlete already changed o
 
 Copied values are draft data only. Autofill never completes a set, marks success or failure, creates a record, changes a target, or earns progression. Every set still requires its own explicit `Log set` action, and every copied field remains editable before or after logging.
 
+## Movement Completion Feedback
+
+When the athlete logs the final set of an exact movement, ForgePath opens a short inline check inside that movement card. It asks about joint response, technique consistency, target stimulus, load and repetition fit, and hard-set volume. Recovery from the last exact exposure appears only when that exact movement has prior history. The check is optional, may be skipped, and preserves every unanswered item as unknown.
+
+Movement feedback is attached to the exact planned movement, canonical exercise, completed source-set IDs, and one common recorded bench angle when the completed sets share it. A response about leg press never becomes squat evidence, and feedback from one incline angle never silently validates another setup. Adding work after answering makes the prior response visibly stale and offers an update.
+
+The completed set remains the primary progression signal. Pain that changed training blocks overload and added volume for the affected movement. A load marked too heavy or technique marked broken down holds the next load or repetition increase. `At my limit` caps set increases, `Too much` supports a one-set reduction, and `Could do more` supports an added-set proposal only when comparable performance and later recovery also agree. `Just right` holds set count while load or repetition progression may continue separately.
+
+The inline explanation previews the likely consequence before save. No answer changes today's work, silently edits a future plan, or diagnoses pain. Future recommendations remain proposals that the athlete reviews and approves. The whole-session post-workout check remains a separate layer for session difficulty, fatigue, time fit, enjoyment, and broader muscle feedback.
+
 ## Register
 
 product

@@ -77,6 +77,8 @@ export interface MuscleFeedback {
   pain: number | null
   /** Whether comparable exposures improved, held, or declined across the round. */
   performance: 'improved' | 'held' | 'declined' | 'unknown'
+  /** Athlete judgement of the completed movement set count: 1 more, 2 right, 3 limit, 4 too much. */
+  volumeFit?: number | null
   /** Whether stimulus was answered for this exact muscle or inherited from the session answer. */
   attribution?: 'exact' | 'attributed'
 }
@@ -101,7 +103,7 @@ export function decideMuscleVolume(input: {
   const landmarks = landmarksFor(input.muscle, input.volumeTolerance)
   const reasons: string[] = []
   const unknownInputs: string[] = []
-  const { pump, targetStimulus, endFatigue, recovery = null, pain, performance } = input.feedback
+  const { pump, targetStimulus, endFatigue, recovery = null, pain, performance, volumeFit = null } = input.feedback
 
   if (pump === null) unknownInputs.push('pump')
   if (targetStimulus === null) unknownInputs.push('target stimulus')
@@ -142,6 +144,11 @@ export function decideMuscleVolume(input: {
     return decision('deload', deloadSets, 'high')
   }
 
+  if (volumeFit !== null && volumeFit >= 4) {
+    reasons.push('The athlete marked the completed movement volume as too much, so the next suggestion removes one set while keeping the decision available for review.')
+    return decision('reduce-sets', Math.min(input.currentSets, Math.max(landmarks.mv, input.currentSets - 1)), 'high')
+  }
+
   if (unknownInputs.length >= 3) {
     reasons.push('Too little feedback was recorded this round to justify changing volume, so it holds. Answering pump, stimulus, and end fatigue is what lets volume move.')
     return decision('insufficient-evidence', input.currentSets, 'low')
@@ -177,6 +184,16 @@ export function decideMuscleVolume(input: {
 
   if (highFatigue || (strongStimulus && recovery !== null && recovery <= 3)) {
     reasons.push('The stimulus is already strong or fatigue is high without early recovery, so volume holds. More sets would buy fatigue rather than growth.')
+    return decision('hold', input.currentSets, 'medium')
+  }
+
+  if (volumeFit === 3) {
+    reasons.push('The athlete reached their useful limit on the completed movement, so set volume is capped rather than increased.')
+    return decision('hold', input.currentSets, 'high')
+  }
+
+  if (volumeFit === 2) {
+    reasons.push('The athlete marked the completed movement volume as just right, so set volume holds while load and repetition progression can continue separately.')
     return decision('hold', input.currentSets, 'medium')
   }
 
@@ -248,8 +265,13 @@ export function summarizeMuscleFeedback(input: {
   const priorSets = input.history.filter((set) => directSetsFor(set) && inWindow(set, input.priorWindowStart, input.currentWindowStart))
   const sessionIds = new Set(currentSets.map((set) => set.sessionId))
   const postSurveys = input.surveys.filter((survey) => survey.type === 'post' && sessionIds.has(survey.sessionId))
+  const movementSurveys = input.surveys.filter((survey) => survey.type === 'movement' && sessionIds.has(survey.sessionId) && Boolean(survey.exerciseId) && (muscleCreditsFor(survey.exerciseId!, input.exercises) ?? {})[input.muscle] === 1)
 
   const perSurvey = (id: string) => postSurveys.flatMap((survey) => {
+    const value = answerValue(survey, id)
+    return value === null ? [] : [value]
+  })
+  const perMovement = (id: string) => movementSurveys.flatMap((survey) => {
     const value = answerValue(survey, id)
     return value === null ? [] : [value]
   })
@@ -287,17 +309,22 @@ export function summarizeMuscleFeedback(input: {
 
   const confirmedSetPain = currentSets.filter((set) => set.qualityConfirmed === true).map((set) => set.pain).filter((value) => Number.isFinite(value))
   const surveyPain = perSurvey('pain')
-  const painValues = [...confirmedSetPain, ...surveyPain]
+  const movementPain = perMovement('movementPain')
+  const painValues = [...confirmedSetPain, ...surveyPain, ...movementPain]
   const pump = perMuscle('pump')
-  const targetStimulus = perMuscle('targetStimulus')
+  const movementStimulus = perMovement('targetStimulus')
+  const targetStimulus = movementStimulus.length ? { value: mean(movementStimulus), exact: true } : perMuscle('targetStimulus')
+  const movementRecovery = perMovement('recovery')
+  const movementVolumeFit = perMovement('volumeFit')
   return {
     pump: pump.value,
     targetStimulus: targetStimulus.value,
     endFatigue: mean(perSurvey('endFatigue')),
-    recovery: mean(perSurvey('recovery')),
+    recovery: movementRecovery.length ? mean(movementRecovery) : mean(perSurvey('recovery')),
     pain: painValues.length ? Math.max(...painValues) : null,
     performance,
-    attribution: pump.exact || targetStimulus.exact ? 'exact' : 'attributed'
+    volumeFit: movementVolumeFit.length ? Math.max(...movementVolumeFit) : null,
+    attribution: movementSurveys.length || pump.exact || targetStimulus.exact ? 'exact' : 'attributed'
   }
 }
 

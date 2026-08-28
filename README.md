@@ -1,10 +1,10 @@
-# ForgePath Private Alpha 0.75.0
+# ForgePath Private Alpha 0.76.0
 
 ForgePath is an athlete-controlled adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed. The hosted private alpha uses Supabase as the authoritative training store; local development keeps a browser-only test mode.
 
-Private alpha 0.75.0 slows Forge journal leveling into a long-term progression curve. Level 2 requires 200 points and each later level costs 75 more than the one before it. Completed and honest partial workouts receive bounded awards, all record views from one workout share one small bonus, and raw tonnage, extra sets, load, repetitions, and duration do not accelerate the character. A record-heavy first workout now remains level one. The recalculation changes only the derived journal display and leaves every completed set, record, plan, readiness assessment, and training prescription intact.
+Private alpha 0.76.0 adds optional exact-movement feedback immediately after the final set of each movement. Joint response, technique, target stimulus, load and repetition fit, hard-set volume, and prior exact-exposure recovery now inform that movement's future progression lane. Pain blocks overload, an overly heavy target or technique breakdown holds progression, `At my limit` caps extra sets, and `Too much` supports a one-set reduction. Missing answers stay unknown, added work makes earlier feedback visibly stale, and no response changes today's work or a future plan without athlete approval. The broader post-workout check remains separate for whole-session context.
 
-The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 475 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
+The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 480 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
 ## Run locally
 
@@ -49,9 +49,9 @@ npm run check:pages
 
 ## Current verification
 
-- 520 deterministic domain, persistence, and cloud-boundary tests
+- 535 deterministic domain, persistence, and cloud-boundary tests
 - deterministic domain and cloud-boundary tests, including corrupted outbox, network retry, pending-state replay, stale conflict, response tampering, and restore acceptance
-- 150 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys covering the slower Forge level curve, record-heavy first-workout protection, Set 1 workout-entry autofill, protected manual exceptions, separate set logging, Freak Athlete Home Gym search and ABX presets, direct exact-movement past-performance entry, editable training-block blueprints, exact angle persistence, update notification, year-scale history, cloud boundaries, authentication continuity, console integrity, and horizontal containment
+- 153 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys covering exact-movement completion feedback, the slower Forge level curve, record-heavy first-workout protection, Set 1 workout-entry autofill, protected manual exceptions, separate set logging, Freak Athlete Home Gym search and ABX presets, direct exact-movement past-performance entry, editable training-block blueprints, exact angle persistence, update notification, year-scale history, cloud boundaries, authentication continuity, console integrity, and horizontal containment
 - automated UI boundary QC for original game-inspired expression, the technique-video exclusion, readable typography, focus and reduced-motion support, compact mobile coverage, and required product-design context
 - lint clean
 - production PWA build clean
@@ -62,7 +62,7 @@ npm run check:pages
 - daily, weekly, rolling 28-day, calendar-month, calendar-quarter, yearly, and all-time analytics reconcile to completed source sets
 - editable training blocks show the complete weekly movement map, round route, estimated duration and working sets, primary through tertiary roles, athlete-approved swaps, and exact incline setups before applying a versioned plan
 - plan revisions preserve completed and partial session truth while replacing future planned work only
-- version 29 backup and restore preserves route-session-v4 repetition-policy provenance alongside direct Library history, athlete-approved block choices, exact-movement notes, entered-number provenance, source-backed dose, placement evidence, equipment profiles, plan history, ledgers, and survey evidence, and safely migrates versions 1 through 28
+- version 30 backup and restore preserves exact-movement feedback provenance alongside route-session-v4 repetition policy, direct Library history, athlete-approved block choices, exact-movement notes, entered-number provenance, source-backed dose, placement evidence, equipment profiles, plan history, ledgers, and survey evidence, and safely migrates versions 1 through 29
 - placement-v3 separates experience, continuity, global movement skill, intensity tolerance, volume tolerance, schedule stability, and evidence confidence before selecting an introductory, reacclimation, bridge, base, hypertrophy, powerbuilding, strength, power, event-specific, or pain-aware cycle route
 - movement-placement-v2 separately records skill, heavy-work tolerance, evidence confidence, family context, reasons, unknowns, accepted exact-history review, and an effective starting route for every protected exact movement
 - placement-history-v1 summarizes only the exact movement's recent completed sets, exposure dates, source type, RIR availability, quality confirmation, latest exposure, bounded confidence and tolerance suggestions, limitations, and source-set IDs

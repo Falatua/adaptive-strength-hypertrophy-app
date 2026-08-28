@@ -5,12 +5,24 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-27
 status: working-private-alpha
-app_version: 0.75.0
+app_version: 0.76.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.76.0 Exact-Movement Completion Feedback Delta
+
+- Opens an optional inline movement check immediately after the final set of each exact movement and keeps the workout free to continue.
+- Captures joint response, technique, target stimulus, load and repetition fit, hard-set volume, prior exact-exposure recovery when available, and an optional context note.
+- Preserves explicit unknowns and stores the exact session, planned movement, canonical exercise, completed planned-set IDs, and common angle when one exists.
+- Gives exact-movement feedback precedence over broad session feedback only for the matching progression lane. Feedback from another exercise or setup cannot leak into the decision.
+- Blocks overload after pain that changed training, holds after a too-heavy target or technique breakdown, caps sets at the athlete's useful limit, and supports a one-set reduction after too much volume.
+- Treats `Could do more` only as supporting evidence. Comparable performance, manageable fatigue, and later recovery must still agree before another set can be proposed.
+- Keeps the existing whole-session post-workout check for difficulty, fatigue, time fit, enjoyment, and broader muscle response. No feedback silently changes today's work or a future plan.
+- Advances backup schema to 30 and local persistence to 31 with exact-provenance validation and a no-rewrite version 29 migration.
+- Passes 535 deterministic tests and adds an exact-movement browser journey across desktop Chromium, mobile Chromium, and iPhone WebKit. The complete 153-journey browser matrix, production build, and Pages artifact gate pass. GitHub workflows, deployment, and live-source checks remain release gates.
 
 ## Private Alpha 0.75.0 Progressively Slower Forge Level Delta
 

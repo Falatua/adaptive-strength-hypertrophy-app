@@ -75,19 +75,26 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
   const exposures = [...exposureGroups.values()].sort((a, b) => new Date(a[0].completedAt).getTime() - new Date(b[0].completedAt).getTime())
   const recent = exposures.at(-1) ?? []
   const sourceSessionId = recent[0]?.sessionId ?? null
-  const feedback = [...(input.surveys ?? [])]
+  const sourcePlannedExerciseId = recent[0]?.plannedExerciseId
+  const postFeedback = [...(input.surveys ?? [])]
     .filter((survey) => survey.type === 'post' && survey.sessionId === sourceSessionId)
     .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0]
-  const answer = (id: string) => {
-    const found = feedback?.answers.find((candidate) => candidate.id === id && candidate.status === 'answered')
+  const movementFeedback = sourcePlannedExerciseId ? [...(input.surveys ?? [])]
+    .filter((survey) => survey.type === 'movement' && survey.sessionId === sourceSessionId && survey.plannedExerciseId === sourcePlannedExerciseId)
+    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0] : undefined
+  const answerFrom = (survey: SurveyRecord | undefined, id: string) => {
+    const found = survey?.answers.find((candidate) => candidate.id === id && candidate.status === 'answered')
     return typeof found?.value === 'number' ? found.value : null
   }
+  const answer = (id: string, movementId?: string) => movementId
+    ? answerFrom(movementFeedback, movementId) ?? answerFrom(postFeedback, id)
+    : answerFrom(postFeedback, id)
   const knownRir = recent.filter((workSet) => workSet.rirKnown !== false)
   const confirmedQuality = recent.filter((workSet) => workSet.qualityConfirmed === true)
   const unknownInputs: string[] = []
   if (!knownRir.length) unknownInputs.push('actual RIR')
   if (!confirmedQuality.length) unknownInputs.push('technique and joint response')
-  if (!feedback) unknownInputs.push('session feedback')
+  if (!movementFeedback && !postFeedback) unknownInputs.push('movement or session feedback')
   const evidence: ProgressionDecision['evidence'] = {
     sourceSessionId,
     sourceSetIds: recent.map((workSet) => workSet.id),
@@ -95,7 +102,7 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
     athleteAddedSetsExcluded,
     rirKnownSets: knownRir.length,
     qualityConfirmedSets: confirmedQuality.length,
-    feedbackSourceId: feedback?.id ?? null,
+    feedbackSourceId: movementFeedback?.id ?? postFeedback?.id ?? null,
     unknownInputs
   }
   const result = (decision: Omit<ProgressionDecision, 'ruleVersion' | 'evidence'>): ProgressionDecision => ({
@@ -120,16 +127,19 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
   const avgRir = knownRir.length ? knownRir.reduce((sum, set) => sum + set.rir, 0) / knownRir.length : null
   const avgTechnique = confirmedQuality.length ? confirmedQuality.reduce((sum, set) => sum + set.technique, 0) / confirmedQuality.length : null
   const maxPain = confirmedQuality.length ? Math.max(...confirmedQuality.map((set) => set.pain)) : null
-  const surveyPain = answer('pain')
+  const surveyPain = answer('pain', 'movementPain')
   const expectedComparison = answer('expectedComparison')
   const difficulty = answer('difficulty')
   const endFatigue = answer('endFatigue')
-  const targetStimulus = answer('targetStimulus')
-  const recovery = answer('recovery')
+  const targetStimulus = answer('targetStimulus', 'targetStimulus')
+  const recovery = answer('recovery', 'recovery')
+  const movementTechnique = answerFrom(movementFeedback, 'movementTechnique')
+  const loadFit = answerFrom(movementFeedback, 'loadFit')
+  const volumeFit = answerFrom(movementFeedback, 'volumeFit')
   const latestPrescribed = recent.slice(0, targetSets)
   const targetOwned = latestPrescribed.length >= targetSets && latestPrescribed.every((workSet) => workSet.load >= targetLoad && workSet.reps >= targetReps)
   const sensibleLoadJump = targetLoad > 0 && increment / targetLoad <= 0.1
-  const hardFeedback = (expectedComparison !== null && expectedComparison >= 4) || (difficulty !== null && difficulty >= 9) || (endFatigue !== null && endFatigue >= 5)
+  const hardFeedback = (expectedComparison !== null && expectedComparison >= 4) || (difficulty !== null && difficulty >= 9) || (endFatigue !== null && endFatigue >= 5) || (movementTechnique !== null && movementTechnique <= 2) || (loadFit !== null && loadFit >= 5)
 
   if (readiness === 'pain-aware' || (maxPain !== null && maxPain >= 4) || (surveyPain !== null && surveyPain >= 4)) {
     return result({
@@ -175,7 +185,7 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
       !targetOwned ? 'The latest prescribed exposure was not fully owned' : null,
       avgTechnique !== null && avgTechnique < 3.5 ? 'Confirmed technique was below the progression threshold' : null,
       avgRir !== null && avgRir < 0.5 ? 'The latest effort was too close to failure for another increase' : null,
-      hardFeedback ? 'The athlete reported that the session was harder or more fatiguing than the next increase allows' : null
+      hardFeedback ? 'The athlete reported that the exact movement was too heavy or technique broke down, or the session was harder or more fatiguing than the next increase allows' : null
     ].filter((reason): reason is string => Boolean(reason))
     return result({
       action: 'hold',
@@ -219,7 +229,8 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
   const lowStimulus = targetStimulus !== null && targetStimulus <= 2
   const recoveredEarly = recovery !== null && recovery >= 4
   const manageableFatigue = endFatigue !== null && endFatigue <= 3
-  if (targetReps >= repRange[1] && !sensibleLoadJump && exposures.length >= 3 && avgRir !== null && avgRir >= 1 && readiness === 'normal' && continuity === 'stable' && lowStimulus && recoveredEarly && manageableFatigue) {
+  const volumeAllowsMore = volumeFit === null || volumeFit === 1
+  if (targetReps >= repRange[1] && !sensibleLoadJump && exposures.length >= 3 && avgRir !== null && avgRir >= 1 && readiness === 'normal' && continuity === 'stable' && lowStimulus && recoveredEarly && manageableFatigue && volumeAllowsMore) {
     return result({
       action: 'sets',
       title: 'One recovered set is available',

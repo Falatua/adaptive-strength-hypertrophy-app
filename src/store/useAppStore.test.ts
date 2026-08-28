@@ -58,6 +58,35 @@ describe('clean first-use state', () => {
     expect(restored.backup.data.sessions[0].exercises[0].sets[1]).toMatchObject({ completed: false, entryOrigins: { load: 'top-set-autofill', reps: 'top-set-autofill', rir: 'top-set-autofill' } })
   })
 
+  it('stores movement completion feedback with exact set provenance and applies safety context only to that movement', () => {
+    const session = {
+      id: 'movement-feedback-session', title: 'Movement feedback session', objective: 'Keep feedback exact.', dayLabel: 'Today',
+      plannedDate: '2026-08-27T12:00:00.000Z', status: 'active' as const, durationMinutes: 45,
+      exercises: [{
+        id: 'movement-feedback-bench', exerciseId: 'competition-bench', role: 'primary' as const, purpose: 'Bench.', restSeconds: 180, estimatedMinutes: 15, optional: false,
+        sets: Array.from({ length: 2 }, (_, index) => ({ id: `movement-feedback-set-${index + 1}`, targetLoad: 135, targetReps: 8, targetRir: 2, completed: true, completedLoad: 135, completedReps: 8, actualRir: 2, valuesEntered: true }))
+      }]
+    }
+    useAppStore.setState({ sessions: [session], activeSessionId: session.id, workoutVisible: true })
+    const result = useAppStore.getState().recordMovementFeedback(session.id, session.exercises[0].id, [
+      { id: 'movementPain', value: 4, status: 'answered' },
+      { id: 'movementTechnique', value: 5, status: 'answered' },
+      { id: 'volumeFit', value: 3, status: 'answered' }
+    ], 'Shoulder changed the setup.', false)
+
+    expect(result.ok).toBe(true)
+    expect(useAppStore.getState().sessions[0].painStatus).toBe('changed-training')
+    expect(useAppStore.getState().surveys[0]).toMatchObject({
+      type: 'movement', plannedExerciseId: session.exercises[0].id, exerciseId: 'competition-bench',
+      sourceSetIds: ['movement-feedback-set-1', 'movement-feedback-set-2'], note: 'Shoulder changed the setup.'
+    })
+
+    useAppStore.getState().finishSession(session.id, { answers: [], skipped: true, mode: 'off' })
+    expect(useAppStore.getState().history).toHaveLength(2)
+    expect(useAppStore.getState().history.every((workSet) => workSet.qualityConfirmed && workSet.technique === 5 && workSet.pain === 4)).toBe(true)
+    expect(() => parseBackup(JSON.stringify(createBackup(backupStateFrom(useAppStore.getState()))))).not.toThrow()
+  })
+
   it('adds and reverses exact past performance from a Library movement', () => {
     const store = useAppStore.getState()
     const incline = store.exercises.find((exercise) => exercise.id === 'incline-barbell-press')!

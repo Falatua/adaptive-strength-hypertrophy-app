@@ -29,6 +29,20 @@ const postSurvey = (sessionId: string, values: Record<string, number>): SurveyRe
   answers: Object.entries(values).map(([id, value]) => ({ id, value, status: 'answered' as const }))
 })
 
+const movementSurvey = (sessionId: string, plannedExerciseId: string, values: Record<string, number>): SurveyRecord => ({
+  id: `movement-${sessionId}-${plannedExerciseId}`,
+  sessionId,
+  type: 'movement',
+  ruleVersion: 'movement-feedback-v1',
+  plannedExerciseId,
+  exerciseId: 'competition-bench',
+  exerciseName: 'Competition Bench Press',
+  sourceSetIds: ['planned-set-1'],
+  completedAt: new Date().toISOString(),
+  skipped: false,
+  answers: Object.entries(values).map(([id, value]) => ({ id, value, status: 'answered' as const }))
+})
+
 describe('volume load', () => {
   it('sums completed reps times actual load for each set', () => {
     expect(volumeLoad([set({ reps: 5, load: 200 }), set({ reps: 4, load: 210 })])).toBe(1840)
@@ -113,6 +127,32 @@ describe('load-first progression hierarchy', () => {
     expect(decision.reasons.join(' ')).toContain('reported')
   })
 
+  it('lets exact-movement load feedback override a benign whole-session answer', () => {
+    const plannedExerciseId = 'planned-bench'
+    const history = Array.from({ length: 4 }, (_, index) => set({ id: `exact-${index}`, setIndex: index, qualityConfirmed: true, plannedExerciseId }))
+    const exact = movementSurvey('session', plannedExerciseId, { movementPain: 0, loadFit: 5, volumeFit: 2 })
+    const decision = recommendProgression({ history, surveys: [postSurvey('session', { difficulty: 3, endFatigue: 2 }), exact], targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
+    expect(decision.action).toBe('hold')
+    expect(decision.evidence.feedbackSourceId).toBe(exact.id)
+    expect(decision.reasons.join(' ')).toMatch(/exact movement was too heavy/i)
+  })
+
+  it('blocks overload only for the exact movement that reported pain', () => {
+    const plannedExerciseId = 'planned-bench'
+    const history = Array.from({ length: 4 }, (_, index) => set({ id: `pain-${index}`, setIndex: index, qualityConfirmed: true, plannedExerciseId }))
+    const decision = recommendProgression({ history, surveys: [movementSurvey('session', plannedExerciseId, { movementPain: 4, loadFit: 3 })], targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
+    expect(decision.action).toBe('reduce')
+    expect(decision.title).toMatch(/protect/i)
+  })
+
+  it('holds after exact-movement technique breakdown even when joint response was left unknown', () => {
+    const plannedExerciseId = 'planned-bench'
+    const history = Array.from({ length: 4 }, (_, index) => set({ id: `technique-${index}`, setIndex: index, qualityConfirmed: false, plannedExerciseId }))
+    const decision = recommendProgression({ history, surveys: [movementSurvey('session', plannedExerciseId, { movementTechnique: 2, loadFit: 3 })], targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
+    expect(decision.action).toBe('hold')
+    expect(decision.reasons.join(' ')).toMatch(/technique broke down/i)
+  })
+
   it('keeps load first even when recovery feedback could support more dose', () => {
     const history = Array.from({ length: 3 }, (_, exposure) => Array.from({ length: 3 }, (_, index) => set({
       id: `load-${exposure}-${index}`, sessionId: `load-${exposure}`, setIndex: index, qualityConfirmed: true,
@@ -133,6 +173,18 @@ describe('load-first progression hierarchy', () => {
     expect(decision.action).toBe('sets')
     expect(decision.nextSets).toBe(4)
     expect(decision.reasons).toContain('Load jump exceeds ten percent')
+  })
+
+  it('does not offer another set when the athlete marked the exact movement at their limit', () => {
+    const plannedExerciseId = 'planned-bench'
+    const history = Array.from({ length: 3 }, (_, exposure) => Array.from({ length: 3 }, (_, index) => set({
+      id: `limit-${exposure}-${index}`, sessionId: `limit-${exposure}`, plannedExerciseId, setIndex: index, load: 10, qualityConfirmed: true,
+      completedAt: `2026-08-${String(exposure + 1).padStart(2, '0')}T12:0${index}:00.000Z`
+    }))).flat()
+    const surveys = [postSurvey('limit-2', { targetStimulus: 1, recovery: 5, endFatigue: 2 }), movementSurvey('limit-2', plannedExerciseId, { targetStimulus: 1, recovery: 5, volumeFit: 3 })]
+    const decision = recommendProgression({ history, surveys, targetLoad: 10, targetReps: 6, targetSets: 3, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
+    expect(decision.action).toBe('hold')
+    expect(decision.nextSets).toBe(3)
   })
 
   it('does not add repetitions or load when actual RIR is unknown', () => {

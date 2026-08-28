@@ -23,6 +23,7 @@ import { buildDropSet, buildMyoReps, canPairForSuperset, structureAllowedForRole
 import { sameJsonValue } from '../domain/stable-json'
 import { buildHistoricalPerformance, type HistoricalPerformanceInput } from '../domain/history-entry-engine'
 import { applyWorkoutSetEntry } from '../domain/set-entry-autofill'
+import { latestMovementFeedback, movementFeedbackMode, movementFeedbackPreview, movementFeedbackValue } from '../domain/movement-feedback-engine'
 import type {
   AppSettings,
   AthleteProfile,
@@ -114,6 +115,7 @@ interface AppState {
   recordPlacementExitReview: (decision: PlacementExitDecision, reason: string) => { ok: boolean; error?: string }
   recordMovementPlacementExitReview: (exerciseId: string, decision: PlacementExitDecision, reason: string) => { ok: boolean; error?: string }
   swapExercise: (sessionId: string, plannedExerciseId: string, exerciseId: string, reason: SubstitutionReason, primaryOverrideConfirmed: boolean) => { ok: boolean; error?: string; placementVerificationCancelled?: boolean }
+  recordMovementFeedback: (sessionId: string, plannedExerciseId: string, answers: SurveyAnswer[], note: string, skipped: boolean) => { ok: boolean; error?: string }
   finishSession: (sessionId: string, feedback: { answers: SurveyAnswer[]; note?: string; skipped: boolean; mode: EffectiveSurveyMode; deferred?: boolean }) => void
   submitDeferredFeedback: (requestId: string, answers: SurveyAnswer[], note?: string) => { ok: boolean; error?: string }
   dismissDeferredFeedback: (requestId: string) => { ok: boolean; error?: string }
@@ -623,20 +625,61 @@ export const useAppStore = create<AppState>()(
         })
         return { ok: true, placementVerificationCancelled: placementCancellation.cancelled }
       },
+      recordMovementFeedback: (sessionId, plannedExerciseId, answers, note, skipped) => {
+        const state = get()
+        const session = state.sessions.find((candidate) => candidate.id === sessionId)
+        const planned = session?.exercises.find((candidate) => candidate.id === plannedExerciseId)
+        const exercise = planned ? state.exercises.find((candidate) => candidate.id === planned.exerciseId) : undefined
+        if (!session || !planned || !exercise) return { ok: false, error: 'That completed movement could not be found.' }
+        const completedSets = planned.sets.filter((workSet) => workSet.completed)
+        if (!completedSets.length || !planned.sets.every((workSet) => workSet.completed)) return { ok: false, error: 'Finish every set in this movement before saving its feedback.' }
+        const recordedAt = new Date().toISOString()
+        const recordedAnswers = answers
+        const evidence = summarizeSurveyEvidence(recordedAnswers, skipped)
+        const angles = [...new Set(completedSets.flatMap((workSet) => workSet.benchAngleDeg === undefined ? [] : [workSet.benchAngleDeg]))]
+        const survey: SurveyRecord = {
+          id: nanoid(), sessionId, type: 'movement', completedAt: recordedAt, answers: recordedAnswers, skipped,
+          mode: movementFeedbackMode(state.settings.postSurveyMode), ...evidence,
+          ruleVersion: 'movement-feedback-v1', plannedExerciseId, exerciseId: exercise.id, exerciseName: exercise.name,
+          sourceSetIds: completedSets.map((workSet) => workSet.id), benchAngleDeg: angles.length === 1 && completedSets.every((workSet) => workSet.benchAngleDeg === angles[0]) ? angles[0] : null,
+          ...(note.trim() ? { note: note.trim() } : {})
+        }
+        const pain = movementFeedbackValue(survey, 'movementPain')
+        const preview = movementFeedbackPreview(recordedAnswers)
+        set({
+          surveys: [...state.surveys, survey],
+          sessions: pain !== null && pain >= 4
+            ? state.sessions.map((candidate) => candidate.id === sessionId ? { ...candidate, painStatus: 'changed-training' as const } : candidate)
+            : state.sessions,
+          notice: skipped
+            ? `${exercise.name} feedback skipped. Those signals remain unknown and do not count against progression.`
+            : `${exercise.name} feedback saved. ${preview.title}. Any future change still requires your approval.`
+        })
+        return { ok: true }
+      },
       finishSession: (sessionId, feedback) => {
         const state = get()
         const session = state.sessions.find((candidate) => candidate.id === sessionId)
         if (!session) return
         const completedAt = new Date().toISOString()
-        const techniqueAnswer = feedback.answers.find((answer) => answer.id === 'technique' && answer.status === 'answered')
-        const painAnswer = feedback.answers.find((answer) => answer.id === 'pain' && answer.status === 'answered')
-        const qualityConfirmed = !feedback.deferred && typeof techniqueAnswer?.value === 'number' && typeof painAnswer?.value === 'number'
-        const technique = qualityConfirmed ? Number(techniqueAnswer.value) : 0
-        const pain = qualityConfirmed ? Number(painAnswer.value) : 0
+        const postTechniqueAnswer = feedback.answers.find((answer) => answer.id === 'technique' && answer.status === 'answered')
+        const postPainAnswer = feedback.answers.find((answer) => answer.id === 'pain' && answer.status === 'answered')
+        const sessionHasMovementFeedback = state.surveys.some((survey) => survey.sessionId === sessionId && survey.type === 'movement')
         const newHistory: CompletedSetRecord[] = session.exercises.flatMap((plannedExercise) => {
           const exercise = state.exercises.find((candidate) => candidate.id === plannedExercise.exerciseId)
           const original = plannedExercise.substitutedFrom ? state.exercises.find((candidate) => candidate.id === plannedExercise.substitutedFrom) : undefined
           if (!exercise) return []
+          const movementFeedback = latestMovementFeedback(state.surveys, sessionId, plannedExercise.id)
+          const movementTechnique = movementFeedbackValue(movementFeedback, 'movementTechnique')
+          const movementPain = movementFeedbackValue(movementFeedback, 'movementPain')
+          // Once any exact-movement feedback is used, missing or skipped movement answers remain unknown.
+          // The older broad post-session quality answer remains a fallback only for sessions that never
+          // entered the movement-feedback flow at all.
+          const qualityConfirmed = movementFeedback
+            ? !movementFeedback.skipped && movementTechnique !== null && movementPain !== null
+            : !sessionHasMovementFeedback && !feedback.deferred && typeof postTechniqueAnswer?.value === 'number' && typeof postPainAnswer?.value === 'number'
+          const technique = qualityConfirmed ? Number(movementTechnique ?? postTechniqueAnswer?.value ?? 0) : 0
+          const pain = qualityConfirmed ? Number(movementPain ?? postPainAnswer?.value ?? 0) : 0
           return plannedExercise.sets.flatMap((workSet, setIndex) => workSet.completed ? [{
             id: nanoid(), sessionId, exerciseId: exercise.id, exerciseName: exercise.name, family: exercise.family,
             primaryRegion: exercise.primaryRegion, completedAt, reps: workSet.completedReps ?? workSet.targetReps,
@@ -760,7 +803,8 @@ export const useAppStore = create<AppState>()(
         const qualityConfirmed = typeof techniqueAnswer?.value === 'number' && typeof painAnswer?.value === 'number'
         const technique = qualityConfirmed ? Number(techniqueAnswer.value) : 0
         const pain = qualityConfirmed ? Number(painAnswer.value) : 0
-        const history = state.history.map((workSet) => workSet.sessionId === request.sessionId
+        const movementFeedbackPlannedIds = new Set(state.surveys.flatMap((survey) => survey.sessionId === request.sessionId && survey.type === 'movement' && survey.plannedExerciseId ? [survey.plannedExerciseId] : []))
+        const history = state.history.map((workSet) => workSet.sessionId === request.sessionId && !movementFeedbackPlannedIds.has(workSet.plannedExerciseId ?? '')
           ? { ...workSet, technique, pain, qualityConfirmed }
           : workSet)
         const surveyId = nanoid()
@@ -1345,7 +1389,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: LEGACY_APP_STORAGE_KEY,
-      version: 30,
+      version: 31,
       storage: createJSONStorage(() => browserStateStorage),
       partialize: (state) => ({
         athlete: state.athlete,

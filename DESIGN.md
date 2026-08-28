@@ -73,6 +73,16 @@ The panel must show the exact movement, a plain-language truth boundary, and a l
 
 On compact phones the grid becomes one column, actions remain at least 44 pixels tall, and the primary save action spans the available width. The saved history labels its Library source and numeric-only quality state. Color supports, but never replaces, those written states.
 
+## Movement Completion Feedback
+
+The final set of a movement unlocks an inline Movement Completion Feedback panel directly below its set table. The panel scrolls into view, begins expanded when feedback is enabled, and never blocks the athlete from continuing. Its heading remains a compact editable summary after save. If the athlete adds another set, the heading states that the prior response should be updated for the added work.
+
+Questions use written, touch-sized option buttons instead of sliders. The full path asks joint response, technique, target stimulus, load and repetitions, hard-set volume, and exact-exposure recovery when prior history exists. Minimal and quick preferences reduce the question budget. A clear action leaves any individual answer unknown, and skipping the whole check stores an explicit unknown response rather than a favorable default.
+
+Evidence-blue frames the informational boundary. Effort-orange appears only when pain, excess volume, technique breakdown, or an overly heavy target requires review. A live consequence summary states whether overload is blocked, set count is capped, a reduction may be useful, or more work remains only a possibility. The copy always says future changes require athlete approval.
+
+On compact phones choices wrap without horizontal scrolling and remain at least 44 pixels high. Actions wrap in reading order, the saved state stays legible, and reduced-motion mode disables disclosure rotation and automatic smooth scrolling.
+
 ForgePath should feel like a private training field guide carried through an original strength adventure. Its North Star is the compact confidence and tactile clarity of a beloved handheld interface, interpreted through an original world rather than copied characters, names, maps, or assets. Training is always the foreground. The adventure layer helps JB understand the route, notice progress, and enjoy returning.
 
 The product is dark, grounded, and dense enough for an experienced athlete without becoming a control room. Large outcomes, compact evidence, clear hierarchy, and one obvious next action matter more than decoration. Pixel craft belongs in avatars, environmental scenes, selectors, badges, and earned celebrations. Prescription numbers, charts, forms, and explanations use modern type and familiar controls.

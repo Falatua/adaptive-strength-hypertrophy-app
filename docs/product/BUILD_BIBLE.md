@@ -5,12 +5,40 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-27
 status: canonical-build-reference-and-active-implementation
-version: 1.71.0
+version: 1.72.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.72.0 Change Entry
+
+- Advanced the working application to private alpha 0.76.0 with backup schema 30 and local persistence 31 while preserving the 251-movement catalog and Supabase cloud-authoritative boundary.
+- Added R-476 through R-480 and Chapter 103 for optional intra-workout exact-movement feedback, source-set provenance, progression consequences, athlete authority, and RP Hypertrophy research boundaries.
+- Preserved the broader post-workout survey as a separate whole-session evidence layer.
+
+## 103. Exact-Movement Completion Feedback
+
+### 103.1 Trigger and Interaction
+
+Logging the final set of each exact planned movement unlocks a short inline feedback panel beneath that movement's set table. The panel opens and scrolls into view when feedback is enabled, but it never blocks the athlete from continuing. The athlete may answer, skip, leave individual questions unknown, edit before finishing, or collapse the panel. Adding another set makes the earlier response stale until the added work is complete and the feedback is updated.
+
+### 103.2 Question Contract
+
+The ordinary check asks joint response, technique consistency, target stimulus, load and repetition fit, and hard-set volume. Recovery from the last exact exposure appears only when prior exact history exists. Minimal and quick modes reduce burden, while Off mode prevents automatic interruption and leaves a collapsed voluntary entry point. Optional free text records setup or context but never drives programming by itself.
+
+### 103.3 Provenance and Exact-Lane Authority
+
+Every response stores its rule version, session, planned movement, canonical exercise, written exercise name, completed planned-set IDs, and a common recorded bench angle only when every completed set shares it. Feedback from another exercise, variation, or setup cannot satisfy the lane. Exact-movement answers take precedence over broad post-session answers only for the matching movement. Skipped or missing items remain unknown.
+
+### 103.4 Progression Consequences
+
+Completed load, repetitions, RIR, and quality remain primary. Pain that changed training blocks overload and added volume for the movement. A too-heavy target or broken technique holds load and repetition progression. `At my limit` caps set increases. `Too much` supports a one-set reduction without mathematically increasing a low set count. `Just right` holds dose while load or repetitions may progress. `Could do more` supports another set only when comparable performance, manageable fatigue, and later recovery also agree.
+
+### 103.5 Athlete Control, Research, and Acceptance
+
+The panel previews the likely future consequence before save. No answer diagnoses pain, changes today's work, silently rewrites a future plan, or independently earns more work. Every future change remains an athlete-approved proposal. RP Hypertrophy public sources inform the pump, soreness, workload, pain, load, repetition, and set progression model, but ForgePath does not claim to reproduce RP's proprietary algorithm. Deterministic acceptance covers question budgets, conditional recovery, safety previews, exact provenance, load and repetition holds, set caps and reductions, unknowns, backup migration, and low-set monotonicity. Browser acceptance covers immediate final-set reveal, saving, persistence, responsive containment, console integrity, and desktop Chromium, mobile Chromium, and iPhone WebKit.
 
 ### Version 1.71.0 Change Entry
 

@@ -21,6 +21,8 @@ import { sessionExtensionGate } from '../domain/session-extension-engine'
 import { sessionClockState } from '../domain/session-clock'
 import { ABX_BACK_PAD_ANGLES, benchAngleLabel, buildBenchAngleLadder, comparableAngleHistory, normalizeBenchAngle, supportsBenchAngle } from '../domain/bench-angle-engine'
 import { cloudSaveCopy, useCloudRuntime } from '../components/cloud-runtime-context'
+import { MovementFeedbackPanel } from '../components/MovementFeedbackPanel'
+import { latestMovementFeedback, movementFeedbackMatchesCompletedSets, movementFeedbackMode } from '../domain/movement-feedback-engine'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary movement',
@@ -30,7 +32,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, equipmentProfiles, history, surveys, movementNotes, settings, placementVerifications, updateSet, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, skipSet, setPlacementWarmup, setSessionPainStatus, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
+  const { sessions, exercises, equipmentProfiles, history, surveys, movementNotes, settings, placementVerifications, updateSet, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, skipSet, setPlacementWarmup, setSessionPainStatus, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, recordMovementFeedback, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const cloudRuntime = useCloudRuntime()
   const saveCopy = cloudSaveCopy(cloudRuntime?.saveState ?? null)
@@ -52,6 +54,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const [extensionError, setExtensionError] = useState<string | null>(null)
   const [structureTarget, setStructureTarget] = useState<PlannedExercise | null>(null)
   const [structureError, setStructureError] = useState<string | null>(null)
+  const [pendingMovementFeedbackId, setPendingMovementFeedbackId] = useState<string | null>(null)
   const activeSetRecords = useMemo<CompletedSetRecord[]>(() => session?.exercises.flatMap((plannedExercise) => {
     const exercise = exercises.find((candidate) => candidate.id === plannedExercise.exerciseId)
     if (!exercise) return []
@@ -101,6 +104,17 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     return () => window.clearInterval(interval)
   }, [])
 
+  useEffect(() => {
+    if (!pendingMovementFeedbackId) return
+    const frame = window.requestAnimationFrame(() => {
+      const panel = document.getElementById(`movement-feedback-${pendingMovementFeedbackId}`)
+      panel?.scrollIntoView({ behavior: settings.reducedMotion ? 'auto' : 'smooth', block: 'center' })
+      panel?.querySelector<HTMLElement>('.movement-feedback__heading')?.focus({ preventScroll: true })
+      setPendingMovementFeedbackId(null)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [pendingMovementFeedbackId, session, settings.reducedMotion])
+
   if (!session) return null
 
   const placementVerification = placementVerifications.find((event) => event.sessionId === session.id && event.status === 'active')
@@ -118,7 +132,10 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const nextIncomplete = session.exercises.flatMap((planned) => planned.sets.map((workSet) => ({ planned, workSet }))).find(({ workSet }) => !workSet.completed)
   const nextIncompleteExercise = nextIncomplete ? exercises.find((exercise) => exercise.id === nextIncomplete.planned.exerciseId) : null
   const focusNextSet = () => {
-    if (!nextIncomplete) return
+    if (!nextIncomplete) {
+      document.querySelector<HTMLElement>('.workout-footer__finish')?.focus()
+      return
+    }
     const row = document.getElementById(`set-${nextIncomplete.workSet.id}`)
     row?.scrollIntoView({ behavior: settings.reducedMotion ? 'auto' : 'smooth', block: 'center' })
     row?.querySelector<HTMLElement>('input, select, button')?.focus({ preventScroll: true })
@@ -213,7 +230,10 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   }
 
   const logSet = (plannedExerciseId: string, setId: string, currentlyComplete: boolean) => {
+    const planned = session.exercises.find((candidate) => candidate.id === plannedExerciseId)
+    const finishesMovement = !currentlyComplete && Boolean(planned?.sets.length) && planned?.sets.every((workSet) => workSet.id === setId || workSet.completed)
     toggleSetComplete(session.id, plannedExerciseId, setId)
+    if (finishesMovement) setPendingMovementFeedbackId(plannedExerciseId)
     if (!currentlyComplete) playForgeSound('set-complete', settings)
     if (!currentlyComplete && settings.haptics && !settings.quietMode && settings.celebrationLevel !== 'off' && 'vibrate' in navigator) navigator.vibrate(18)
   }
@@ -361,6 +381,9 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
             const exerciseAchievements = activeAchievementPreview.filter((event) => event.exerciseId === exercise.id)
             const currentMovementNote = movementNotes.find((note) => note.sessionId === session.id && note.plannedExerciseId === planned.id && note.exerciseId === exercise.id)
             const priorMovementNote = movementNotesForExercise(movementNotes, exercise.id).find((note) => note.id !== currentMovementNote?.id)
+            const movementComplete = planned.sets.length > 0 && planned.sets.every((workSet) => workSet.completed)
+            const savedMovementFeedback = latestMovementFeedback(surveys, session.id, planned.id)
+            const feedbackMatchesCurrentSets = movementFeedbackMatchesCompletedSets(savedMovementFeedback, planned)
             const techniqueSuggestion = techniqueCandidateIds.has(planned.id)
               ? settings.availableMinutes <= 45
                 ? 'Time-saving option: review a zero-overlap superset, myo-reps, or a drop set. Use only if it preserves clean work on both movements.'
@@ -417,7 +440,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                 )}
                 {angleCapable && (
                   <details className="bench-angle-panel">
-                    <summary><span><strong>Bench angle</strong><small>Optional setup tracking · {planned.sets.every((workSet) => workSet.benchAngleDeg === undefined) ? 'not tracked' : planned.sets.map((workSet) => workSet.benchAngleDeg === undefined ? '—' : `${workSet.benchAngleDeg}°`).join(' → ')}</small></span><ChevronDown size={18} /></summary>
+                    <summary><span><strong>Bench angle</strong><small>Optional setup tracking · {planned.sets.every((workSet) => workSet.benchAngleDeg === undefined) ? 'not tracked' : planned.sets.map((workSet) => workSet.benchAngleDeg === undefined ? 'untracked' : `${workSet.benchAngleDeg}°`).join(' → ')}</small></span><ChevronDown size={18} /></summary>
                     <div className="bench-angle-panel__body">
                       <p>Track the back-pad angle when it matters to you. Progress and PR prompts compare only the same recorded degree. Blank stays honestly untracked.</p>
                       <div className="bench-angle-actions" aria-label="Bench angle plan shortcuts">
@@ -429,7 +452,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                         {ABX_BACK_PAD_ANGLES.map((angle) => <button type="button" key={angle} onClick={() => updateBenchAnglePlan(session.id, planned.id, planned.sets.map(() => angle))}>{angle}°</button>)}
                       </div>
                       <div className="bench-angle-set-grid">
-                        {planned.sets.map((workSet, index) => <label key={workSet.id}><span>Set {index + 1}</span><input type="number" min="0" max="90" step="1" inputMode="decimal" value={workSet.benchAngleDeg ?? ''} placeholder="—" aria-label={`Set ${index + 1} bench angle in degrees`} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { benchAngleDeg: event.target.value === '' ? null : normalizeBenchAngle(Number(event.target.value)) })} /><small>{benchAngleLabel(workSet.benchAngleDeg)}</small></label>)}
+                        {planned.sets.map((workSet, index) => <label key={workSet.id}><span>Set {index + 1}</span><input type="number" min="0" max="90" step="1" inputMode="decimal" value={workSet.benchAngleDeg ?? ''} placeholder="Untracked" aria-label={`Set ${index + 1} bench angle in degrees`} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { benchAngleDeg: event.target.value === '' ? null : normalizeBenchAngle(Number(event.target.value)) })} /><small>{benchAngleLabel(workSet.benchAngleDeg)}</small></label>)}
                       </div>
                       <small className="bench-angle-source">ABX positions are offered as reference presets. Any 0–90° value is allowed, because benches differ.</small>
                     </div>
@@ -459,6 +482,20 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                     </button>
                   )}
                 </div>
+                {movementComplete && (
+                  <MovementFeedbackPanel
+                    key={`${planned.id}:${savedMovementFeedback?.id ?? 'new'}:${planned.sets.length}`}
+                    panelId={`movement-feedback-${planned.id}`}
+                    exerciseName={exercise.name}
+                    mode={movementFeedbackMode(settings.postSurveyMode)}
+                    hasPriorExactExposure={exactHistory.length > 0}
+                    savedFeedback={savedMovementFeedback}
+                    feedbackMatchesCurrentSets={feedbackMatchesCurrentSets}
+                    onSave={(answers, note) => recordMovementFeedback(session.id, planned.id, answers, note, false)}
+                    onSkip={(answers) => recordMovementFeedback(session.id, planned.id, answers, '', true)}
+                    onContinue={focusNextSet}
+                  />
+                )}
                 {settings.opportunityPrompts && !settings.quietMode && !planned.athleteAdded && exactHistory.length > 0 && (
                   <div className={`pr-opportunity ${opportunities.length && !opportunities[0].eligible ? 'pr-opportunity--paused' : ''}`}>
                     <Trophy size={17} />

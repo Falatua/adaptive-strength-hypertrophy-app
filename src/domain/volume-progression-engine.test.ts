@@ -73,6 +73,31 @@ describe('decideMuscleVolume', () => {
     expect(result.setChange).toBe(1)
   })
 
+  it('holds set count when movement volume felt just right', () => {
+    const result = decide({ feedback: feedback({ volumeFit: 2, endFatigue: 2, recovery: 5 }) })
+    expect(result.action).toBe('hold')
+    expect(result.setChange).toBe(0)
+    expect(result.reasons[0]).toMatch(/just right/i)
+  })
+
+  it('caps set increases when the athlete reached their useful limit', () => {
+    const result = decide({ feedback: feedback({ volumeFit: 3, pump: 1, targetStimulus: 1, endFatigue: 1, recovery: 5 }) })
+    expect(result.action).toBe('hold')
+    expect(result.reasons[0]).toMatch(/useful limit/i)
+  })
+
+  it('removes one set when the completed movement volume was too much', () => {
+    const result = decide({ feedback: feedback({ volumeFit: 4 }) })
+    expect(result.action).toBe('reduce-sets')
+    expect(result.setChange).toBe(-1)
+  })
+
+  it('never increases a low set count while labeling excess movement volume as a reduction', () => {
+    const result = decide({ currentSets: 2, feedback: feedback({ volumeFit: 4 }) })
+    expect(result.action).toBe('reduce-sets')
+    expect(result.nextSets).toBeLessThanOrEqual(2)
+  })
+
   it('holds when between-session recovery was not complete', () => {
     const result = decide({ feedback: feedback({ recovery: 1, performance: 'held', endFatigue: 2 }) })
     expect(result.action).toBe('hold')
@@ -283,6 +308,25 @@ describe('summarizeMuscleFeedback', () => {
       surveys: [survey('s1', { pain: 5 })], ...windows
     })
     expect(result.pain).toBe(5)
+  })
+
+  it('uses exact-movement feedback for stimulus, recovery, pain, and set-count fit', () => {
+    const movement: SurveyRecord = {
+      id: 'movement-s1', sessionId: 's1', type: 'movement', completedAt: '2026-08-10T12:00:00.000Z', skipped: false,
+      ruleVersion: 'movement-feedback-v1', plannedExerciseId: 'planned-bench', exerciseId: bench.id, exerciseName: bench.name, sourceSetIds: ['planned-set-1'],
+      answers: [
+        { id: 'targetStimulus', value: 5, status: 'answered' },
+        { id: 'recovery', value: 2, status: 'answered' },
+        { id: 'movementPain', value: 4, status: 'answered' },
+        { id: 'volumeFit', value: 3, status: 'answered' }
+      ]
+    }
+    const result = summarizeMuscleFeedback({
+      muscle: 'pectorals', exercises: seedExercises,
+      history: [setFor('a', 's1', '2026-08-09T12:00:00.000Z', 200)],
+      surveys: [survey('s1', { targetStimulus: 1, recovery: 5, pain: 0 }), movement], ...windows
+    })
+    expect(result).toMatchObject({ targetStimulus: 5, recovery: 2, pain: 4, volumeFit: 3, attribution: 'exact' })
   })
 })
 
