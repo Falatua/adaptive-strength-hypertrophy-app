@@ -5,12 +5,36 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-08-27
 status: canonical-build-reference-and-active-implementation
-version: 1.73.0
+version: 1.74.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.74.0 Change Entry
+
+- Advanced the working application to private alpha 0.78.0 without changing backup schema 30, local persistence 31, the 251-movement catalog, or the Supabase cloud-authoritative boundary.
+- Added R-485 through R-488 and Chapter 105 for a read-only full training-block outlook with time remaining, round-by-round state, progression order, and honest deload timing.
+- Preserved athlete authority by leaving future exact targets unknown until review and making preview state presentation-only.
+
+## 105. Full Training-Block Outlook
+
+### 105.1 Persistent Preview Route
+
+Every active training-block blueprint exposes `Preview full block`. The read-only dialog shows the current round, total planned rounds, recorded rounds, planned rounds remaining including the current round, approximate training weeks left, and an expected final review date if each remaining round takes about one week. It explains that life interruptions may stretch a round and that passing dates do not complete work.
+
+### 105.2 Round and Progression Visibility
+
+The outlook lists every target round plus the final block review. Each round is written as Recorded, Current, or Planned. Recorded reviews may show their saved decision, the current round shows qualified important workouts, and future rounds state that exact targets wait for the prior review. Progression is shown as load first, then repetitions, then working sets, with holds and reductions still governed by exact completed evidence.
+
+### 105.3 Deload Timing and Authority
+
+When recovery is not currently recommended, the outlook says `No fixed deload date` and identifies the planned recovery decision after the final target round. If current evidence recommends recovery, it says so and shows the source reason. Pain, fatigue, technique, or unresolved work may support an earlier recovery proposal. Previewing never schedules a deload, applies progression, edits the block, or counts estimates as completed work.
+
+### 105.4 Acceptance
+
+Deterministic and browser acceptance covers all summary facts, current and planned round states, progression order, deload wording, unchanged serialized plan data, dialog focus and close behavior, responsive text wrapping, contained horizontal round scrolling, desktop Chromium, Android-style mobile Chromium, and iPhone WebKit.
 
 ### Version 1.73.0 Change Entry
 

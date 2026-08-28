@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { addDays } from 'date-fns'
 import {
   AlertCircle,
   CalendarDays,
@@ -9,6 +10,7 @@ import {
   Clock3,
   Dumbbell,
   Edit3,
+  Eye,
   Flag,
   History,
   Layers3,
@@ -111,6 +113,7 @@ export function PlanScreen() {
   const [editorOpen, setEditorOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
+  const [blockPreviewOpen, setBlockPreviewOpen] = useState(false)
   const [reviewDecision, setReviewDecision] = useState<CycleReviewDecision>('continue-hold')
   const [reviewReason, setReviewReason] = useState('')
   const [reviewError, setReviewError] = useState<string | null>(null)
@@ -159,6 +162,12 @@ export function PlanScreen() {
   const activeScheduleChanges = activePlan ? missedOpportunityEvents.filter((event) => event.mesocycleId === activePlan.id) : missedOpportunityEvents
   const latestScheduleChange = activeScheduleChanges.at(-1)
   const blueprintRound = cycleReview?.microcycleNumber ?? Math.max(1, ...planSessions.map((session) => session.microcycleNumber ?? 1))
+  const currentBlockRound = sourcePlan ? Math.min(sourcePlan.targetMicrocycles, blueprintRound) : 1
+  const completedBlockRounds = sourcePlan?.status === 'completed' ? sourcePlan.targetMicrocycles : Math.max(0, currentBlockRound - 1)
+  const plannedRoundsRemaining = sourcePlan?.status === 'completed' ? 0 : Math.max(0, sourcePlan.targetMicrocycles - currentBlockRound + 1)
+  const expectedBlockReviewDate = sourcePlan?.status === 'active' && cycleReview
+    ? addDays(cycleReview.targetDate, Math.max(0, sourcePlan.targetMicrocycles - currentBlockRound) * 7)
+    : null
   const blueprintSessions = planSessions.filter((session) => (session.microcycleNumber ?? 1) === blueprintRound)
   const blueprintSetsPerRound = blueprintSessions.flatMap((session) => session.exercises).reduce((total, planned) => total + planned.sets.length, 0)
   const blueprintMinutesPerRound = blueprintSessions.reduce((total, session) => total + session.durationMinutes, 0)
@@ -338,7 +347,10 @@ export function PlanScreen() {
             <h2 id="block-blueprint-title">See the whole route before you train it.</h2>
             <p>{sourcePlan ? 'These movements repeat as the stable weekly structure. Loads, repetitions, and recovery decisions can adapt after completed-work reviews, but ForgePath will not silently replace your chosen exercises.' : 'Build the first block to review every training day, movement role, and recovery checkpoint before committing.'}</p>
           </div>
-          <button className="button button--primary" onClick={openEditor}><Edit3 size={17} /> {sourcePlan ? 'Review and edit blueprint' : 'Build first blueprint'}</button>
+          <div className="block-blueprint__actions">
+            {sourcePlan && <button className="button button--secondary" onClick={() => setBlockPreviewOpen(true)}><Eye size={17} /> Preview full block</button>}
+            <button className="button button--primary" onClick={openEditor}><Edit3 size={17} /> {sourcePlan ? 'Review and edit blueprint' : 'Build first blueprint'}</button>
+          </div>
         </div>
 
         {sourcePlan ? <>
@@ -498,6 +510,69 @@ export function PlanScreen() {
           <button className="full-row-button full-row-button--accent" onClick={openEditor}><RefreshCcw size={17} /> Rebuild from a revision <ChevronRight size={18} /></button>
         </aside>
       </div>
+
+      <Modal open={blockPreviewOpen} onClose={() => setBlockPreviewOpen(false)} title="Full training-block preview" description="See how much of this block is recorded, what remains, how progression is decided, and when recovery is reviewed." wide>
+        {sourcePlan && <div className="block-outlook">
+          <section className="block-outlook__summary" aria-label="Training-block time remaining">
+            <div><span>Current position</span><strong>Round {currentBlockRound} of {sourcePlan.targetMicrocycles}</strong><small>{completedBlockRounds} recorded · {plannedRoundsRemaining} including the current round remain</small></div>
+            <div><span>Training time left</span><strong>{plannedRoundsRemaining === 0 ? 'Block complete' : `About ${plannedRoundsRemaining} training week${plannedRoundsRemaining === 1 ? '' : 's'}`}</strong><small>A round is usually one week, but it can stretch when life interrupts it.</small></div>
+            <div><span>Expected block review</span><strong>{expectedBlockReviewDate ? expectedBlockReviewDate.toLocaleDateString() : sourcePlan.status === 'completed' ? 'Ready now' : 'After the final round'}</strong><small>{expectedBlockReviewDate ? 'If each remaining round takes about one week' : 'Completed training, not the calendar alone, opens the review.'}</small></div>
+          </section>
+
+          <section className="block-outlook__route" aria-labelledby="block-outlook-route-title">
+            <div className="block-outlook__heading"><div><p className="eyebrow">Whole-block route</p><h3 id="block-outlook-route-title">Every planned training round</h3></div><span>{completedBlockRounds} / {sourcePlan.targetMicrocycles} recorded</span></div>
+            <div className="block-outlook__rounds">
+              {Array.from({ length: sourcePlan.targetMicrocycles }, (_, index) => {
+                const round = index + 1
+                const review = activeCycleReviews.filter((event) => event.microcycleNumber === round).at(-1)
+                const state = sourcePlan.status === 'completed' || round < currentBlockRound ? 'recorded' : round === currentBlockRound ? 'current' : 'planned'
+                const decision = review ? readable(review.decision) : null
+                const detail = state === 'recorded'
+                  ? decision ?? 'Completed work recorded'
+                  : state === 'current'
+                    ? `${cycleReview?.evidence.qualifiedSessions ?? 0} of ${cycleReview?.evidence.requiredSessions ?? 0} important workouts complete`
+                    : 'Exact targets wait for the prior round review'
+                return <article key={round} className={`block-outlook__round block-outlook__round--${state}`}>
+                  <span>{state === 'recorded' ? <Check size={16} /> : round}</span>
+                  <div><strong>Round {round}</strong><small>{state === 'recorded' ? 'Recorded' : state === 'current' ? 'Current' : 'Planned'}</small></div>
+                  <p>{detail}</p>
+                </article>
+              })}
+              <article className="block-outlook__round block-outlook__round--review">
+                <span><Flag size={16} /></span>
+                <div><strong>Block review</strong><small>Recovery decision</small></div>
+                <p>Continue, deload, change focus, or complete the block from recorded evidence.</p>
+              </article>
+            </div>
+          </section>
+
+          <div className="block-outlook__detail-grid">
+            <section className="block-outlook__progression" aria-labelledby="block-outlook-progression-title">
+              <p className="eyebrow">Progression preview</p>
+              <h3 id="block-outlook-progression-title">Load, then repetitions, then sets</h3>
+              <p>{sourcePlan.progressionModel}</p>
+              <ol>
+                <li><span>1</span><div><strong>Load</strong><small>First choice when the latest exact movement performance and recovery support it.</small></div></li>
+                <li><span>2</span><div><strong>Repetitions</strong><small>Progress within the useful range when a load increase is not yet supported.</small></div></li>
+                <li><span>3</span><div><strong>Working sets</strong><small>Last resort when repeated performance, stimulus, and recovery support more dose.</small></div></li>
+              </ol>
+              <p className="block-outlook__boundary">Future exact loads and repetitions stay unknown until the prior round is completed and reviewed.</p>
+            </section>
+
+            <section className={`block-outlook__recovery ${cycleReview?.recommendation === 'recover' ? 'block-outlook__recovery--warning' : ''}`} aria-labelledby="block-outlook-recovery-title">
+              <p className="eyebrow">Deload timing</p>
+              <h3 id="block-outlook-recovery-title">{cycleReview?.recommendation === 'recover' ? 'Recovery is suggested now' : sourcePlan.status === 'completed' ? 'Recovery decision is ready' : 'No fixed deload date'}</h3>
+              <p>{cycleReview?.recommendation === 'recover'
+                ? cycleReview.recommendationReasons[0]
+                : sourcePlan.status === 'completed'
+                  ? 'The planned training rounds are recorded. Review the block and choose whether to recover, continue, or change focus.'
+                  : `The planned decision point is after Round ${sourcePlan.targetMicrocycles}${expectedBlockReviewDate ? `, around ${expectedBlockReviewDate.toLocaleDateString()} if each round takes one week` : ''}. ForgePath checks recovery after every round and can suggest recovery earlier when pain, fatigue, technique, or unresolved work supports it.`}</p>
+              <div><Shield size={18} /><span><strong>A deload is a proposal, not a calendar command.</strong><small>Previewing this block never schedules recovery or changes your training. You approve every recovery round.</small></span></div>
+            </section>
+          </div>
+        </div>}
+        <div className="modal__actions"><button className="button button--primary" onClick={() => setBlockPreviewOpen(false)}>Close preview</button></div>
+      </Modal>
 
       <Modal open={reviewOpen} onClose={() => setReviewOpen(false)} title={`Review training round ${cycleReview?.microcycleNumber ?? ''}`} description="ForgePath suggests what should happen next from completed workouts, elapsed time, effort, and pain. You make the final call and record why." wide>
         {cycleReview && <div className="cycle-review-modal">

@@ -3033,7 +3033,36 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Deterministic and browser acceptance must prove that workout-only replacement does not edit the block contract, block-level changes create a new version for future planned work, proposed movement changes cannot be applied without acknowledgement, completed history remains intact, terminology is plain, and the flows remain contained on desktop Chromium, Android-style mobile Chromium, and iPhone WebKit.
 - Detail: `src/screens/PlanScreen.test.tsx`, `tests/e2e/exercise-library-expansion.spec.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 104
 
+### R-485 Persistent Full Training-Block Preview
+- Status: implemented
+- Provenance: from-user
+- Requirement: While a training block is active, Plan must retain an easy `Preview full block` route that can be opened without editing or revising the plan.
+- Detail: `src/screens/PlanScreen.tsx`, `PRODUCT.md`, `DESIGN.md`, and Build Bible Chapter 105
+
+### R-486 Time Remaining and Round-by-Round State
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: The preview must show the current round, total rounds, recorded rounds, planned rounds remaining including the current round, approximate training weeks left, an expected block-review date when rounds follow their ordinary one-week target, and every round's Recorded, Current, or Planned state. It must explain that interruptions can stretch a round.
+- Detail: `src/screens/PlanScreen.tsx`, `src/domain/cycle-review-engine.ts`, and Build Bible Chapter 105
+
+### R-487 Progression and Deload Visibility
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: The preview must show progression order as load, then repetitions, then working sets; keep future exact targets unknown until the prior round review; show the planned recovery decision after the final target round; and surface an earlier recovery recommendation when current evidence supports it.
+- Detail: `src/screens/PlanScreen.tsx`, `src/domain/training-engine.ts`, `src/domain/cycle-review-engine.ts`, and Build Bible Chapter 105
+
+### R-488 Read-Only Outlook Acceptance
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Opening and closing the full-block preview must never mutate the saved plan, schedule a deload, apply progression, or count estimated work. Deterministic and browser acceptance must cover dialog behavior, written states, responsive wrapping, contained horizontal scrolling, desktop Chromium, Android-style mobile Chromium, iPhone WebKit, console integrity, and unchanged serialized plan data.
+- Detail: `src/screens/PlanScreen.test.tsx`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 105
+
 ## Thread Coverage Audit
+
+### 2026-08-27 Full Training-Block Outlook
+- Scope: JB asked to keep the entire mezzo previewable from inside the active block, including weeks remaining, progression, and deload timing.
+- Result: Added R-485 through R-488 and Build Bible Chapter 105. Private alpha 0.78.0 adds a read-only full-block outlook with round and time remaining, expected review timing, recorded-current-planned states, progression order, and explicit evidence-based deload timing.
+- Status: Implemented and targeted across component, desktop Chromium, mobile Chromium, and iPhone WebKit checks. The complete deterministic, browser, Pages-artifact, deployment, and live-source checks remain release gates.
 
 ### 2026-08-27 Movement Replacement Scope
 - Scope: JB asked for an easy way to replace a movement either for one workout or for the rest of a training block, with clear language about which exact movement ForgePath will progress afterward.
@@ -3435,6 +3464,7 @@ This is the canonical traceability index for every durable requirement JB states
 ## Change Log
 
 - 2026-08-27: Added R-481 through R-484 and Build Bible Chapter 104 for explicit workout-only versus training-block movement replacement scope, staged workout confirmation, before-and-after recurring progression changes, plain terminology, preservation rules, and cross-device acceptance. Private alpha 0.77.0 preserves backup schema 30, local persistence 31, completed work, prior plan versions, and the Supabase snapshot contract.
+- 2026-08-27: Added R-485 through R-488 and Build Bible Chapter 105 for a persistent read-only full training-block outlook with weeks remaining, expected review timing, round-by-round state, progression order, evidence-based deload timing, no mutation, and cross-device acceptance. Private alpha 0.78.0 preserves backup schema 30, local persistence 31, completed work, and Supabase authority.
 - 2026-08-27: Added R-476 through R-480 and Build Bible Chapter 103 for optional exact-movement completion feedback, joint, technique, stimulus, load-fit, volume-fit, conditional recovery questions, source-set provenance, feedback-gated progression, athlete authority, and backup schema 30. Private alpha 0.76.0 advances local persistence to 31 while preserving completed training, approved plans, and the Supabase snapshot contract.
 - 2026-08-26: Added R-461 through R-463 and Build Bible Chapter 99 for independently collapsible Plan days, truthful closed-day summaries, collapsed secondary detail, and accessible desktop and phone acceptance. Private alpha 0.72.0 preserves backup schema 28, local persistence 30, Home Gym preference v3, and the Supabase snapshot contract.
 - 2026-08-27: Added R-472 through R-475 and Build Bible Chapter 102 for a progressively slower Forge level curve, bounded workout and record rewards, raw-tonnage and extra-set exclusion, three-exposure movement breadth, and transparent athlete-level-v2 recalculation. Private alpha 0.75.0 preserves completed training, programming, backup schema 29, local persistence 30, and the Supabase snapshot contract.

@@ -3,7 +3,7 @@
 This directory records the complete product and implementation specification in the public GitHub source repository so each release can be reviewed beside the code that implements it.
 
 - [Build Bible](BUILD_BIBLE.md): canonical behavior, architecture, decision rules, delivery phases, and release chapters.
-- [Requirements](REQUIREMENTS.md): all 484 numbered product requirements and their implementation notes.
+- [Requirements](REQUIREMENTS.md): all 488 numbered product requirements and their implementation notes.
 - [Traceability](TRACEABILITY.md): requirement-to-specification and verification mapping.
 - [Implementation Status](IMPLEMENTATION_STATUS.md): verified current release, boundaries, QA evidence, and next priorities.
 - [Cross-Device UX Audit](UX_AUDIT_2026-08-10.md): mobile and desktop heuristic findings, accessibility and performance evidence, corrections, and remaining priorities.

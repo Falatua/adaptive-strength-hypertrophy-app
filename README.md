@@ -1,10 +1,10 @@
-# ForgePath Private Alpha 0.77.0
+# ForgePath Private Alpha 0.78.0
 
 ForgePath is an athlete-controlled adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed. The hosted private alpha uses Supabase as the authoritative training store; local development keeps a browser-only test mode.
 
-Private alpha 0.77.0 makes movement replacement scope explicit. Inside a workout, a staged `Change this workout only` flow preserves the original movement in the training block and keeps exact histories separate. In Plan, every blueprint movement has `Change for block`; the next version lists each recurring Before and After change, identifies which movement will now be scheduled and progressed, preserves completed work, and requires acknowledgement before Apply. Athlete-facing screens use training block and training round instead of unexplained technical cycle terms.
+Private alpha 0.78.0 adds a read-only `Preview full block` view inside Plan. It shows the current round, how many planned training weeks remain, an estimated block-review date, the state of every round, the load-then-repetitions-then-sets progression order, and honest deload timing. Future exact targets remain unknown until the prior round is reviewed, and a deload remains an athlete-approved recovery proposal rather than a hidden calendar command.
 
-The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 484 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
+The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 488 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
 ## Run locally
 

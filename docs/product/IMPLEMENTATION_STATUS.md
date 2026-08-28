@@ -5,12 +5,23 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-08-27
 status: working-private-alpha
-app_version: 0.77.0
+app_version: 0.78.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.78.0 Full Training-Block Outlook Delta
+
+- Adds a direct read-only `Preview full block` action to the active Plan blueprint.
+- Shows the current round, total rounds, recorded rounds, planned rounds remaining including the current round, approximate training weeks left, and expected final review date if each round takes one week.
+- Shows every round as Recorded, Current, or Planned plus the final recovery decision. Recorded reviews retain their saved decision, the current round shows important-workout progress, and future exact targets stay unknown until the prior review.
+- Explains progression as load, then repetitions, then working sets while preserving holds and reductions from completed evidence.
+- States `No fixed deload date` unless current evidence recommends recovery, identifies the expected final decision point, and explains earlier evidence-based recovery proposals.
+- Keeps preview state presentation-only. It does not schedule recovery, apply progression, mutate the training block, or count planned work.
+- Preserves the 251-movement catalog, backup schema 30, local persistence 31, completed training, plan versions, and the Supabase cloud-authoritative contract.
+- Passes the Plan component test, targeted desktop Chromium, mobile Chromium, and iPhone WebKit journey, production build, live browser inspection, and desktop and 390 by 844 screenshot review. The complete release gate remains pending.
 
 ## Private Alpha 0.77.0 Movement Replacement Scope Delta
 
