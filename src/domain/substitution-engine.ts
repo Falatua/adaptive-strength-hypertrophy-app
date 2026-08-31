@@ -14,6 +14,7 @@ import type {
 import { recommendProgression } from './training-engine'
 import { exerciseEquipmentFit, loadIncrementFor } from './equipment-engine'
 import { applyRepPrescriptionPolicy, repRangeForExercise } from './rep-prescription-policy'
+import { defaultLoadModeFor } from './load-mode'
 
 export interface RankedSubstitution {
   candidate: Exercise
@@ -50,6 +51,7 @@ function replacementPrescription(input: {
     const sets = planned.sets.slice(0, count).map((workSet) => ({
       ...workSet,
       targetLoad: 0,
+      loadMode: defaultLoadModeFor(candidate),
       targetReps: applyRepPrescriptionPolicy({ exercise: candidate, role: planned.role, suggestedReps: workSet.targetReps, athlete, readiness, equipmentProfile }),
       targetRir: Math.max(3, workSet.targetRir),
       completed: false,
@@ -85,6 +87,7 @@ function replacementPrescription(input: {
   const sets = planned.sets.slice(0, count).map((workSet) => ({
     ...workSet,
     targetLoad: decision.nextLoad,
+    loadMode: latest[0].loadMode ?? defaultLoadModeFor(candidate),
     targetReps: decision.nextReps,
     targetRir: Math.max(workSet.targetRir, readiness === 'normal' ? 1 : 2),
     completed: false,

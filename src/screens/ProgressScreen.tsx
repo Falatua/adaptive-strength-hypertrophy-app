@@ -73,7 +73,7 @@ export function ProgressScreen() {
   const nextOpportunities = nextSession?.exercises.flatMap((planned) => {
     const exercise = exerciseCatalog.find((candidate) => candidate.id === planned.exerciseId)
     return exercise ? deriveRecordOpportunities({ history, planned, exercise, readiness: nextSession.readiness ?? 'confirm' }) : []
-  }).filter((opportunity) => opportunity.eligible).slice(0, 3) ?? []
+  }).filter((opportunity) => opportunity.kind !== 'paused').slice(0, 3) ?? []
   const priorityCoverage = useMemo(() => priorityAttentionFor({ selectedHistory: summary.history, allHistory: history, priorityRegions: athlete.priorityRegions }), [athlete.priorityRegions, history, summary.history])
   const plannedDose = useMemo(() => plannedVsCompletedDoseFor({ sessions, history, exercises: exerciseCatalog, range, focusRegions: athlete.priorityRegions }), [athlete.priorityRegions, exerciseCatalog, history, range, sessions])
   const muscleDose = useMemo(() => muscleDoseFor(summary.history, exerciseCatalog), [exerciseCatalog, summary.history])

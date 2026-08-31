@@ -51,7 +51,7 @@ export function derivePersonalRecords(entireHistory: CompletedSetRecord[]): Pers
   const history = entireHistory.filter((workSet) => workSet.numbersEntered !== false)
   const byExercise = new Map<string, CompletedSetRecord[]>()
   history.forEach((workSet) => {
-    const key = `${workSet.exerciseId}::${benchAngleKey(workSet)}`
+    const key = `${workSet.exerciseId}::${benchAngleKey(workSet)}::${workSet.loadMode ?? 'external'}`
     byExercise.set(key, [...(byExercise.get(key) ?? []), workSet])
   })
   const records: PersonalRecord[] = []
@@ -61,13 +61,35 @@ export function derivePersonalRecords(entireHistory: CompletedSetRecord[]): Pers
     const angle = sets[0].benchAngleDeg
     const setupId = angle === undefined ? '' : `:${benchAngleKey(sets[0])}`
     const setupLabel = angle === undefined ? '' : ` at ${angle}°`
-    const setupContext = angle === undefined ? {} : { benchAngleDeg: angle }
+    const bodyweight = sets[0].loadMode === 'bodyweight'
+    const modeId = bodyweight ? ':bodyweight' : ''
+    const setupContext = { ...(angle === undefined ? {} : { benchAngleDeg: angle }), ...(bodyweight ? { loadMode: 'bodyweight' as const } : {}) }
     const loadSet = best(sets, (workSet) => workSet.load)
     const eligibleStrengthSets = sets.filter((workSet) => workSet.reps >= 1 && workSet.reps <= 12)
     const strengthSet = eligibleStrengthSets.length ? best(eligibleStrengthSets, (workSet) => workSet.load * (1 + workSet.reps / 30)) : null
     const sessions = bySession(sets)
     const volumeSets = [...sessions.values()].sort((a, b) => historyVolume(b) - historyVolume(a) || new Date(recordDate(b)).getTime() - new Date(recordDate(a)).getTime() || latest(b).sessionId.localeCompare(latest(a).sessionId))[0]
     const exerciseName = loadSet.exerciseName
+
+    if (bodyweight) {
+      const bestRepSet = best(sets, (workSet) => workSet.reps)
+      const bestSession = [...sessions.values()].sort((a, b) => b.reduce((sum, workSet) => sum + workSet.reps, 0) - a.reduce((sum, workSet) => sum + workSet.reps, 0) || new Date(recordDate(b)).getTime() - new Date(recordDate(a)).getTime())[0]
+      const totalReps = bestSession.reduce((sum, workSet) => sum + workSet.reps, 0)
+      records.push(
+        record({
+          id: `record:${exerciseId}${setupId}${modeId}:reps-at-load`, exerciseId, exerciseName, type: 'reps-at-load', category: 'repetition',
+          value: bestRepSet.reps, unit: 'repetitions', label: `${bestRepSet.reps} bodyweight reps in one set${setupLabel}`, achievedAt: bestRepSet.completedAt,
+          sourceSessionId: bestRepSet.sessionId, sourceSetIds: [bestRepSet.id], context: { reps: bestRepSet.reps, ...setupContext }, validation: validationFor([bestRepSet])
+        }),
+        record({
+          id: `record:${exerciseId}${setupId}${modeId}:set-scheme`, exerciseId, exerciseName, type: 'set-scheme', category: 'scheme',
+          value: totalReps, unit: 'repetitions', label: `${totalReps} bodyweight reps across ${bestSession.length} sets${setupLabel}`, achievedAt: recordDate(bestSession),
+          sourceSessionId: bestSession[0].sessionId, sourceSetIds: orderedSets(bestSession).map((workSet) => workSet.id),
+          context: { setCount: bestSession.length, repetitionScheme: orderedSets(bestSession).map((workSet) => workSet.reps), ...setupContext }, validation: validationFor(bestSession)
+        })
+      )
+      return
+    }
 
     records.push(
       record({
@@ -277,19 +299,21 @@ export function deriveRecordOpportunities(input: {
   const { history, planned, exercise, readiness } = input
   const exerciseHistory = history.filter((workSet) => workSet.exerciseId === exercise.id)
   const exactHistory = comparableAngleHistory(exerciseHistory, planned)
-  if (!planned.sets.length || !exactHistory.length) return []
-  const current = new Map(derivePersonalRecords(exactHistory).map((recordValue) => [recordValue.id, recordValue]))
+  if (!planned.sets.length) return []
   const first = planned.sets[0]
   const setupId = first.benchAngleDeg === undefined ? '' : `:${benchAngleKey(first)}`
   const setupLabel = first.benchAngleDeg === undefined ? '' : ` at ${first.benchAngleDeg}°`
+  const bodyweight = first.loadMode === 'bodyweight'
+  const current = new Map(derivePersonalRecords(exactHistory).map((recordValue) => [recordValue.id, recordValue]))
   const plannedLoads = planned.sets.map((workSet) => workSet.targetLoad)
   const plannedReps = planned.sets.map((workSet) => workSet.targetReps)
   const gateReasons: string[] = []
-  if (['protect', 'pain-aware', 'reacclimate'].includes(readiness)) gateReasons.push(`${readiness} readiness pauses record prompts`)
+  if (['protect', 'pain-aware'].includes(readiness)) gateReasons.push(`${readiness} readiness pauses record prompts`)
   if (['irritating', 'avoid'].includes(exercise.jointFeeling)) gateReasons.push(`${exercise.jointFeeling} joint response pauses record prompts`)
   if (planned.sets.some((workSet) => workSet.targetRir < 1)) gateReasons.push('the prescription does not retain a safety repetition')
   const eligible = gateReasons.length === 0
   const gateReason = eligible ? 'Already inside the prescribed work. No extra load, repetitions, or sets are required.' : gateReasons.join('; ')
+  const kind: RecordOpportunity['kind'] = eligible ? 'available' : 'paused'
   const opportunities: RecordOpportunity[] = []
   const add = (type: RecordOpportunity['type'], category: RecordOpportunity['category'], title: string, explanation: string, plannedValue: number, recordId: string) => {
     const existing = current.get(recordId)
@@ -298,8 +322,53 @@ export function deriveRecordOpportunities(input: {
       id: `opportunity:${planned.id}:${type}:${recordId}`, exerciseId: exercise.id, type, category, title, explanation,
       plannedValue, currentValue: existing?.value ?? null, margin: existing ? plannedValue - existing.value : null,
       sourceSetIds: existing?.sourceSetIds ?? [], plannedSetIds: planned.sets.map((workSet) => workSet.id), eligible,
-      gateReason, ruleVersion: opportunityRuleVersion
+      kind, gateReason, ruleVersion: opportunityRuleVersion
     })
+  }
+
+  if (!exactHistory.length) {
+    const totalReps = plannedReps.reduce((sum, reps) => sum + reps, 0)
+    return [{
+      id: `opportunity:${planned.id}:baseline`, exerciseId: exercise.id, type: 'set-scheme', category: 'scheme',
+      title: bodyweight ? 'Establish a bodyweight baseline' : 'Establish your first exact baseline',
+      explanation: bodyweight
+        ? `Complete the planned ${planned.sets.length} set${planned.sets.length === 1 ? '' : 's'} for ${totalReps} total repetitions. That becomes the bodyweight mark your next workout can beat.`
+        : `Complete the planned work with the load and repetitions you actually perform. That gives this exact movement a real next target.`,
+      plannedValue: bodyweight ? totalReps : planned.sets.length, currentValue: null, margin: null,
+      sourceSetIds: [], plannedSetIds: planned.sets.map((workSet) => workSet.id), eligible,
+      kind: eligible ? 'baseline' : 'paused', gateReason, ruleVersion: opportunityRuleVersion
+    }]
+  }
+
+  if (bodyweight) {
+    const repRecordId = `record:${exercise.id}${setupId}:bodyweight:reps-at-load`
+    const schemeRecordId = `record:${exercise.id}${setupId}:bodyweight:set-scheme`
+    const repRecord = current.get(repRecordId)
+    const schemeRecord = current.get(schemeRecordId)
+    const plannedBestSet = Math.max(...plannedReps)
+    const plannedTotal = plannedReps.reduce((sum, reps) => sum + reps, 0)
+    add('reps-at-load', 'repetition', 'Bodyweight rep record in reach', `${plannedBestSet} repetitions${setupLabel} would be your best completed bodyweight set for this movement.`, plannedBestSet, repRecordId)
+    add('set-scheme', 'scheme', 'Bodyweight set record in reach', `Complete the planned ${planned.sets.length} sets for ${plannedTotal} total repetitions${setupLabel} to set a new session mark.`, plannedTotal, schemeRecordId)
+    if (!opportunities.length && repRecord) {
+      opportunities.push({
+        id: `opportunity:${planned.id}:bodyweight:build`, exerciseId: exercise.id, type: 'reps-at-load', category: 'repetition',
+        title: 'Next bodyweight rep record',
+        explanation: `Your best is ${repRecord.value} repetition${repRecord.value === 1 ? '' : 's'} in one set. ${repRecord.value + 1} surpasses it; today’s planned ${plannedBestSet} builds toward that mark without adding unplanned work.`,
+        plannedValue: plannedBestSet, currentValue: repRecord.value, margin: repRecord.value + 1 - plannedBestSet,
+        sourceSetIds: repRecord.sourceSetIds, plannedSetIds: planned.sets.map((workSet) => workSet.id), eligible: false,
+        kind: eligible ? 'build' : 'paused', gateReason: eligible ? 'Build toward the next record inside the planned work.' : gateReason, ruleVersion: opportunityRuleVersion
+      })
+    } else if (!opportunities.length && schemeRecord) {
+      opportunities.push({
+        id: `opportunity:${planned.id}:bodyweight:scheme-build`, exerciseId: exercise.id, type: 'set-scheme', category: 'scheme',
+        title: 'Next bodyweight set record',
+        explanation: `Your best session is ${schemeRecord.value} total repetitions. ${schemeRecord.value + 1} across the planned sets surpasses it when the progression plan reaches that target.`,
+        plannedValue: plannedTotal, currentValue: schemeRecord.value, margin: schemeRecord.value + 1 - plannedTotal,
+        sourceSetIds: schemeRecord.sourceSetIds, plannedSetIds: planned.sets.map((workSet) => workSet.id), eligible: false,
+        kind: eligible ? 'build' : 'paused', gateReason: eligible ? 'Build toward the next record inside the planned work.' : gateReason, ruleVersion: opportunityRuleVersion
+      })
+    }
+    return opportunities.slice(0, 2)
   }
 
   const plannedLoad = first.targetLoad
@@ -315,6 +384,18 @@ export function deriveRecordOpportunities(input: {
   }
   const projectedVolume = planned.sets.reduce((sum, _workSet, index) => sum + plannedLoads[index] * plannedReps[index], 0)
   add('exercise-session-volume', 'workload', 'Planned workload opportunity', `Completing the prescribed sets would create ${projectedVolume.toLocaleString()} exact-setup volume${setupLabel}.`, projectedVolume, `record:${exercise.id}${setupId}:exercise-session-volume`)
+
+  if (!opportunities.length) {
+    const repRecord = current.get(`record:${exercise.id}${setupId}:reps-at-load:${plannedLoad}`)
+    if (repRecord) opportunities.push({
+      id: `opportunity:${planned.id}:build`, exerciseId: exercise.id, type: 'reps-at-load', category: 'repetition',
+      title: 'Next repetition record',
+      explanation: `Your best at ${plannedLoad} is ${repRecord.value} repetition${repRecord.value === 1 ? '' : 's'}. ${repRecord.value + 1} surpasses it; today’s planned ${plannedRep} builds toward that mark without adding unplanned work.`,
+      plannedValue: plannedRep, currentValue: repRecord.value, margin: repRecord.value + 1 - plannedRep,
+      sourceSetIds: repRecord.sourceSetIds, plannedSetIds: planned.sets.map((workSet) => workSet.id), eligible: false,
+      kind: eligible ? 'build' : 'paused', gateReason: eligible ? 'Build toward the next record inside the planned work.' : gateReason, ruleVersion: opportunityRuleVersion
+    })
+  }
 
   const priority: Record<RecordOpportunity['type'], number> = {
     'load-for-reps': 0, 'reps-at-load': 1, 'absolute-load': 2, 'set-scheme': 3,

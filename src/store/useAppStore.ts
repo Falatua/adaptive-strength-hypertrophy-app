@@ -36,6 +36,7 @@ import type {
   ExerciseSubstitutionEvent,
   EffectiveSurveyMode,
   HistoryMutationEvent,
+  LoadMode,
   MesocycleDraft,
   MesocyclePlan,
   MissedOpportunityEvent,
@@ -104,6 +105,7 @@ interface AppState {
   pinSession: (sessionId: string) => { ok: boolean; error?: string }
   setReadiness: (sessionId: string, answers: SurveyAnswer[], skipped: boolean, mode: EffectiveSurveyMode) => void
   updateSet: (sessionId: string, plannedExerciseId: string, setId: string, data: { reps?: number; load?: number; rir?: number; benchAngleDeg?: number | null }) => void
+  setExerciseLoadMode: (sessionId: string, plannedExerciseId: string, loadMode: LoadMode) => void
   updateBenchAnglePlan: (sessionId: string, plannedExerciseId: string, angles: Array<number | undefined>) => void
   updateMovementNote: (sessionId: string, plannedExerciseId: string, body: string) => void
   toggleSetComplete: (sessionId: string, plannedExerciseId: string, setId: string) => void
@@ -115,6 +117,7 @@ interface AppState {
   recordPlacementExitReview: (decision: PlacementExitDecision, reason: string) => { ok: boolean; error?: string }
   recordMovementPlacementExitReview: (exerciseId: string, decision: PlacementExitDecision, reason: string) => { ok: boolean; error?: string }
   swapExercise: (sessionId: string, plannedExerciseId: string, exerciseId: string, reason: SubstitutionReason, primaryOverrideConfirmed: boolean) => { ok: boolean; error?: string; placementVerificationCancelled?: boolean }
+  swapExerciseForBlock: (sessionId: string, plannedExerciseId: string, exerciseId: string, reason: SubstitutionReason, primaryOverrideConfirmed: boolean) => { ok: boolean; error?: string; placementVerificationCancelled?: boolean }
   recordMovementFeedback: (sessionId: string, plannedExerciseId: string, answers: SurveyAnswer[], note: string, skipped: boolean) => { ok: boolean; error?: string }
   finishSession: (sessionId: string, feedback: { answers: SurveyAnswer[]; note?: string; skipped: boolean; mode: EffectiveSurveyMode; deferred?: boolean }) => void
   submitDeferredFeedback: (requestId: string, answers: SurveyAnswer[], note?: string) => { ok: boolean; error?: string }
@@ -426,6 +429,23 @@ export const useAppStore = create<AppState>()(
           })
         })
       })),
+      setExerciseLoadMode: (sessionId, plannedExerciseId, loadMode) => set((state) => ({
+        sessions: state.sessions.map((session) => session.id !== sessionId ? session : {
+          ...session,
+          exercises: session.exercises.map((exercise) => exercise.id !== plannedExerciseId ? exercise : {
+            ...exercise,
+            sets: exercise.sets.map((workSet) => {
+              if (workSet.completed) return workSet
+              if (loadMode === 'bodyweight') {
+                const entryOrigins = { ...workSet.entryOrigins }
+                delete entryOrigins.load
+                return { ...workSet, loadMode, completedLoad: undefined, entryOrigins }
+              }
+              return { ...workSet, loadMode }
+            })
+          })
+        })
+      })),
       updateBenchAnglePlan: (sessionId, plannedExerciseId, angles) => set((state) => ({
         sessions: state.sessions.map((session) => session.id !== sessionId ? session : {
           ...session,
@@ -474,7 +494,7 @@ export const useAppStore = create<AppState>()(
               completed: !candidateSet.completed,
               skipped: candidateSet.completed ? candidateSet.skipped : false,
               completedReps: candidateSet.completedReps ?? candidateSet.targetReps,
-              completedLoad: candidateSet.completedLoad ?? candidateSet.targetLoad,
+              completedLoad: candidateSet.loadMode === 'bodyweight' ? 0 : candidateSet.completedLoad ?? candidateSet.targetLoad,
               actualRir: candidateSet.actualRir ?? candidateSet.targetRir
             } : candidateSet)
           })
@@ -625,6 +645,74 @@ export const useAppStore = create<AppState>()(
         })
         return { ok: true, placementVerificationCancelled: placementCancellation.cancelled }
       },
+      swapExerciseForBlock: (sessionId, plannedExerciseId, exerciseId, reason, primaryOverrideConfirmed) => {
+        const state = get()
+        const session = state.sessions.find((candidate) => candidate.id === sessionId)
+        const planned = session?.exercises.find((candidate) => candidate.id === plannedExerciseId)
+        const original = state.exercises.find((candidate) => candidate.id === planned?.exerciseId)
+        const selected = state.exercises.find((candidate) => candidate.id === exerciseId && !candidate.retired)
+        const activePlan = state.mesocycles.find((plan) => plan.id === state.activeMesocycleId && plan.status === 'active')
+        if (!session || !planned || !original || !selected || !activePlan) return { ok: false, error: 'The active workout or training block is no longer available.' }
+        if (planned.role === 'primary' && !primaryOverrideConfirmed) return { ok: false, error: 'Confirm the main-lift tradeoff before changing it for the block.' }
+
+        const currentRound = session.microcycleNumber ?? 1
+        const roundSessions = state.sessions
+          .filter((candidate) => candidate.mesocycleId === activePlan.id && (candidate.microcycleNumber ?? 1) === currentRound)
+          .sort((a, b) => activePlan.sessionIds.indexOf(a.id) - activePlan.sessionIds.indexOf(b.id))
+        const sessionIndex = roundSessions.findIndex((candidate) => candidate.id === session.id)
+        const slotIndex = session.exercises.findIndex((candidate) => candidate.id === planned.id)
+        if (sessionIndex < 0 || slotIndex < 0) return { ok: false, error: 'ForgePath could not match this workout slot to the current block blueprint.' }
+
+        const nextVersion = Math.max(0, ...state.mesocycles.map((plan) => plan.version)) + 1
+        const planId = `mesocycle-${nanoid()}`
+        const effectiveAt = new Date().toISOString()
+        const generationProfile = state.equipmentProfiles.find((candidate) => candidate.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]
+        const baseDraft = draftFromPlan(activePlan)
+        const movementOverrides = (baseDraft.movementOverrides ?? []).filter((choice) => choice.sessionIndex !== sessionIndex || choice.slotIndex !== slotIndex)
+        const strengthAnchors = planned.role === 'primary'
+          ? baseDraft.strengthAnchors.map((anchorId) => anchorId === original.id ? selected.id : anchorId)
+          : baseDraft.strengthAnchors
+        const hasCompleteMovementPlacement = strengthAnchors.every((anchorId) => baseDraft.movementPlacements?.some((placement) => placement.exerciseId === anchorId))
+        const nextDraft: MesocycleDraft = {
+          ...baseDraft,
+          revisionReason: `${original.name} changed to ${selected.name} from the active workout for the remaining training block.`,
+          strengthAnchors,
+          movementOverrides: planned.role === 'primary' ? movementOverrides : [...movementOverrides, { sessionIndex, slotIndex, exerciseId: selected.id, source: 'athlete' }],
+          ...(baseDraft.entryRoute ? {
+            generationRuleVersion: hasCompleteMovementPlacement ? ROUTE_SESSION_RULE_VERSION : EQUIPMENT_ROUTE_SESSION_RULE_VERSION,
+            generationEquipment: equipmentGenerationEvidence(generationProfile),
+            movementPlacements: hasCompleteMovementPlacement ? structuredClone(baseDraft.movementPlacements) : undefined
+          } : {})
+        }
+        let preview: ReturnType<typeof buildMesocyclePreview>
+        try {
+          preview = buildMesocyclePreview(nextDraft, {
+            exercises: state.exercises,
+            currentSessions: state.sessions,
+            history: state.history,
+            planId,
+            planVersion: nextVersion,
+            startsAt: new Date(effectiveAt),
+            equipmentProfile: generationProfile
+          })
+        } catch (error) {
+          return { ok: false, error: error instanceof Error ? error.message : 'The revised training-block blueprint could not be generated.' }
+        }
+
+        const workoutResult = get().swapExercise(sessionId, plannedExerciseId, exerciseId, reason, primaryOverrideConfirmed)
+        if (!workoutResult.ok) return workoutResult
+        const updated = get()
+        const nextPlan = createMesocyclePlan(nextDraft, planId, nextVersion, effectiveAt, activePlan.id, preview.sessions.map((candidate) => candidate.id))
+        const revised = replaceFuturePlan(updated.sessions, updated.mesocycles, nextPlan, preview.sessions)
+        set({
+          sessions: revised.sessions,
+          mesocycles: revised.plans,
+          activeMesocycleId: nextPlan.id,
+          athlete: { ...updated.athlete, strengthAnchors: [...strengthAnchors] },
+          notice: `${selected.name} is active in this workout and training-block version ${nextVersion}. Completed workouts and ${original.name}'s history were preserved.`
+        })
+        return workoutResult
+      },
       recordMovementFeedback: (sessionId, plannedExerciseId, answers, note, skipped) => {
         const state = get()
         const session = state.sessions.find((candidate) => candidate.id === sessionId)
@@ -683,7 +771,7 @@ export const useAppStore = create<AppState>()(
           return plannedExercise.sets.flatMap((workSet, setIndex) => workSet.completed ? [{
             id: nanoid(), sessionId, exerciseId: exercise.id, exerciseName: exercise.name, family: exercise.family,
             primaryRegion: exercise.primaryRegion, completedAt, reps: workSet.completedReps ?? workSet.targetReps,
-            load: workSet.completedLoad ?? workSet.targetLoad, rir: workSet.actualRir ?? workSet.targetRir,
+            load: workSet.completedLoad ?? workSet.targetLoad, loadMode: workSet.loadMode, rir: workSet.actualRir ?? workSet.targetRir,
             technique, pain, qualityConfirmed, setIndex, plannedExerciseId: plannedExercise.id, benchAngleDeg: workSet.benchAngleDeg,
             // A set completed without the athlete typing anything keeps the planned numbers, but it is
             // recorded as not entered so records and progression never treat it as measured work.

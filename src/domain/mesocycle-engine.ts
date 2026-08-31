@@ -3,6 +3,7 @@ import { makeSets } from './training-engine'
 import { equipmentGenerationEvidence, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad } from './equipment-engine'
 import { isEquipmentRouteSessionRuleVersion, isMovementRouteSessionRuleVersion, prescriptionForRole, routeSessionProfile, type RouteSessionProfile } from './route-session-engine'
 import { applyRepPrescriptionPolicy } from './rep-prescription-policy'
+import { defaultLoadModeFor } from './load-mode'
 import {
   HOME_GYM_TRICEPS_PRESS_IDS,
   homeGymAccessoryRegionAllowed,
@@ -171,7 +172,7 @@ function plannedExercise(
     sets: makeSets(setCount, targetReps, targetLoad, targetRir)
       .map((workSet, index) => {
         const benchAngleDeg = prior.angles[index] ?? (prior.angles.length === 1 ? prior.angles[0] : undefined)
-        return { ...workSet, id: `${sessionKey}-${exercise.id}-set-${index + 1}`, ...(benchAngleDeg === undefined ? {} : { benchAngleDeg }) }
+        return { ...workSet, id: `${sessionKey}-${exercise.id}-set-${index + 1}`, loadMode: defaultLoadModeFor(exercise), ...(benchAngleDeg === undefined ? {} : { benchAngleDeg }) }
       }),
     restSeconds,
     estimatedMinutes: Math.round(estimatedMinutes),

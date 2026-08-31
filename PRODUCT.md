@@ -44,6 +44,14 @@ Autofill is field-specific and protective. A value the athlete already changed o
 
 Copied values are draft data only. Autofill never completes a set, marks success or failure, creates a record, changes a target, or earns progression. Every set still requires its own explicit `Log set` action, and every copied field remains editable before or after logging.
 
+The workout keeps this convenience visually quiet. The set table demonstrates the behavior directly, so ForgePath does not repeat an explainer above every movement while the athlete is trying to log work.
+
+## Bodyweight Logging and Progress
+
+Movements that may be performed unloaded or externally loaded, including pull-ups and dips, expose a direct `Bodyweight` or active-unit choice in the workout. Bodyweight mode stores zero external load and a distinct load-mode identity rather than pretending the athlete lifted zero pounds. The athlete may switch back to external load before logging unfinished sets.
+
+Bodyweight records use repetitions and completed set totals. The product shows the best completed single set, the best total repetitions across the completed sets in one session, and the exact next mark required to surpass either record. Bodyweight work never creates a false absolute-load, estimated-strength, or load-volume record.
+
 ## Movement Completion Feedback
 
 When the athlete logs the final set of an exact movement, ForgePath opens a short inline check inside that movement card. It asks about joint response, technique consistency, target stimulus, load and repetition fit, and hard-set volume. Recovery from the last exact exposure appears only when that exact movement has prior history. The check is optional, may be skipped, and preserves every unanswered item as unknown.
@@ -143,12 +151,17 @@ The engine explains decisions at three horizons: what to do today, what happens 
 - ForgePath suggestions are a starting blueprint, not a command. The athlete can replace a main lift, builder, accessory, or tertiary movement once at the block level instead of repeating the same change in every workout.
 - Every movement row offers a direct `Change for block` action. Before a new block version can be applied, ForgePath lists each recurring slot whose movement would change, shows the old and new exact names, explains which movement will now be progressed, and requires explicit acknowledgement. This includes movement changes proposed indirectly by regeneration, not only selects the athlete touched.
 - A block-level movement choice, including an optional incline back-pad angle, stays stable in later training rounds until the athlete approves another revision. Load, repetitions, recoverable dose, scheduling, and recovery recommendations may adapt from completed evidence without changing that movement contract silently.
-- The active-workout replacement picker is deliberately different. It says `Scope: this workout only`, preserves the training block's recurring movement and progression lane, stages a candidate before mutation, and requires a final `Change this workout only` action. The replacement receives its own prescription and exact history. It never edits the block blueprint.
+- The active-workout replacement picker offers two explicit choices before selection: `This workout` and `Entire training block`. The workout choice preserves the recurring movement and progression lane. The block choice creates a new block version for future planned work while applying the selected movement to the active workout. Both choices stage the candidate before mutation, preserve completed workouts and exact histories, and require a scope-specific final action.
 - Planned block sets, minutes, and dates are visibly estimates. They never enter completed volume, records, progression, or confidence until the work is actually completed.
+- Today provides a direct read-only preview of the next workout, and every future session in the Plan queue has its own preview action. Each preview shows exact planned sets, repetitions, bodyweight or external load, the latest exact exposure, and the nearest progress cue. Previewing never starts, pins, edits, or progresses a workout.
 - An active training block always retains a direct `Preview full block` action. The read-only outlook shows the current round, recorded rounds, planned rounds remaining, approximate training weeks left, and the expected final review date if each round takes about one week. It states that real-life interruptions may stretch the schedule and that completed training, not elapsed dates alone, advances the block.
 - The outlook shows progression as a decision sequence, load first, then repetitions, then working sets, and labels exact future targets as unknown until the prior round is completed and reviewed. Recorded review decisions appear on earlier rounds while future rounds remain planned rather than invented.
 - Deload timing is explicit but not falsely fixed. The final route marker is a recovery decision after the target round, and the current round can recommend recovery earlier when pain, fatigue, technique, or unresolved work supports it. Previewing the outlook never schedules a deload, applies progression, or changes the training block.
 - When a block finishes, ForgePath begins the next-block draft from the completed movement map. Exact completed-set feedback and saved preferences may suggest keep, review, or change, but the athlete chooses whether to reuse or replace each movement.
+
+## Phase-Safe Progress Cues
+
+Progress remains visible in calibration, recalibration, bridge, reacclimation, base-building, and development work. When exact history does not exist, the planned work is labeled as the baseline the next workout can beat. When a record is not inside today's prescribed work, ForgePath shows the next record threshold and explains that today's target builds toward it without adding unplanned load, repetitions, or sets. Protective and pain-aware states pause record chasing while retaining the reason.
 
 ## Ongoing Calibration and Confidence
 

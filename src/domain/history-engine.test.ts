@@ -63,6 +63,58 @@ describe('source history replay', () => {
     expect(protectedOpportunities.every((opportunity) => !opportunity.eligible && /pauses/i.test(opportunity.gateReason))).toBe(true)
   })
 
+  it('tracks bodyweight movements by repetitions and sets while keeping progress cues active during reacclimation', () => {
+    const pullUp = exercises.find((candidate) => candidate.id === 'pull-up')!
+    const template = history[0]
+    const bodyweightHistory = Array.from({ length: 3 }, (_, index) => ({
+      ...template,
+      id: `bodyweight-pull-up-${index + 1}`,
+      sessionId: 'bodyweight-pull-up-session',
+      exerciseId: pullUp.id,
+      exerciseName: pullUp.name,
+      load: 0,
+      reps: 5,
+      setIndex: index,
+      loadMode: 'bodyweight' as const
+    }))
+    const planned = structuredClone(sessions[0].exercises[0])
+    planned.id = 'planned-bodyweight-pull-up'
+    planned.exerciseId = pullUp.id
+    planned.sets = Array.from({ length: 3 }, (_, index) => ({
+      ...planned.sets[0],
+      id: `planned-bodyweight-pull-up-${index + 1}`,
+      targetLoad: 0,
+      targetReps: 6,
+      loadMode: 'bodyweight' as const,
+      completed: false
+    }))
+
+    const bodyweightRecords = derivePersonalRecords(bodyweightHistory).filter((record) => record.exerciseId === pullUp.id)
+    expect(new Set(bodyweightRecords.map((record) => record.type))).toEqual(new Set(['reps-at-load', 'set-scheme']))
+    expect(bodyweightRecords.every((record) => record.context.loadMode === 'bodyweight')).toBe(true)
+
+    const opportunities = deriveRecordOpportunities({ history: bodyweightHistory, planned, exercise: pullUp, readiness: 'reacclimate' })
+    expect(opportunities).toHaveLength(2)
+    expect(opportunities.every((opportunity) => opportunity.kind === 'available' && opportunity.eligible)).toBe(true)
+    expect(opportunities.map((opportunity) => opportunity.explanation).join(' ')).toMatch(/6 repetitions/i)
+    expect(opportunities.map((opportunity) => opportunity.explanation).join(' ')).toMatch(/18 total repetitions/i)
+  })
+
+  it('turns a first bodyweight workout into a visible baseline target', () => {
+    const pullUp = exercises.find((candidate) => candidate.id === 'pull-up')!
+    const planned = structuredClone(sessions[0].exercises[0])
+    planned.id = 'first-bodyweight-pull-up'
+    planned.exerciseId = pullUp.id
+    planned.sets = planned.sets.slice(0, 3).map((workSet, index) => ({ ...workSet, id: `first-bodyweight-set-${index}`, targetLoad: 0, targetReps: 5, loadMode: 'bodyweight' as const }))
+
+    expect(deriveRecordOpportunities({ history: [], planned, exercise: pullUp, readiness: 'confirm' })[0]).toMatchObject({
+      kind: 'baseline',
+      eligible: true,
+      title: 'Establish a bodyweight baseline',
+      plannedValue: 15
+    })
+  })
+
   it('derives an auditable achievement timeline from completed source sets', () => {
     const events = deriveAchievementEvents(history)
     const sourceIds = new Set(history.map((workSet) => workSet.id))

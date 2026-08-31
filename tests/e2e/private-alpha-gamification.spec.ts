@@ -78,6 +78,72 @@ test('turns the current prescription into an original, evidence-backed field gui
   expect(browserErrors).toEqual([])
 })
 
+test('previews the next workout from Today and the future queue without changing training', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  const stateBefore = await page.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state.sessions))
+
+  await page.getByRole('button', { name: 'Preview workout' }).click()
+  const todayPreview = page.getByRole('dialog', { name: /Preview .+/ })
+  await expect(todayPreview).toContainText('Planned:')
+  await expect(todayPreview).toContainText('Last:')
+  await expect(todayPreview).toContainText('Preview only')
+  if (testInfo.project.name === 'mobile-chromium') await todayPreview.screenshot({ path: 'output/playwright/workout-preview-mobile.png' })
+  await todayPreview.getByRole('button', { name: 'Close preview', exact: true }).click()
+
+  await page.getByRole('button', { name: 'Plan', exact: true }).click()
+  await page.getByRole('button', { name: 'Show the upcoming session queue' }).click()
+  await page.locator('.queue-item').nth(1).getByRole('button', { name: 'Preview' }).click()
+  const futurePreview = page.getByRole('dialog', { name: /Preview .+/ })
+  await expect(futurePreview).toContainText('Planned:')
+  await expect(futurePreview).toContainText('Preview only')
+  await futurePreview.getByRole('button', { name: 'Close preview', exact: true }).click()
+
+  const stateAfter = await page.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state.sessions))
+  expect(stateAfter).toBe(stateBefore)
+  expect(browserErrors).toEqual([])
+})
+
+test('logs pull-ups as bodyweight repetitions while preserving separate set completion', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await page.evaluate(() => {
+    const key = 'forgepath-private-alpha-v1'
+    const persisted = JSON.parse(localStorage.getItem(key) ?? '{}')
+    const session = persisted.state.sessions.find((candidate: { status: string }) => candidate.status === 'planned')
+    const planned = session.exercises[1]
+    planned.exerciseId = 'pull-up'
+    planned.purpose = 'Build repeatable bodyweight pull-up strength.'
+    planned.sets = Array.from({ length: 3 }, (_, index) => ({ id: `browser-bodyweight-${index + 1}`, targetLoad: 0, targetReps: 5, targetRir: 2, loadMode: 'bodyweight', completed: false }))
+    localStorage.setItem(key, JSON.stringify(persisted))
+  })
+  await page.reload()
+  await page.getByRole('button', { name: 'Start without check-in' }).click()
+
+  const movement = page.locator('.exercise-card').filter({ has: page.getByRole('heading', { name: 'Pull-Up' }) })
+  await expect(movement.getByRole('button', { name: 'Bodyweight' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(movement.locator('.bodyweight-load')).toHaveCount(3)
+  const rows = movement.locator('.set-row')
+  await rows.first().locator('input[inputmode="numeric"]').fill('8')
+  await expect(rows.nth(1).locator('input[inputmode="numeric"]')).toHaveValue('8')
+  await expect(rows.nth(2).locator('input[inputmode="numeric"]')).toHaveValue('8')
+  await expect(movement.getByRole('button', { name: 'Done' })).toHaveCount(0)
+  if (testInfo.project.name === 'mobile-chromium') await movement.screenshot({ path: 'output/playwright/bodyweight-pull-up-mobile.png' })
+  await rows.first().getByRole('button', { name: 'Log set' }).click()
+  await expect(movement.getByRole('button', { name: 'Done' })).toHaveCount(1)
+
+  const firstSet = await page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state
+    return state.sessions.find((candidate: { status: string }) => candidate.status === 'active').exercises.find((planned: { exerciseId: string }) => planned.exerciseId === 'pull-up').sets[0]
+  })
+  expect(firstSet).toMatchObject({ loadMode: 'bodyweight', targetLoad: 0, completedLoad: 0, completedReps: 8, completed: true })
+  expect(browserErrors).toEqual([])
+})
+
 test('previews and preserves an athlete-edited training-block blueprint', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
@@ -384,7 +450,7 @@ test('uses Set 1 to prefill untouched sets without logging or overwriting athlet
   await page.getByRole('button', { name: 'Start without check-in' }).click()
 
   const movement = page.locator('.exercise-card--primary').first()
-  await expect(movement).toContainText('Set 1 fills the untouched sets below')
+  await expect(movement).not.toContainText('Set 1 fills the untouched sets below')
   const rows = movement.locator('.set-row')
   await expect(rows.nth(2)).toBeVisible()
 
@@ -1197,8 +1263,17 @@ test('uses a saved location profile to gate unavailable work and executable load
   await expect(page.locator('.equipment-block')).toHaveCount(3)
   await expect(page.getByRole('button', { name: 'Blocked' }).first()).toBeDisabled()
   await page.locator('.equipment-block button').first().click()
-  await expect(page.getByRole('heading', { name: "Change this workout's movement" })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Change movement' })).toBeVisible()
   await expect(page.getByText('Garage Rack', { exact: false }).first()).toBeVisible()
+  const workoutScope = page.getByRole('button', { name: /This workout/ })
+  const blockScope = page.getByRole('button', { name: /Entire training block/ })
+  await expect(workoutScope).toHaveAttribute('aria-pressed', 'true')
+  await blockScope.click()
+  await expect(blockScope).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('dialog')).toContainText('creates a new athlete-approved block version')
+  if (testInfo.project.name === 'mobile-chromium') await page.getByRole('dialog').screenshot({ path: 'output/playwright/movement-change-scope-mobile.png' })
+  await workoutScope.click()
+  await expect(workoutScope).toHaveAttribute('aria-pressed', 'true')
   const bestAvailableReplacement = page.getByRole('dialog').locator('.swap-option').first()
   await expect(bestAvailableReplacement).toBeVisible()
   await bestAvailableReplacement.click()

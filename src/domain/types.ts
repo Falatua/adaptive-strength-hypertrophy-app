@@ -334,6 +334,8 @@ export interface ExerciseMuscleMapping {
   reviewedAt: string
 }
 
+export type LoadMode = 'external' | 'bodyweight'
+
 export interface SetPrescription {
   id: string
   targetReps: number
@@ -353,6 +355,8 @@ export interface SetPrescription {
   grouping?: SetGrouping
   /** Optional back-pad angle. Undefined means it was not tracked. */
   benchAngleDeg?: number
+  /** Bodyweight sets progress through repetitions and set completion without invented volume load. */
+  loadMode?: LoadMode
 }
 
 export type SetEntryField = 'load' | 'reps' | 'rir'
@@ -548,6 +552,7 @@ export interface CompletedSetRecord {
   athleteAdded?: boolean
   grouping?: SetGrouping
   benchAngleDeg?: number
+  loadMode?: LoadMode
   plannedExerciseId?: string
   originalExerciseId?: string
   originalExerciseName?: string
@@ -701,6 +706,7 @@ export interface PersonalRecord {
     formulaVersion?: 'epley-v1'
     eligibleRepRange?: [number, number]
     benchAngleDeg?: number
+    loadMode?: LoadMode
   }
   validation: 'validated' | 'numeric-only'
   ruleVersion: 'pr-v2'
@@ -740,6 +746,7 @@ export interface RecordOpportunity {
   sourceSetIds: string[]
   plannedSetIds: string[]
   eligible: boolean
+  kind: 'available' | 'build' | 'baseline' | 'paused'
   gateReason: string
   ruleVersion: 'opportunity-v1'
 }

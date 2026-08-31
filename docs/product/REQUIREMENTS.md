@@ -3,7 +3,7 @@ type: requirements-register
 aliases: [Adaptive Training App Requirements, App Requirements Register]
 tags: [fitness, app, requirements, source-of-truth, continuity]
 created: 2026-08-09
-updated: 2026-08-11
+updated: 2026-08-31
 status: active
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: from-user
@@ -3057,7 +3057,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Opening and closing the full-block preview must never mutate the saved plan, schedule a deload, apply progression, or count estimated work. Deterministic and browser acceptance must cover dialog behavior, written states, responsive wrapping, contained horizontal scrolling, desktop Chromium, Android-style mobile Chromium, iPhone WebKit, console integrity, and unchanged serialized plan data.
 - Detail: `src/screens/PlanScreen.test.tsx`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 105
 
+### R-489 In-Workout Replacement Scope Choice
+- Status: implemented
+- Provenance: from-user
+- Requirement: The active workout's movement-change flow must offer `This workout` and `Entire training block` before the athlete selects a replacement. A workout-scoped change preserves future rounds. A block-scoped change applies now and creates a new block version for future planned sessions while preserving completed workouts and exact histories.
+- Detail: `src/screens/WorkoutScreen.tsx`, `src/store/useAppStore.ts`, and Build Bible Chapter 106
+
+### R-490 Bodyweight and External-Load Modes
+- Status: implemented-first-slice
+- Provenance: from-user
+- Requirement: Bodyweight-capable movements such as pull-ups and dips must let the athlete choose bodyweight or the active external-load unit. Bodyweight mode must remain distinct from a zero-pound lift, preserve repetitions and effort, and produce repetition and completed-set-total records without false absolute-load, estimated-strength, or load-volume claims.
+- Detail: `src/domain/load-mode.ts`, `src/domain/history-engine.ts`, `src/screens/WorkoutScreen.tsx`, and Build Bible Chapter 106
+
+### R-491 Phase-Safe Progress Cues
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Calibration, recalibration, bridge, reacclimation, base-building, and development routes must retain an honest progress cue. With no history, show the baseline today's prescribed work establishes. When today's target does not surpass the record, show the exact next mark and explain that the prescribed work builds toward it. Protect and pain-aware states may pause record chasing but must show why.
+- Detail: `src/domain/history-engine.ts`, `src/screens/WorkoutScreen.tsx`, `src/screens/ProgressScreen.tsx`, and Build Bible Chapter 106
+
+### R-492 Quiet Autofill Presentation
+- Status: implemented
+- Provenance: from-user
+- Requirement: Preserve Set 1 field-level autofill, editable later rows, manual exceptions, and separate `Log set` actions while removing repetitive quality-of-life explainer copy from active movement cards. The visible behavior and source-truth boundary must remain testable without the paragraph.
+- Detail: `src/domain/set-entry-autofill.ts`, `src/screens/WorkoutScreen.tsx`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 106
+
+### R-493 Multi-Entry Workout Preview
+- Status: implemented
+- Provenance: from-user
+- Requirement: Today must preview the next workout before start, and every queued Plan workout must have its own preview. Both routes must show planned sets, repetitions, bodyweight or external load, latest exact exposure, and the nearest progress cue through one shared read-only component. Previewing cannot start, pin, edit, complete, or progress training.
+- Detail: `src/components/WorkoutPreview.tsx`, `src/screens/TodayScreen.tsx`, `src/screens/PlanScreen.tsx`, and Build Bible Chapter 106
+
 ## Thread Coverage Audit
+
+### 2026-08-31 In-Workout Scope, Bodyweight Progress, and Workout Preview
+- Scope: JB requested one-workout or full-block replacement choice inside the workout, bodyweight logging for pull-ups and dips, progress motivation in every training stage, quieter Set 1 autofill, and multiple ways to inspect future workouts and exact progression targets.
+- Result: Added R-489 through R-493 and Build Bible Chapter 106. Private alpha 0.79.0 adds scope-first active-workout replacement, bodyweight load identity and repetition records, baseline and build-toward cues across transitional phases, shared Today and Plan workout previews, and quiet autofill presentation without changing its behavior.
+- Status: Implemented and locally verified with 539 deterministic tests, all 159 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys, production build, mobile visual inspection, scope and preview state preservation, backup round trip, console integrity, and responsive containment. Pages artifact, workflow, deployment, and live-source checks remain release gates.
 
 ### 2026-08-27 Full Training-Block Outlook
 - Scope: JB asked to keep the entire mezzo previewable from inside the active block, including weeks remaining, progression, and deload timing.
@@ -3463,6 +3498,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-08-31: Added R-489 through R-493 and Build Bible Chapter 106 for active-workout scope choice, bodyweight logging and records, phase-safe progress cues, quiet autofill presentation, shared workout previews, preservation rules, and cross-device acceptance. Private alpha 0.79.0 preserves backup schema 30, local persistence 31, completed work, prior plan versions, and Supabase authority.
 - 2026-08-27: Added R-481 through R-484 and Build Bible Chapter 104 for explicit workout-only versus training-block movement replacement scope, staged workout confirmation, before-and-after recurring progression changes, plain terminology, preservation rules, and cross-device acceptance. Private alpha 0.77.0 preserves backup schema 30, local persistence 31, completed work, prior plan versions, and the Supabase snapshot contract.
 - 2026-08-27: Added R-485 through R-488 and Build Bible Chapter 105 for a persistent read-only full training-block outlook with weeks remaining, expected review timing, round-by-round state, progression order, evidence-based deload timing, no mutation, and cross-device acceptance. Private alpha 0.78.0 preserves backup schema 30, local persistence 31, completed work, and Supabase authority.
 - 2026-08-27: Added R-476 through R-480 and Build Bible Chapter 103 for optional exact-movement completion feedback, joint, technique, stimulus, load-fit, volume-fit, conditional recovery questions, source-set provenance, feedback-gated progression, athlete authority, and backup schema 30. Private alpha 0.76.0 advances local persistence to 31 while preserving completed training, approved plans, and the Supabase snapshot contract.

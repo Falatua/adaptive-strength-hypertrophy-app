@@ -26,6 +26,7 @@ import { useAppStore } from '../store/useAppStore'
 import { checkInAgeLabels, scheduleChangeLabels, scheduleReadinessOutcomeLabels } from '../domain/readable-labels'
 import { Modal } from '../components/Modal'
 import { CollapsiblePanel } from '../components/CollapsiblePanel'
+import { WorkoutPreview } from '../components/WorkoutPreview'
 import { buildMesocyclePreview, draftFromPlan } from '../domain/mesocycle-engine'
 import { buildCycleReview } from '../domain/cycle-review-engine'
 import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION } from '../domain/route-session-engine'
@@ -114,6 +115,7 @@ export function PlanScreen() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [blockPreviewOpen, setBlockPreviewOpen] = useState(false)
+  const [previewSessionId, setPreviewSessionId] = useState<string | null>(null)
   const [reviewDecision, setReviewDecision] = useState<CycleReviewDecision>('continue-hold')
   const [reviewReason, setReviewReason] = useState('')
   const [reviewError, setReviewError] = useState<string | null>(null)
@@ -445,6 +447,7 @@ export function PlanScreen() {
                     <div className="queue-meta"><span><Shield size={14} /> {exercise?.name}</span><span><Clock3 size={14} /> {session.durationMinutes} min</span><span><Layers3 size={14} /> {session.exercises.length} movements</span>{session.generation && <span><Sparkles size={14} /> {readable(session.generation.route)}</span>}{session.generation?.equipment && <span><Dumbbell size={14} /> {session.generation.equipment.profileName}</span>}</div>
                   </div>
                   <div className="queue-actions">
+                    <button className="button button--small button--ghost" onClick={() => setPreviewSessionId(session.id)}><Eye size={16} /> Preview</button>
                     {(session.status === 'planned' || session.status === 'deferred') && <button className="button button--small button--secondary" onClick={() => startSession(session.id)}>Start</button>}
                     <button className="icon-button" disabled={!['planned', 'deferred'].includes(session.status)} onClick={() => { const result = pinSession(session.id); if (!result.ok) setNotice(result.error ?? 'That session could not be pinned.') }} aria-label={`Pin ${session.title} as next priority`}><Pin size={17} /></button>
                   </div>
@@ -572,6 +575,11 @@ export function PlanScreen() {
           </div>
         </div>}
         <div className="modal__actions"><button className="button button--primary" onClick={() => setBlockPreviewOpen(false)}>Close preview</button></div>
+      </Modal>
+
+      <Modal open={Boolean(previewSessionId)} onClose={() => setPreviewSessionId(null)} title={sessions.find((session) => session.id === previewSessionId)?.title ? `Preview ${sessions.find((session) => session.id === previewSessionId)!.title}` : 'Preview workout'} description="Review every movement, exact planned target, and nearest evidence-backed progress cue before starting." wide>
+        {sessions.find((session) => session.id === previewSessionId) && <WorkoutPreview session={sessions.find((session) => session.id === previewSessionId)!} exercises={exercises} history={history} units={settings.units} />}
+        <div className="modal__actions"><button className="button button--primary" onClick={() => setPreviewSessionId(null)}>Close preview</button></div>
       </Modal>
 
       <Modal open={reviewOpen} onClose={() => setReviewOpen(false)} title={`Review training round ${cycleReview?.microcycleNumber ?? ''}`} description="ForgePath suggests what should happen next from completed workouts, elapsed time, effort, and pain. You make the final call and record why." wide>

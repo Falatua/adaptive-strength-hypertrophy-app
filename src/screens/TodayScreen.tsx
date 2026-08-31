@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlarmClock, AlertTriangle, MessageSquare, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, Cloud, CloudOff, Dumbbell, FileCheck2, Footprints, LoaderCircle, RotateCcw, ShieldCheck, Trophy } from 'lucide-react'
+import { AlarmClock, AlertTriangle, MessageSquare, ArrowRight, BatteryCharging, CalendarClock, CheckCircle2, ChevronRight, Clock3, Cloud, CloudOff, Dumbbell, Eye, FileCheck2, Footprints, LoaderCircle, RotateCcw, ShieldCheck, Trophy } from 'lucide-react'
 import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
 import type { EffectiveSurveyMode, MissedOpportunityInput, SurveyAnswer } from '../domain/types'
 import { useAppStore } from '../store/useAppStore'
@@ -21,6 +21,7 @@ import { playForgeSound } from '../services/sound-engine'
 import { buildLifeAwareAssessment } from '../domain/life-aware-engine'
 import { ForgeGlyph } from '../components/ForgeGlyph'
 import { cloudSaveCopy, useCloudRuntime } from '../components/cloud-runtime-context'
+import { WorkoutPreview } from '../components/WorkoutPreview'
 
 const timeOptions = [15, 30, 45, 60, 75]
 const dateInputFor = (offsetDays: number) => {
@@ -38,6 +39,7 @@ export function TodayScreen() {
   const [surveyChooserOpen, setSurveyChooserOpen] = useState(false)
   const [activeSurveyMode, setActiveSurveyMode] = useState<Exclude<EffectiveSurveyMode, 'off'>>('full')
   const [whyOpen, setWhyOpen] = useState(false)
+  const [workoutPreviewOpen, setWorkoutPreviewOpen] = useState(false)
   const [missedOpen, setMissedOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [equipmentGateOpen, setEquipmentGateOpen] = useState(false)
@@ -259,6 +261,7 @@ export function TodayScreen() {
           <div className="hero-workout__actions">
             {activeSession ? <button className="button button--primary button--large" onClick={resumeActiveSession}>Resume active workout <ArrowRight size={18} /></button> : <>
               <button className="button button--primary button--large" disabled={placementBlocked} onClick={openPreferredCheckIn}>{placementBlocked ? 'Reassess before training' : checkInLabel} <ArrowRight size={18} /></button>
+              <button className="button button--secondary button--large" onClick={() => setWorkoutPreviewOpen(true)}><Eye size={17} /> Preview workout</button>
               {settings.preSurveyMode !== 'off' && <button className="button button--ghost hero-workout__skip" disabled={placementBlocked} onClick={() => begin([], true, 'off')}>Start without check-in</button>}
             </>}
           </div>
@@ -353,6 +356,11 @@ export function TodayScreen() {
           {whyReasons.map((reason, index) => <div key={`${reason.title}-${index}`}><span>{String(index + 1).padStart(2, '0')}</span><p><strong>{reason.title}.</strong> {reason.detail}</p></div>)}
         </div>
         <div className="modal__actions"><button className="button button--primary" onClick={() => setWhyOpen(false)}>Understood</button></div>
+      </Modal>
+
+      <Modal open={workoutPreviewOpen} onClose={() => setWorkoutPreviewOpen(false)} title={nextSession ? `Preview ${nextSession.title}` : 'Preview workout'} description="Review every movement, the exact planned target, and the nearest evidence-backed progress cue before you train." wide>
+        {nextSession && <WorkoutPreview session={nextSession} exercises={exercises} history={history} units={settings.units} />}
+        <div className="modal__actions"><button className="button button--primary" onClick={() => setWorkoutPreviewOpen(false)}>Close preview</button></div>
       </Modal>
 
       <Modal open={missedOpen} onClose={() => setMissedOpen(false)} title="Rebuild from what happened" description="Record the real interruption. ForgePath moves only unfinished plans. It never pretends a missed workout happened or adds the missed sets to a later day." wide>

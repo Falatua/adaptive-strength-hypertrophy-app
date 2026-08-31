@@ -23,6 +23,7 @@ import { ABX_BACK_PAD_ANGLES, benchAngleLabel, buildBenchAngleLadder, comparable
 import { cloudSaveCopy, useCloudRuntime } from '../components/cloud-runtime-context'
 import { MovementFeedbackPanel } from '../components/MovementFeedbackPanel'
 import { latestMovementFeedback, movementFeedbackMatchesCompletedSets, movementFeedbackMode } from '../domain/movement-feedback-engine'
+import { loadModeForSet, supportsBodyweightMode } from '../domain/load-mode'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary movement',
@@ -32,7 +33,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, equipmentProfiles, history, surveys, movementNotes, settings, placementVerifications, updateSet, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, skipSet, setPlacementWarmup, setSessionPainStatus, swapExercise, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, recordMovementFeedback, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
+  const { sessions, exercises, equipmentProfiles, history, surveys, movementNotes, settings, placementVerifications, updateSet, setExerciseLoadMode, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, skipSet, setPlacementWarmup, setSessionPainStatus, swapExercise, swapExerciseForBlock, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, recordMovementFeedback, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const cloudRuntime = useCloudRuntime()
   const saveCopy = cloudSaveCopy(cloudRuntime?.saveState ?? null)
@@ -41,6 +42,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const [swapBrowseMode, setSwapBrowseMode] = useState<'recommended' | 'library'>('recommended')
   const [swapSearch, setSwapSearch] = useState('')
   const [swapSelectionId, setSwapSelectionId] = useState<string | null>(null)
+  const [swapScope, setSwapScope] = useState<'workout' | 'block'>('workout')
   const [primaryOverrideConfirmed, setPrimaryOverrideConfirmed] = useState(false)
   const [swapError, setSwapError] = useState<string | null>(null)
   const [cancelledPlacementName, setCancelledPlacementName] = useState<string | null>(null)
@@ -63,7 +65,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
       id: `active:${session.id}:${workSet.id}`, sessionId: session.id, exerciseId: exercise.id, exerciseName: exercise.name,
       family: exercise.family, primaryRegion: exercise.primaryRegion, completedAt: session.startedAt ?? new Date().toISOString(),
       reps: workSet.completedReps ?? workSet.targetReps, load: workSet.completedLoad ?? workSet.targetLoad,
-      rir: workSet.actualRir ?? workSet.targetRir, technique: 4, pain: 0, setIndex, benchAngleDeg: workSet.benchAngleDeg
+      rir: workSet.actualRir ?? workSet.targetRir, technique: 4, pain: 0, setIndex, benchAngleDeg: workSet.benchAngleDeg, loadMode: workSet.loadMode
     }] : [])
   }) ?? [], [exercises, session])
   const activeAchievementPreview = useMemo(() => {
@@ -184,6 +186,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     setSwapBrowseMode('recommended')
     setSwapSearch('')
     setSwapSelectionId(null)
+    setSwapScope('workout')
     setPrimaryOverrideConfirmed(false)
     setSwapError(null)
   }
@@ -192,7 +195,9 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
     if (!swapSelectionId) return
     if (!swapTarget) return
     const originalName = exercises.find((exercise) => exercise.id === swapTarget.exerciseId)?.name ?? 'the original movement'
-    const result = swapExercise(session.id, swapTarget.id, swapSelectionId, swapReason, primaryOverrideConfirmed)
+    const result = swapScope === 'block'
+      ? swapExerciseForBlock(session.id, swapTarget.id, swapSelectionId, swapReason, primaryOverrideConfirmed)
+      : swapExercise(session.id, swapTarget.id, swapSelectionId, swapReason, primaryOverrideConfirmed)
     if (!result.ok) return setSwapError(result.error ?? 'That movement could not be selected.')
     if (result.placementVerificationCancelled) setCancelledPlacementName(originalName)
     setSwapTarget(null)
@@ -383,6 +388,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
               readiness: session.readiness ?? 'confirm'
             })
             const opportunities = deriveRecordOpportunities({ history, planned, exercise, readiness: session.readiness ?? 'confirm' })
+            const bodyweightCapable = supportsBodyweightMode(exercise)
+            const activeLoadMode = loadModeForSet(planned.sets[0] ?? {}, exercise)
             const exerciseAchievements = activeAchievementPreview.filter((event) => event.exerciseId === exercise.id)
             const currentMovementNote = movementNotes.find((note) => note.sessionId === session.id && note.plannedExerciseId === planned.id && note.exerciseId === exercise.id)
             const priorMovementNote = movementNotesForExercise(movementNotes, exercise.id).find((note) => note.id !== currentMovementNote?.id)
@@ -463,7 +470,11 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                     </div>
                   </details>
                 )}
-                {planned.sets.length > 1 && <p className="set-autofill-note"><Sparkles size={15} /><span><strong>Set 1 fills the untouched sets below.</strong> Load, reps, and effort stay editable, and every set still logs separately.</span></p>}
+                {bodyweightCapable && <div className="load-mode-toggle" role="group" aria-label={`${exercise.name} load type`}>
+                  <span>Load</span>
+                  <button type="button" aria-pressed={activeLoadMode === 'bodyweight'} onClick={() => setExerciseLoadMode(session.id, planned.id, 'bodyweight')}>Bodyweight</button>
+                  <button type="button" aria-pressed={activeLoadMode === 'external'} onClick={() => setExerciseLoadMode(session.id, planned.id, 'external')}>{settings.units}</button>
+                </div>}
                 <div className="set-table" role="table" aria-label={`${exercise.name} sets`}>
                   <div className="set-table__head" role="row"><span>Set</span><span>Load</span><span>Reps</span><span title={effortDisplayFor(0, effortMetric).hint}>{effortDisplayFor(0, effortMetric).label}</span><span>Status</span></div>
                   {planned.sets.map((workSet, index) => {
@@ -474,7 +485,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                     return (
                     <div id={`set-${workSet.id}`} className={`set-row ${workSet.completed ? 'completed' : ''}`} role="row" key={workSet.id}>
                       <span className="set-number">{index + 1}{workSet.athleteAdded && <em title="Added by you today">+</em>}{workSet.grouping && <b className={`set-group set-group--${workSet.grouping.groupRole}`} title={`${setStructureLabels[workSet.grouping.groupKind]}: ${workSet.grouping.groupRole}`}>{workSet.grouping.groupRole === 'drop' ? '↓' : workSet.grouping.groupRole === 'mini' ? '·' : workSet.grouping.groupRole === 'paired' ? '⇄' : '★'}</b>}</span>
-                      <label><span className="sr-only">Set {index + 1} load</span><NumberField disabled={!equipmentFit.available} inputMode="decimal" step={loadIncrementFor(exercise, activeEquipmentProfile).value} placeholder={loadUnknown ? 'Your call' : undefined} value={loadUnknown ? null : workSet.completedLoad ?? workSet.targetLoad} onCommit={(load) => updateSet(session.id, planned.id, workSet.id, { load })} /><small>{settings.units}</small></label>
+                      <label><span className="sr-only">Set {index + 1} load</span>{loadModeForSet(workSet, exercise) === 'bodyweight' ? <span className="bodyweight-load">BW</span> : <><NumberField disabled={!equipmentFit.available} inputMode="decimal" step={loadIncrementFor(exercise, activeEquipmentProfile).value} placeholder={loadUnknown ? 'Your call' : undefined} value={loadUnknown ? null : workSet.completedLoad ?? workSet.targetLoad} onCommit={(load) => updateSet(session.id, planned.id, workSet.id, { load })} /><small>{settings.units}</small></>}</label>
                       <label><span className="sr-only">Set {index + 1} repetitions</span><NumberField disabled={!equipmentFit.available} inputMode="numeric" value={workSet.completedReps ?? workSet.targetReps} onCommit={(reps) => updateSet(session.id, planned.id, workSet.id, { reps })} /></label>
                       <label><span className="sr-only">Set {index + 1} {effort.label === 'RPE' ? 'rate of perceived exertion' : 'repetitions in reserve'}</span><select disabled={!equipmentFit.available} value={effort.value} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { rir: effort.metric === 'rpe' ? rpeToRir(Number(event.target.value)) : Number(event.target.value) })}>{effort.options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
                       <div className="set-actions"><button className={`skip-set ${workSet.skipped ? 'skip-set--on' : ''}`} onClick={() => skipSet(session.id, planned.id, workSet.id, !workSet.skipped)} aria-pressed={Boolean(workSet.skipped)} aria-label={workSet.skipped ? `Set ${index + 1} skipped, undo` : `Skip set ${index + 1}`} title={workSet.skipped ? 'Skipped. Tap to undo.' : 'Skip this set'}><SkipForward size={16} /></button><button className="complete-set" disabled={!equipmentFit.available && !workSet.completed} onClick={() => logSet(planned.id, workSet.id, workSet.completed)} aria-pressed={workSet.completed}>{workSet.completed ? <><Check size={18} /> Done</> : equipmentFit.available ? 'Log set' : 'Blocked'}</button></div>
@@ -501,11 +512,11 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                     onContinue={focusNextSet}
                   />
                 )}
-                {settings.opportunityPrompts && !settings.quietMode && !planned.athleteAdded && exactHistory.length > 0 && (
-                  <div className={`pr-opportunity ${opportunities.length && !opportunities[0].eligible ? 'pr-opportunity--paused' : ''}`}>
+                {settings.opportunityPrompts && !settings.quietMode && !planned.athleteAdded && (
+                  <div className={`pr-opportunity ${opportunities[0]?.kind === 'paused' ? 'pr-opportunity--paused' : opportunities[0]?.kind === 'build' ? 'pr-opportunity--build' : ''}`}>
                     <Trophy size={17} />
                     <span>{opportunities.length
-                      ? <><strong>{opportunities[0].eligible ? opportunities[0].title : 'Record prompt paused'}:</strong> {opportunities[0].eligible ? opportunities[0].explanation : opportunities[0].gateReason} <small>{opportunities[0].eligible ? 'This is already prescribed. Do not add work to chase it.' : 'Training continues without a gamification target.'}</small></>
+                      ? <><strong>{opportunities[0].kind === 'paused' ? 'Record prompt paused' : opportunities[0].title}:</strong> {opportunities[0].kind === 'paused' ? opportunities[0].gateReason : opportunities[0].explanation} <small>{opportunities[0].kind === 'available' ? 'This is already prescribed. Do not add work to chase it.' : opportunities[0].kind === 'build' ? 'Progress the planned work first; the next record stays visible.' : opportunities[0].kind === 'baseline' ? 'This is a starting mark, not a max-effort test.' : 'Training continues without a record attempt.'}</small></>
                       : <><strong>Productive hold:</strong> Today's target does not cross an all-time record on this exact lift. A useful session does not need a PR.</>}
                     </span>
                   </div>
@@ -590,10 +601,14 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         </div>
       </Modal>
 
-      <Modal open={Boolean(swapTarget)} onClose={() => { setSwapTarget(null); setSwapSearch(''); setSwapBrowseMode('recommended'); setSwapSelectionId(null) }} title="Change this workout's movement" description="Choose a compatible replacement, review exactly what changes, then confirm." wide>
+      <Modal open={Boolean(swapTarget)} onClose={() => { setSwapTarget(null); setSwapSearch(''); setSwapBrowseMode('recommended'); setSwapSelectionId(null); setSwapScope('workout') }} title="Change movement" description="Choose how long the change should last, then review a compatible replacement." wide>
+        <div className="swap-scope-choices" role="group" aria-label="Movement change scope">
+          <button type="button" aria-pressed={swapScope === 'workout'} onClick={() => setSwapScope('workout')}><span>This workout</span><small>Return to the original movement next time.</small></button>
+          <button type="button" aria-pressed={swapScope === 'block'} onClick={() => setSwapScope('block')}><span>Entire training block</span><small>Use the replacement now and in future planned workouts.</small></button>
+        </div>
         <section className="swap-scope" aria-labelledby="swap-scope-title">
           <RefreshCcw size={19} />
-          <div><p className="eyebrow">Scope: this workout only</p><strong id="swap-scope-title">{swapOriginal?.name ?? 'This movement'} stays in your training block.</strong><small>A replacement changes only this workout. ForgePath will keep scheduling and progressing {swapOriginal?.name ?? 'the original movement'} in future training rounds. To change the recurring movement, use Plan and edit the training-block blueprint.</small></div>
+          <div><p className="eyebrow">Scope: {swapScope === 'workout' ? 'this workout only' : 'current training block'}</p><strong id="swap-scope-title">{swapScope === 'workout' ? `${swapOriginal?.name ?? 'This movement'} stays in your training block.` : 'The replacement becomes the recurring movement.'}</strong><small>{swapScope === 'workout' ? `ForgePath will keep scheduling and progressing ${swapOriginal?.name ?? 'the original movement'} in future training rounds.` : `ForgePath creates a new athlete-approved block version, changes this workout, and schedules the replacement in future planned rounds. Completed workouts and ${swapOriginal?.name ?? 'the original movement'} history remain unchanged.`}</small></div>
         </section>
         <div className="swap-controls">
           <label><span className="field-label">Why are you changing this movement? <small>Optional</small></span><select aria-label="Substitution reason" value={swapReason} onChange={(event) => { setSwapReason(event.target.value as SubstitutionReason); setSwapError(null) }}>
@@ -622,10 +637,10 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
         </div>
         {selectedSwap && <section className="swap-confirmation" aria-labelledby="swap-confirmation-title">
           <div className="swap-confirmation__change"><span><small>This workout</small><strong>{swapOriginal?.name ?? 'Original movement'}</strong></span><MoveRight size={18} /><span><small>Replacement</small><strong id="swap-confirmation-title">{selectedSwap.candidate.name}</strong></span></div>
-          <p><strong>{selectedSwap.candidate.name}</strong> gets its own prescription and exact movement history for this workout. <strong>{swapOriginal?.name ?? 'The original movement'}</strong> remains the recurring choice and keeps its progression path for future workouts in this training block.</p>
-          <div className="swap-confirmation__actions"><button type="button" className="button button--ghost" onClick={() => setSwapSelectionId(null)}>Keep looking</button><button type="button" className="button button--primary" disabled={swapTarget?.role === 'primary' && !primaryOverrideConfirmed} onClick={confirmSwap}>Change this workout only</button></div>
+          <p><strong>{selectedSwap.candidate.name}</strong> gets its own prescription and exact history. {swapScope === 'workout' ? <><strong>{swapOriginal?.name ?? 'The original movement'}</strong> remains the recurring choice for later workouts.</> : <>A new block version uses <strong>{selectedSwap.candidate.name}</strong> now and in future planned workouts. Completed history stays attached to the movement actually performed.</>}</p>
+          <div className="swap-confirmation__actions"><button type="button" className="button button--ghost" onClick={() => setSwapSelectionId(null)}>Keep looking</button><button type="button" className="button button--primary" disabled={swapTarget?.role === 'primary' && !primaryOverrideConfirmed} onClick={confirmSwap}>{swapScope === 'workout' ? 'Change this workout only' : 'Change for entire block'}</button></div>
         </section>}
-        <p className="modal-note">Candidates satisfy every equipment item in {activeEquipmentProfile.name}. The replacement receives a prescription from its own exact history or a conservative calibration, using the profile's executable load increment. The original movement's progression clock remains frozen for this workout only.</p>
+        <p className="modal-note">Candidates satisfy every equipment item in {activeEquipmentProfile.name}. The replacement receives a prescription from its own exact history or a conservative calibration, using the profile's executable load increment. {swapScope === 'workout' ? "The original movement's progression clock remains frozen for this workout only." : 'The replacement owns progression in future planned rounds; the original movement keeps its completed history.'}</p>
       </Modal>
 
       <Modal open={Boolean(decisionInfo)} onClose={() => setDecisionInfo(null)} title={decisionInfo ? `${decisionInfo.name} target for this lift` : 'Progression decision'} description="The recommendation follows fixed rules and uses this exact movement's completed history.">

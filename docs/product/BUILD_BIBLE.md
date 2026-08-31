@@ -3,14 +3,43 @@ type: product-build-bible
 aliases: [Adaptive Training App Build Bible, App Build Bible]
 tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
-updated: 2026-08-27
+updated: 2026-08-31
 status: canonical-build-reference-and-active-implementation
-version: 1.74.0
+version: 1.75.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.75.0 Change Entry
+
+- Advanced the working application to private alpha 0.79.0 without changing backup schema 30, local persistence 31, the 251-movement catalog, or the Supabase cloud-authoritative boundary.
+- Added R-489 through R-493 and Chapter 106 for scope-first active-workout replacement, bodyweight logging, phase-safe progress cues, quiet Set 1 autofill presentation, and shared workout previews.
+- Preserved completed work, exact movement histories, separate set completion, prior block versions, and athlete-approved programming authority.
+- Verified 539 deterministic tests and all 159 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys before release packaging.
+
+## 106. Workout Scope, Bodyweight Progress, and Future Preview
+
+### 106.1 Scope-First Active Replacement
+
+The active workout's `Change` action presents `This workout` and `Entire training block` as peer choices before candidate selection. The written consequence and final action repeat the selected scope. Workout scope changes only the active session. Block scope applies the selected movement in the active session, creates an append-only block version, and regenerates future planned sessions from the corresponding recurring slot. Completed and partial sessions, former exact history, and previous plan versions remain unchanged. Primary movement changes retain their separate intent confirmation.
+
+### 106.2 Bodyweight Load and Record Identity
+
+Pull-ups, dips, and other explicitly eligible movements expose a two-state bodyweight or active-unit control. Bodyweight applies only to unfinished sets, removes external-load entry, shows `BW`, and stores a dedicated load-mode field with zero external load at completion. It never reinterprets completed evidence. Bodyweight records are the best repetitions in one completed set and the best total repetitions across completed sets in one session. Absolute-load, estimated-strength, and load-volume records remain external-load concepts.
+
+### 106.3 Phase-Safe Motivation
+
+Progress cues remain present from calibration and bridge work through development. No exact history produces a baseline cue tied to the planned sets and repetitions. A planned record produces an available cue. Work below an existing record produces a build cue naming the current best and the exact next threshold without adding stress. Reacclimation alone does not suppress these informational cues. Protect, pain-aware, irritating-joint, avoid, and unsafe-effort gates pause record pursuit and preserve the written reason. Every cue is display-only.
+
+### 106.4 Quiet Autofill and Shared Preview
+
+Set 1 continues to fill only untouched fields in later ordinary straight sets. The workout omits the repeated explainer paragraph while keeping editable rows, origin protection, and a separate `Log set` action for every row. Today and each Plan queue item open the same read-only workout-preview component. It lists session time, movement count, objective, exact planned sets, repetitions, load mode, latest exact exposure, and one evidence-backed cue. Preview state cannot start, pin, edit, complete, or progress a session.
+
+### 106.5 Acceptance
+
+Deterministic acceptance covers bodyweight record taxonomy, baseline, reacclimation cues, load-mode persistence, Set 1 draft behavior, block versioning, active-session preservation, completed-history preservation, and backup round trip. Browser acceptance covers absent autofill explainer copy, visible copied values, separate set completion, Today and Plan preview entry points, unchanged serialized sessions after preview, bodyweight `BW` rows, mobile containment, console integrity, and desktop Chromium, Android-style mobile Chromium, and iPhone WebKit.
 
 ### Version 1.74.0 Change Entry
 

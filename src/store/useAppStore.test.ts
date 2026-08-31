@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { backupStateFrom, createBackup, parseBackup } from '../domain/backup'
+import { athlete, equipmentProfiles, exercises, history, mesocycles, records, sessions } from '../domain/seed'
 import { useAppStore } from './useAppStore'
 
 describe('clean first-use state', () => {
@@ -56,6 +57,62 @@ describe('clean first-use state', () => {
 
     const restored = parseBackup(JSON.stringify(createBackup(backupStateFrom(useAppStore.getState()))))
     expect(restored.backup.data.sessions[0].exercises[0].sets[1]).toMatchObject({ completed: false, entryOrigins: { load: 'top-set-autofill', reps: 'top-set-autofill', rir: 'top-set-autofill' } })
+  })
+
+  it('logs a bodyweight movement without inventing a pound value and preserves editable Set 1 autofill', () => {
+    const session = {
+      id: 'bodyweight-session', title: 'Bodyweight session', objective: 'Build pull-up capacity.', dayLabel: 'Today',
+      plannedDate: '2026-08-31T12:00:00.000Z', status: 'active' as const, durationMinutes: 45,
+      exercises: [{
+        id: 'bodyweight-pull-up', exerciseId: 'pull-up', role: 'secondary' as const, purpose: 'Pull-up strength.', restSeconds: 120, estimatedMinutes: 12, optional: false,
+        sets: Array.from({ length: 3 }, (_, index) => ({ id: `bodyweight-set-${index + 1}`, targetLoad: 25, targetReps: 5, targetRir: 2, completed: false }))
+      }]
+    }
+    useAppStore.setState({ sessions: [session], activeSessionId: session.id, workoutVisible: true })
+    useAppStore.getState().setExerciseLoadMode(session.id, session.exercises[0].id, 'bodyweight')
+    useAppStore.getState().setExerciseLoadMode(session.id, session.exercises[0].id, 'external')
+    expect(useAppStore.getState().sessions[0].exercises[0].sets.every((workSet) => workSet.loadMode === 'external' && workSet.targetLoad === 25)).toBe(true)
+    useAppStore.getState().setExerciseLoadMode(session.id, session.exercises[0].id, 'bodyweight')
+    useAppStore.getState().updateSet(session.id, session.exercises[0].id, session.exercises[0].sets[0].id, { reps: 8, rir: 2 })
+
+    const sets = useAppStore.getState().sessions[0].exercises[0].sets
+    expect(sets.every((workSet) => workSet.loadMode === 'bodyweight' && workSet.targetLoad === 25 && workSet.completedLoad === undefined)).toBe(true)
+    expect(sets.map((workSet) => workSet.completedReps)).toEqual([8, 8, 8])
+    expect(sets.every((workSet) => !workSet.completed)).toBe(true)
+
+    useAppStore.getState().toggleSetComplete(session.id, session.exercises[0].id, sets[0].id)
+    useAppStore.getState().finishSession(session.id, { answers: [], skipped: true, mode: 'off' })
+    expect(useAppStore.getState().history[0]).toMatchObject({ exerciseId: 'pull-up', load: 0, reps: 8, loadMode: 'bodyweight' })
+    const restored = parseBackup(JSON.stringify(createBackup(backupStateFrom(useAppStore.getState()))))
+    expect(restored.backup.data.history[0]).toMatchObject({ load: 0, reps: 8, loadMode: 'bodyweight' })
+  })
+
+  it('versions a movement change across the remaining block while preserving the active workout and history', () => {
+    useAppStore.setState((state) => ({
+      ...state,
+      athlete: structuredClone(athlete),
+      equipmentProfiles: structuredClone(equipmentProfiles),
+      exercises: structuredClone(exercises),
+      history: structuredClone(history),
+      records: structuredClone(records),
+      sessions: structuredClone(sessions),
+      mesocycles: structuredClone(mesocycles),
+      activeMesocycleId: mesocycles[0].id,
+      settings: { ...state.settings, activeEquipmentProfileId: equipmentProfiles[0].id, equipmentLocation: equipmentProfiles[0].name }
+    }))
+    useAppStore.getState().startSession('session-bench')
+    const historyBefore = structuredClone(useAppStore.getState().history)
+    const result = useAppStore.getState().swapExerciseForBlock('session-bench', 'plan-board', 'three-board-press', 'preference', false)
+
+    expect(result.ok).toBe(true)
+    const state = useAppStore.getState()
+    const nextPlan = state.mesocycles.find((plan) => plan.id === state.activeMesocycleId)!
+    expect(nextPlan).toMatchObject({ version: 2, status: 'active', supersedesId: mesocycles[0].id })
+    expect(state.mesocycles.find((plan) => plan.id === mesocycles[0].id)?.status).toBe('superseded')
+    expect(state.sessions.find((session) => session.id === 'session-bench')?.exercises[1].exerciseId).toBe('three-board-press')
+    expect(state.sessions.filter((session) => session.mesocycleId === nextPlan.id && session.status === 'planned').some((session) => session.exercises[1]?.exerciseId === 'three-board-press')).toBe(true)
+    expect(state.history).toEqual(historyBefore)
+    expect(nextPlan.movementOverrides).toContainEqual({ sessionIndex: 0, slotIndex: 1, exerciseId: 'three-board-press', source: 'athlete' })
   })
 
   it('stores movement completion feedback with exact set provenance and applies safety context only to that movement', () => {
