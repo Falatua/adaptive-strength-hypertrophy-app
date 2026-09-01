@@ -163,6 +163,16 @@ The engine explains decisions at three horizons: what to do today, what happens 
 
 Progress remains visible in calibration, recalibration, bridge, reacclimation, base-building, and development work. When exact history does not exist, the planned work is labeled as the baseline the next workout can beat. When a record is not inside today's prescribed work, ForgePath shows the next record threshold and explains that today's target builds toward it without adding unplanned load, repetitions, or sets. Protective and pain-aware states pause record chasing while retaining the reason.
 
+## Progression Operating System
+
+Every planned movement exposes one exact-movement path with four durable facts: the latest comparable completed exposure, today's saved prescription, the next evidence-backed target, and what must be true before that target is useful. Suggestions combine completed load, repetitions, sets, RIR, confirmed movement feedback, continuity, readiness, live pain state, joint preference, exact setup, and executable equipment increments. Unknown inputs remain visible and reduce confidence rather than becoming negative evidence.
+
+ForgePath considers load first, repetitions second, and working sets last. Plain bodyweight movements progress through repetitions and completed set totals. Weighted bodyweight stores added load. Assisted bodyweight stores assistance and treats less assistance as improvement. The three identities never share records or progression evidence. Body mass is not invented, so weighted-bodyweight records do not claim total-system estimated strength.
+
+An actionable load or repetition suggestion may be applied only to unfinished sets after the athlete presses the written action. Completed sets never change. Set-count suggestions remain review-only and use the existing deliberate Add a set control. Protect, pain-aware, irritating, avoid, and live pain-changing signals pause application and record pursuit.
+
+Progress records can be recomputed for all time, the current training block, the current training round, a rolling twelve months, or the latest return period after a fourteen-day training gap. The progress event ledger reconstructs earned PR and micro-win events from completed source sets and joins them with append-only athlete-approved training-round decisions. A training-round field report summarizes qualified priority workouts, completed sets, earned events, the next suggested decision, and its evidence. Schedule-aware momentum measures completed priorities and recorded constraints, never consecutive calendar days, shame, punishment, or catch-up debt.
+
 ## Ongoing Calibration and Confidence
 
 Calibration is a permanent learning loop, not a one-time onboarding gate. Confidence describes how much relevant evidence ForgePath has for one decision, never how capable or compliant the athlete is.

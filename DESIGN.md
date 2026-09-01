@@ -127,6 +127,16 @@ Avoid stacking multiple floating glass panels. Use blur only for persistent navi
 - Progressive disclosure: Today shows one dominant start path, Workout puts the current set before notes, Library collapses filters on compact screens, and Progress exposes three primary time ranges with the rest under More.
 - Forge level: describes recorded journal depth only. Its badge spells out `Level`, sits inside the avatar footprint below the athlete, and casts no shadow. It must never rank athlete ability, training age, readiness, or identity. The progress view explains that rewards are bounded per workout, ignores raw tonnage and extra sets, and shows the increasing points needed for the next level. A record-heavy first workout remains level one rather than creating a multi-level jump.
 
+## Movement Progress Paths and Progress Reporting
+
+The active workout places one compact evidence panel after the three-column movement context. Its hierarchy is fixed: suggestion and confidence, Last / Today / Next, What earns it, source-set and unknown-input counts, then an optional action. It may not compete with the set table or hide the current prescription. Evidence blue marks explanation, lime marks an athlete-applicable change, and orange marks a protective hold. A button is present only when the suggestion can safely update the existing unfinished load or repetition fields.
+
+Bodyweight-capable movement controls expose four plain states: Bodyweight, BW + active unit, Assisted, and External active unit. The set row labels weighted load with a plus sign and assistance with an assistance suffix. The same distinctions appear in previews, records, and next-target copy.
+
+Progress begins with a paired operating row: schedule-aware momentum and the current training-round field report. Both are compact summaries with source counts, not oversized achievement cards. The append-only event ledger uses a dense journal row for earned events and athlete decisions. Record scope and category are separate controls. Scope changes recompute bests from eligible source sets instead of filtering all-time winners by date.
+
+Responsive layouts stack Last / Today / Next, momentum/report cards, and ledger metadata below 620 to 880 pixels without horizontal page overflow. Record-scope controls may scroll inside their own row. Every state remains written; color never carries meaning alone.
+
 ## Training-Block Blueprint
 
 The Plan screen presents one readable route before the detailed workout queue. A horizontal round route establishes duration and the final block review. Compact facts distinguish weekly days, estimated time, planned sets, and recovery checkpoints. Each day then uses a stable movement table with written Primary, Secondary, Accessory, and Tertiary roles, exact movement name, purpose, set and repetition target, optional incline angle, and Suggested or Your choice status.

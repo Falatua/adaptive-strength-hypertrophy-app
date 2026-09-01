@@ -3,14 +3,47 @@ type: product-build-bible
 aliases: [Adaptive Training App Build Bible, App Build Bible]
 tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
-updated: 2026-08-31
+updated: 2026-09-01
 status: canonical-build-reference-and-active-implementation
-version: 1.75.0
+version: 1.76.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.76.0 Change Entry
+
+- Advanced the working application to private alpha 0.80.0 without changing backup schema 30, local persistence 31, the 251-movement catalog, or the Supabase cloud-authoritative boundary.
+- Added R-494 through R-500 and Chapter 107 for exact-movement progress paths, athlete-controlled workout suggestions, scoped records, bodyweight loading v2, training-round reports, a progress ledger, and schedule-aware momentum.
+- Preserved completed-set immutability, exact setup and load-mode identity, missing-is-unknown semantics, safety precedence, and explicit athlete approval.
+- Verified 547 deterministic tests, all 165 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys, the production build, responsive visual review, and the GitHub Pages artifact gate before publication.
+
+## 107. Progression Operating System
+
+### 107.1 Exact-Movement Path
+
+Every planned movement exposes Last, Today, Next, and What earns it. Last comes from the most recent completed session for the exact canonical movement, recorded setup, and load mode. Today comes from the stored prescription. Next is a deterministic suggestion from completed load, repetitions, sets, RIR, exact-movement feedback, continuity, readiness, live pain state, joint preference, and executable equipment increments. The panel discloses confidence, source-set count, and unknown-input count.
+
+### 107.2 Suggestion Authority and Progression Order
+
+Load is considered first, repetitions second, and sets last. An eligible load or repetition suggestion changes only unfinished sets after the athlete presses Apply. Completed sets never change. A suggestion that would add a set remains review-only so the athlete must use the existing deliberate Add a set action. Protect, pain-aware, live pain-changing, irritating, and avoid signals pause application and record pursuit. Suggestions are deterministic ForgePath coaching from stored athlete data and do not require a runtime AI provider.
+
+### 107.3 Bodyweight Loading v2
+
+Eligible movements distinguish Bodyweight, BW plus the active unit, Assisted, and External load. Plain bodyweight records repetitions and completed-session totals without invented load. Weighted bodyweight records added load separately and does not calculate a total-system estimated strength without body mass. Assisted bodyweight records the assistance amount, keeps repetition records at a given assistance, and treats less assistance as improvement. Completed evidence is never reinterpreted when the mode changes.
+
+### 107.4 Scoped Records, Round Report, and Ledger
+
+Record scopes are all time, current training block, current training round, rolling twelve months, and since the most recent return after a fourteen-day gap. Each scope recomputes winners from its eligible source sets. The training-round field report summarizes linked priority sessions, completed sets, earned events, the current criterion recommendation, and its evidence. The progress event ledger reconstructs PR and micro-win events from completed set history and joins them with stored append-only athlete-approved training-round decisions.
+
+### 107.5 Schedule-Aware Momentum
+
+Momentum uses completed priority workouts and recorded schedule constraints in the current block. Starting, on-path, adapting, and returning are descriptive states, not scores. No consecutive-day streak, shame, penalty, fabricated miss, or catch-up debt is created. A return after a gap is labeled as a re-entry point and useful progress.
+
+### 107.6 Acceptance
+
+Deterministic acceptance covers exact source identity, scoped recomputation, plain, weighted, and assisted bodyweight separation, lower-is-better assistance records, safety precedence, explicit application, completed-set immutability, round linkage, ledger source IDs, and non-punitive momentum. Browser acceptance covers active-workout paths, preview paths, four load-mode controls, Today momentum, Progress reports, record-scope controls, console integrity, page containment, desktop Chromium, Android-style mobile Chromium, and iPhone WebKit.
 
 ### Version 1.75.0 Change Entry
 

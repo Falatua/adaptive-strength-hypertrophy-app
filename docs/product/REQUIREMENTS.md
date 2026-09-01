@@ -3087,7 +3087,54 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Today must preview the next workout before start, and every queued Plan workout must have its own preview. Both routes must show planned sets, repetitions, bodyweight or external load, latest exact exposure, and the nearest progress cue through one shared read-only component. Previewing cannot start, pin, edit, complete, or progress training.
 - Detail: `src/components/WorkoutPreview.tsx`, `src/screens/TodayScreen.tsx`, `src/screens/PlanScreen.tsx`, and Build Bible Chapter 106
 
+### R-494 Exact-Movement Progress Path
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Every planned workout movement must show its latest comparable completed exposure, today's prescription, the next evidence-backed target, and the condition that earns that target. Evidence must remain exact-movement, exact-setup, and load-mode aware.
+- Detail: `src/domain/progression-insight-engine.ts`, `src/screens/WorkoutScreen.tsx`, `src/components/WorkoutPreview.tsx`, and Build Bible Chapter 107
+
+### R-495 Athlete-Controlled Workout Suggestions
+- Status: implemented-first-slice
+- Provenance: from-user
+- Requirement: ForgePath may suggest load, repetition, or set directions from completed performance, effort, movement feedback, continuity, readiness, safety, equipment increments, and the current plan. Only explicit athlete approval may apply a load or repetition suggestion to unfinished sets. Completed sets are immutable and set-count suggestions remain manual.
+- Detail: `src/domain/progression-insight-engine.ts`, `src/store/useAppStore.ts`, `src/screens/WorkoutScreen.tsx`, and Build Bible Chapter 107
+
+### R-496 Scoped Personal Records
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Progress must recompute records for all time, current training block, current training round, rolling twelve months, and since the latest return after a fourteen-day gap. A scoped record must come from eligible source sets inside that scope, not from date-filtering an all-time winner.
+- Detail: `src/domain/history-engine.ts`, `src/screens/ProgressScreen.tsx`, and Build Bible Chapter 107
+
+### R-497 Bodyweight Loading v2
+- Status: implemented-first-slice
+- Provenance: from-user and product-decision
+- Requirement: Eligible movements must distinguish plain bodyweight, weighted bodyweight, assisted bodyweight, and external load. Weighted mode stores added load. Assisted mode stores assistance and treats less assistance as improvement. The modes must never share record identity or invent body mass, total-system volume, or estimated strength.
+- Detail: `src/domain/load-mode.ts`, `src/domain/history-engine.ts`, `src/screens/WorkoutScreen.tsx`, and Build Bible Chapter 107
+
+### R-498 Training-Round Field Report and Progress Ledger
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Progress must summarize the current training round from linked sessions and completed sets, then join reconstructable PR and micro-win events with append-only athlete-approved round decisions in an auditable ledger.
+- Detail: `src/domain/round-report-engine.ts`, `src/domain/history-engine.ts`, `src/screens/ProgressScreen.tsx`, and Build Bible Chapter 107
+
+### R-499 Schedule-Aware Momentum
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Momentum must reflect completed priority workouts and recorded schedule constraints in the current training block. It must not use consecutive-day streaks, shame, punishment, fabricated misses, or catch-up debt, and must label return periods as progress.
+- Detail: `src/domain/momentum-engine.ts`, `src/screens/TodayScreen.tsx`, `src/screens/ProgressScreen.tsx`, and Build Bible Chapter 107
+
+### R-500 Progression Operating System Acceptance
+- Status: implemented-first-slice
+- Provenance: product-decision
+- Requirement: Deterministic and browser acceptance must cover exact source identity, all bodyweight modes, lower-is-better assistance, scope recomputation, safety precedence, explicit suggestion application, completed-set immutability, round reporting, ledger provenance, momentum language, mobile containment, console integrity, and desktop Chromium, Android-style mobile Chromium, and iPhone WebKit.
+- Detail: `src/domain/progression-insight-engine.test.ts`, `src/domain/progress-operating-system.test.ts`, `src/domain/history-engine.test.ts`, `src/store/useAppStore.test.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 107
+
 ## Thread Coverage Audit
+
+### 2026-09-01 Progression Operating System
+- Scope: JB requested the six proposed progress features plus in-workout suggestions based on the athlete's full training record, including load, repetitions, and sets.
+- Result: Added R-494 through R-500 and Build Bible Chapter 107. Private alpha 0.80.0 adds exact-movement progress paths, optional unfinished-set suggestions, five record scopes, weighted and assisted bodyweight identities, training-round field reports, an evidence ledger, and schedule-aware momentum.
+- Status: Implemented and locally verified with 547 deterministic tests, all 165 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys, production build, safety and athlete-authority contracts, source-set identity, responsive visual review, and the GitHub Pages artifact gate. GitHub workflow, deployment, and live-source checks remain release gates.
 
 ### 2026-08-31 In-Workout Scope, Bodyweight Progress, and Workout Preview
 - Scope: JB requested one-workout or full-block replacement choice inside the workout, bodyweight logging for pull-ups and dips, progress motivation in every training stage, quieter Set 1 autofill, and multiple ways to inspect future workouts and exact progression targets.

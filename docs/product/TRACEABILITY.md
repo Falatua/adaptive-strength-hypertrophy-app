@@ -3,7 +3,7 @@ type: product-traceability-matrix
 aliases: [App Build Bible Traceability, Requirement Coverage Matrix]
 tags: [fitness, app, requirements, traceability, build, qa]
 created: 2026-08-10
-updated: 2026-08-31
+updated: 2026-09-01
 status: canonical-build-reference
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
@@ -17,16 +17,16 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Coverage Summary
 
-- Total requirement headings: 493.
-- Sequential range: R-001 through R-493.
-- Missing IDs: none after the 2026-08-31 verification.
-- Duplicate IDs: none after the 2026-08-31 verification.
+- Total requirement headings: 500.
+- Sequential range: R-001 through R-500.
+- Missing IDs: none after the 2026-09-01 verification.
+- Duplicate IDs: none after the 2026-09-01 verification.
 - Primary implementation authority: [[Adaptive Strength and Hypertrophy App Build Bible]].
 - Requirement wording and provenance authority: [[App Requirements Register]].
 
 ## Current Implementation Evidence
 
-Private alpha 0.79.0 and Build Bible 1.75.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/RP_MOVEMENT_FEEDBACK_RESEARCH_2026-08-27.md`, `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current local gate includes 539 deterministic tests and 159 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys covering bodyweight record identity, active-workout scope choice, phase-safe baseline and build cues, shared Today and Plan workout previews, quiet Set 1 autofill presentation, the read-only full training-block outlook, exact-movement completion feedback, feedback-gated progression, athlete-level-v2 bounded rewards, Home Gym preference v3, direct history, editable plans, durable Auth, update awareness, year-scale replay, backup recovery, Supabase authority, console integrity, and horizontal containment. Backup schema is 30 and local persistence is 31. Dedicated-origin hosting, custom SMTP, complete offline startup, real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
+Private alpha 0.80.0 and Build Bible 1.76.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/RP_MOVEMENT_FEEDBACK_RESEARCH_2026-08-27.md`, `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current local gate includes 547 deterministic tests and 165 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys covering exact-movement workout suggestions, scoped records, plain, weighted, and assisted bodyweight identities, training-round reports, the progress ledger, schedule-aware momentum, bodyweight record identity, active-workout scope choice, workout previews, exact-movement feedback, Supabase authority, console integrity, and horizontal containment. Backup schema is 30 and local persistence is 31. Dedicated-origin hosting, custom SMTP, complete offline startup, real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
 
 ## Product and Training Traceability
 
@@ -123,6 +123,7 @@ Private alpha 0.79.0 and Build Bible 1.75.0 are the current boundary. Evidence i
 | R-481 to R-484 | Workout-only versus training-block movement replacement, staged confirmation, progression ownership, plain terminology, preservation, and acceptance | 10, 15, 18, 20, 22, 24, 27, 90, 104 | `PRODUCT.md`, `DESIGN.md`, `src/screens/WorkoutScreen.tsx`, `src/screens/PlanScreen.tsx`, `src/domain/mesocycle-engine.ts`, `src/store/useAppStore.ts` | 1A to 1B | scope copy, staged workout mutation, exact-history isolation, before-and-after recurring changes, disabled Apply, plan-version preservation, desktop Chromium, mobile Chromium, iPhone WebKit, console, and containment tests |
 | R-485 to R-488 | Persistent full training-block preview, time remaining, round state, progression order, deload timing, and read-only acceptance | 8, 10, 12, 18, 20, 22, 24, 27, 90, 105 | `PRODUCT.md`, `DESIGN.md`, `src/screens/PlanScreen.tsx`, `src/domain/cycle-review-engine.ts` | 1A to 1B | summary facts, round states, expected review estimate, progression and recovery copy, unchanged plan serialization, dialog focus, desktop Chromium, mobile Chromium, iPhone WebKit, console, and containment tests |
 | R-489 to R-493 | Active-workout scope choice, bodyweight load identity and records, phase-safe progress cues, quiet autofill presentation, and shared workout previews | 10, 15, 17, 18, 20, 22, 24, 27, 106 | `PRODUCT.md`, `DESIGN.md`, `src/domain/load-mode.ts`, `src/domain/history-engine.ts`, `src/components/WorkoutPreview.tsx`, `src/screens/WorkoutScreen.tsx`, `src/screens/TodayScreen.tsx`, `src/screens/PlanScreen.tsx`, `src/store/useAppStore.ts` | 1A to 1B | bodyweight taxonomy, baseline and reacclimation cues, load-mode persistence, block versioning, history preservation, absent explainer copy, shared preview state integrity, desktop Chromium, mobile Chromium, iPhone WebKit, console, and containment tests |
+| R-494 to R-500 | Exact-movement progress paths, athlete-controlled workout suggestions, scoped records, bodyweight loading v2, training-round report, progress ledger, schedule-aware momentum, and acceptance | 10, 11, 12, 17, 18, 20, 22, 24, 27, 107 | `PRODUCT.md`, `DESIGN.md`, `src/domain/progression-insight-engine.ts`, `src/domain/history-engine.ts`, `src/domain/momentum-engine.ts`, `src/domain/round-report-engine.ts`, `src/screens/WorkoutScreen.tsx`, `src/screens/ProgressScreen.tsx` | 1A to 1C | exact source identity, suggestion safety and approval, scoped recomputation, bodyweight-mode separation, lower assistance, round linkage, ledger provenance, non-punitive momentum, desktop Chromium, mobile Chromium, iPhone WebKit, console, and containment tests |
 
 ## Delivery Phase Key
 

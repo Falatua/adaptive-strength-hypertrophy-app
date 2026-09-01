@@ -22,6 +22,7 @@ import { buildLifeAwareAssessment } from '../domain/life-aware-engine'
 import { ForgeGlyph } from '../components/ForgeGlyph'
 import { cloudSaveCopy, useCloudRuntime } from '../components/cloud-runtime-context'
 import { WorkoutPreview } from '../components/WorkoutPreview'
+import { buildTrainingMomentum } from '../domain/momentum-engine'
 
 const timeOptions = [15, 30, 45, 60, 75]
 const dateInputFor = (offsetDays: number) => {
@@ -31,7 +32,7 @@ const dateInputFor = (offsetDays: number) => {
 }
 
 export function TodayScreen() {
-  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, surveys, mesocycles, activeSessionId, startSession, resumeActiveSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
+  const { athlete, settings, updateSettings, equipmentProfiles, sessions, exercises, history, surveys, cycleReviews, mesocycles, activeSessionId, startSession, resumeActiveSession, setReadiness, markMissed, records, setNav, deferredFeedback, placementVerifications, placementExitReviews, movementPlacementExitReviews, missedOpportunityEvents, resolvePlacementRecovery, submitDeferredFeedback, dismissDeferredFeedback, expireDeferredFeedback } = useAppStore()
   const athleteProgress = athleteLevel({ history, records, sessions })
   const cloudRuntime = useCloudRuntime()
   const saveCopy = cloudSaveCopy(cloudRuntime?.saveState ?? null)
@@ -53,6 +54,8 @@ export function TodayScreen() {
   const primaryExercise = exercises.find((exercise) => exercise.id === primaryPlan?.exerciseId)
   const primaryHistory = history.filter((set) => set.exerciseId === primaryExercise?.id)
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
+  const activePlan = mesocycles.find((plan) => plan.status === 'active')
+  const momentum = useMemo(() => buildTrainingMomentum({ sessions, history, missedEvents: missedOpportunityEvents, activePlan }), [activePlan, history, missedOpportunityEvents, sessions])
   const equipmentGaps = nextSession ? sessionEquipmentGaps(nextSession, exercises, activeEquipmentProfile) : []
   const openScheduleEligibility = useMemo(() => sessions.filter((session) => ['planned', 'deferred'].includes(session.status)).map((session) => ({ session, evidence: scheduleSessionEligibility(session, exercises, activeEquipmentProfile) })), [sessions, exercises, activeEquipmentProfile])
   const latestScheduleChange = missedOpportunityEvents.at(-1)
@@ -241,6 +244,10 @@ export function TodayScreen() {
         <button className="button button--small button--secondary" onClick={() => setNav('plan')}>Review plan</button>
       </section>}
 
+      <section className={`today-momentum today-momentum--${momentum.status}`} aria-label="Schedule-aware training momentum">
+        <Footprints size={21} /><span><small>Training momentum · {momentum.status.replaceAll('-', ' ')}</small><strong>{momentum.title}</strong><p>{momentum.explanation}</p></span><b>{momentum.completedPriorities}/{momentum.plannedPriorities}<small>priorities</small></b>
+      </section>
+
       <section className="hero-workout">
         <div className="hero-workout__content">
           <div className="hero-workout__meta">
@@ -359,7 +366,7 @@ export function TodayScreen() {
       </Modal>
 
       <Modal open={workoutPreviewOpen} onClose={() => setWorkoutPreviewOpen(false)} title={nextSession ? `Preview ${nextSession.title}` : 'Preview workout'} description="Review every movement, the exact planned target, and the nearest evidence-backed progress cue before you train." wide>
-        {nextSession && <WorkoutPreview session={nextSession} exercises={exercises} history={history} units={settings.units} />}
+        {nextSession && <WorkoutPreview session={nextSession} exercises={exercises} history={history} units={settings.units} athlete={athlete} surveys={surveys} cycleReviews={cycleReviews} equipmentProfile={activeEquipmentProfile} />}
         <div className="modal__actions"><button className="button button--primary" onClick={() => setWorkoutPreviewOpen(false)}>Close preview</button></div>
       </Modal>
 

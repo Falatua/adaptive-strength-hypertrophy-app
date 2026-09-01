@@ -24,6 +24,7 @@ import { cloudSaveCopy, useCloudRuntime } from '../components/cloud-runtime-cont
 import { MovementFeedbackPanel } from '../components/MovementFeedbackPanel'
 import { latestMovementFeedback, movementFeedbackMatchesCompletedSets, movementFeedbackMode } from '../domain/movement-feedback-engine'
 import { loadModeForSet, supportsBodyweightMode } from '../domain/load-mode'
+import { buildMovementProgressPath } from '../domain/progression-insight-engine'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary movement',
@@ -33,7 +34,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { sessions, exercises, equipmentProfiles, history, surveys, movementNotes, settings, placementVerifications, updateSet, setExerciseLoadMode, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, skipSet, setPlacementWarmup, setSessionPainStatus, swapExercise, swapExerciseForBlock, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, recordMovementFeedback, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
+  const { athlete, sessions, exercises, equipmentProfiles, history, surveys, cycleReviews, movementNotes, settings, placementVerifications, updateSet, setExerciseLoadMode, applyProgressSuggestion, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, skipSet, setPlacementWarmup, setSessionPainStatus, swapExercise, swapExerciseForBlock, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, recordMovementFeedback, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const cloudRuntime = useCloudRuntime()
   const saveCopy = cloudSaveCopy(cloudRuntime?.saveState ?? null)
@@ -65,7 +66,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
       id: `active:${session.id}:${workSet.id}`, sessionId: session.id, exerciseId: exercise.id, exerciseName: exercise.name,
       family: exercise.family, primaryRegion: exercise.primaryRegion, completedAt: session.startedAt ?? new Date().toISOString(),
       reps: workSet.completedReps ?? workSet.targetReps, load: workSet.completedLoad ?? workSet.targetLoad,
-      rir: workSet.actualRir ?? workSet.targetRir, technique: 4, pain: 0, setIndex, benchAngleDeg: workSet.benchAngleDeg, loadMode: workSet.loadMode
+      rir: workSet.actualRir ?? workSet.targetRir, technique: 4, pain: 0, setIndex, benchAngleDeg: workSet.benchAngleDeg, loadMode: loadModeForSet(workSet, exercise)
     }] : [])
   }) ?? [], [exercises, session])
   const activeAchievementPreview = useMemo(() => {
@@ -390,6 +391,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
             const opportunities = deriveRecordOpportunities({ history, planned, exercise, readiness: session.readiness ?? 'confirm' })
             const bodyweightCapable = supportsBodyweightMode(exercise)
             const activeLoadMode = loadModeForSet(planned.sets[0] ?? {}, exercise)
+            const progressPath = buildMovementProgressPath({ athlete, session, planned, exercise, history, surveys, cycleReviews, equipmentProfile: activeEquipmentProfile, units: settings.units })
             const exerciseAchievements = activeAchievementPreview.filter((event) => event.exerciseId === exercise.id)
             const currentMovementNote = movementNotes.find((note) => note.sessionId === session.id && note.plannedExerciseId === planned.id && note.exerciseId === exercise.id)
             const priorMovementNote = movementNotesForExercise(movementNotes, exercise.id).find((note) => note.id !== currentMovementNote?.id)
@@ -422,6 +424,18 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   <div><small>Joint response</small><strong className={`joint joint--${exercise.jointFeeling}`}>{exercise.jointFeeling}</strong><span>{exercise.favorite ? 'Preferred movement' : 'Neutral preference'}</span></div>
                   <button className="info-button" onClick={() => setDecisionInfo({ name: exercise.name, title: recommendation.title, action: recommendation.action, confidence: recommendation.confidence, explanation: recommendation.explanation, reasons: recommendation.reasons, sourceSets: recommendation.evidence.sourceSetIds.length, unknownInputs: recommendation.evidence.unknownInputs, athleteAddedExcluded: recommendation.evidence.athleteAddedSetsExcluded })} aria-label={`More information about ${exercise.name}`} aria-haspopup="dialog"><Info size={17} /></button>
                 </div>
+                <section className={`movement-progress-path movement-progress-path--${progressPath.status}`} aria-label={`${exercise.name} progress path`}>
+                  <div className="movement-progress-path__heading"><TrendingUp size={18} /><span><small>ForgePath suggestion · {progressPath.confidence} confidence</small><strong>{progressPath.title}</strong></span></div>
+                  <div className="movement-progress-path__steps">
+                    <span><small>Last</small><strong>{progressPath.last}</strong></span>
+                    <span><small>Today</small><strong>{progressPath.today}</strong></span>
+                    <span><small>Next</small><strong>{progressPath.next}</strong></span>
+                  </div>
+                  <p><b>What earns it:</b> {progressPath.toProgress}</p>
+                  <div className="movement-progress-path__evidence"><span>{progressPath.sourceSetIds.length} exact source set{progressPath.sourceSetIds.length === 1 ? '' : 's'}</span><span>{progressPath.unknownInputs.length ? `${progressPath.unknownInputs.length} unknown input${progressPath.unknownInputs.length === 1 ? '' : 's'}` : 'No required input missing'}</span><span>Load → reps → sets</span></div>
+                  {progressPath.canApply && <button type="button" onClick={() => applyProgressSuggestion(session.id, progressPath)}>Apply to unfinished sets</button>}
+                  {!progressPath.canApply && <small>{progressPath.status === 'protect' ? 'Progress controls are paused by the current safety signal.' : progressPath.status === 'push-sets' ? 'Set-count changes stay manual so added volume is always deliberate.' : 'Review only. No workout number was changed.'}</small>}
+                </section>
                 {planned.prescriptionNote && <div className="substitution-prescription"><RefreshCcw size={16} /><span><strong>{planned.prescriptionMethod === 'exact-history' ? 'Exact-history replacement' : 'Baseline calibration'}</strong>{planned.prescriptionNote}</span></div>}
                 {techniqueSuggestion && <div className="technique-prescription"><Layers size={16} /><span><strong>Purposeful technique suggestion</strong>{techniqueSuggestion}<small>Athlete approval required · maximum two technique blocks in this session</small></span><button type="button" onClick={() => { setStructureTarget(planned); setStructureError(null) }}>Review</button></div>}
                 <details className="movement-note-editor" aria-label={`${exercise.name} movement notebook`}>
@@ -473,7 +487,9 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                 {bodyweightCapable && <div className="load-mode-toggle" role="group" aria-label={`${exercise.name} load type`}>
                   <span>Load</span>
                   <button type="button" aria-pressed={activeLoadMode === 'bodyweight'} onClick={() => setExerciseLoadMode(session.id, planned.id, 'bodyweight')}>Bodyweight</button>
-                  <button type="button" aria-pressed={activeLoadMode === 'external'} onClick={() => setExerciseLoadMode(session.id, planned.id, 'external')}>{settings.units}</button>
+                  <button type="button" aria-pressed={activeLoadMode === 'weighted-bodyweight'} onClick={() => setExerciseLoadMode(session.id, planned.id, 'weighted-bodyweight')}>BW + {settings.units}</button>
+                  <button type="button" aria-pressed={activeLoadMode === 'assisted-bodyweight'} onClick={() => setExerciseLoadMode(session.id, planned.id, 'assisted-bodyweight')}>Assisted</button>
+                  <button type="button" aria-pressed={activeLoadMode === 'external'} onClick={() => setExerciseLoadMode(session.id, planned.id, 'external')}>External {settings.units}</button>
                 </div>}
                 <div className="set-table" role="table" aria-label={`${exercise.name} sets`}>
                   <div className="set-table__head" role="row"><span>Set</span><span>Load</span><span>Reps</span><span title={effortDisplayFor(0, effortMetric).hint}>{effortDisplayFor(0, effortMetric).label}</span><span>Status</span></div>
@@ -485,7 +501,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                     return (
                     <div id={`set-${workSet.id}`} className={`set-row ${workSet.completed ? 'completed' : ''}`} role="row" key={workSet.id}>
                       <span className="set-number">{index + 1}{workSet.athleteAdded && <em title="Added by you today">+</em>}{workSet.grouping && <b className={`set-group set-group--${workSet.grouping.groupRole}`} title={`${setStructureLabels[workSet.grouping.groupKind]}: ${workSet.grouping.groupRole}`}>{workSet.grouping.groupRole === 'drop' ? '↓' : workSet.grouping.groupRole === 'mini' ? '·' : workSet.grouping.groupRole === 'paired' ? '⇄' : '★'}</b>}</span>
-                      <label><span className="sr-only">Set {index + 1} load</span>{loadModeForSet(workSet, exercise) === 'bodyweight' ? <span className="bodyweight-load">BW</span> : <><NumberField disabled={!equipmentFit.available} inputMode="decimal" step={loadIncrementFor(exercise, activeEquipmentProfile).value} placeholder={loadUnknown ? 'Your call' : undefined} value={loadUnknown ? null : workSet.completedLoad ?? workSet.targetLoad} onCommit={(load) => updateSet(session.id, planned.id, workSet.id, { load })} /><small>{settings.units}</small></>}</label>
+                      <label><span className="sr-only">Set {index + 1} load</span>{loadModeForSet(workSet, exercise) === 'bodyweight' ? <span className="bodyweight-load">BW</span> : <><NumberField disabled={!equipmentFit.available} inputMode="decimal" step={loadIncrementFor(exercise, activeEquipmentProfile).value} placeholder={loadUnknown ? 'Your call' : undefined} value={loadUnknown ? null : workSet.completedLoad ?? workSet.targetLoad} onCommit={(load) => updateSet(session.id, planned.id, workSet.id, { load })} /><small>{loadModeForSet(workSet, exercise) === 'assisted-bodyweight' ? `${settings.units} assist` : loadModeForSet(workSet, exercise) === 'weighted-bodyweight' ? `+ ${settings.units}` : settings.units}</small></>}</label>
                       <label><span className="sr-only">Set {index + 1} repetitions</span><NumberField disabled={!equipmentFit.available} inputMode="numeric" value={workSet.completedReps ?? workSet.targetReps} onCommit={(reps) => updateSet(session.id, planned.id, workSet.id, { reps })} /></label>
                       <label><span className="sr-only">Set {index + 1} {effort.label === 'RPE' ? 'rate of perceived exertion' : 'repetitions in reserve'}</span><select disabled={!equipmentFit.available} value={effort.value} onChange={(event) => updateSet(session.id, planned.id, workSet.id, { rir: effort.metric === 'rpe' ? rpeToRir(Number(event.target.value)) : Number(event.target.value) })}>{effort.options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
                       <div className="set-actions"><button className={`skip-set ${workSet.skipped ? 'skip-set--on' : ''}`} onClick={() => skipSet(session.id, planned.id, workSet.id, !workSet.skipped)} aria-pressed={Boolean(workSet.skipped)} aria-label={workSet.skipped ? `Set ${index + 1} skipped, undo` : `Skip set ${index + 1}`} title={workSet.skipped ? 'Skipped. Tap to undo.' : 'Skip this set'}><SkipForward size={16} /></button><button className="complete-set" disabled={!equipmentFit.available && !workSet.completed} onClick={() => logSet(planned.id, workSet.id, workSet.completed)} aria-pressed={workSet.completed}>{workSet.completed ? <><Check size={18} /> Done</> : equipmentFit.available ? 'Log set' : 'Blocked'}</button></div>

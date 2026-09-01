@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { athlete, exercises, history, sessions } from './seed'
-import { deriveAchievementEvents, derivePersonalRecords, deriveRecordOpportunities, findExerciseDuplicatePairs, historyVolume, projectExerciseMerge } from './history-engine'
+import { deriveAchievementEvents, derivePersonalRecords, deriveRecordOpportunities, deriveScopedPersonalRecords, findExerciseDuplicatePairs, historyVolume, projectExerciseMerge } from './history-engine'
 
 describe('source history replay', () => {
   it('keeps personal records independent across recorded incline angles', () => {
@@ -113,6 +113,42 @@ describe('source history replay', () => {
       title: 'Establish a bodyweight baseline',
       plannedValue: 15
     })
+  })
+
+  it('keeps plain, weighted, and assisted bodyweight records separate', () => {
+    const pullUp = exercises.find((candidate) => candidate.id === 'pull-up')!
+    const template = { ...history[0], exerciseId: pullUp.id, exerciseName: pullUp.name, family: pullUp.family }
+    const records = derivePersonalRecords([
+      { ...template, id: 'plain', sessionId: 'plain-session', load: 0, reps: 8, loadMode: 'bodyweight' },
+      { ...template, id: 'weighted', sessionId: 'weighted-session', load: 25, reps: 5, loadMode: 'weighted-bodyweight' },
+      { ...template, id: 'assisted-a', sessionId: 'assisted-a-session', load: 40, reps: 6, loadMode: 'assisted-bodyweight' },
+      { ...template, id: 'assisted-b', sessionId: 'assisted-b-session', load: 30, reps: 6, loadMode: 'assisted-bodyweight' }
+    ])
+    expect(new Set(records.filter((record) => record.exerciseId === pullUp.id).map((record) => record.context.loadMode))).toEqual(new Set(['bodyweight', 'weighted-bodyweight', 'assisted-bodyweight']))
+    expect(records.find((record) => record.id.includes('least-assistance'))).toMatchObject({ value: 30, direction: 'lower' })
+    expect(records.some((record) => record.context.loadMode === 'weighted-bodyweight' && record.type === 'estimated-strength')).toBe(false)
+    const planned = structuredClone(sessions[0].exercises[0])
+    planned.exerciseId = pullUp.id
+    planned.sets = planned.sets.slice(0, 3).map((workSet) => ({ ...workSet, loadMode: 'weighted-bodyweight' as const, targetLoad: 25, targetReps: 5 }))
+    expect(deriveRecordOpportunities({ history: [{ ...template, id: 'only-plain', load: 0, reps: 8, loadMode: 'bodyweight' }], planned, exercise: pullUp, readiness: 'normal' })[0].kind).toBe('baseline')
+  })
+
+  it('recomputes records inside honest athlete-selected scopes', () => {
+    const template = history[0]
+    const scopedSessions = [
+      { ...sessions[0], id: 'old-session', mesocycleId: 'old-block', microcycleNumber: 1 },
+      { ...sessions[0], id: 'current-one', mesocycleId: 'current-block', microcycleNumber: 1 },
+      { ...sessions[0], id: 'current-two', mesocycleId: 'current-block', microcycleNumber: 2 }
+    ]
+    const sets = [
+      { ...template, id: 'old-set', sessionId: 'old-session', completedAt: '2024-01-01T12:00:00.000Z', load: 300 },
+      { ...template, id: 'current-one-set', sessionId: 'current-one', completedAt: '2026-07-01T12:00:00.000Z', load: 200 },
+      { ...template, id: 'current-two-set', sessionId: 'current-two', completedAt: '2026-08-01T12:00:00.000Z', load: 210 }
+    ]
+    const block = deriveScopedPersonalRecords({ history: sets, sessions: scopedSessions, activeMesocycleId: 'current-block', scope: 'current-block', now: new Date('2026-08-10') })
+    const phase = deriveScopedPersonalRecords({ history: sets, sessions: scopedSessions, activeMesocycleId: 'current-block', scope: 'current-phase', now: new Date('2026-08-10') })
+    expect(block.find((record) => record.type === 'absolute-load')).toMatchObject({ value: 210, scope: 'current-block' })
+    expect(phase.every((record) => record.sourceSessionId === 'current-two' && record.scope === 'current-phase')).toBe(true)
   })
 
   it('derives an auditable achievement timeline from completed source sets', () => {

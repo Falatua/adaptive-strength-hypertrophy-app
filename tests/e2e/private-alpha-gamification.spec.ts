@@ -106,6 +106,57 @@ test('previews the next workout from Today and the future queue without changing
   expect(browserErrors).toEqual([])
 })
 
+test('shows an evidence-backed movement path and keeps every suggestion athlete-controlled', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await expect(page.getByLabel('Schedule-aware training momentum')).toContainText('Training momentum')
+  await page.getByRole('button', { name: 'Start without check-in' }).click()
+  const path = page.locator('.movement-progress-path').first()
+  await expect(path).toContainText('ForgePath suggestion')
+  await expect(path).toContainText('Last')
+  await expect(path).toContainText('Today')
+  await expect(path).toContainText('Next')
+  await expect(path).toContainText('What earns it')
+  await expect(path).toContainText('Load → reps → sets')
+  const before = await page.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state.sessions.find((session: { status: string }) => session.status === 'active')))
+  if (await path.getByRole('button', { name: 'Apply to unfinished sets' }).count()) {
+    await path.getByRole('button', { name: 'Apply to unfinished sets' }).click()
+    await expect(page.getByText(/applied to unfinished sets/i)).toBeVisible()
+  } else {
+    await expect(path).toContainText(/Review only|Set-count changes stay manual|Progress controls are paused/)
+    const after = await page.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state.sessions.find((session: { status: string }) => session.status === 'active')))
+    expect(after).toBe(before)
+  }
+  if (testInfo.project.name === 'mobile-chromium') await path.screenshot({ path: 'output/playwright/movement-progress-path-mobile.png' })
+  expect(browserErrors).toEqual([])
+})
+
+test('reports scoped records, schedule momentum, round evidence, and the progress ledger', async ({ page }, testInfo) => {
+  const browserErrors: string[] = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
+  page.on('pageerror', (error) => browserErrors.push(error.message))
+  await enterRecommendedProfile(page)
+  await page.getByRole('button', { name: 'Progress', exact: true }).click()
+  await expect(page.getByLabel('Progress direction and training round report')).toContainText('Schedule-aware momentum')
+  await expect(page.getByLabel('Progress direction and training round report')).toContainText('Training round 1 field report')
+  await openPanel(page, 'the progress event ledger')
+  await expect(page.locator('.progress-event-ledger')).toContainText('Append-only evidence')
+  await page.locator('#progress-records').scrollIntoViewIfNeeded()
+  await openPanel(page, 'records for this period')
+  const scopes = page.getByLabel('Record scope')
+  await expect(scopes.getByRole('button')).toHaveCount(5)
+  await scopes.getByRole('button', { name: 'current block' }).click()
+  await expect(scopes.getByRole('button', { name: 'current block' })).toHaveAttribute('aria-pressed', 'true')
+  await scopes.getByRole('button', { name: 'current phase' }).click()
+  await expect(scopes.getByRole('button', { name: 'current phase' })).toHaveAttribute('aria-pressed', 'true')
+  if (testInfo.project.name === 'mobile-chromium') await page.locator('.progress-operating-grid').screenshot({ path: 'output/playwright/progress-operating-system-mobile.png' })
+  const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
+  expect(browserErrors).toEqual([])
+})
+
 test('logs pull-ups as bodyweight repetitions while preserving separate set completion', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
@@ -126,6 +177,9 @@ test('logs pull-ups as bodyweight repetitions while preserving separate set comp
 
   const movement = page.locator('.exercise-card').filter({ has: page.getByRole('heading', { name: 'Pull-Up' }) })
   await expect(movement.getByRole('button', { name: 'Bodyweight' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(movement.getByRole('button', { name: 'BW + lb' })).toBeVisible()
+  await expect(movement.getByRole('button', { name: 'Assisted' })).toBeVisible()
+  await expect(movement.getByRole('button', { name: 'External lb' })).toBeVisible()
   await expect(movement.locator('.bodyweight-load')).toHaveCount(3)
   const rows = movement.locator('.set-row')
   await rows.first().locator('input[inputmode="numeric"]').fill('8')

@@ -578,7 +578,7 @@ export function PlanScreen() {
       </Modal>
 
       <Modal open={Boolean(previewSessionId)} onClose={() => setPreviewSessionId(null)} title={sessions.find((session) => session.id === previewSessionId)?.title ? `Preview ${sessions.find((session) => session.id === previewSessionId)!.title}` : 'Preview workout'} description="Review every movement, exact planned target, and nearest evidence-backed progress cue before starting." wide>
-        {sessions.find((session) => session.id === previewSessionId) && <WorkoutPreview session={sessions.find((session) => session.id === previewSessionId)!} exercises={exercises} history={history} units={settings.units} />}
+        {sessions.find((session) => session.id === previewSessionId) && <WorkoutPreview session={sessions.find((session) => session.id === previewSessionId)!} exercises={exercises} history={history} units={settings.units} athlete={athlete} surveys={surveys} cycleReviews={cycleReviews} equipmentProfile={activeEquipmentProfile} />}
         <div className="modal__actions"><button className="button button--primary" onClick={() => setPreviewSessionId(null)}>Close preview</button></div>
       </Modal>
 

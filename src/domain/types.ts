@@ -334,7 +334,10 @@ export interface ExerciseMuscleMapping {
   reviewedAt: string
 }
 
-export type LoadMode = 'external' | 'bodyweight'
+/** How the number in the load field should be interpreted. Bodyweight has no
+ * invented load. Weighted bodyweight stores added load, and assisted
+ * bodyweight stores the amount of assistance. */
+export type LoadMode = 'external' | 'bodyweight' | 'weighted-bodyweight' | 'assisted-bodyweight'
 
 export interface SetPrescription {
   id: string
@@ -690,7 +693,9 @@ export interface PersonalRecord {
   exerciseName: string
   type: PersonalRecordType
   category: RecordCategory
-  scope: 'all-time'
+  scope: RecordScope
+  /** Most records improve upward. Assisted-bodyweight load records improve as assistance falls. */
+  direction?: 'higher' | 'lower'
   value: number
   unit: 'load' | 'repetitions' | 'volume-load' | 'estimated-load'
   label: string
@@ -710,6 +715,55 @@ export interface PersonalRecord {
   }
   validation: 'validated' | 'numeric-only'
   ruleVersion: 'pr-v2'
+}
+
+export type RecordScope = 'all-time' | 'current-block' | 'rolling-12-months' | 'since-return' | 'current-phase'
+
+export interface MovementProgressPath {
+  ruleVersion: 'movement-progress-path-v1'
+  exerciseId: string
+  plannedExerciseId: string
+  loadMode: LoadMode
+  status: 'baseline' | 'push-load' | 'push-reps' | 'push-sets' | 'reduce-assistance' | 'hold' | 'protect'
+  title: string
+  last: string
+  today: string
+  next: string
+  toProgress: string
+  explanation: string
+  confidence: EvidenceConfidence
+  sourceSetIds: string[]
+  unknownInputs: string[]
+  proposed: { load: number; reps: number; sets: number; loadMode: LoadMode }
+  canApply: boolean
+}
+
+export interface TrainingMomentum {
+  ruleVersion: 'training-momentum-v1'
+  status: 'starting' | 'on-path' | 'adapting' | 'returning'
+  title: string
+  explanation: string
+  completedPriorities: number
+  plannedPriorities: number
+  missedConstraints: number
+  sourceSessionIds: string[]
+  sourceEventIds: string[]
+}
+
+export interface TrainingRoundReport {
+  ruleVersion: 'training-round-report-v1'
+  mesocycleId: string
+  round: number
+  title: string
+  summary: string
+  qualifiedSessions: number
+  requiredSessions: number
+  completedSets: number
+  wins: number
+  nextDecision: CycleReviewDecision
+  reasons: string[]
+  sourceSessionIds: string[]
+  sourceSetIds: string[]
 }
 
 export interface AchievementEvent {

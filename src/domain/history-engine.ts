@@ -6,10 +6,12 @@ import type {
   PersonalRecord,
   PlannedExercise,
   ReadinessOutcome,
+  RecordScope,
   RecordOpportunity,
   TrainingSession
 } from './types'
 import { benchAngleKey, benchAngleLabel, comparableAngleHistory } from './bench-angle-engine'
+import { loadModeForSet } from './load-mode'
 
 export const historyVolume = (history: CompletedSetRecord[]) =>
   history.reduce((total, workSet) => total + workSet.reps * workSet.load, 0)
@@ -41,6 +43,7 @@ const validationFor = (sets: CompletedSetRecord[]): PersonalRecord['validation']
 const record = (input: Omit<PersonalRecord, 'scope' | 'ruleVersion'>): PersonalRecord => ({
   ...input,
   scope: 'all-time',
+  direction: input.direction ?? 'higher',
   ruleVersion: recordRuleVersion
 })
 
@@ -61,12 +64,15 @@ export function derivePersonalRecords(entireHistory: CompletedSetRecord[]): Pers
     const angle = sets[0].benchAngleDeg
     const setupId = angle === undefined ? '' : `:${benchAngleKey(sets[0])}`
     const setupLabel = angle === undefined ? '' : ` at ${angle}°`
-    const bodyweight = sets[0].loadMode === 'bodyweight'
-    const modeId = bodyweight ? ':bodyweight' : ''
-    const setupContext = { ...(angle === undefined ? {} : { benchAngleDeg: angle }), ...(bodyweight ? { loadMode: 'bodyweight' as const } : {}) }
+    const loadMode = sets[0].loadMode ?? 'external'
+    const bodyweight = loadMode === 'bodyweight'
+    const assisted = loadMode === 'assisted-bodyweight'
+    const weighted = loadMode === 'weighted-bodyweight'
+    const modeId = loadMode === 'external' ? '' : `:${loadMode}`
+    const setupContext = { ...(angle === undefined ? {} : { benchAngleDeg: angle }), ...(loadMode === 'external' ? {} : { loadMode }) }
     const loadSet = best(sets, (workSet) => workSet.load)
     const eligibleStrengthSets = sets.filter((workSet) => workSet.reps >= 1 && workSet.reps <= 12)
-    const strengthSet = eligibleStrengthSets.length ? best(eligibleStrengthSets, (workSet) => workSet.load * (1 + workSet.reps / 30)) : null
+    const strengthSet = !weighted && eligibleStrengthSets.length ? best(eligibleStrengthSets, (workSet) => workSet.load * (1 + workSet.reps / 30)) : null
     const sessions = bySession(sets)
     const volumeSets = [...sessions.values()].sort((a, b) => historyVolume(b) - historyVolume(a) || new Date(recordDate(b)).getTime() - new Date(recordDate(a)).getTime() || latest(b).sessionId.localeCompare(latest(a).sessionId))[0]
     const exerciseName = loadSet.exerciseName
@@ -91,15 +97,28 @@ export function derivePersonalRecords(entireHistory: CompletedSetRecord[]): Pers
       return
     }
 
+    if (assisted) {
+      const bestRepSet = best(sets, (workSet) => workSet.reps)
+      const leastAssisted = [...sets].sort((a, b) => a.load - b.load || b.reps - a.reps || new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0]
+      const bestSession = [...sessions.values()].sort((a, b) => b.reduce((sum, workSet) => sum + workSet.reps, 0) - a.reduce((sum, workSet) => sum + workSet.reps, 0) || new Date(recordDate(b)).getTime() - new Date(recordDate(a)).getTime())[0]
+      const totalReps = bestSession.reduce((sum, workSet) => sum + workSet.reps, 0)
+      records.push(
+        record({ id: `record:${exerciseId}${setupId}${modeId}:least-assistance`, exerciseId, exerciseName, type: 'absolute-load', category: 'strength', value: leastAssisted.load, unit: 'load', label: `${leastAssisted.load} assistance for ${leastAssisted.reps} reps${setupLabel}`, achievedAt: leastAssisted.completedAt, sourceSessionId: leastAssisted.sessionId, sourceSetIds: [leastAssisted.id], context: { load: leastAssisted.load, reps: leastAssisted.reps, ...setupContext }, validation: validationFor([leastAssisted]), direction: 'lower' }),
+        record({ id: `record:${exerciseId}${setupId}${modeId}:reps-at-load:${bestRepSet.load}`, exerciseId, exerciseName, type: 'reps-at-load', category: 'repetition', value: bestRepSet.reps, unit: 'repetitions', label: `${bestRepSet.reps} reps with ${bestRepSet.load} assistance${setupLabel}`, achievedAt: bestRepSet.completedAt, sourceSessionId: bestRepSet.sessionId, sourceSetIds: [bestRepSet.id], context: { load: bestRepSet.load, reps: bestRepSet.reps, ...setupContext }, validation: validationFor([bestRepSet]) }),
+        record({ id: `record:${exerciseId}${setupId}${modeId}:set-scheme`, exerciseId, exerciseName, type: 'set-scheme', category: 'scheme', value: totalReps, unit: 'repetitions', label: `${totalReps} assisted reps across ${bestSession.length} sets${setupLabel}`, achievedAt: recordDate(bestSession), sourceSessionId: bestSession[0].sessionId, sourceSetIds: orderedSets(bestSession).map((workSet) => workSet.id), context: { setCount: bestSession.length, repetitionScheme: orderedSets(bestSession).map((workSet) => workSet.reps), ...setupContext }, validation: validationFor(bestSession) })
+      )
+      return
+    }
+
     records.push(
       record({
-        id: `record:${exerciseId}${setupId}:absolute-load`, exerciseId, exerciseName, type: 'absolute-load', category: 'strength',
-        value: loadSet.load, unit: 'load', label: `${loadSet.load} heaviest completed load${setupLabel}`, achievedAt: loadSet.completedAt,
+        id: `record:${exerciseId}${setupId}${modeId}:absolute-load`, exerciseId, exerciseName, type: 'absolute-load', category: 'strength',
+        value: loadSet.load, unit: 'load', label: `${weighted ? `${loadSet.load} added load` : `${loadSet.load} heaviest completed load`}${setupLabel}`, achievedAt: loadSet.completedAt,
         sourceSessionId: loadSet.sessionId, sourceSetIds: [loadSet.id], context: { load: loadSet.load, reps: loadSet.reps, ...setupContext }, validation: validationFor([loadSet])
       }),
       record({
-        id: `record:${exerciseId}${setupId}:exercise-session-volume`, exerciseId, exerciseName, type: 'exercise-session-volume', category: 'workload',
-        value: historyVolume(volumeSets), unit: 'volume-load', label: `${historyVolume(volumeSets).toLocaleString()} exact-movement session volume${setupLabel}`,
+        id: `record:${exerciseId}${setupId}${modeId}:exercise-session-volume`, exerciseId, exerciseName, type: 'exercise-session-volume', category: 'workload',
+        value: historyVolume(volumeSets), unit: 'volume-load', label: `${historyVolume(volumeSets).toLocaleString()} ${weighted ? 'added-load work' : 'exact-movement session volume'}${setupLabel}`,
         achievedAt: recordDate(volumeSets), sourceSessionId: volumeSets[0].sessionId, sourceSetIds: orderedSets(volumeSets).map((workSet) => workSet.id),
         context: { setCount: volumeSets.length, repetitionScheme: orderedSets(volumeSets).map((workSet) => workSet.reps), ...setupContext }, validation: validationFor(volumeSets)
       })
@@ -108,7 +127,7 @@ export function derivePersonalRecords(entireHistory: CompletedSetRecord[]): Pers
     if (strengthSet) {
       const estimated = Math.round(strengthSet.load * (1 + strengthSet.reps / 30))
       records.push(record({
-        id: `record:${exerciseId}${setupId}:estimated-strength`, exerciseId, exerciseName, type: 'estimated-strength', category: 'strength',
+        id: `record:${exerciseId}${setupId}${modeId}:estimated-strength`, exerciseId, exerciseName, type: 'estimated-strength', category: 'strength',
         value: estimated, unit: 'estimated-load', label: `${estimated} estimated strength${setupLabel}`, achievedAt: strengthSet.completedAt,
         sourceSessionId: strengthSet.sessionId, sourceSetIds: [strengthSet.id],
         context: { load: strengthSet.load, reps: strengthSet.reps, formula: 'epley', formulaVersion: 'epley-v1', eligibleRepRange: [1, 12], ...setupContext }, validation: validationFor([strengthSet])
@@ -124,7 +143,7 @@ export function derivePersonalRecords(entireHistory: CompletedSetRecord[]): Pers
     byLoad.forEach((loadSets, load) => {
       const winner = best(loadSets, (workSet) => workSet.reps)
       records.push(record({
-        id: `record:${exerciseId}${setupId}:reps-at-load:${load}`, exerciseId, exerciseName, type: 'reps-at-load', category: 'repetition',
+        id: `record:${exerciseId}${setupId}${modeId}:reps-at-load:${load}`, exerciseId, exerciseName, type: 'reps-at-load', category: 'repetition',
         value: winner.reps, unit: 'repetitions', label: `${winner.reps} reps at ${load}${setupLabel}`, achievedAt: winner.completedAt,
         sourceSessionId: winner.sessionId, sourceSetIds: [winner.id], context: { load, reps: winner.reps, ...setupContext }, validation: validationFor([winner])
       }))
@@ -132,7 +151,7 @@ export function derivePersonalRecords(entireHistory: CompletedSetRecord[]): Pers
     byReps.forEach((repSets, reps) => {
       const winner = best(repSets, (workSet) => workSet.load)
       records.push(record({
-        id: `record:${exerciseId}${setupId}:load-for-reps:${reps}`, exerciseId, exerciseName, type: 'load-for-reps', category: 'strength',
+        id: `record:${exerciseId}${setupId}${modeId}:load-for-reps:${reps}`, exerciseId, exerciseName, type: 'load-for-reps', category: 'strength',
         value: winner.load, unit: 'load', label: `${winner.load} for ${reps} reps${setupLabel}`, achievedAt: winner.completedAt,
         sourceSessionId: winner.sessionId, sourceSetIds: [winner.id], context: { load: winner.load, reps, ...setupContext }, validation: validationFor([winner])
       }))
@@ -151,7 +170,7 @@ export function derivePersonalRecords(entireHistory: CompletedSetRecord[]): Pers
       const uniformReps = sameNumber(repetitions)
       const schemeLabel = uniformReps ? `${winner.length} × ${repetitions[0]}` : repetitions.join(' / ')
       records.push(record({
-        id: `record:${exerciseId}${setupId}:set-scheme:${key}`, exerciseId, exerciseName, type: 'set-scheme', category: 'scheme',
+        id: `record:${exerciseId}${setupId}${modeId}:set-scheme:${key}`, exerciseId, exerciseName, type: 'set-scheme', category: 'scheme',
         value: winner[0].load, unit: 'load', label: `${schemeLabel} at ${winner[0].load}${setupLabel}`, achievedAt: recordDate(winner),
         sourceSessionId: winner[0].sessionId, sourceSetIds: winner.map((workSet) => workSet.id),
         context: { load: winner[0].load, setCount: winner.length, repetitionScheme: repetitions, ...setupContext }, validation: validationFor(winner)
@@ -170,6 +189,37 @@ export function derivePersonalRecords(entireHistory: CompletedSetRecord[]): Pers
   }
 
   return records.sort((a, b) => new Date(b.achievedAt).getTime() - new Date(a.achievedAt).getTime() || a.id.localeCompare(b.id))
+}
+
+export function deriveScopedPersonalRecords(input: {
+  history: CompletedSetRecord[]
+  scope: RecordScope
+  sessions?: TrainingSession[]
+  activeMesocycleId?: string | null
+  now?: Date
+}): PersonalRecord[] {
+  const now = input.now ?? new Date()
+  if (input.scope === 'all-time') return derivePersonalRecords(input.history)
+  const sessions = input.sessions ?? []
+  const byId = new Map(sessions.map((session) => [session.id, session]))
+  let selected = input.history
+  if (input.scope === 'rolling-12-months') {
+    const cutoff = now.getTime() - 365 * 86_400_000
+    selected = selected.filter((workSet) => new Date(workSet.completedAt).getTime() >= cutoff)
+  } else if (input.scope === 'current-block') {
+    selected = selected.filter((workSet) => byId.get(workSet.sessionId)?.mesocycleId === input.activeMesocycleId)
+  } else if (input.scope === 'current-phase') {
+    const active = sessions.filter((session) => session.mesocycleId === input.activeMesocycleId)
+    const currentRound = Math.max(1, ...active.map((session) => session.microcycleNumber ?? 1))
+    const currentIds = new Set(active.filter((session) => (session.microcycleNumber ?? 1) === currentRound).map((session) => session.id))
+    selected = selected.filter((workSet) => currentIds.has(workSet.sessionId))
+  } else if (input.scope === 'since-return') {
+    const stamps = [...new Set(selected.map((workSet) => new Date(workSet.completedAt).getTime()))].sort((a, b) => a - b)
+    let cutoff = stamps[0] ?? now.getTime()
+    for (let index = 1; index < stamps.length; index += 1) if (stamps[index] - stamps[index - 1] >= 14 * 86_400_000) cutoff = stamps[index]
+    selected = selected.filter((workSet) => new Date(workSet.completedAt).getTime() >= cutoff)
+  }
+  return derivePersonalRecords(selected).map((recordValue) => ({ ...recordValue, id: `${recordValue.id}:scope:${input.scope}`, scope: input.scope }))
 }
 
 const categoryTitle = (recordValue: PersonalRecord) => ({
@@ -191,12 +241,12 @@ export function deriveAchievementEvents(history: CompletedSetRecord[]): Achievem
     afterRecords.forEach((after) => {
       if (!after.sourceSetIds.some((id) => currentIds.has(id))) return
       const before = beforeRecords.get(after.id)
-      if (!before || after.value <= before.value) return
+      if (!before || (after.direction === 'lower' ? after.value >= before.value : after.value <= before.value)) return
       events.push({
         id: `achievement:${after.id}:${sessionId}`, kind: 'personal-record', category: after.category, recordType: after.type,
         title: after.validation === 'validated' ? categoryTitle(after) : 'Unverified number best', explanation: `${after.label}, improved from ${before.label}.${after.validation === 'numeric-only' ? ' Technique and pain were not confirmed, so this is not a validated PR.' : ''}`, exerciseId: after.exerciseId,
         exerciseName: after.exerciseName, achievedAt: after.achievedAt, scope: 'all-time', value: after.value,
-        priorValue: before.value, delta: after.value - before.value, sourceSessionId: sessionId,
+        priorValue: before.value, delta: after.direction === 'lower' ? before.value - after.value : after.value - before.value, sourceSessionId: sessionId,
         sourceSetIds: after.sourceSetIds, priorSourceSetIds: before.sourceSetIds, validation: after.validation, ruleVersion: achievementRuleVersion
       })
     })
@@ -298,12 +348,14 @@ export function deriveRecordOpportunities(input: {
 }): RecordOpportunity[] {
   const { history, planned, exercise, readiness } = input
   const exerciseHistory = history.filter((workSet) => workSet.exerciseId === exercise.id)
-  const exactHistory = comparableAngleHistory(exerciseHistory, planned)
   if (!planned.sets.length) return []
   const first = planned.sets[0]
+  const loadMode = loadModeForSet(first, exercise)
+  const exactHistory = comparableAngleHistory(exerciseHistory, planned).filter((workSet) => loadModeForSet(workSet, exercise) === loadMode)
   const setupId = first.benchAngleDeg === undefined ? '' : `:${benchAngleKey(first)}`
   const setupLabel = first.benchAngleDeg === undefined ? '' : ` at ${first.benchAngleDeg}°`
-  const bodyweight = first.loadMode === 'bodyweight'
+  const bodyweight = loadMode === 'bodyweight'
+  const modeId = loadMode === 'external' ? '' : `:${loadMode}`
   const current = new Map(derivePersonalRecords(exactHistory).map((recordValue) => [recordValue.id, recordValue]))
   const plannedLoads = planned.sets.map((workSet) => workSet.targetLoad)
   const plannedReps = planned.sets.map((workSet) => workSet.targetReps)
@@ -371,22 +423,39 @@ export function deriveRecordOpportunities(input: {
     return opportunities.slice(0, 2)
   }
 
+  if (loadMode === 'assisted-bodyweight') {
+    const leastId = `record:${exercise.id}${setupId}${modeId}:least-assistance`
+    const least = current.get(leastId)
+    const plannedAssistance = Math.min(...plannedLoads)
+    const plannedBestSet = Math.max(...plannedReps)
+    if (!least || plannedAssistance < least.value) opportunities.push({
+      id: `opportunity:${planned.id}:assistance:${plannedAssistance}`, exerciseId: exercise.id, type: 'absolute-load', category: 'strength',
+      title: 'Less assistance is in reach', explanation: `${plannedAssistance} assistance for the planned reps would be your least-assisted exact set.`,
+      plannedValue: plannedAssistance, currentValue: least?.value ?? null, margin: least ? least.value - plannedAssistance : null,
+      sourceSetIds: least?.sourceSetIds ?? [], plannedSetIds: planned.sets.map((workSet) => workSet.id), eligible,
+      kind: least ? kind : eligible ? 'baseline' : 'paused', gateReason, ruleVersion: opportunityRuleVersion
+    })
+    add('reps-at-load', 'repetition', 'Assisted rep record in reach', `${plannedBestSet} reps with ${first.targetLoad} assistance would be a new exact mark.`, plannedBestSet, `record:${exercise.id}${setupId}${modeId}:reps-at-load:${first.targetLoad}`)
+    return opportunities.slice(0, 2)
+  }
+
   const plannedLoad = first.targetLoad
   const plannedRep = first.targetReps
-  add('load-for-reps', 'strength', 'Load-for-reps opportunity', `${plannedLoad} × ${plannedRep}${setupLabel} would be the heaviest completed set of ${plannedRep} for this exact setup.`, plannedLoad, `record:${exercise.id}${setupId}:load-for-reps:${plannedRep}`)
-  add('reps-at-load', 'repetition', 'Repetition opportunity', `${plannedRep} repetitions at ${plannedLoad}${setupLabel} would be a new exact-setup repetition best.`, plannedRep, `record:${exercise.id}${setupId}:reps-at-load:${plannedLoad}`)
-  add('absolute-load', 'strength', 'Absolute-load opportunity', `${plannedLoad}${setupLabel} would be the heaviest completed load for this exact setup.`, plannedLoad, `record:${exercise.id}${setupId}:absolute-load`)
+  const loadCopy = loadMode === 'weighted-bodyweight' ? `${plannedLoad} added load` : `${plannedLoad}`
+  add('load-for-reps', 'strength', 'Load-for-reps opportunity', `${loadCopy} × ${plannedRep}${setupLabel} would be the heaviest completed set of ${plannedRep} for this exact setup.`, plannedLoad, `record:${exercise.id}${setupId}${modeId}:load-for-reps:${plannedRep}`)
+  add('reps-at-load', 'repetition', 'Repetition opportunity', `${plannedRep} repetitions at ${loadCopy}${setupLabel} would be a new exact-setup repetition best.`, plannedRep, `record:${exercise.id}${setupId}${modeId}:reps-at-load:${plannedLoad}`)
+  add('absolute-load', 'strength', 'Absolute-load opportunity', `${loadCopy}${setupLabel} would be the heaviest completed load for this exact setup.`, plannedLoad, `record:${exercise.id}${setupId}${modeId}:absolute-load`)
 
   if (sameNumber(plannedLoads) && planned.sets.length >= 2) {
     const key = plannedReps.join('-')
     const schemeLabel = sameNumber(plannedReps) ? `${planned.sets.length} × ${plannedReps[0]}` : plannedReps.join(' / ')
-    add('set-scheme', 'scheme', 'Set-scheme opportunity', `Completing the prescribed ${schemeLabel} at ${plannedLoads[0]}${setupLabel} would set a new exact-setup load best.`, plannedLoads[0], `record:${exercise.id}${setupId}:set-scheme:${key}`)
+    add('set-scheme', 'scheme', 'Set-scheme opportunity', `Completing the prescribed ${schemeLabel} at ${loadCopy}${setupLabel} would set a new exact-setup load best.`, plannedLoads[0], `record:${exercise.id}${setupId}${modeId}:set-scheme:${key}`)
   }
   const projectedVolume = planned.sets.reduce((sum, _workSet, index) => sum + plannedLoads[index] * plannedReps[index], 0)
-  add('exercise-session-volume', 'workload', 'Planned workload opportunity', `Completing the prescribed sets would create ${projectedVolume.toLocaleString()} exact-setup volume${setupLabel}.`, projectedVolume, `record:${exercise.id}${setupId}:exercise-session-volume`)
+  add('exercise-session-volume', 'workload', 'Planned workload opportunity', `Completing the prescribed sets would create ${projectedVolume.toLocaleString()} ${loadMode === 'weighted-bodyweight' ? 'added-load work' : 'exact-setup volume'}${setupLabel}.`, projectedVolume, `record:${exercise.id}${setupId}${modeId}:exercise-session-volume`)
 
   if (!opportunities.length) {
-    const repRecord = current.get(`record:${exercise.id}${setupId}:reps-at-load:${plannedLoad}`)
+    const repRecord = current.get(`record:${exercise.id}${setupId}${modeId}:reps-at-load:${plannedLoad}`)
     if (repRecord) opportunities.push({
       id: `opportunity:${planned.id}:build`, exerciseId: exercise.id, type: 'reps-at-load', category: 'repetition',
       title: 'Next repetition record',

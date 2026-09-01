@@ -3,14 +3,25 @@ type: implementation-status
 aliases: [ForgePath Private Alpha, Adaptive Training App Private Alpha]
 tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
-updated: 2026-08-27
+updated: 2026-09-01
 status: working-private-alpha
-app_version: 0.78.0
+app_version: 0.80.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.80.0 Progression Operating System Delta
+
+- Adds an exact-movement Last / Today / Next / What earns it path to active workouts and read-only previews.
+- Uses completed load, repetitions, sets, RIR, exact-movement feedback, continuity, readiness, live pain state, joint preference, exact setup, load mode, and executable equipment increments to produce deterministic suggestions.
+- Applies eligible load or repetition suggestions only to unfinished sets after explicit athlete approval. Completed sets remain immutable and set-count suggestions stay manual.
+- Separates plain bodyweight, weighted bodyweight added load, assisted bodyweight assistance, and external load across input, history, records, progress thresholds, and previews.
+- Recomputes personal records for all time, current block, current round, rolling twelve months, and since the latest return period.
+- Adds schedule-aware momentum, a linked training-round field report, and a progress ledger joining source-reconstructed earned events with stored athlete-approved round decisions.
+- Keeps backup schema 30, local persistence 31, the 251-movement catalog, Supabase authority, missing-is-unknown semantics, and pain/safety precedence unchanged.
+- Passes 547 deterministic tests, lint, production compilation, UI, image, backend, cloud-data, and cloud-release gates, all 165 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys, and the GitHub Pages artifact gate. GitHub workflow, deployment, and live-source checks remain release gates.
 
 ## Private Alpha 0.78.0 Full Training-Block Outlook Delta
 

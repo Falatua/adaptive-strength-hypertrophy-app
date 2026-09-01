@@ -21,13 +21,15 @@ import { athleteLevel } from '../domain/athlete-level-engine'
 import { PixelAvatar } from '../components/PixelAvatar'
 import { CollapsiblePanel } from '../components/CollapsiblePanel'
 import { LevelProgress } from '../components/LevelProgress'
-import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
+import { deriveAchievementEvents, deriveRecordOpportunities, deriveScopedPersonalRecords } from '../domain/history-engine'
 import { filterMuscleDose, filterPlannedMuscleDose, muscleDoseFor, plannedMuscleDoseFor, type MuscleDoseLens } from '../domain/muscle-dose'
 import { decideMuscleVolume, forecastDeload, summarizeMuscleFeedback, volumeZone } from '../domain/volume-progression-engine'
-import type { MuscleId, RecordCategory } from '../domain/types'
+import type { MuscleId, RecordCategory, RecordScope } from '../domain/types'
 import { buildCalendarMonth, buildExerciseExposureSequence, buildFixedEventCountdown, calendarDayKey } from '../domain/timeline-engine'
 import { buildOngoingConfidenceModel } from '../domain/ongoing-confidence-engine'
 import { currentMicrocycleNumber } from '../domain/cycle-review-engine'
+import { buildTrainingMomentum } from '../domain/momentum-engine'
+import { buildTrainingRoundReport } from '../domain/round-report-engine'
 
 type TimelineAxis = 'calendar' | 'exposure'
 const primaryProgressRangeIds: ProgressRange[] = ['today', '7d', '28d']
@@ -35,7 +37,7 @@ const primaryProgressRanges = progressRanges.filter((item) => primaryProgressRan
 const secondaryProgressRanges = progressRanges.filter((item) => !primaryProgressRangeIds.includes(item.id))
 
 export function ProgressScreen() {
-  const { history, records, athlete, settings, sessions, surveys, mesocycles, missedOpportunityEvents, placementVerifications, exercises: exerciseCatalog, setNav } = useAppStore()
+  const { history, records, athlete, settings, sessions, surveys, mesocycles, cycleReviews, missedOpportunityEvents, placementVerifications, exercises: exerciseCatalog, setNav } = useAppStore()
   const athleteProgress = athleteLevel({ history, records, sessions })
   const [range, setRange] = useState<ProgressRange>('28d')
   const [bodyLens, setBodyLens] = useState<BodyLens>('region')
@@ -44,6 +46,7 @@ export function ProgressScreen() {
   const [nowMs] = useState(() => Date.now())
   const [selectedMuscle, setSelectedMuscle] = useState<MuscleId | null>(null)
   const [recordCategory, setRecordCategory] = useState<RecordCategory | 'all'>('all')
+  const [recordScope, setRecordScope] = useState<RecordScope>('all-time')
   const [timelineAxis, setTimelineAxis] = useState<TimelineAxis>('calendar')
   const [calendarCursor, setCalendarCursor] = useState(() => new Date())
   const [selectedCalendarDayKey, setSelectedCalendarDayKey] = useState(() => calendarDayKey(new Date())!)
@@ -57,10 +60,8 @@ export function ProgressScreen() {
   const latestTimestamp = summary.history.reduce((latest, workSet) => Math.max(latest, new Date(workSet.completedAt).getTime()), 0)
   const latestDate = latestTimestamp ? new Date(latestTimestamp) : null
   const currentWindow = rangeWindow(range)
-  const visibleRecords = records.filter((record) => {
-    const timestamp = new Date(record.achievedAt).getTime()
-    return timestamp <= currentWindow.end.getTime() && (currentWindow.start === null || timestamp >= currentWindow.start.getTime())
-  })
+  const activePlan = mesocycles.find((plan) => plan.status === 'active')
+  const scopedRecords = useMemo(() => deriveScopedPersonalRecords({ history, scope: recordScope, sessions, activeMesocycleId: activePlan?.id ?? null, now: new Date(nowMs) }), [activePlan?.id, history, nowMs, recordScope, sessions])
   const achievements = useMemo(() => deriveAchievementEvents(history), [history])
   const visibleAchievements = achievements.filter((event) => {
     const timestamp = new Date(event.achievedAt).getTime()
@@ -68,7 +69,9 @@ export function ProgressScreen() {
   })
   const validatedAchievements = visibleAchievements.filter((event) => event.validation === 'validated')
   const numericOnlyAchievements = visibleAchievements.filter((event) => event.validation === 'numeric-only')
-  const filteredRecords = visibleRecords.filter((record) => recordCategory === 'all' || record.category === recordCategory)
+  const filteredRecords = scopedRecords.filter((record) => recordCategory === 'all' || record.category === recordCategory)
+  const momentum = useMemo(() => buildTrainingMomentum({ sessions, history, missedEvents: missedOpportunityEvents, activePlan, now: new Date(nowMs) }), [activePlan, history, missedOpportunityEvents, nowMs, sessions])
+  const roundReport = useMemo(() => activePlan ? buildTrainingRoundReport(activePlan, sessions, history, surveys, new Date(nowMs)) : null, [activePlan, history, nowMs, sessions, surveys])
   const nextSession = sessions.filter((session) => ['planned', 'deferred'].includes(session.status)).sort((a, b) => new Date(a.plannedDate).getTime() - new Date(b.plannedDate).getTime())[0]
   const nextOpportunities = nextSession?.exercises.flatMap((planned) => {
     const exercise = exerciseCatalog.find((candidate) => candidate.id === planned.exerciseId)
@@ -203,6 +206,30 @@ export function ProgressScreen() {
         <div className="progress-evidence-ledger__lead"><BarChart3 size={20} /><span><small>Completed volume load</small><strong>{summary.totalVolume.toLocaleString()} {settings.units}</strong><em>{summary.setCount} completed set{summary.setCount === 1 ? '' : 's'} · actual repetitions × load</em></span></div>
         <dl><div><dt>Latest work</dt><dd>{latestDate?.toLocaleDateString() ?? 'None in this period'}</dd></div><div><dt>Most trained</dt><dd>{topExercise?.name ?? 'No movement yet'}</dd></div><div><dt>Validated wins</dt><dd>{validatedAchievements.length}{numericOnlyAchievements.length ? ` · ${numericOnlyAchievements.length} numeric-only` : ''}</dd></div></dl>
       </section>
+
+      <section className="progress-operating-grid" aria-label="Progress direction and training round report">
+        <article className={`momentum-card momentum-card--${momentum.status}`}>
+          <div><Activity size={20} /><span><p className="eyebrow">Schedule-aware momentum</p><h3>{momentum.title}</h3></span></div>
+          <p>{momentum.explanation}</p>
+          <dl><div><dt>Priority workouts</dt><dd>{momentum.completedPriorities}/{momentum.plannedPriorities}</dd></div><div><dt>Recorded constraints</dt><dd>{momentum.missedConstraints}</dd></div></dl>
+          <small>Completed priorities and recorded schedule changes only. No streak, punishment, or catch-up debt.</small>
+        </article>
+        {roundReport ? <article className="round-report-card">
+          <div><ListOrdered size={20} /><span><p className="eyebrow">Completed-work report</p><h3>{roundReport.title}</h3></span></div>
+          <p>{roundReport.summary}</p>
+          <dl><div><dt>Qualified</dt><dd>{roundReport.qualifiedSessions}/{roundReport.requiredSessions}</dd></div><div><dt>Progress events</dt><dd>{roundReport.wins}</dd></div><div><dt>Suggested decision</dt><dd>{roundReport.nextDecision.replaceAll('-', ' ')}</dd></div></dl>
+          <small>{roundReport.reasons[0]} Athlete approval is still required.</small>
+        </article> : <article className="round-report-card"><div><ListOrdered size={20} /><span><p className="eyebrow">Completed-work report</p><h3>No active training round</h3></span></div><p>Start or review a training block to create a round-level field report.</p></article>}
+      </section>
+
+      <CollapsiblePanel className="panel progress-event-ledger" label="the progress event ledger" header={<div className="panel__header"><div><p className="eyebrow">Append-only evidence</p><h3>What moved, and what you decided</h3></div><Link2 size={20} /></div>}>
+        <div className="progress-event-ledger__list">
+          {[...cycleReviews].reverse().slice(0, 4).map((review) => <article key={review.id}><span>DECISION</span><div><strong>Round {review.microcycleNumber}: {review.decision.replaceAll('-', ' ')}</strong><small>{new Date(review.createdAt).toLocaleString()} · plan v{review.planVersion}</small><p>{review.reason}</p></div><b>{review.evidence.qualifiedSessions}/{review.evidence.requiredSessions}</b></article>)}
+          {achievements.slice(0, 8).map((event) => <article key={event.id}><span>{event.kind === 'personal-record' ? 'PR' : 'WIN'}</span><div><strong>{event.title}: {event.exerciseName}</strong><small>{new Date(event.achievedAt).toLocaleString()} · {event.sourceSetIds.length} source set{event.sourceSetIds.length === 1 ? '' : 's'}</small><p>{event.explanation}</p></div><b>{event.delta === null ? 'BASE' : `+${Number.isInteger(event.delta) ? event.delta : event.delta.toFixed(1)}`}</b></article>)}
+        </div>
+        {!cycleReviews.length && !achievements.length && <div className="compact-empty"><Link2 size={24} /><strong>No progress event yet</strong><p>Completed exact-movement work and athlete-approved round decisions will appear here with their evidence.</p></div>}
+        <p className="chart-note">This ledger is reconstructed from completed set records and stored training-round decisions. Editing source history recalculates earned events; approved round decisions remain append-only.</p>
+      </CollapsiblePanel>
 
       <div id="progress-calibration"><CollapsiblePanel className="panel confidence-panel" label="what ForgePath knows" header={<div className="panel__header"><div><p className="eyebrow">Ongoing calibration</p><h3>{ongoingConfidence.headline}</h3></div><BrainCircuit size={20} /></div>}>
         <p className="confidence-panel__summary">{ongoingConfidence.summary}</p>
@@ -392,9 +419,10 @@ export function ProgressScreen() {
           {exerciseMix.length ? <div className="movement-mix">{exerciseMix.slice(0, 6).map((item, index) => <div key={item.exerciseId}><span className="movement-mix__rank">{String(index + 1).padStart(2, '0')}</span><span><strong>{item.name}</strong><small>{item.sets} sets · {item.repetitions} reps · {item.sessions} {item.sessions === 1 ? 'session' : 'sessions'}</small><i><b style={{ width: `${Math.max(3, item.volumeShare * 100)}%` }} /></i></span><span><b>{(item.volumeShare * 100).toFixed(1)}%</b><small>{item.volume.toLocaleString()} volume load</small></span></div>)}</div> : <div className="compact-empty"><Dumbbell size={24} /><strong>No movement mix yet</strong><p>Complete a set inside this period to create an exact-movement breakdown.</p></div>}
           <p className="chart-note">Percent is share of selected-period volume load, not share of hypertrophy stimulus or enjoyment. Different exercises are not mechanically interchangeable.</p>
         </CollapsiblePanel>
-        <CollapsiblePanel className="panel" label="records for this period" header={<div className="panel__header"><div><p className="eyebrow">Your current records</p><h3>Bests inside this window</h3></div><Trophy size={19} /></div>}>
+        <CollapsiblePanel className="panel" label="records for this period" header={<div className="panel__header"><div><p className="eyebrow">Your current records</p><h3>Bests for the selected scope</h3></div><Trophy size={19} /></div>}>
+          <div className="record-scope-filter" aria-label="Record scope">{(['all-time', 'current-block', 'current-phase', 'rolling-12-months', 'since-return'] as const).map((scope) => <button key={scope} aria-pressed={recordScope === scope} className={recordScope === scope ? 'selected' : ''} onClick={() => setRecordScope(scope)}>{scope.replaceAll('-', ' ')}</button>)}</div>
           <div className="record-filter" aria-label="Record category">{(['all', 'strength', 'repetition', 'scheme', 'workload'] as const).map((category) => <button key={category} aria-pressed={recordCategory === category} className={recordCategory === category ? 'selected' : ''} onClick={() => setRecordCategory(category)}>{category}</button>)}</div>
-          {filteredRecords.length ? <div className="record-list">{filteredRecords.slice(0, 12).map((record) => <div key={record.id} className={record.validation === 'numeric-only' ? 'is-numeric-only' : ''}><span className="record-medal">◆</span><div><strong>{record.label}{['load', 'estimated-load'].includes(record.unit) ? ` ${settings.units}` : record.unit === 'volume-load' ? ` ${settings.units}` : ''}</strong><small>{record.exerciseName} · {new Date(record.achievedAt).toLocaleDateString()} · {record.sourceSetIds.length} completed {record.sourceSetIds.length === 1 ? 'set' : 'sets'} · {record.validation === 'numeric-only' ? 'numbers only' : 'quality confirmed'}</small></div><span>{record.category}</span></div>)}</div> : <div className="compact-empty"><Trophy size={24} /><strong>No record in this window</strong><p>Records outside the selected dates remain available in All time.</p></div>}
+          {filteredRecords.length ? <div className="record-list">{filteredRecords.slice(0, 12).map((record) => <div key={record.id} className={record.validation === 'numeric-only' ? 'is-numeric-only' : ''}><span className="record-medal">◆</span><div><strong>{record.label}{['load', 'estimated-load'].includes(record.unit) ? ` ${settings.units}` : record.unit === 'volume-load' ? ` ${settings.units}` : ''}</strong><small>{record.exerciseName} · {new Date(record.achievedAt).toLocaleDateString()} · {record.sourceSetIds.length} completed {record.sourceSetIds.length === 1 ? 'set' : 'sets'} · {record.validation === 'numeric-only' ? 'numbers only' : 'quality confirmed'}</small></div><span>{record.category}</span></div>)}</div> : <div className="compact-empty"><Trophy size={24} /><strong>No record in this scope</strong><p>Choose another scope or complete exact-movement work to establish a mark.</p></div>}
         </CollapsiblePanel>
       </div>
 
