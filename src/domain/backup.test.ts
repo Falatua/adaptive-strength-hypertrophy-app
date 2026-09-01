@@ -53,6 +53,12 @@ const state = (): RestorableAppState => ({
   onboardingComplete: true
 })
 
+const asPre080Records = (sourceHistory: RestorableAppState['history']) => derivePersonalRecords(sourceHistory).map((record) => {
+  const legacy = { ...record, ruleVersion: 'pr-v2' as const }
+  delete legacy.direction
+  return legacy
+})
+
 describe('versioned backup and restore', () => {
   it('round-trips the complete private state with integrity verification', () => {
     const backup = createBackup(state(), '2026-08-10T12:00:00.000Z')
@@ -227,6 +233,44 @@ describe('versioned backup and restore', () => {
       recordsBefore: [], recordsAfter: derivePersonalRecords(afterHistory), volumeBefore: historyVolume(beforeHistory), volumeAfter: historyVolume(afterHistory)
     }]
     expect(() => parseBackup(JSON.stringify(createBackup(invalid)))).toThrow(/record projection/i)
+  })
+
+  it('recovers a verified version 30 cloud snapshot with pre-0.80 record projections', () => {
+    const current = state()
+    current.records = asPre080Records(current.history)
+    current.historyMutations = [{
+      id: 'legacy-record-projection', type: 'exercise-edited', createdAt: '2026-08-31T12:00:00.000Z', reason: 'Legacy projection fixture',
+      description: 'Preserved an exact pre-0.80 record projection.', affectedSetIds: current.history.map((workSet) => workSet.id),
+      before: { history: structuredClone(current.history), exercises: structuredClone(current.exercises), sessions: structuredClone(current.sessions) },
+      after: { history: structuredClone(current.history), exercises: structuredClone(current.exercises), sessions: structuredClone(current.sessions) },
+      recordsBefore: asPre080Records(current.history), recordsAfter: asPre080Records(current.history),
+      volumeBefore: historyVolume(current.history), volumeAfter: historyVolume(current.history)
+    }]
+    const legacy = createBackup(current, '2026-08-31T12:05:00.000Z') as unknown as Record<string, unknown>
+    legacy.schemaVersion = 30
+    legacy.appVersion = '0.79.0'
+
+    const parsed = parseBackup(JSON.stringify(legacy))
+
+    expect(parsed.backup.schemaVersion).toBe(BACKUP_SCHEMA_VERSION)
+    expect(parsed.backup.data.history).toEqual(current.history)
+    expect(parsed.backup.data.records).toEqual(derivePersonalRecords(current.history))
+    expect(parsed.backup.data.records.every((record) => record.ruleVersion === 'pr-v3')).toBe(true)
+    expect(parsed.backup.data.historyMutations[0].recordsBefore.every((record) => record.ruleVersion === 'pr-v3')).toBe(true)
+    expect(parsed.warnings.join(' ')).toMatch(/version 30.*PR v3/i)
+  })
+
+  it('recovers the exact 0.80.0 projection that was accidentally labeled pr-v2', () => {
+    const current = state()
+    current.records = derivePersonalRecords(current.history).map((record) => ({ ...record, ruleVersion: 'pr-v2' }))
+    const legacy = createBackup(current, '2026-09-01T12:05:00.000Z') as unknown as Record<string, unknown>
+    legacy.schemaVersion = 30
+    legacy.appVersion = '0.80.0'
+
+    const parsed = parseBackup(JSON.stringify(legacy))
+
+    expect(parsed.backup.data.records).toEqual(derivePersonalRecords(current.history))
+    expect(parsed.backup.data.records.every((record) => record.ruleVersion === 'pr-v3')).toBe(true)
   })
 
   it('migrates the original version 1 open export without inventing survey answers', () => {

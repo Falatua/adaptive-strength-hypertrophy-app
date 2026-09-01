@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js'
 import { describe, expect, it, vi } from 'vitest'
 import { createBackup, type RestorableAppState } from '../domain/backup'
 import { athlete, equipmentProfiles, exercises, history, mesocycles, records, sessions } from '../domain/seed'
+import { derivePersonalRecords } from '../domain/history-engine'
 import {
   CLOUD_LAST_SYNC_STORAGE_KEY,
   CLOUD_ACCOUNT_STORAGE_KEY,
@@ -441,6 +442,29 @@ describe('reviewed cloud restore', () => {
     const snapshot = parseCloudSnapshotRow(row)
     expect(snapshot.serverVersion).toBe(19)
     expect(snapshot.backup.schemaVersion).toBe(backup.schemaVersion)
+  })
+
+  it('loads the affected pre-0.80 cloud projection and replays records without changing completed sets', () => {
+    const priorState = state()
+    priorState.records = derivePersonalRecords(priorState.history).map((record) => {
+      const legacy = { ...record, ruleVersion: 'pr-v2' as const }
+      delete legacy.direction
+      return legacy
+    })
+    const currentEnvelope = createBackup(priorState, '2026-08-31T12:00:00.000Z')
+    const stored = { ...JSON.parse(JSON.stringify(currentEnvelope)), schemaVersion: 30, appVersion: '0.79.0' }
+    const snapshot = parseCloudSnapshotRow({
+      payload: stored as Json,
+      version: 20,
+      updated_at: '2026-09-01T18:00:00.000Z',
+      checksum: currentEnvelope.integrity.value,
+      schema_version: 30,
+      app_version: '0.79.0'
+    })
+
+    expect(snapshot.backup.data.history).toEqual(priorState.history)
+    expect(snapshot.backup.data.records).toEqual(derivePersonalRecords(priorState.history))
+    expect(snapshot.backup.data.records.every((record) => record.ruleVersion === 'pr-v3')).toBe(true)
   })
 
   it('refuses a snapshot written by a newer schema rather than silently downgrading it', () => {

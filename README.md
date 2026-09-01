@@ -1,8 +1,8 @@
-# ForgePath Private Alpha 0.80.0
+# ForgePath Private Alpha 0.80.1
 
 ForgePath is an athlete-controlled adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed. The hosted private alpha uses Supabase as the authoritative training store; local development keeps a browser-only test mode.
 
-Private alpha 0.80.0 turns completed athlete data into an evidence-backed progression operating system. Every workout movement shows Last, Today, Next, and the exact condition that earns progress. Suggestions can propose load or repetition changes to unfinished sets, but only after explicit athlete approval. Plain, weighted, and assisted bodyweight work stay separate. Progress adds all-time, current-block, current-phase, rolling-year, and since-return records, a training-round field report, an evidence ledger, and schedule-aware momentum that never becomes a streak or catch-up debt.
+Private alpha 0.80.1 retains the 0.80 progression operating system and repairs cloud loading for verified version 30 snapshots. It recognizes only the exact pre-0.80 and 0.80 record projections, verifies them against their completed source sets and history-change snapshots, and then replays the derived record layer through PR v3. Completed training, plans, feedback, and correction history are not rewritten. Backup schema 31 and local persistence 32 make the projection change explicit for future releases.
 
 The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 500 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
@@ -102,7 +102,7 @@ npm run check:pages
 - connected duplicate pairs become one review group, allowing several accidental copies to retire into one athlete-selected canonical identity in a single reversible event
 - completed-history CSV import previews every row, auto-maps only exact names or aliases, requires athlete review of uncertain identities, converts units visibly, preserves source provenance, skips occurrence-aware re-import duplicates, keeps imported quality unverified, and supports one-step undo
 - criterion-based exposure-round review supports hold, progress, extension, recovery, completion, and pivot into a new plan version without rewriting completed work
-- PR v2 separates absolute load, repetitions at load, load for repetitions, exact set schemes, estimated strength, exact-movement session volume, and workout volume
+- PR v3 separates absolute load, repetitions at load, load for repetitions, exact set schemes, estimated strength, exact-movement session volume, and workout volume, including separate weighted and assisted bodyweight identities
 - deterministic achievement replay reveals personal records, micro wins, baselines, quality wins, return wins, and consistency without adding work to the prescription
 - skipped technique or pain feedback preserves the completed number but labels it numeric-only instead of silently declaring a validated PR
 - planned-target opportunities, provisional in-workout feedback, a source-linked Progress ledger, quiet mode, celebration level, haptics, reduced motion, optional pixel confetti, and original low-volume synthesized cues are athlete-controlled

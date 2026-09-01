@@ -714,7 +714,7 @@ export interface PersonalRecord {
     loadMode?: LoadMode
   }
   validation: 'validated' | 'numeric-only'
-  ruleVersion: 'pr-v2'
+  ruleVersion: 'pr-v2' | 'pr-v3'
 }
 
 export type RecordScope = 'all-time' | 'current-block' | 'rolling-12-months' | 'since-return' | 'current-phase'

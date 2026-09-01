@@ -1505,7 +1505,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: LEGACY_APP_STORAGE_KEY,
-      version: 31,
+      version: 32,
       storage: createJSONStorage(() => browserStateStorage),
       partialize: (state) => ({
         athlete: state.athlete,

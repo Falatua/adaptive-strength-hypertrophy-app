@@ -1400,7 +1400,7 @@ This is the canonical traceability index for every durable requirement JB states
 - Provenance: product-decision
 - Requirement: Store record definition, prior and new value, source workout and set IDs, scope, normalized units, context, validation, calculation version, correction state, and notification outcome.
 - Detail: [[PR Gamification and In-Workout Motivation System]]
-- Implementation: Every current record stores definition ID, type, category, value, unit class, achieved date, all-time scope, exact exercise or whole-workout identity, source session, supporting completed set IDs, context, validation state, and PR v2 rule version. Achievement replay stores the prior value and source IDs. Historical notification delivery and normalized physical units remain deferred.
+- Implementation: Every current record stores definition ID, type, category, value, unit class, achieved date, scope, exact exercise or whole-workout identity, source session, supporting completed set IDs, context, validation state, improvement direction, and PR v3 rule version. PR v2 remains restore-only compatibility evidence. Achievement replay stores the prior value and source IDs. Historical notification delivery and normalized physical units remain deferred.
 
 ### R-214 PR Ledger and Dashboard
 - Status: implemented-current-ledger-slice
@@ -1435,7 +1435,7 @@ This is the canonical traceability index for every durable requirement JB states
 - Provenance: product-decision
 - Requirement: Calculate achievements offline when needed and reconcile them through the same versioned record definitions after cloud sync so devices do not create conflicting active records.
 - Detail: [[Data Backend Storage and Learning Architecture]]
-- Implementation: PR v2 and achievement v1 calculate locally from the same completed source sets and replay after correction, deletion, merge, local migration, and backup migration. Cloud sync and multi-device conflict reconciliation remain deferred.
+- Implementation: PR v3 and achievement v1 calculate locally from the same completed source sets and replay after correction, deletion, merge, local migration, and backup migration. Version 30 cloud snapshots verify exact PR v2 projections before replay. Automatic entity merge and active-workout handoff remain deferred.
 
 ### R-219 Optional Social Progress Layer
 - Status: captured
@@ -3131,6 +3131,11 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Thread Coverage Audit
 
+### 2026-09-01 Version 30 Cloud Record Recovery
+- Scope: JB reported that the 0.80.0 update blocked app entry because valid cloud personal records and history-change record projections no longer matched the newly expanded calculation.
+- Result: Private alpha 0.80.1 advances PR v3, backup schema 31, and local persistence 32. Version 30 snapshots first retain checksum validation, then accept only exact historical projections reconstructed from their own completed sets, and finally replay the derived record layer without rewriting authoritative training or history snapshots.
+- Status: Implemented and verified with dedicated pre-0.80 and affected-0.80 cloud fixtures, history-change replay, forged-projection rejection, completed-history equality, 550 deterministic tests, cross-device browser journeys, production and Pages builds, and cloud quality gates.
+
 ### 2026-09-01 Progression Operating System
 - Scope: JB requested the six proposed progress features plus in-workout suggestions based on the athlete's full training record, including load, repetitions, and sets.
 - Result: Added R-494 through R-500 and Build Bible Chapter 107. Private alpha 0.80.0 adds exact-movement progress paths, optional unfinished-set suggestions, five record scopes, weighted and assisted bodyweight identities, training-round field reports, an evidence ledger, and schedule-aware momentum.
@@ -3545,6 +3550,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-09-01: Released private alpha 0.80.1 with PR v3, backup schema 31, local persistence 32, and narrow version 30 cloud record-projection recovery. Completed training and history snapshots remain authoritative and unchanged; arbitrary record mismatches remain blocked.
 - 2026-08-31: Added R-489 through R-493 and Build Bible Chapter 106 for active-workout scope choice, bodyweight logging and records, phase-safe progress cues, quiet autofill presentation, shared workout previews, preservation rules, and cross-device acceptance. Private alpha 0.79.0 preserves backup schema 30, local persistence 31, completed work, prior plan versions, and Supabase authority.
 - 2026-08-27: Added R-481 through R-484 and Build Bible Chapter 104 for explicit workout-only versus training-block movement replacement scope, staged workout confirmation, before-and-after recurring progression changes, plain terminology, preservation rules, and cross-device acceptance. Private alpha 0.77.0 preserves backup schema 30, local persistence 31, completed work, prior plan versions, and the Supabase snapshot contract.
 - 2026-08-27: Added R-485 through R-488 and Build Bible Chapter 105 for a persistent read-only full training-block outlook with weeks remaining, expected review timing, round-by-round state, progression order, evidence-based deload timing, no mutation, and cross-device acceptance. Private alpha 0.78.0 preserves backup schema 30, local persistence 31, completed work, and Supabase authority.

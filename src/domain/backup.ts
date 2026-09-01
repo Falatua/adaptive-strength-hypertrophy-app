@@ -32,8 +32,8 @@ import { missedOpportunityEventError } from './schedule-adaptation-engine'
 import { movementNoteError } from './movement-note-engine'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 30
-export const BACKUP_APP_VERSION = '0.80.0'
+export const BACKUP_SCHEMA_VERSION = 31
+export const BACKUP_APP_VERSION = '0.80.1'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -129,6 +129,35 @@ const replayHistoryMutationRecords = (events: unknown): HistoryMutationEvent[] =
     } as HistoryMutationEvent
   })
   : []
+
+const currentRecordsAsMisversionedV2 = (history: CompletedSetRecord[]): PersonalRecord[] =>
+  derivePersonalRecords(history).map((record) => ({ ...record, ruleVersion: 'pr-v2' }))
+
+const pre080RecordsV2 = (history: CompletedSetRecord[]): PersonalRecord[] | null => {
+  // Weighted and assisted modes did not exist before 0.80.0. Restrict this
+  // compatibility projection to histories the old rule could actually create.
+  if (history.some((workSet) => workSet.loadMode !== undefined && !['external', 'bodyweight'].includes(workSet.loadMode))) return null
+  return currentRecordsAsMisversionedV2(history).map((record) => {
+    const legacy = { ...record }
+    delete legacy.direction
+    return legacy
+  })
+}
+
+const matchesRecordProjection = (projection: unknown, history: CompletedSetRecord[]) => {
+  const serialized = stableStringify(projection)
+  if (serialized === stableStringify(derivePersonalRecords(history))) return true
+  // 0.80.0 used the expanded algorithm while accidentally retaining pr-v2.
+  if (serialized === stableStringify(currentRecordsAsMisversionedV2(history))) return true
+  const legacy = pre080RecordsV2(history)
+  return legacy !== null && serialized === stableStringify(legacy)
+}
+
+const replayCurrentRecordProjections = (data: RestorableAppState): RestorableAppState => ({
+  ...data,
+  records: derivePersonalRecords(data.history),
+  historyMutations: replayHistoryMutationRecords(data.historyMutations)
+})
 
 const isFiniteNonNegative = (value: unknown) =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0
@@ -554,14 +583,14 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
   records.forEach((record) => {
     const exactExercise = isRecord(record) && typeof record.exerciseId === 'string' && exerciseIds.has(record.exerciseId)
     const wholeWorkout = isRecord(record) && record.exerciseId === null && record.type === 'workout-session-volume'
-    if (!isRecord(record) || !(exactExercise || wholeWorkout) || typeof record.exerciseName !== 'string' || !['absolute-load', 'reps-at-load', 'load-for-reps', 'set-scheme', 'estimated-strength', 'exercise-session-volume', 'workout-session-volume'].includes(String(record.type)) || !['strength', 'repetition', 'scheme', 'workload'].includes(String(record.category)) || record.scope !== 'all-time' || !isFiniteNonNegative(record.value) || !isValidDate(record.achievedAt) || typeof record.sourceSessionId !== 'string' || !Array.isArray(record.sourceSetIds) || record.sourceSetIds.length === 0 || record.sourceSetIds.some((id) => typeof id !== 'string' || !completedSetIds.has(id)) || !isRecord(record.context) || !['validated', 'numeric-only'].includes(String(record.validation)) || record.ruleVersion !== 'pr-v2') errors.push('A personal record is invalid or lacks completed source sets.')
+    if (!isRecord(record) || !(exactExercise || wholeWorkout) || typeof record.exerciseName !== 'string' || !['absolute-load', 'reps-at-load', 'load-for-reps', 'set-scheme', 'estimated-strength', 'exercise-session-volume', 'workout-session-volume'].includes(String(record.type)) || !['strength', 'repetition', 'scheme', 'workload'].includes(String(record.category)) || record.scope !== 'all-time' || (record.direction !== undefined && !['higher', 'lower'].includes(String(record.direction))) || !isFiniteNonNegative(record.value) || !isValidDate(record.achievedAt) || typeof record.sourceSessionId !== 'string' || !Array.isArray(record.sourceSetIds) || record.sourceSetIds.length === 0 || record.sourceSetIds.some((id) => typeof id !== 'string' || !completedSetIds.has(id)) || !isRecord(record.context) || !['validated', 'numeric-only'].includes(String(record.validation)) || !['pr-v2', 'pr-v3'].includes(String(record.ruleVersion))) errors.push('A personal record is invalid or lacks completed source sets.')
   })
-  if (stableStringify(records) !== stableStringify(derivePersonalRecords(history as CompletedSetRecord[]))) errors.push('Personal records do not match the completed source sets.')
+  if (!matchesRecordProjection(records, history as CompletedSetRecord[])) errors.push('Personal records do not match the completed source sets.')
 
   historyMutations.forEach((event) => {
     if (!isRecord(event) || !['set-corrected', 'set-deleted', 'exercise-merged', 'exercise-edited', 'history-imported', 'history-entered'].includes(String(event.type)) || !isValidDate(event.createdAt) || typeof event.reason !== 'string' || !Array.isArray(event.affectedSetIds) || !isRecord(event.before) || !isRecord(event.after) || !Array.isArray(event.recordsBefore) || !Array.isArray(event.recordsAfter) || !isFiniteNonNegative(event.volumeBefore) || !isFiniteNonNegative(event.volumeAfter)) errors.push('A history change is invalid.')
     if (isRecord(event) && event.undoneAt !== undefined && !isValidDate(event.undoneAt)) errors.push('A history change has an invalid undo date.')
-    if (isRecord(event) && isRecord(event.before) && isRecord(event.after) && Array.isArray(event.before.history) && Array.isArray(event.after.history) && (stableStringify(event.recordsBefore) !== stableStringify(derivePersonalRecords(event.before.history as CompletedSetRecord[])) || stableStringify(event.recordsAfter) !== stableStringify(derivePersonalRecords(event.after.history as CompletedSetRecord[])))) errors.push('A history change record projection does not match its source snapshots.')
+    if (isRecord(event) && isRecord(event.before) && isRecord(event.after) && Array.isArray(event.before.history) && Array.isArray(event.after.history) && (!matchesRecordProjection(event.recordsBefore, event.before.history as CompletedSetRecord[]) || !matchesRecordProjection(event.recordsAfter, event.after.history as CompletedSetRecord[]))) errors.push('A history change record projection does not match its source snapshots.')
     if (isRecord(event) && isRecord(event.before) && isRecord(event.after)) {
       ;[event.before.exercises, event.after.exercises].forEach((snapshotExercises) => {
         if (!Array.isArray(snapshotExercises)) return
@@ -1092,6 +1121,18 @@ function migrateV29(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV30(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  validateState(candidate.data, true)
+  return {
+    data: replayCurrentRecordProjections(candidate.data),
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 30 backup migrated safely. Completed training and correction history remain intact; personal-record projections were replayed through PR v3.'
+  }
+}
+
 function migrateV24(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
   if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
@@ -1236,12 +1277,22 @@ export function parseBackup(raw: string): BackupPreview {
     const migrated = migrateV29(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 30) {
+    const migrated = migrateV30(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else {
     throw new Error('Unsupported backup format or schema version.')
+  }
+
+  const replayedData = replayCurrentRecordProjections(backup.data)
+  if (stableStringify(replayedData) !== stableStringify(backup.data)) {
+    warnings.push('Personal-record projections were upgraded from verified completed-set history.')
+    backup = createBackup(replayedData, backup.exportedAt)
   }
 
   return {

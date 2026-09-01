@@ -22,7 +22,11 @@ const latest = (sets: CompletedSetRecord[]) =>
 const best = (sets: CompletedSetRecord[], value: (workSet: CompletedSetRecord) => number) =>
   [...sets].sort((a, b) => value(b) - value(a) || new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime() || b.id.localeCompare(a.id))[0]
 
-const recordRuleVersion = 'pr-v2' as const
+// pr-v3 separates plain, weighted, and assisted bodyweight records and records
+// whether a lower value is the improvement direction. The prior release changed
+// this projection without changing the rule ID, so backup migration also accepts
+// the two exact historical pr-v2 projections before replaying them through v3.
+const recordRuleVersion = 'pr-v3' as const
 const achievementRuleVersion = 'achievement-v1' as const
 const opportunityRuleVersion = 'opportunity-v1' as const
 

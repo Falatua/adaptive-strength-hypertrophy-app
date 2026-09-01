@@ -5,12 +5,20 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-09-01
 status: working-private-alpha
-app_version: 0.80.0
+app_version: 0.80.1
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.80.1 Cloud Record Recovery Delta
+
+- Repairs the 0.80.0 startup regression that rejected valid version 30 cloud snapshots after the personal-record projection changed without a new rule or schema version.
+- Verifies the original snapshot checksum first, accepts only an exact current PR v3, affected 0.80 PR v2, or pre-0.80 PR v2 projection reconstructed from the snapshot's own completed sets, and keeps arbitrary mismatches blocked.
+- Replays top-level records and every history-change before/after record projection through PR v3 while preserving completed sets, sessions, plans, feedback, source snapshots, and correction provenance.
+- Advances backup schema to 31 and local persistence to 32. Supabase remains authoritative and the server snapshot changes only after the athlete's next ordinary saved action.
+- Passes 550 deterministic tests, lint, production compilation, UI, image, backend, cloud-data, cloud-release, Pages-artifact, and cross-device browser gates.
 
 ## Private Alpha 0.80.0 Progression Operating System Delta
 
@@ -842,7 +850,7 @@ The current browser store is a private-alpha operational store, not the eventual
 - Version 10 open JSON backup export includes PR v2 records, celebration preferences, all mesocycle versions, the active-plan pointer, the complete history and catalog ledger, cycle-review decisions, durable substitution events, survey evidence, and deferred-feedback provenance. Validation, preview, restore, versions 1 through 9 migration, malformed-file rejection, and automatic pre-restore undo remain supported.
 - The Exercise Library shows a substitution-learning ledger with original and selected movement, role, reason, prescription method and explanation, outcome, completed source-set count, and available response evidence.
 - Every visible personal record is regenerated from completed source set IDs. Unsupported seeded PR claims are no longer used.
-- PR v2 separates absolute load, repetitions at an exact load, load for an exact repetition count, exact uniform-load set schemes, Epley v1 estimated strength for one through twelve repetitions, exact-movement session volume, and whole-workout session volume.
+- PR v3 separates absolute load, repetitions at an exact load, load for an exact repetition count, exact uniform-load set schemes, Epley v1 estimated strength for one through twelve repetitions, exact-movement session volume, whole-workout session volume, and separate weighted and assisted bodyweight identities. PR v2 remains restore-only compatibility evidence.
 - A validated PR requires explicitly confirmed technique and pain. Missing quality preserves the number as `numeric-only` and labels the achievement `Unverified number best` instead of inventing favorable survey evidence.
 - Progress now includes record category filters, source-set counts, validation labels, a deterministic PR and micro-win timeline, and next-session opportunities that already fit the prescription.
 - Exercise detail supports set correction and deletion with a required reason, consequence preview, exact replay, and latest-change undo.
@@ -989,7 +997,7 @@ Screenshots are stored inside the code project at `output/playwright/` and are d
 - Starting placement is deterministic, explainable, productively verified across up to three eligible sessions per exact protected movement, and connected to route-specific, equipment-aware, exact-movement future-session generation. Imported exact history can propose bounded confidence and heavy-work-tolerance values only after athlete review. Matching plan-route and exact-movement evidence now produce separate athlete-reviewed criterion checkpoints, but calibrated thresholds, structured coach history, reliable estimates, family transfer, measured-velocity power work, complete event peaks, automatic route application, and silent automatic reclassification remain incomplete or prohibited. Athlete technique video is explicitly out of product scope.
 - Editable mesocycles, exposure-round date bounds, criterion reviews, extension, recovery, completion, and pivot entry are executable. Waived or substituted round roles, automatic review reminders, macrocycles, annual plans, fixed-event replanning, and quadrennial transitions remain incomplete.
 - Planned-versus-completed region and individual-muscle dose now have versioned first slices, custom movements have athlete-reviewed mappings, and relative completed priority-region representation can resolve an otherwise equal missed-opportunity queue choice. This is not a target-dose or neglect model. Plan-revision provenance, imported-plan mapping, historical catalog-version mapping, density, duration, quality-adjusted, and causal progression-driver analytics need deeper implementation.
-- Record eligibility now has exact set provenance, PR v2 type separation, all-time scope, quality-confirmed versus numeric-only validation, achievement replay, correction replay, and numeric-only imported history. Mixed-load set schemes, variation-family and time scopes, bodyweight and assistance conventions, quality-validated imports, superseded-event views, and richer physical-unit conventions still need expansion.
+- Record eligibility now has exact set provenance, PR v3 type and load-mode separation, all-time and contextual scopes, quality-confirmed versus numeric-only validation, achievement replay, correction replay, and numeric-only imported history. Variation-family records, quality-validated imports, superseded-event views, and richer physical-unit conventions still need expansion.
 - Exercise merge, connected-group multi-source cleanup, merge undo, direct alias management, custom movement editing, exact collision blocking, exact-match creation distinctions, catalog-edit undo, and pre-import canonical identity review are working. Additional vendor formats, in-flow custom movement creation, orphan-alias review, unrelated-group bulk operations, notes provenance, and full catalog governance still need expansion.
 - Initial generation and substitution both enforce first-slice exact equipment filtering, but repeated outcomes do not yet retrain or statistically recalibrate ranking. Cross-unit conversion, browse-full-library replacement, equipment aliases, plate and stack physics, per-exercise increments, rest and warm-up recalculation, muscle-dose and fatigue recalc, later-work reprioritization, and movement-specific feedback remain incomplete.
 - Session survey modes, unknown semantics, and deferred feedback are working. Automatic burden reduction, later survey cadences, body maps, and athlete-level active restriction state remain incomplete.

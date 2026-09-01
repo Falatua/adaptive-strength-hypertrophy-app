@@ -5,12 +5,37 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-09-01
 status: canonical-build-reference-and-active-implementation
-version: 1.76.0
+version: 1.77.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.77.0 Change Entry
+
+- Advanced the working application to private alpha 0.80.1, backup schema 31, local persistence 32, and PR v3 without changing the 251-movement catalog or Supabase authority.
+- Repaired the version 30 cloud startup regression by validating exact historical record projections against their own completed source sets before replaying only the derived projection layer.
+- Preserved completed training, sessions, plans, feedback, history-change source snapshots, checksums, conflict handling, and corruption rejection.
+- Verified 550 deterministic tests, cross-device browser journeys, production and Pages builds, and all cloud and repository quality gates before publication.
+
+## 108. Versioned Record Projection Recovery
+
+### 108.1 Failure Boundary
+
+Record definitions are derived data, but they are integrity-checked against authoritative completed sets and stored history-change snapshots. Any material change to record identity, direction, labels, or context must advance both the record rule version and backup schema. A release must never compare an older verified projection only against a newer algorithm and then lock the athlete out.
+
+### 108.2 Narrow Compatibility
+
+Version 30 restore accepts only three exact projections reconstructed from each source history: current PR v3, the expanded 0.80.0 projection accidentally labeled PR v2, and the pre-0.80 PR v2 projection without improvement direction. The pre-0.80 path is unavailable when weighted or assisted bodyweight evidence exists because those modes did not exist under that rule. Any other difference remains a restore error.
+
+### 108.3 Safe Replay
+
+After checksum and source-projection validation, ForgePath preserves all authoritative evidence and replays top-level records plus history-change before and after record projections through PR v3. Opening an older cloud copy does not itself write a new server version. The upgraded copy is saved through the normal cloud transaction after the athlete's next ordinary data change.
+
+### 108.4 Acceptance
+
+Regression fixtures cover a pre-0.80 version 30 cloud payload, the affected 0.80.0 projection, history-change before and after projections, current-schema round trip, PostgreSQL JSON key reordering, stored-envelope metadata checks, forged projection rejection, and completed-history equality before and after migration.
 
 ### Version 1.76.0 Change Entry
 
