@@ -11,7 +11,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: pages
+  # Pull-request verification must never hold the production publication queue.
+  # Main pushes and manual production retries still serialize against each other.
+  group: pages-${{ github.event.pull_request.number || 'production' }}
   cancel-in-progress: false
 
 jobs:
