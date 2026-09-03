@@ -67,14 +67,27 @@ describe('readiness hypothesis', () => {
 
 describe('load-first progression hierarchy', () => {
   it('progresses load when the top of the rep range is owned', () => {
-    const decision = recommendProgression({ history: [set(), set(), set(), set()], targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
+    const history = ['first', 'second'].flatMap((sessionId, exposure) => Array.from({ length: 4 }, (_, setIndex) => set({
+      id: `${sessionId}-${setIndex}`,
+      sessionId,
+      setIndex,
+      completedAt: `2026-08-0${exposure + 1}T12:0${setIndex}:00.000Z`
+    })))
+    const decision = recommendProgression({ history, targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
     expect(decision.action).toBe('load')
     expect(decision.nextLoad).toBe(180)
     expect(decision.nextReps).toBe(4)
   })
 
   it('progresses reps when load is not yet earned', () => {
-    const decision = recommendProgression({ history: [set({ reps: 5 }), set({ reps: 5 }), set({ reps: 5 })], targetLoad: 175, targetReps: 5, targetSets: 3, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
+    const history = ['first', 'second'].flatMap((sessionId, exposure) => Array.from({ length: 3 }, (_, setIndex) => set({
+      id: `${sessionId}-${setIndex}`,
+      sessionId,
+      setIndex,
+      reps: 5,
+      completedAt: `2026-08-0${exposure + 1}T12:0${setIndex}:00.000Z`
+    })))
+    const decision = recommendProgression({ history, targetLoad: 175, targetReps: 5, targetSets: 3, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
     expect(decision.action).toBe('reps')
     expect(decision.nextReps).toBe(6)
     expect(decision.nextLoad).toBe(175)
@@ -93,7 +106,15 @@ describe('load-first progression hierarchy', () => {
   })
 
   it('does not reinterpret skipped technique and pain as poor technique', () => {
-    const history = Array.from({ length: 4 }, (_, index) => set({ id: `unknown-${index}`, setIndex: index, technique: 0, pain: 0, qualityConfirmed: false }))
+    const history = ['first', 'second'].flatMap((sessionId, exposure) => Array.from({ length: 4 }, (_, setIndex) => set({
+      id: `unknown-${exposure}-${setIndex}`,
+      sessionId,
+      setIndex,
+      technique: 0,
+      pain: 0,
+      qualityConfirmed: false,
+      completedAt: `2026-08-0${exposure + 1}T12:0${setIndex}:00.000Z`
+    })))
     const decision = recommendProgression({ history, targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
     expect(decision.action).toBe('load')
     expect(decision.confidence).toBe('medium')
@@ -164,15 +185,20 @@ describe('load-first progression hierarchy', () => {
   })
 
   it('offers one set only after load and repetitions are unavailable and recovery evidence supports dose', () => {
-    const history = Array.from({ length: 3 }, (_, exposure) => Array.from({ length: 3 }, (_, index) => set({
+    const plannedExerciseId = 'planned-bench'
+    const history = Array.from({ length: 4 }, (_, exposure) => Array.from({ length: 3 }, (_, index) => set({
       id: `set-${exposure}-${index}`, sessionId: `set-${exposure}`, setIndex: index, load: 10, qualityConfirmed: true,
+      plannedExerciseId,
       completedAt: `2026-08-${String(exposure + 1).padStart(2, '0')}T12:0${index}:00.000Z`
     }))).flat()
-    const surveys = [postSurvey('set-2', { targetStimulus: 1, recovery: 5, endFatigue: 2 })]
+    const surveys = [
+      postSurvey('set-3', { targetStimulus: 1, recovery: 5, endFatigue: 2 }),
+      movementSurvey('set-3', plannedExerciseId, { volumeFit: 1 })
+    ]
     const decision = recommendProgression({ history, surveys, targetLoad: 10, targetReps: 6, targetSets: 3, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
     expect(decision.action).toBe('sets')
     expect(decision.nextSets).toBe(4)
-    expect(decision.reasons).toContain('Load jump exceeds ten percent')
+    expect(decision.reasons).toContain('Load jump exceeds five percent')
   })
 
   it('does not offer another set when the athlete marked the exact movement at their limit', () => {

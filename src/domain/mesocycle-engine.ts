@@ -4,6 +4,7 @@ import { equipmentGenerationEvidence, exerciseEquipmentFit, loadIncrementFor, ne
 import { isEquipmentRouteSessionRuleVersion, isMovementRouteSessionRuleVersion, prescriptionForRole, routeSessionProfile, type RouteSessionProfile } from './route-session-engine'
 import { applyRepPrescriptionPolicy } from './rep-prescription-policy'
 import { defaultLoadModeFor } from './load-mode'
+import { isOpenUnstartedSession } from './planned-session-state'
 import {
   HOME_GYM_TRICEPS_PRESS_IDS,
   homeGymAccessoryRegionAllowed,
@@ -107,7 +108,13 @@ function priorPrescription(currentSessions: TrainingSession[], history: Complete
     const latestSessionSets = history
       .filter((record) => record.exerciseId === exercise.id && record.sessionId === latest.sessionId)
       .sort((a, b) => a.setIndex - b.setIndex)
-    return { sets: latestSessionSets.length || 3, reps: latest.reps, load: latest.load, rir: Math.max(0, latest.rir), angles: latestSessionSets.map((workSet) => workSet.benchAngleDeg), source: 'completed-history' as const }
+    const sourcePlan = currentSessions
+      .find((session) => session.id === latest.sessionId)
+      ?.exercises.find((planned) => planned.id === latest.plannedExerciseId || planned.exerciseId === exercise.id)
+    // Actual RIR describes what happened. It is never copied forward as the next prescription.
+    // Direct history has no prescribed effort, so it starts from a conservative 3 RIR baseline.
+    const prescribedRir = sourcePlan?.sets[0]?.targetRir ?? 3
+    return { sets: latestSessionSets.length || 3, reps: latest.reps, load: latest.load, rir: Math.max(1, prescribedRir), angles: latestSessionSets.map((workSet) => workSet.benchAngleDeg), source: 'completed-history' as const }
   }
   const planned = currentSessions
     .flatMap((session) => session.exercises)
@@ -481,7 +488,12 @@ export function replaceFuturePlan(
   nextPlan: MesocyclePlan,
   generatedSessions: TrainingSession[]
 ) {
-  const preservedSessions = sessions.filter((session) => session.status !== 'planned')
+  // Keep old open sessions as expired audit evidence instead of deleting IDs referenced by schedule
+  // or movement check-ins. The complete original snapshot preserves their exact provenance, while
+  // expired status prevents them from re-entering the queue or progression calculation.
+  const preservedSessions = sessions.map((session) => session.mesocycleId === nextPlan.supersedesId && isOpenUnstartedSession(session)
+    ? { ...session, status: 'expired' as const, dayLabel: 'Replaced by a newer training-block version' }
+    : session)
   const versionedPlans = plans.map((plan) => plan.status === 'active' ? { ...plan, status: 'superseded' as const } : plan)
   return {
     sessions: [...preservedSessions, ...generatedSessions],

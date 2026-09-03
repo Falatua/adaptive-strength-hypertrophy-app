@@ -30,10 +30,11 @@ import { movementPlacementExitReviewError, placementExitReviewError } from './pl
 import { routeSessionGenerationError } from './route-session-engine'
 import { missedOpportunityEventError } from './schedule-adaptation-engine'
 import { movementNoteError } from './movement-note-engine'
+import { hasUnstartedSessionTrainingState, resetUnstartedSessionTrainingState } from './planned-session-state'
 
 export const BACKUP_FORMAT = 'forgepath-backup'
-export const BACKUP_SCHEMA_VERSION = 31
-export const BACKUP_APP_VERSION = '0.80.1'
+export const BACKUP_SCHEMA_VERSION = 32
+export const BACKUP_APP_VERSION = '0.81.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -529,6 +530,7 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
         if (isRecord(workSet) && workSet.entryOrigins !== undefined && (!isRecord(workSet.entryOrigins) || Object.entries(workSet.entryOrigins).some(([field, origin]) => !['load', 'reps', 'rir'].includes(field) || !['manual', 'top-set-autofill'].includes(String(origin))))) errors.push('A planned set has invalid entry provenance.')
       })
     })
+    if (!migrateLegacyState && hasUnstartedSessionTrainingState(session as unknown as TrainingSession)) errors.push('An unstarted training session contains completed or entered set state.')
   })
 
   surveys.forEach((survey) => {
@@ -1133,6 +1135,22 @@ function migrateV30(candidate: Record<string, unknown>): { data: RestorableAppSt
   }
 }
 
+function migrateV31(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
+  if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
+  if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
+  if (candidate.integrity.value !== fnv1a32(stableStringify(candidate.data))) throw new Error('Backup integrity check failed. The file may be incomplete or edited.')
+  validateState(candidate.data, true)
+  const data = replayCurrentRecordProjections({
+    ...(candidate.data as unknown as RestorableAppState),
+    sessions: (candidate.data.sessions as TrainingSession[]).map(resetUnstartedSessionTrainingState)
+  })
+  return {
+    data,
+    exportedAt: typeof candidate.exportedAt === 'string' && isValidDate(candidate.exportedAt) ? candidate.exportedAt : new Date().toISOString(),
+    warning: 'Version 31 backup migrated safely. Completed and active workouts remain intact; stale entered or completed state was cleared only from unstarted workouts.'
+  }
+}
+
 function migrateV24(candidate: Record<string, unknown>): { data: RestorableAppState; exportedAt: string; warning: string } {
   if (!isRecord(candidate.data)) throw new Error('Backup data is missing or invalid.')
   if (!isRecord(candidate.integrity) || candidate.integrity.algorithm !== 'fnv1a32' || typeof candidate.integrity.value !== 'string') throw new Error('Backup integrity information is missing.')
@@ -1281,12 +1299,25 @@ export function parseBackup(raw: string): BackupPreview {
     const migrated = migrateV30(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
+  } else if (candidate.format === BACKUP_FORMAT && candidate.schemaVersion === 31) {
+    const migrated = migrateV31(candidate)
+    warnings.push(migrated.warning)
+    backup = createBackup(migrated.data, migrated.exportedAt)
   } else if (candidate.version === 1) {
     const migrated = migrateLegacyV1(candidate)
     warnings.push(migrated.warning)
     backup = createBackup(migrated.data, migrated.exportedAt)
   } else {
     throw new Error('Unsupported backup format or schema version.')
+  }
+
+  const normalizedData = {
+    ...backup.data,
+    sessions: backup.data.sessions.map(resetUnstartedSessionTrainingState)
+  }
+  if (stableStringify(normalizedData) !== stableStringify(backup.data)) {
+    warnings.push('Stale entered or completed state was cleared only from unstarted workouts.')
+    backup = createBackup(normalizedData, backup.exportedAt)
   }
 
   const replayedData = replayCurrentRecordProjections(backup.data)

@@ -3,6 +3,7 @@ import { comparableAngleHistory, supportsBenchAngle } from './bench-angle-engine
 import { buildMesocyclePreview, draftFromPlan } from './mesocycle-engine'
 import { loadIncrementFor } from './equipment-engine'
 import { makeSets, recommendProgression } from './training-engine'
+import { recommendNextTargetRir } from './effort-progression-engine'
 import type {
   CompletedSetRecord,
   CycleReviewDecision,
@@ -161,6 +162,10 @@ export function buildNextMicrocycle(input: NextRoundInput) {
       const exercise = input.exercises.find((candidate) => candidate.id === planned.exerciseId)
       const exactHistory = input.history.filter((workSet) => workSet.exerciseId === planned.exerciseId)
       const comparable = exercise && supportsBenchAngle(exercise) ? comparableAngleHistory(exactHistory, planned) : exactHistory
+      const priorPlanned = input.sessions
+        .filter((candidate) => candidate.mesocycleId === input.plan.id && (candidate.microcycleNumber ?? 1) === input.nextMicrocycleNumber - 1)
+        .flatMap((candidate) => candidate.exercises)
+        .find((candidate) => candidate.exerciseId === planned.exerciseId)
       const decision = recommendProgression({
         history: comparable,
         surveys: input.surveys,
@@ -172,9 +177,16 @@ export function buildNextMicrocycle(input: NextRoundInput) {
         continuity: 'stable' satisfies ContinuityState,
         readiness: 'normal'
       })
+      const effort = recommendNextTargetRir({
+        currentTargetRir: priorPlanned?.sets[0]?.targetRir ?? first.targetRir,
+        nextMicrocycleNumber: input.nextMicrocycleNumber,
+        priorPlanned,
+        history: comparable,
+        surveys: input.surveys ?? []
+      })
       return {
         ...planned,
-        sets: makeSets(decision.nextSets, decision.nextReps, decision.nextLoad, first.targetRir)
+        sets: makeSets(decision.nextSets, decision.nextReps, decision.nextLoad, effort.targetRir)
           .map((workSet, index) => ({ ...workSet, id: `${planned.id}-review-set-${index + 1}` }))
       }
     })

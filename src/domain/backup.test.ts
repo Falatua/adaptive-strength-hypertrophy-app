@@ -140,6 +140,29 @@ describe('versioned backup and restore', () => {
     expect(parsed.warnings[0]).toMatch(/exact-movement completion feedback begins/i)
   })
 
+  it('repairs dirty open sessions from version 31 without touching active or completed training', () => {
+    const legacyState = state()
+    const planned = legacyState.sessions.find((session) => session.status === 'planned')!
+    const dirty = planned.exercises[0].sets[0]
+    Object.assign(dirty, { completed: true, completedLoad: 999, completedReps: 99, actualRir: 0, valuesEntered: true })
+    const active = structuredClone(planned)
+    active.id = 'active-truth'
+    active.status = 'active'
+    active.exercises[0].sets[0].completed = true
+    active.exercises[0].sets[0].completedLoad = 135
+    legacyState.sessions.push(active)
+    const legacy = createBackup(legacyState, '2026-09-02T12:00:00.000Z') as unknown as Record<string, unknown>
+    legacy.schemaVersion = 31
+    legacy.appVersion = '0.80.1'
+
+    const parsed = parseBackup(JSON.stringify(legacy))
+    const repaired = parsed.backup.data.sessions.find((session) => session.id === planned.id)!
+    const preserved = parsed.backup.data.sessions.find((session) => session.id === active.id)!
+    expect(repaired.exercises.flatMap((exercise) => exercise.sets).every((workSet) => !workSet.completed && workSet.completedLoad === undefined)).toBe(true)
+    expect(preserved.exercises[0].sets[0]).toMatchObject({ completed: true, completedLoad: 135 })
+    expect(parsed.warnings.join(' ')).toMatch(/cleared only from unstarted workouts/i)
+  })
+
   it('restores an integrity-valid cloud snapshot after jsonb reorders object keys', () => {
     const backup = reorderJsonObjectKeys(createBackup(state(), '2026-08-10T12:00:00.000Z'))
     const parsed = parseBackup(JSON.stringify(backup))
@@ -188,6 +211,7 @@ describe('versioned backup and restore', () => {
   it('round-trips movement completion feedback and rejects forged set provenance', () => {
     const current = state()
     const session = current.sessions[0]
+    session.status = 'active'
     const planned = session.exercises[0]
     const exercise = current.exercises.find((candidate) => candidate.id === planned.exerciseId)!
     planned.sets.forEach((workSet) => { workSet.completed = true })

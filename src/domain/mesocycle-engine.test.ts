@@ -167,7 +167,7 @@ describe('criterion-driven mesocycle planning', () => {
     const preview = buildMesocyclePreview(next, { exercises, currentSessions: [], history: pullUpHistory, planId: 'home-pull-up-history', planVersion: 1, equipmentProfile: home })
     const pullUp = preview.sessions.flatMap((session) => session.exercises).find((planned) => planned.exerciseId === 'pull-up')!
     expect(pullUp.sets).toHaveLength(4)
-    expect(pullUp.sets.every((workSet) => workSet.targetReps === 6 && workSet.targetRir === 1)).toBe(true)
+    expect(pullUp.sets.every((workSet) => workSet.targetReps === 6 && workSet.targetRir === 3)).toBe(true)
   })
 
   it('keeps an explicitly protected low-bar anchor while excluding it from automatic support work', () => {
@@ -224,7 +224,9 @@ describe('criterion-driven mesocycle planning', () => {
     const revised = replaceFuturePlan(current, structuredClone(mesocycles), plan, preview.sessions)
     expect(revised.sessions.find((session) => session.id === current[0].id)).toEqual(current[0])
     expect(revised.sessions.find((session) => session.id === current[1].id)).toEqual(current[1])
-    expect(revised.sessions.find((session) => session.id === current[2].id)).toBeUndefined()
+    const retired = revised.sessions.find((session) => session.id === current[2].id)
+    expect(retired?.status).toBe('expired')
+    expect(retired?.exercises.every((planned) => planned.sets.every((workSet) => !workSet.completed))).toBe(true)
     expect(revised.plans[0].status).toBe('superseded')
     expect(revised.plans.at(-1)?.supersedesId).toBe(mesocycles[0].id)
   })

@@ -59,6 +59,37 @@ describe('clean first-use state', () => {
     expect(restored.backup.data.sessions[0].exercises[0].sets[1]).toMatchObject({ completed: false, entryOrigins: { load: 'top-set-autofill', reps: 'top-set-autofill', rir: 'top-set-autofill' } })
   })
 
+  it('clears inherited completion fields when a genuinely unstarted workout begins', () => {
+    const session = structuredClone(sessions[0])
+    session.status = 'planned'
+    const staleSet = session.exercises[0].sets[0]
+    Object.assign(staleSet, {
+      completed: true,
+      skipped: true,
+      completedLoad: 999,
+      completedReps: 99,
+      actualRir: 0,
+      valuesEntered: true,
+      entryOrigins: { load: 'manual', reps: 'manual', rir: 'manual' }
+    })
+    useAppStore.setState({ sessions: [session], activeSessionId: null, workoutVisible: false })
+
+    useAppStore.getState().startSession(session.id)
+
+    const started = useAppStore.getState().sessions[0]
+    expect(started.status).toBe('active')
+    expect(started.exercises.flatMap((planned) => planned.sets).every((workSet) =>
+      !workSet.completed
+      && !workSet.skipped
+      && workSet.completedLoad === undefined
+      && workSet.completedReps === undefined
+      && workSet.actualRir === undefined
+      && workSet.valuesEntered === undefined
+      && workSet.entryOrigins === undefined
+    )).toBe(true)
+    expect(useAppStore.getState().notice).toMatch(/unstarted set status was cleared/i)
+  })
+
   it('logs a bodyweight movement without inventing a pound value and preserves editable Set 1 autofill', () => {
     const session = {
       id: 'bodyweight-session', title: 'Bodyweight session', objective: 'Build pull-up capacity.', dayLabel: 'Today',
@@ -94,7 +125,7 @@ describe('clean first-use state', () => {
     useAppStore.setState({ sessions: [session], activeSessionId: session.id, workoutVisible: true })
     const planned = session.exercises[0]
     const result = useAppStore.getState().applyProgressSuggestion(session.id, {
-      ruleVersion: 'movement-progress-path-v1', exerciseId: planned.exerciseId, plannedExerciseId: planned.id,
+      ruleVersion: 'movement-progress-path-v2', exerciseId: planned.exerciseId, plannedExerciseId: planned.id,
       loadMode: 'external', status: 'push-reps', title: 'A repetition is the next useful win',
       last: '4 × 6', today: '4 × 6', next: '4 × 7', toProgress: 'Add a repetition.', explanation: 'Completed evidence supports it.',
       confidence: 'high', sourceSetIds: ['source-set'], unknownInputs: [], proposed: { load: planned.sets[0].targetLoad, reps: 7, sets: planned.sets.length, loadMode: 'external' }, canApply: true
@@ -107,6 +138,19 @@ describe('clean first-use state', () => {
   })
 
   it('versions a movement change across the remaining block while preserving the active workout and history', () => {
+    const queuedSessions = structuredClone(sessions)
+    queuedSessions[1].status = 'deferred'
+    const unrelatedSession = {
+      ...structuredClone(queuedSessions[1]),
+      id: 'unrelated-planned-session',
+      mesocycleId: 'another-training-block',
+      status: 'planned' as const
+    }
+    const queuedCheckIn = {
+      id: 'queued-check-in', sessionId: queuedSessions[1].id, type: 'pre' as const,
+      completedAt: '2026-08-31T12:00:00.000Z', skipped: false,
+      answers: [{ id: 'energy', value: 3, status: 'answered' as const }]
+    }
     useAppStore.setState((state) => ({
       ...state,
       athlete: structuredClone(athlete),
@@ -114,7 +158,8 @@ describe('clean first-use state', () => {
       exercises: structuredClone(exercises),
       history: structuredClone(history),
       records: structuredClone(records),
-      sessions: structuredClone(sessions),
+      sessions: [...queuedSessions, unrelatedSession],
+      surveys: [queuedCheckIn],
       mesocycles: structuredClone(mesocycles),
       activeMesocycleId: mesocycles[0].id,
       settings: { ...state.settings, activeEquipmentProfileId: equipmentProfiles[0].id, equipmentLocation: equipmentProfiles[0].name }
@@ -128,10 +173,48 @@ describe('clean first-use state', () => {
     const nextPlan = state.mesocycles.find((plan) => plan.id === state.activeMesocycleId)!
     expect(nextPlan).toMatchObject({ version: 2, status: 'active', supersedesId: mesocycles[0].id })
     expect(state.mesocycles.find((plan) => plan.id === mesocycles[0].id)?.status).toBe('superseded')
-    expect(state.sessions.find((session) => session.id === 'session-bench')?.exercises[1].exerciseId).toBe('three-board-press')
-    expect(state.sessions.filter((session) => session.mesocycleId === nextPlan.id && session.status === 'planned').some((session) => session.exercises[1]?.exerciseId === 'three-board-press')).toBe(true)
+    const activeSession = state.sessions.find((session) => session.id === 'session-bench')!
+    expect(activeSession).toMatchObject({ mesocycleId: nextPlan.id, planVersion: 2, status: 'active' })
+    expect(activeSession.exercises[1].exerciseId).toBe('three-board-press')
+    expect(nextPlan.sessionIds).toContain(activeSession.id)
+    expect(state.sessions.filter((session) => session.mesocycleId === nextPlan.id && session.status === 'planned')).toHaveLength(2)
+    expect(state.sessions.filter((session) => session.mesocycleId === nextPlan.id && session.microcycleNumber === 1)).toHaveLength(3)
+    expect(state.sessions.find((session) => session.id === queuedSessions[1].id)?.status).toBe('expired')
+    expect(state.sessions.some((session) => session.status === 'deferred' && session.mesocycleId === mesocycles[0].id)).toBe(false)
+    expect(state.sessions.find((session) => session.id === unrelatedSession.id)?.status).toBe('planned')
+    expect(state.surveys).toContainEqual(queuedCheckIn)
     expect(state.history).toEqual(historyBefore)
     expect(nextPlan.movementOverrides).toContainEqual({ sessionIndex: 0, slotIndex: 1, exerciseId: 'three-board-press', source: 'athlete' })
+  })
+
+  it('gives a replacement primary its own placement and future progression lane', () => {
+    useAppStore.setState((state) => ({
+      ...state,
+      athlete: structuredClone(athlete),
+      equipmentProfiles: structuredClone(equipmentProfiles),
+      exercises: structuredClone(exercises),
+      history: structuredClone(history),
+      records: structuredClone(records),
+      sessions: structuredClone(sessions),
+      mesocycles: structuredClone(mesocycles),
+      activeMesocycleId: mesocycles[0].id,
+      settings: { ...state.settings, activeEquipmentProfileId: equipmentProfiles[0].id, equipmentLocation: equipmentProfiles[0].name }
+    }))
+    useAppStore.getState().startSession('session-bench')
+    const result = useAppStore.getState().swapExerciseForBlock('session-bench', 'plan-bench', 'incline-barbell-press', 'preference', true)
+
+    expect(result.ok).toBe(true)
+    const state = useAppStore.getState()
+    const plan = state.mesocycles.find((candidate) => candidate.id === state.activeMesocycleId)!
+    const replacementPlacement = plan.movementPlacements?.find((placement) => placement.exerciseId === 'incline-barbell-press')
+    expect(plan.strengthAnchors).toContain('incline-barbell-press')
+    expect(plan.movementPlacements?.some((placement) => placement.exerciseId === 'competition-bench')).toBe(false)
+    expect(replacementPlacement).toMatchObject({ exerciseId: 'incline-barbell-press', selectedRoute: 'bridge-calibration' })
+    const activeSession = state.sessions.find((session) => session.id === 'session-bench')!
+    expect(activeSession).toMatchObject({ mesocycleId: plan.id, planVersion: plan.version, status: 'active' })
+    expect(activeSession.exercises[0].exerciseId).toBe('incline-barbell-press')
+    expect(plan.sessionIds).toContain(activeSession.id)
+    expect(state.sessions.filter((session) => session.mesocycleId === plan.id && session.status === 'planned')).toHaveLength(2)
   })
 
   it('stores movement completion feedback with exact set provenance and applies safety context only to that movement', () => {

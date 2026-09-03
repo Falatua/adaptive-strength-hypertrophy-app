@@ -3129,7 +3129,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Deterministic and browser acceptance must cover exact source identity, all bodyweight modes, lower-is-better assistance, scope recomputation, safety precedence, explicit suggestion application, completed-set immutability, round reporting, ledger provenance, momentum language, mobile containment, console integrity, and desktop Chromium, Android-style mobile Chromium, and iPhone WebKit.
 - Detail: `src/domain/progression-insight-engine.test.ts`, `src/domain/progress-operating-system.test.ts`, `src/domain/history-engine.test.ts`, `src/store/useAppStore.test.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 107
 
+### R-501 Clean Unstarted Workout State
+- Status: implemented
+- Provenance: from-user
+- Requirement: Every planned or deferred workout must begin with all sets incomplete and without skipped state, actual values, or entered-value provenance. Migration and workout start must repair stale open-session state without changing active, partial, completed, stopped, or expired training.
+- Detail: `src/domain/planned-session-state.ts`, `src/store/useAppStore.ts`, `src/domain/backup.ts`, and Build Bible Chapter 109
+
+### R-502 Complete Block-Change Propagation
+- Status: implemented
+- Provenance: from-user
+- Requirement: A training-block exercise change must update the complete remaining open queue, future workouts, current-round identity, movement placement, starting checks, and progression ownership. Former plans, sessions, linked check-ins, and completed history must remain auditable and cannot return to the open queue.
+- Detail: `src/domain/mesocycle-engine.ts`, `src/domain/placement-engine.ts`, `src/store/useAppStore.ts`, and Build Bible Chapter 109
+
+### R-503 Feedback-Gated Gradual RIR
+- Status: implemented
+- Provenance: from-user and research
+- Requirement: Future effort must derive from prior prescribed RIR rather than actual RIR. Round 2 holds. Later rounds may lower the target by at most one only after two exact exposures and complete supportive movement feedback. Rounds 3 and 4 keep at least 2 RIR, and 1 RIR begins no earlier than round 5.
+- Detail: `src/domain/effort-progression-engine.ts`, `src/domain/cycle-review-engine.ts`, `src/domain/mesocycle-engine.ts`, and Build Bible Chapter 109
+
+### R-504 Slower Load, Repetition, and Set Progression
+- Status: implemented
+- Provenance: from-user and research
+- Requirement: Load and repetition progression require two comparable confirmations of the current target. Automatic load jumps may not exceed five percent. Set progression requires four comparable exposures, two confirmations, manageable fatigue, early recovery, low stimulus, and exact `Could do more` feedback, and may add only one set.
+- Detail: `src/domain/training-engine.ts`, `src/domain/volume-progression-engine.ts`, and Build Bible Chapter 109
+
+### R-505 Conservative Progression Acceptance
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Deterministic and browser acceptance must cover false open-session completion, schema migration, active-data preservation, deferred check-ins, full-queue retirement, replacement-primary placement, current-round retention, RIR floors, two-exposure confirmation, load-jump bounds, one-set limits, and year-scale pacing.
+- Detail: `src/domain/effort-progression-engine.test.ts`, `src/domain/backup.test.ts`, `src/domain/longitudinal-athlete-simulation.test.ts`, `src/store/useAppStore.test.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 109
+
 ## Thread Coverage Audit
+
+### 2026-09-02 Conservative Progression and Block Integrity
+- Scope: JB reported that a new workout opened with completed boxes, asked every downstream system to follow a block exercise change, and rejected a week 1 to week 2 jump from 3 to 4 RIR directly to 1 RIR plus overly fast load, repetition, and set progression.
+- Result: Added R-501 through R-505 and Build Bible Chapter 109. Private alpha 0.81.0 adds unstarted-session repair, complete open-queue retirement and regeneration, replacement-primary placement, progression v3, RIR progression v1, movement progress path v2, and volume progression v3.
+- Status: Implemented with 557 deterministic tests, all 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys, and local UI, image, backend, cloud, production, and Pages gates passing. Workflows, deployment, and live-source verification remain release gates.
 
 ### 2026-09-01 Version 30 Cloud Record Recovery
 - Scope: JB reported that the 0.80.0 update blocked app entry because valid cloud personal records and history-change record projections no longer matched the newly expanded calculation.
@@ -3550,6 +3585,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-09-02: Added R-501 through R-505 and Build Bible Chapter 109 for clean unstarted workout state, complete block-change propagation, replacement movement check-ins and progression ownership, gradual RIR, slower load, repetition, and set progression, and preservation-safe acceptance. Private alpha 0.81.0 advances progression v3, movement progress path v2, RIR progression v1, volume progression v3, backup schema 32, and local persistence 33.
 - 2026-09-01: Released private alpha 0.80.1 with PR v3, backup schema 31, local persistence 32, and narrow version 30 cloud record-projection recovery. Completed training and history snapshots remain authoritative and unchanged; arbitrary record mismatches remain blocked.
 - 2026-08-31: Added R-489 through R-493 and Build Bible Chapter 106 for active-workout scope choice, bodyweight logging and records, phase-safe progress cues, quiet autofill presentation, shared workout previews, preservation rules, and cross-device acceptance. Private alpha 0.79.0 preserves backup schema 30, local persistence 31, completed work, prior plan versions, and Supabase authority.
 - 2026-08-27: Added R-481 through R-484 and Build Bible Chapter 104 for explicit workout-only versus training-block movement replacement scope, staged workout confirmation, before-and-after recurring progression changes, plain terminology, preservation rules, and cross-device acceptance. Private alpha 0.77.0 preserves backup schema 30, local persistence 31, completed work, prior plan versions, and the Supabase snapshot contract.

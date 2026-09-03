@@ -12,7 +12,7 @@ import { buildDeferredFeedbackRequest, expireDeferredFeedbackRequests, summarize
 import { mergeSystemEquipmentProfiles, mergeSystemExerciseCatalog, projectExerciseCatalogEdit, type ExerciseCatalogInput } from '../domain/catalog-engine'
 import { sessionTrainedMinutes, startSessionClock, stopSessionClock } from '../domain/session-clock'
 import { equipmentGenerationEvidence, equipmentProfileError, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad, normalizedEquipmentProfile } from '../domain/equipment-engine'
-import { legacyPlacementForAthlete, placementRouteLabels } from '../domain/placement-engine'
+import { legacyPlacementForAthlete, placementRouteLabels, replacementMovementPlacementFor } from '../domain/placement-engine'
 import { beginPlacementVerification, cancelPlacementVerificationForPrimarySubstitution, completePlacementVerification, recordPlacementWarmup, resolvePlacementRecovery, revisePlacementSessionEvidence, summarizePlacementVerification } from '../domain/placement-verification-engine'
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment, movementPlacementExitReviewRuleVersion, placementExitReviewRuleVersion } from '../domain/placement-exit-engine'
 import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION, routeSessionProfile } from '../domain/route-session-engine'
@@ -25,6 +25,7 @@ import { buildHistoricalPerformance, type HistoricalPerformanceInput } from '../
 import { applyWorkoutSetEntry } from '../domain/set-entry-autofill'
 import { latestMovementFeedback, movementFeedbackMode, movementFeedbackPreview, movementFeedbackValue } from '../domain/movement-feedback-engine'
 import { loadModeForSet } from '../domain/load-mode'
+import { hasUnstartedSessionTrainingState, resetUnstartedSessionTrainingState } from '../domain/planned-session-state'
 import type {
   AppSettings,
   AthleteProfile,
@@ -350,7 +351,9 @@ export const useAppStore = create<AppState>()(
         const minutes = availableMinutes ?? state.settings.availableMinutes
         const equipmentProfile = state.equipmentProfiles.find((candidate) => candidate.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]
         const startedAt = new Date().toISOString()
-        const movementPlacement = state.sessions.find((session) => session.id === sessionId)?.generation?.movementPlacement
+        const sourceSession = state.sessions.find((session) => session.id === sessionId)
+        const repairedUnstartedState = sourceSession ? hasUnstartedSessionTrainingState(sourceSession) : false
+        const movementPlacement = sourceSession?.generation?.movementPlacement
         const laneKey = movementPlacement?.exerciseId ?? 'plan'
         const placementEvents = state.placementVerifications.filter((event) => event.placementCreatedAt === state.athlete.placement.createdAt && (event.movementPlacement?.exerciseId ?? 'plan') === laneKey)
         const shouldVerify = state.athlete.placement.selectedRoute !== 'pain-aware-modified'
@@ -367,7 +370,7 @@ export const useAppStore = create<AppState>()(
           placementVerifications: verification ? [...state.placementVerifications, verification] : state.placementVerifications,
           sessions: state.sessions.map((session) => {
             if (session.id !== sessionId) return session
-            const compressed = compressSession(session, minutes)
+            const compressed = compressSession(resetUnstartedSessionTrainingState(session), minutes)
             return {
               ...compressed,
               status: 'active' as const,
@@ -387,7 +390,7 @@ export const useAppStore = create<AppState>()(
             }
           }),
           notice: equipmentProfile
-            ? `Workout saved locally. Loads now follow ${equipmentProfile.name}'s executable increments.`
+            ? `${repairedUnstartedState ? 'Unstarted set status was cleared. ' : ''}Workout saved locally. Loads now follow ${equipmentProfile.name}'s executable increments.`
             : 'Workout saved locally. You can train offline.'
         }
       }),
@@ -699,16 +702,23 @@ export const useAppStore = create<AppState>()(
         const strengthAnchors = planned.role === 'primary'
           ? baseDraft.strengthAnchors.map((anchorId) => anchorId === original.id ? selected.id : anchorId)
           : baseDraft.strengthAnchors
-        const hasCompleteMovementPlacement = strengthAnchors.every((anchorId) => baseDraft.movementPlacements?.some((placement) => placement.exerciseId === anchorId))
+        const existingMovementPlacements = baseDraft.movementPlacements ?? state.athlete.placement.movementPlacements ?? []
+        const movementPlacements = planned.role === 'primary'
+          ? [...existingMovementPlacements.filter((placement) => placement.exerciseId !== original.id), replacementMovementPlacementFor(selected, state.athlete.placement)]
+          : baseDraft.movementPlacements
+        const hasCompleteMovementPlacement = strengthAnchors.every((anchorId) => movementPlacements?.some((placement) => placement.exerciseId === anchorId))
+        const entryRoute = baseDraft.entryRoute ?? state.athlete.placement.selectedRoute
         const nextDraft: MesocycleDraft = {
           ...baseDraft,
           revisionReason: `${original.name} changed to ${selected.name} from the active workout for the remaining training block.`,
           strengthAnchors,
           movementOverrides: planned.role === 'primary' ? movementOverrides : [...movementOverrides, { sessionIndex, slotIndex, exerciseId: selected.id, source: 'athlete' }],
-          ...(baseDraft.entryRoute ? {
+          ...(entryRoute ? {
+            entryRoute,
+            placementCreatedAt: baseDraft.placementCreatedAt ?? state.athlete.placement.createdAt,
             generationRuleVersion: hasCompleteMovementPlacement ? ROUTE_SESSION_RULE_VERSION : EQUIPMENT_ROUTE_SESSION_RULE_VERSION,
             generationEquipment: equipmentGenerationEvidence(generationProfile),
-            movementPlacements: hasCompleteMovementPlacement ? structuredClone(baseDraft.movementPlacements) : undefined
+            movementPlacements: hasCompleteMovementPlacement ? structuredClone(movementPlacements) : undefined
           } : {})
         }
         let preview: ReturnType<typeof buildMesocyclePreview>
@@ -720,6 +730,7 @@ export const useAppStore = create<AppState>()(
             planId,
             planVersion: nextVersion,
             startsAt: new Date(effectiveAt),
+            microcycleNumber: currentRound,
             equipmentProfile: generationProfile
           })
         } catch (error) {
@@ -729,14 +740,25 @@ export const useAppStore = create<AppState>()(
         const workoutResult = get().swapExercise(sessionId, plannedExerciseId, exerciseId, reason, primaryOverrideConfirmed)
         if (!workoutResult.ok) return workoutResult
         const updated = get()
-        const nextPlan = createMesocyclePlan(nextDraft, planId, nextVersion, effectiveAt, activePlan.id, preview.sessions.map((candidate) => candidate.id))
-        const revised = replaceFuturePlan(updated.sessions, updated.mesocycles, nextPlan, preview.sessions)
+        const activePreview = preview.sessions[sessionIndex]
+        if (!activePreview) return { ok: false, error: 'ForgePath could not preserve this workout inside the revised training round.' }
+        const generatedFutureSessions = preview.sessions.filter((_, index) => index !== sessionIndex)
+        const revisedSessionIds = preview.sessions.map((candidate, index) => index === sessionIndex ? session.id : candidate.id)
+        const nextPlan = createMesocyclePlan(nextDraft, planId, nextVersion, effectiveAt, activePlan.id, revisedSessionIds)
+        const currentWorkoutInNextPlan = updated.sessions.map((candidate) => candidate.id === session.id ? {
+          ...candidate,
+          mesocycleId: planId,
+          planVersion: nextVersion,
+          microcycleNumber: currentRound,
+          generation: activePreview.generation
+        } : candidate)
+        const revised = replaceFuturePlan(currentWorkoutInNextPlan, updated.mesocycles, nextPlan, generatedFutureSessions)
         set({
           sessions: revised.sessions,
           mesocycles: revised.plans,
           activeMesocycleId: nextPlan.id,
           athlete: { ...updated.athlete, strengthAnchors: [...strengthAnchors] },
-          notice: `${selected.name} is active in this workout and training-block version ${nextVersion}. Completed workouts and ${original.name}'s history were preserved.`
+          notice: `${selected.name} is active in this workout and training-block version ${nextVersion}. Its future progression and starting checks now use its own evidence. Completed workouts and ${original.name}'s history were preserved.`
         })
         return workoutResult
       },
@@ -1367,6 +1389,9 @@ export const useAppStore = create<AppState>()(
         const nextVersion = Math.max(0, ...state.mesocycles.map((plan) => plan.version)) + 1
         const planId = `mesocycle-${nanoid()}`
         const effectiveAt = new Date().toISOString()
+        const currentRound = activePlan
+          ? Math.max(1, ...state.sessions.filter((session) => session.mesocycleId === activePlan.id).map((session) => session.microcycleNumber ?? 1))
+          : 1
         const generationProfile = state.equipmentProfiles.find((candidate) => candidate.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]
         const hasCompleteMovementPlacement = draft.strengthAnchors.every((exerciseId) => draft.movementPlacements?.some((placement) => placement.exerciseId === exerciseId))
         const nextDraft = draft.entryRoute
@@ -1386,6 +1411,7 @@ export const useAppStore = create<AppState>()(
             planId,
             planVersion: nextVersion,
             startsAt: new Date(effectiveAt),
+            microcycleNumber: currentRound,
             equipmentProfile: generationProfile
           })
         } catch (error) {
@@ -1505,7 +1531,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: LEGACY_APP_STORAGE_KEY,
-      version: 32,
+      version: 33,
       storage: createJSONStorage(() => browserStateStorage),
       partialize: (state) => ({
         athlete: state.athlete,
@@ -1543,7 +1569,7 @@ export const useAppStore = create<AppState>()(
           ...persisted,
           // Sessions stored before 0.42.0 carry the retired five-role vocabulary. They are mapped
           // forward rather than dropped, so an in-progress workout survives the upgrade intact.
-          sessions: (persisted.sessions ?? []).map((session) => ({
+          sessions: (persisted.sessions ?? []).map((session) => resetUnstartedSessionTrainingState({
             ...session,
             exercises: (session.exercises ?? []).map((exercise) => ({ ...exercise, role: normalizeExerciseRole(String(exercise.role)) }))
           })),

@@ -3,14 +3,45 @@ type: product-build-bible
 aliases: [Adaptive Training App Build Bible, App Build Bible]
 tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
-updated: 2026-09-01
+updated: 2026-09-02
 status: canonical-build-reference-and-active-implementation
-version: 1.77.0
+version: 1.78.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.78.0 Change Entry
+
+- Advanced the working application to private alpha 0.81.0, backup schema 32, local persistence 33, progression v3, movement progress path v2, RIR progression v1, and volume progression v3.
+- Repaired stale completion state only for unstarted workouts and preserved every active or terminal workout unchanged.
+- Made full-block movement changes retire every old open queue item, preserve check-in provenance, retain the current round, rebuild future workouts, and assign a replacement primary its own placement and progression lane.
+- Slowed progression to two comparable confirmations for load or repetitions, a five-percent automatic load ceiling, one added set after four supported exposures, and at most one RIR of added effort after complete exact feedback.
+- Grounded the policy in current first-party RP guidance and Mike Israetel's official progression lecture, documented in `docs/research/CONSERVATIVE_PROGRESSION_AND_BLOCK_INTEGRITY_AUDIT_2026-09-02.md`.
+- Verified 557 deterministic tests, all 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys, lint, production compilation, UI, image, backend, cloud, and Pages-artifact gates. Workflow, deployment, and live-source checks remain release gates.
+
+## 109. Conservative Progression and Block Integrity
+
+### 109.1 Unstarted Workout Invariant
+
+A session whose status is planned or deferred has no completed training truth. Its sets must be incomplete and contain no skipped state, completed values, actual effort, entered-value marker, or entry provenance. Schema migration and workout start both enforce this invariant. Active and terminal sessions are outside the repair boundary and remain immutable.
+
+### 109.2 Atomic Block Movement Change
+
+A full-block replacement creates one new plan version and expires every former planned or deferred session without deleting it. The complete retired snapshot and stable session ID remain available to check-ins and the audit ledger. Generated sessions use the current training-round number and the selected movement. A replacement primary receives a fresh movement-placement assessment with unknown exact evidence so starting checks and progression cannot borrow the former primary's confidence.
+
+### 109.3 Confirmation-First Overload
+
+Load or repetition progression requires the current exact prescription to be completed in two comparable exposures with known RIR. An automatic load change cannot exceed five percent. Sets remain last and may rise by one only after four comparable exposures, two target confirmations, low stimulus, manageable fatigue, early recovery, and exact `Could do more` feedback. A volume review may never add two sets at once.
+
+### 109.4 Gradual RIR Progression
+
+Actual RIR records performance and never becomes the next prescription. The prior prescribed target is authoritative. Round 2 repeats the opening target. Round 3 or later may reduce RIR by one only after two exact exposures and known supportive movement pain, technique, load fit, volume fit, recovery, quality, and actual RIR evidence. Rounds 3 and 4 keep at least 2 RIR. A 1 RIR target begins no earlier than round 5. Training materially harder than prescribed forces a hold.
+
+### 109.5 Acceptance
+
+Acceptance covers schema 31 repair, active-data preservation, start-time defense, open-queue retirement, deferred check-in preservation, primary placement transfer, current-round retention, two-confirmation overload, five-percent load bounds, one-set volume changes, RIR floors, 52-week pacing, cross-browser rendering, backup validation, Pages build, and live release identity.
 
 ### Version 1.77.0 Change Entry
 

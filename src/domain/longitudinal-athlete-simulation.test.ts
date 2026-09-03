@@ -273,10 +273,10 @@ describe('longitudinal athlete acceptance replay', () => {
   it('progresses a stable athlete for 52 weeks through the real load, repetition, and evidence gates', () => {
     const replay = replayStableYear()
     expect(replay.decisions).toHaveLength(52)
-    expect(replay.decisions.slice(0, 6).map((decision) => decision.action)).toEqual(['reps', 'reps', 'load', 'reps', 'reps', 'load'])
-    expect(replay.decisions.filter((decision) => decision.action === 'load')).toHaveLength(17)
+    expect(replay.decisions.slice(0, 6).map((decision) => decision.action)).toEqual(['hold', 'reps', 'hold', 'reps', 'hold', 'load'])
+    expect(replay.decisions.filter((decision) => decision.action === 'load')).toHaveLength(8)
     expect(replay.decisions.filter((decision) => decision.action === 'sets')).toHaveLength(0)
-    expect(replay.nextTarget).toEqual({ load: 260, reps: 5, sets: 4 })
+    expect(replay.nextTarget).toEqual({ load: 215, reps: 6, sets: 4 })
     expect(replay.decisions.every((decision) => decision.evidence.sourceSetIds.every((id) => !id.includes('athlete-added')))).toBe(true)
     expect(replay.decisions.filter((decision) => decision.evidence.athleteAddedSetsExcluded > 0)).toHaveLength(49)
     expect(replay.decisions.at(-1)?.evidence.athleteAddedSetsExcluded).toBe(13)

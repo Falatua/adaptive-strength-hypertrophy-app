@@ -106,7 +106,7 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
     unknownInputs
   }
   const result = (decision: Omit<ProgressionDecision, 'ruleVersion' | 'evidence'>): ProgressionDecision => ({
-    ruleVersion: 'progression-v2',
+    ruleVersion: 'progression-v3',
     evidence,
     ...decision
   })
@@ -138,7 +138,12 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
   const volumeFit = answerFrom(movementFeedback, 'volumeFit')
   const latestPrescribed = recent.slice(0, targetSets)
   const targetOwned = latestPrescribed.length >= targetSets && latestPrescribed.every((workSet) => workSet.load >= targetLoad && workSet.reps >= targetReps)
-  const sensibleLoadJump = targetLoad > 0 && increment / targetLoad <= 0.1
+  const confirmedTargetExposures = exposures.slice(-2).filter((exposure) => {
+    const prescribed = exposure.filter((workSet) => !workSet.athleteAdded).slice(0, targetSets)
+    return prescribed.length >= targetSets && prescribed.every((workSet) => workSet.load >= targetLoad && workSet.reps >= targetReps && workSet.rirKnown !== false)
+  }).length
+  const targetConfirmedTwice = confirmedTargetExposures >= 2
+  const sensibleLoadJump = targetLoad > 0 && increment / targetLoad <= 0.05
   const hardFeedback = (expectedComparison !== null && expectedComparison >= 4) || (difficulty !== null && difficulty >= 9) || (endFatigue !== null && endFatigue >= 5) || (movementTechnique !== null && movementTechnique <= 2) || (loadFit !== null && loadFit >= 5)
 
   if (readiness === 'pain-aware' || (maxPain !== null && maxPain >= 4) || (surveyPain !== null && surveyPain >= 4)) {
@@ -199,7 +204,7 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
     })
   }
 
-  if (targetReps >= repRange[1] && avgRir !== null && avgRir >= 1.5 && sensibleLoadJump) {
+  if (targetReps >= repRange[1] && avgRir !== null && avgRir >= 1.5 && sensibleLoadJump && targetConfirmedTwice) {
     reasons.push('Top of rep range reached', 'Target effort was owned', 'Load is the first progression priority')
     return result({
       action: 'load',
@@ -213,7 +218,7 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
     })
   }
 
-  if (targetReps < repRange[1] && avgRir !== null && avgRir >= 1) {
+  if (targetReps < repRange[1] && avgRir !== null && avgRir >= 1 && targetConfirmedTwice) {
     return result({
       action: 'reps',
       title: 'Add one repetition',
@@ -229,8 +234,8 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
   const lowStimulus = targetStimulus !== null && targetStimulus <= 2
   const recoveredEarly = recovery !== null && recovery >= 4
   const manageableFatigue = endFatigue !== null && endFatigue <= 3
-  const volumeAllowsMore = volumeFit === null || volumeFit === 1
-  if (targetReps >= repRange[1] && !sensibleLoadJump && exposures.length >= 3 && avgRir !== null && avgRir >= 1 && readiness === 'normal' && continuity === 'stable' && lowStimulus && recoveredEarly && manageableFatigue && volumeAllowsMore) {
+  const volumeAllowsMore = volumeFit === 1
+  if (targetReps >= repRange[1] && !sensibleLoadJump && exposures.length >= 4 && targetConfirmedTwice && avgRir !== null && avgRir >= 1 && readiness === 'normal' && continuity === 'stable' && lowStimulus && recoveredEarly && manageableFatigue && volumeAllowsMore) {
     return result({
       action: 'sets',
       title: 'One recovered set is available',
@@ -239,7 +244,7 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
       nextReps: targetReps,
       nextSets: targetSets + 1,
       confidence: 'medium',
-      reasons: ['Load jump exceeds ten percent', 'Repetitions are already at the top of the range', 'Low stimulus and early recovery support a cautious dose increase']
+      reasons: ['Load jump exceeds five percent', 'Repetitions are already at the top of the range', 'Four comparable exposures and explicit could-do-more feedback support a cautious dose increase']
     })
   }
 
@@ -252,7 +257,7 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
     nextReps: targetReps,
     nextSets: targetSets,
     confidence: unknownInputs.length ? 'low' : 'medium',
-    reasons: [!sensibleLoadJump && targetReps >= repRange[1] ? 'The next load jump is too large and the separate dose gate is not fully supported' : 'Insufficient evidence for a safe increase']
+    reasons: [!targetConfirmedTwice ? 'The current target needs a second comparable confirmation before another increase' : !sensibleLoadJump && targetReps >= repRange[1] ? 'The next load jump is too large and the separate dose gate is not fully supported' : 'Insufficient evidence for a safe increase']
   })
 }
 

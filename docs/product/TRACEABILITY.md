@@ -3,7 +3,7 @@ type: product-traceability-matrix
 aliases: [App Build Bible Traceability, Requirement Coverage Matrix]
 tags: [fitness, app, requirements, traceability, build, qa]
 created: 2026-08-10
-updated: 2026-09-01
+updated: 2026-09-02
 status: canonical-build-reference
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
@@ -17,16 +17,16 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Coverage Summary
 
-- Total requirement headings: 500.
-- Sequential range: R-001 through R-500.
-- Missing IDs: none after the 2026-09-01 verification.
-- Duplicate IDs: none after the 2026-09-01 verification.
+- Total requirement headings: 505.
+- Sequential range: R-001 through R-505.
+- Missing IDs: none after the 2026-09-02 verification.
+- Duplicate IDs: none after the 2026-09-02 verification.
 - Primary implementation authority: [[Adaptive Strength and Hypertrophy App Build Bible]].
 - Requirement wording and provenance authority: [[App Requirements Register]].
 
 ## Current Implementation Evidence
 
-Private alpha 0.80.1 and Build Bible 1.77.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/RP_MOVEMENT_FEEDBACK_RESEARCH_2026-08-27.md`, `docs/research/PROGRESSION_FEEDBACK_AUDIT_2026-08-13.md`, and `docs/research/LONGITUDINAL_PRODUCT_SIMULATION_AUDIT_2026-08-13.md`. The current local gate includes 550 deterministic tests and the desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys covering version 30 cloud recovery, exact record-projection replay, forged-projection rejection, exact-movement workout suggestions, scoped records, all bodyweight identities, reports, ledger, momentum, previews, Supabase authority, console integrity, and horizontal containment. Backup schema is 31 and local persistence is 32. Dedicated-origin hosting, custom SMTP, complete offline startup, real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
+Private alpha 0.81.0 and Build Bible 1.78.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/CONSERVATIVE_PROGRESSION_AND_BLOCK_INTEGRITY_AUDIT_2026-09-02.md`, and the prior progression audits. The current local gate includes 557 deterministic tests and 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys covering clean workout starts, complete block replacement, conservative progression, cloud recovery, exact record projection, workout suggestions, bodyweight identities, reports, previews, Supabase authority, console integrity, and horizontal containment. Backup schema is 32 and local persistence is 33. Dedicated-origin hosting, custom SMTP, complete offline startup, real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
 
 ## Product and Training Traceability
 
@@ -124,6 +124,7 @@ Private alpha 0.80.1 and Build Bible 1.77.0 are the current boundary. Evidence i
 | R-485 to R-488 | Persistent full training-block preview, time remaining, round state, progression order, deload timing, and read-only acceptance | 8, 10, 12, 18, 20, 22, 24, 27, 90, 105 | `PRODUCT.md`, `DESIGN.md`, `src/screens/PlanScreen.tsx`, `src/domain/cycle-review-engine.ts` | 1A to 1B | summary facts, round states, expected review estimate, progression and recovery copy, unchanged plan serialization, dialog focus, desktop Chromium, mobile Chromium, iPhone WebKit, console, and containment tests |
 | R-489 to R-493 | Active-workout scope choice, bodyweight load identity and records, phase-safe progress cues, quiet autofill presentation, and shared workout previews | 10, 15, 17, 18, 20, 22, 24, 27, 106 | `PRODUCT.md`, `DESIGN.md`, `src/domain/load-mode.ts`, `src/domain/history-engine.ts`, `src/components/WorkoutPreview.tsx`, `src/screens/WorkoutScreen.tsx`, `src/screens/TodayScreen.tsx`, `src/screens/PlanScreen.tsx`, `src/store/useAppStore.ts` | 1A to 1B | bodyweight taxonomy, baseline and reacclimation cues, load-mode persistence, block versioning, history preservation, absent explainer copy, shared preview state integrity, desktop Chromium, mobile Chromium, iPhone WebKit, console, and containment tests |
 | R-494 to R-500 | Exact-movement progress paths, athlete-controlled workout suggestions, scoped records, bodyweight loading v2, training-round report, progress ledger, schedule-aware momentum, and acceptance | 10, 11, 12, 17, 18, 20, 22, 24, 27, 107 | `PRODUCT.md`, `DESIGN.md`, `src/domain/progression-insight-engine.ts`, `src/domain/history-engine.ts`, `src/domain/momentum-engine.ts`, `src/domain/round-report-engine.ts`, `src/screens/WorkoutScreen.tsx`, `src/screens/ProgressScreen.tsx` | 1A to 1C | exact source identity, suggestion safety and approval, scoped recomputation, bodyweight-mode separation, lower assistance, round linkage, ledger provenance, non-punitive momentum, desktop Chromium, mobile Chromium, iPhone WebKit, console, and containment tests |
+| R-501 to R-505 | Clean unstarted workouts, complete block-change propagation, movement-specific checks, gradual RIR, slower overload, and acceptance | 8, 10, 12, 13, 20, 22, 24, 27, 109 | `PRODUCT.md`, `DESIGN.md`, `docs/research/CONSERVATIVE_PROGRESSION_AND_BLOCK_INTEGRITY_AUDIT_2026-09-02.md`, `src/domain/planned-session-state.ts`, `src/domain/effort-progression-engine.ts`, `src/domain/training-engine.ts`, `src/domain/mesocycle-engine.ts`, `src/store/useAppStore.ts` | 1A to 1C | schema migration, clean-start browser, active-data preservation, queue retirement, check-in provenance, current-round retention, primary placement, RIR floors, two-exposure confirmation, load ceiling, one-set limit, 52-week replay, cross-browser, and Pages tests |
 
 ## Delivery Phase Key
 

@@ -3,7 +3,7 @@ import { muscleQuestionId } from './survey-engine'
 import { isComparableExposure } from './set-structure-engine'
 import type { CompletedSetRecord, Exercise, MuscleId, SurveyRecord } from './types'
 
-export const VOLUME_PROGRESSION_RULE = 'volume-progression-v2'
+export const VOLUME_PROGRESSION_RULE = 'volume-progression-v3'
 
 /**
  * Weekly working-set landmarks per muscle, in the Renaissance Periodization sense:
@@ -199,9 +199,8 @@ export function decideMuscleVolume(input: {
 
   if (input.currentSets < landmarks.mev) {
     if (recoveredEarly && performance !== 'unknown') {
-      const step = lowStimulus ? 2 : 1
       reasons.push(`Weekly sets are below the provisional ${landmarks.mev} minimum-effective landmark, and preserved performance plus early recovery support a cautious increase toward it.`)
-      return decision('add-sets', Math.min(landmarks.mev, input.currentSets + step), 'medium')
+      return decision('add-sets', Math.min(landmarks.mev, input.currentSets + 1), 'medium')
     }
     reasons.push(`Weekly sets are below the provisional ${landmarks.mev} minimum-effective landmark, but the athlete's recovery and comparable performance do not yet support adding work.`)
     return decision('hold', input.currentSets, 'low')
@@ -209,7 +208,7 @@ export function decideMuscleVolume(input: {
 
   if (lowStimulus && !highFatigue && recoveredEarly && performance !== 'unknown') {
     reasons.push('Pump and target stimulus were both low, performance was preserved, and the muscle recovered early. This is the clearest case for more work.')
-    return decision('add-sets', Math.min(landmarks.mrv, input.currentSets + 2), 'medium')
+    return decision('add-sets', Math.min(landmarks.mrv, input.currentSets + 1), 'medium')
   }
 
   if (!highFatigue && recoveredEarly && !strongStimulus && (performance === 'improved' || performance === 'held')) {

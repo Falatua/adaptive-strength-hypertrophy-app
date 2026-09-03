@@ -666,7 +666,7 @@ export interface DeferredFeedbackRequest {
 }
 
 export interface ProgressionDecision {
-  ruleVersion: 'progression-v2'
+  ruleVersion: 'progression-v3'
   action: ProgressionAction
   title: string
   explanation: string
@@ -720,7 +720,7 @@ export interface PersonalRecord {
 export type RecordScope = 'all-time' | 'current-block' | 'rolling-12-months' | 'since-return' | 'current-phase'
 
 export interface MovementProgressPath {
-  ruleVersion: 'movement-progress-path-v1'
+  ruleVersion: 'movement-progress-path-v2'
   exerciseId: string
   plannedExerciseId: string
   loadMode: LoadMode

@@ -58,7 +58,7 @@ describe('decideMuscleVolume', () => {
   it('adds work when stimulus came back low and fatigue was manageable', () => {
     const result = decide({ feedback: feedback({ pump: 1, targetStimulus: 2, endFatigue: 2 }) })
     expect(result.action).toBe('add-sets')
-    expect(result.setChange).toBe(2)
+    expect(result.setChange).toBe(1)
   })
 
   it('holds when the stimulus is clearly there and fatigue is already high', () => {
@@ -187,7 +187,7 @@ describe('decideMuscleVolume', () => {
   it('always explains itself and never returns a bare number', () => {
     const result = decide()
     expect(result.reasons.length).toBeGreaterThan(0)
-    expect(result.ruleVersion).toBe('volume-progression-v2')
+    expect(result.ruleVersion).toBe('volume-progression-v3')
   })
 })
 

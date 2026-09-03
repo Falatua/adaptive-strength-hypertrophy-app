@@ -62,6 +62,16 @@ The completed set remains the primary progression signal. Pain that changed trai
 
 The inline explanation previews the likely consequence before save. No answer changes today's work, silently edits a future plan, or diagnoses pain. Future recommendations remain proposals that the athlete reviews and approves. The whole-session post-workout check remains a separate layer for session difficulty, fatigue, time fit, enjoyment, and broader muscle feedback.
 
+## Conservative Progression and Block-Change Integrity
+
+An unstarted planned or deferred workout must always open with every set incomplete and with no entered actual values. ForgePath may repair stale entry fields on those unstarted sessions during migration or start, but it must never clear active, partial, completed, stopped, or expired training truth.
+
+A training-block exercise change is one atomic versioned operation. It applies the replacement to the current workout when requested, retires every old open planned or deferred session, rebuilds future workouts in the current training round, transfers scheduling and check-in ownership to the replacement movement, and establishes a new movement-specific calibration lane when the replacement is a primary anchor. Former plans, sessions, feedback, and completed source sets remain available as historical evidence.
+
+Progression is deliberately confirmatory. Load or repetition targets require two comparable completed exposures at the current prescription. A load increase must be no more than five percent of the current load. Working sets may rise only one at a time after four comparable exposures and an exact `Could do more` answer with supportive recovery and fatigue evidence. Low-stimulus volume review may add at most one set.
+
+RIR is progressed from the prior prescription, never copied from how hard the athlete happened to train. Round two repeats the opening RIR target. Later rounds may move only one RIR closer to failure after two exact exposures with known pain, technique, load fit, set fit, recovery, and completed-set RIR. Rounds three and four keep at least 2 RIR, and 1 RIR is available only from round five onward. Harder-than-prescribed execution holds the next effort target instead of making it harder again.
+
 ## Register
 
 product

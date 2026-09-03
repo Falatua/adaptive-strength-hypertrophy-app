@@ -81,6 +81,14 @@ Questions use written, touch-sized option buttons instead of sliders. The full p
 
 Evidence-blue frames the informational boundary. Effort-orange appears only when pain, excess volume, technique breakdown, or an overly heavy target requires review. A live consequence summary states whether overload is blocked, set count is capped, a reduction may be useful, or more work remains only a possibility. The copy always says future changes require athlete approval.
 
+## Conservative Progression States
+
+A newly started workout always renders every prescribed set in its unlogged state. A repaired legacy session may show one calm notice that stale unstarted status was cleared. The workout must never imply that planned work was completed, and no repair notice may appear for an active or completed session.
+
+Block-scoped replacement confirmation states that old open workouts are retired and future workouts, check-ins, previews, and progression now belong to the selected movement. Historical sessions remain available but cannot re-enter the active queue. A newly selected primary movement uses its own starting-check lane instead of inheriting another movement's confidence.
+
+Progress cards distinguish a hold from a setback. `Confirm this target once more` means the current work needs a second comparable exposure. RIR copy states the current target and the earliest evidence that could lower it by one. No interface promises a weekly effort increase, more than one added set, or a load jump above five percent.
+
 On compact phones choices wrap without horizontal scrolling and remain at least 44 pixels high. Actions wrap in reading order, the saved state stays legible, and reduced-motion mode disables disclosure rotation and automatic smooth scrolling.
 
 ForgePath should feel like a private training field guide carried through an original strength adventure. Its North Star is the compact confidence and tactile clarity of a beloved handheld interface, interpreted through an original world rather than copied characters, names, maps, or assets. Training is always the foreground. The adventure layer helps JB understand the route, notice progress, and enjoy returning.

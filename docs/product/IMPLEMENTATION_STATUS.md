@@ -3,14 +3,24 @@ type: implementation-status
 aliases: [ForgePath Private Alpha, Adaptive Training App Private Alpha]
 tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
-updated: 2026-09-01
+updated: 2026-09-02
 status: working-private-alpha
-app_version: 0.80.1
+app_version: 0.81.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.81.0 Conservative Progression and Block Integrity Delta
+
+- Repairs false completion state on planned or deferred workouts at schema migration and workout start while preserving active, partial, completed, stopped, and expired training.
+- Makes a block-scoped exercise replacement retire every old open workout, preserve its complete audit snapshot and linked check-ins, rebuild future sessions in the current round, and move placement and progression ownership to the replacement.
+- Gives a replacement primary a new movement-specific calibration placement rather than borrowing the former main lift's confidence or starting checks.
+- Advances to `progression-v3`: two comparable confirmations before load or repetition progression, a five-percent automatic load-jump ceiling, and four exposures plus exact supportive feedback before one added set.
+- Adds `rir-progression-v1`: round 2 holds, RIR changes by at most one, rounds 3 and 4 keep at least 2 RIR, round 5 is the earliest 1 RIR target, and harder-than-prescribed execution cannot make the next target harder.
+- Advances `movement-progress-path-v2`, `volume-progression-v3`, backup schema 32, and local persistence 33. Completed source history, former plan versions, PR v3, and Supabase authority remain unchanged.
+- Passes 557 deterministic tests, all 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys, lint, production compilation, UI, image, backend, cloud-data, cloud-release, and Pages-artifact gates. GitHub workflows, deployment, and live-source verification remain release gates.
 
 ## Private Alpha 0.80.1 Cloud Record Recovery Delta
 

@@ -1,6 +1,7 @@
 import type {
   AthletePlacementAssessment,
   AthleteProfile,
+  Exercise,
   MovementPlacementAssessment,
   MovementPlacementInput,
   PlacementDecision,
@@ -173,6 +174,17 @@ function movementPlacementFor(input: MovementPlacementInput, planRoute: Placemen
     uncertainInputs,
     ...(ruleVersion === movementPlacementRuleVersion && input.historyReview ? { historyReview: structuredClone(input.historyReview) } : {})
   }
+}
+
+export function replacementMovementPlacementFor(exercise: Exercise, placement: AthletePlacementAssessment): MovementPlacementAssessment {
+  return movementPlacementFor({
+    exerciseId: exercise.id,
+    exerciseName: exercise.name,
+    family: exercise.family,
+    movementSkill: null,
+    strengthTolerance: null,
+    dataConfidence: null
+  }, placement.selectedRoute, placement.inputs, movementPlacementRuleVersion, placementRouteLabels)
 }
 
 function buildPlacementAssessmentVersion(inputs: PlacementInputs, createdAt: string, ruleVersion: AthletePlacementAssessment['ruleVersion'], routeLabels: Record<PlacementRoute, string> = placementRouteLabels): AthletePlacementAssessment {

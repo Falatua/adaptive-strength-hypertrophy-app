@@ -131,7 +131,7 @@ export function buildMovementProgressPath(input: {
   }
 
   return {
-    ruleVersion: 'movement-progress-path-v1', exerciseId: exercise.id, plannedExerciseId: planned.id, loadMode: mode,
+    ruleVersion: 'movement-progress-path-v2', exerciseId: exercise.id, plannedExerciseId: planned.id, loadMode: mode,
     status, title, last, today, next, toProgress,
     explanation: protection ? 'Safety and the athlete’s current signal outrank progression.' : decision.explanation,
     confidence: decision.confidence, sourceSetIds: decision.evidence.sourceSetIds,

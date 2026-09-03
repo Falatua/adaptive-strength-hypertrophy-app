@@ -1,8 +1,8 @@
-# ForgePath Private Alpha 0.80.1
+# ForgePath Private Alpha 0.81.0
 
 ForgePath is an athlete-controlled adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed. The hosted private alpha uses Supabase as the authoritative training store; local development keeps a browser-only test mode.
 
-Private alpha 0.80.1 retains the 0.80 progression operating system and repairs cloud loading for verified version 30 snapshots. It recognizes only the exact pre-0.80 and 0.80 record projections, verifies them against their completed source sets and history-change snapshots, and then replays the derived record layer through PR v3. Completed training, plans, feedback, and correction history are not rewritten. Backup schema 31 and local persistence 32 make the projection change explicit for future releases.
+Private alpha 0.81.0 repairs false completion state on unstarted workouts, propagates exercise changes through the complete remaining training block, and slows effort, load, repetition, and set progression. Planned and deferred sessions are cleaned at migration and start while active and completed training remains unchanged. Full-block swaps retire every old open session as an audit snapshot, preserve linked check-ins, rebuild the current round, and give a replacement primary its own placement and progression lane. Progression v3 requires two comparable confirmations for load or repetitions, caps automatic load jumps at five percent, and requires four exposures plus exact supportive feedback for one added set. RIR progression v1 holds round 2, moves by at most one, keeps a 2 RIR floor through round 4, and never copies actual RIR into the next prescription. Backup schema 32 and local persistence 33 make the repair explicit.
 
 The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 500 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
@@ -49,9 +49,9 @@ npm run check:pages
 
 ## Current verification
 
-- 547 deterministic domain, persistence, and cloud-boundary tests
+- 557 deterministic domain, persistence, and cloud-boundary tests
 - deterministic domain and cloud-boundary tests, including corrupted outbox, network retry, pending-state replay, stale conflict, response tampering, and restore acceptance
-- 165 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys covering evidence-backed workout suggestions, scoped records, training-round reports, schedule-aware momentum, the progress ledger, weighted and assisted bodyweight modes, active-workout replacement scope, workout previews, exact-movement completion feedback, quiet Set 1 autofill, cloud boundaries, console integrity, and horizontal containment
+- 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys covering clean starts, evidence-backed workout suggestions, scoped records, training-round reports, schedule-aware momentum, the progress ledger, weighted and assisted bodyweight modes, active-workout replacement scope, workout previews, exact-movement completion feedback, quiet Set 1 autofill, cloud boundaries, console integrity, and horizontal containment
 - automated UI boundary QC for original game-inspired expression, the technique-video exclusion, readable typography, focus and reduced-motion support, compact mobile coverage, and required product-design context
 - lint clean
 - production PWA build clean
