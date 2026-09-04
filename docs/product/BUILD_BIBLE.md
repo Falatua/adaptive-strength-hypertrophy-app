@@ -3,14 +3,41 @@ type: product-build-bible
 aliases: [Adaptive Training App Build Bible, App Build Bible]
 tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
-updated: 2026-09-02
+updated: 2026-09-04
 status: canonical-build-reference-and-active-implementation
-version: 1.78.0
+version: 1.79.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.79.0 Change Entry
+
+- Advanced the working application to private alpha 0.81.1 and `movement-progress-path-v3` without changing backup schema 32, local persistence 33, completed history, or Supabase authority.
+- Removed `Apply to unfinished sets` from the active workout and removed its mutation route from the workout store.
+- Kept Last, Today, Next, and What earns it as display-only guidance with a written boundary that the athlete's entered set numbers decide what is recorded.
+- Made entered load and repetitions the eligibility boundary for new records and progression, and made actual RIR known only when the athlete entered or accepted that field through the Set 1 template.
+- Preserved the quiet Set 1 convenience autofill, current active workout state, former completed history, and every existing correction and recovery path.
+- Verified 560 deterministic tests and all 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys locally. Workflow, deployment, and live-source checks remain release gates.
+
+## 110. Entered-Set Authority
+
+### 110.1 Display-Only Progress Guidance
+
+The exact-movement Last, Today, Next, and What earns it panel is coaching context only. It contains no action that can bulk-edit an active workout. The set table is the sole current-workout entry surface, and the panel states that the athlete's entered load, repetitions, and RIR determine what is recorded.
+
+### 110.2 Actual Entry Evidence
+
+A displayed prescription is a target, not evidence that it happened. For newly completed sets, load and repetitions qualify for records and progression only when the athlete entered them or accepted them through the Set 1 template. Actual RIR is known only when its own field was entered or accepted. A set logged without an entered RIR stores effort as unknown rather than silently copying the target into progression evidence. Placement verification likewise withholds its first-set conclusion unless that actual first primary set has entered load, repetitions, and RIR; it never substitutes a later set for the missing first-set evidence.
+
+### 110.3 Preserved Convenience and History
+
+Set 1 remains a bounded convenience template for untouched later straight sets. It copies only the fields the athlete entered, never marks a set complete, and never overwrites a manual exception. Completed history from older versions remains trusted so this correction does not rewrite the athlete's past. Existing active workouts remain intact; no automatic repair guesses at numbers already changed by the retired bulk action.
+
+### 110.4 Acceptance
+
+Acceptance proves that no `Apply to unfinished sets` control or store mutation remains, viewing a progress path cannot change session state, entered RIR is known, unentered RIR is unknown, unentered load and repetitions cannot earn records or progression, incomplete first-set evidence cannot drive placement, Set 1 still saves editable drafts, and desktop, Android-style mobile, and iPhone WebKit layouts remain contained and error-free.
 
 ### Version 1.78.0 Change Entry
 
@@ -83,7 +110,7 @@ Every planned movement exposes Last, Today, Next, and What earns it. Last comes 
 
 ### 107.2 Suggestion Authority and Progression Order
 
-Load is considered first, repetitions second, and sets last. An eligible load or repetition suggestion changes only unfinished sets after the athlete presses Apply. Completed sets never change. A suggestion that would add a set remains review-only so the athlete must use the existing deliberate Add a set action. Protect, pain-aware, live pain-changing, irritating, and avoid signals pause application and record pursuit. Suggestions are deterministic ForgePath coaching from stored athlete data and do not require a runtime AI provider.
+Load is considered first, repetitions second, and sets last. Progress paths show direction without changing the active workout. The athlete's set table entries remain authoritative. A suggestion that would add a set remains review-only so the athlete must use the existing deliberate Add a set action. Protect, pain-aware, live pain-changing, irritating, and avoid signals pause guidance and record pursuit. Suggestions are deterministic ForgePath coaching from stored athlete data and do not require a runtime AI provider.
 
 ### 107.3 Bodyweight Loading v2
 
@@ -99,7 +126,7 @@ Momentum uses completed priority workouts and recorded schedule constraints in t
 
 ### 107.6 Acceptance
 
-Deterministic acceptance covers exact source identity, scoped recomputation, plain, weighted, and assisted bodyweight separation, lower-is-better assistance records, safety precedence, explicit application, completed-set immutability, round linkage, ledger source IDs, and non-punitive momentum. Browser acceptance covers active-workout paths, preview paths, four load-mode controls, Today momentum, Progress reports, record-scope controls, console integrity, page containment, desktop Chromium, Android-style mobile Chromium, and iPhone WebKit.
+Deterministic acceptance covers exact source identity, scoped recomputation, plain, weighted, and assisted bodyweight separation, lower-is-better assistance records, safety precedence, display-only in-workout guidance, completed-set immutability, round linkage, ledger source IDs, and non-punitive momentum. Browser acceptance covers active-workout paths, preview paths, four load-mode controls, Today momentum, Progress reports, record-scope controls, console integrity, page containment, desktop Chromium, Android-style mobile Chromium, and iPhone WebKit.
 
 ### Version 1.75.0 Change Entry
 

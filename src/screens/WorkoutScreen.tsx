@@ -25,6 +25,7 @@ import { MovementFeedbackPanel } from '../components/MovementFeedbackPanel'
 import { latestMovementFeedback, movementFeedbackMatchesCompletedSets, movementFeedbackMode } from '../domain/movement-feedback-engine'
 import { loadModeForSet, supportsBodyweightMode } from '../domain/load-mode'
 import { buildMovementProgressPath } from '../domain/progression-insight-engine'
+import { hasEnteredLoadAndReps, hasEnteredRir } from '../domain/set-entry-autofill'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary movement',
@@ -34,7 +35,7 @@ const roleLabel: Record<PlannedExercise['role'], string> = {
 }
 
 export function WorkoutScreen({ sessionId }: { sessionId: string }) {
-  const { athlete, sessions, exercises, equipmentProfiles, history, surveys, cycleReviews, movementNotes, settings, placementVerifications, updateSet, setExerciseLoadMode, applyProgressSuggestion, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, skipSet, setPlacementWarmup, setSessionPainStatus, swapExercise, swapExerciseForBlock, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, recordMovementFeedback, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
+  const { athlete, sessions, exercises, equipmentProfiles, history, surveys, cycleReviews, movementNotes, settings, placementVerifications, updateSet, setExerciseLoadMode, updateBenchAnglePlan, updateMovementNote, toggleSetComplete, skipSet, setPlacementWarmup, setSessionPainStatus, swapExercise, swapExerciseForBlock, skipExercise, addSetToExercise, addMovementToSession, applySetStructure, applySuperset, clearSetStructure, recordMovementFeedback, finishSession, leaveActiveSession, setSessionClockRunning } = useAppStore()
   const session = sessions.find((candidate) => candidate.id === sessionId)
   const cloudRuntime = useCloudRuntime()
   const saveCopy = cloudSaveCopy(cloudRuntime?.saveState ?? null)
@@ -62,12 +63,18 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
   const activeSetRecords = useMemo<CompletedSetRecord[]>(() => session?.exercises.flatMap((plannedExercise) => {
     const exercise = exercises.find((candidate) => candidate.id === plannedExercise.exerciseId)
     if (!exercise) return []
-    return plannedExercise.sets.flatMap((workSet, setIndex) => workSet.completed ? [{
-      id: `active:${session.id}:${workSet.id}`, sessionId: session.id, exerciseId: exercise.id, exerciseName: exercise.name,
-      family: exercise.family, primaryRegion: exercise.primaryRegion, completedAt: session.startedAt ?? new Date().toISOString(),
-      reps: workSet.completedReps ?? workSet.targetReps, load: workSet.completedLoad ?? workSet.targetLoad,
-      rir: workSet.actualRir ?? workSet.targetRir, technique: 4, pain: 0, setIndex, benchAngleDeg: workSet.benchAngleDeg, loadMode: loadModeForSet(workSet, exercise)
-    }] : [])
+    return plannedExercise.sets.flatMap((workSet, setIndex) => {
+      if (!workSet.completed) return []
+      const loadMode = loadModeForSet(workSet, exercise)
+      const rirKnown = hasEnteredRir(workSet)
+      return [{
+        id: `active:${session.id}:${workSet.id}`, sessionId: session.id, exerciseId: exercise.id, exerciseName: exercise.name,
+        family: exercise.family, primaryRegion: exercise.primaryRegion, completedAt: session.startedAt ?? new Date().toISOString(),
+        reps: workSet.completedReps ?? workSet.targetReps, load: loadMode === 'bodyweight' ? 0 : workSet.completedLoad ?? workSet.targetLoad,
+        rir: rirKnown ? workSet.actualRir! : 0, rirKnown, numbersEntered: hasEnteredLoadAndReps(workSet, loadMode),
+        technique: 4, pain: 0, setIndex, benchAngleDeg: workSet.benchAngleDeg, loadMode
+      }]
+    })
   }) ?? [], [exercises, session])
   const activeAchievementPreview = useMemo(() => {
     if (!activeSetRecords.length) return []
@@ -433,8 +440,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   </div>
                   <p><b>What earns it:</b> {progressPath.toProgress}</p>
                   <div className="movement-progress-path__evidence"><span>{progressPath.sourceSetIds.length} exact source set{progressPath.sourceSetIds.length === 1 ? '' : 's'}</span><span>{progressPath.unknownInputs.length ? `${progressPath.unknownInputs.length} unknown input${progressPath.unknownInputs.length === 1 ? '' : 's'}` : 'No required input missing'}</span><span>Load → reps → sets</span></div>
-                  {progressPath.canApply && <button type="button" onClick={() => applyProgressSuggestion(session.id, progressPath)}>Apply to unfinished sets</button>}
-                  {!progressPath.canApply && <small>{progressPath.status === 'protect' ? 'Progress controls are paused by the current safety signal.' : progressPath.status === 'push-sets' ? 'Set-count changes stay manual so added volume is always deliberate.' : 'Review only. No workout number was changed.'}</small>}
+                  <small>{progressPath.status === 'protect' ? 'Progress guidance is paused by the current safety signal.' : 'Guide only. Your entered load, repetitions, and RIR decide what is recorded.'}</small>
                 </section>
                 {planned.prescriptionNote && <div className="substitution-prescription"><RefreshCcw size={16} /><span><strong>{planned.prescriptionMethod === 'exact-history' ? 'Exact-history replacement' : 'Baseline calibration'}</strong>{planned.prescriptionNote}</span></div>}
                 {techniqueSuggestion && <div className="technique-prescription"><Layers size={16} /><span><strong>Purposeful technique suggestion</strong>{techniqueSuggestion}<small>Athlete approval required · maximum two technique blocks in this session</small></span><button type="button" onClick={() => { setStructureTarget(planned); setStructureError(null) }}>Review</button></div>}

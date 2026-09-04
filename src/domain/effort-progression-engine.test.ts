@@ -79,4 +79,11 @@ describe('gradual feedback-gated RIR progression', () => {
     expect(decision).toMatchObject({ action: 'hold', targetRir: 3 })
     expect(decision.reasons.join(' ')).toMatch(/already trained materially harder/i)
   })
+
+  it('does not make RIR harder from displayed values the athlete never entered', () => {
+    const assumed = history.map((workSet) => ({ ...workSet, numbersEntered: false }))
+    const decision = recommendNextTargetRir({ currentTargetRir: 3, nextMicrocycleNumber: 3, priorPlanned: planned, history: assumed, surveys: [feedback('week-2')] })
+    expect(decision).toMatchObject({ action: 'hold', targetRir: 3 })
+    expect(decision.reasons.join(' ')).toMatch(/two completed exact exposures/i)
+  })
 })

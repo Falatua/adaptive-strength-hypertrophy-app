@@ -66,6 +66,7 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
   // truncated rep target. Comparing them as ordinary exposures would read a productive technique week
   // as a regression, so the progression signal comes only from comparable sets.
   const comparable = input.history
+    .filter((workSet) => workSet.numbersEntered !== false)
     .filter((workSet) => isComparableExposure(workSet.grouping))
     .sort((a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime() || a.setIndex - b.setIndex || a.id.localeCompare(b.id))
   const athleteAddedSetsExcluded = comparable.filter((workSet) => workSet.athleteAdded).length

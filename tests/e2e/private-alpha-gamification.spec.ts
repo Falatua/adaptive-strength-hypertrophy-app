@@ -39,10 +39,31 @@ async function enterRecommendedProfile(page: import('@playwright/test').Page) {
   await expect(fieldGuide).toContainText(/confidence · \d+ prescribed sets? from the latest exact exposure/)
 }
 
+async function enterFirstMovementSetValues(page: import('@playwright/test').Page) {
+  const movement = page.locator('.exercise-card').first()
+  const firstRow = movement.locator('.set-row').first()
+  const loadField = firstRow.locator('input[inputmode="decimal"]')
+  const repsField = firstRow.locator('input[inputmode="numeric"]')
+  await loadField.fill(String(Number(await loadField.inputValue()) + 1))
+  await repsField.fill(String(Number(await repsField.inputValue()) + 1))
+  const effortField = firstRow.locator('select')
+  const displayedEffort = await effortField.inputValue()
+  const alternateEffort = displayedEffort === '2' ? '3' : '2'
+  await effortField.selectOption(alternateEffort)
+  await effortField.selectOption(displayedEffort)
+  const enteredSet = await page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state
+    return state.sessions.find((session: { id: string }) => session.id === state.activeSessionId)?.exercises[0]?.sets[0]
+  })
+  expect(enteredSet?.entryOrigins).toMatchObject({ load: 'manual', reps: 'manual', rir: 'manual' })
+}
+
 // Movement-specific placement questions only unlock once the movement they ask about is finished,
-// so every check journey has to log that movement's full set list before the prompt exists.
+// so every check journey has to enter its first set and log that movement's full set list.
 async function completeFirstMovementSets(page: import('@playwright/test').Page) {
-  const logSets = page.locator('.exercise-card').first().getByRole('button', { name: 'Log set' })
+  await enterFirstMovementSetValues(page)
+  const movement = page.locator('.exercise-card').first()
+  const logSets = movement.getByRole('button', { name: 'Log set' })
   // count() does not auto-wait, so the first set has to be on screen before the loop reads it.
   await expect(logSets.first()).toBeVisible()
   for (let remaining = await logSets.count(); remaining > 0; remaining = await logSets.count()) {
@@ -106,7 +127,7 @@ test('previews the next workout from Today and the future queue without changing
   expect(browserErrors).toEqual([])
 })
 
-test('shows an evidence-backed movement path and keeps every suggestion athlete-controlled', async ({ page }, testInfo) => {
+test('shows an evidence-backed movement path without a bulk-edit action', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
   page.on('pageerror', (error) => browserErrors.push(error.message))
@@ -121,14 +142,10 @@ test('shows an evidence-backed movement path and keeps every suggestion athlete-
   await expect(path).toContainText('What earns it')
   await expect(path).toContainText('Load → reps → sets')
   const before = await page.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state.sessions.find((session: { status: string }) => session.status === 'active')))
-  if (await path.getByRole('button', { name: 'Apply to unfinished sets' }).count()) {
-    await path.getByRole('button', { name: 'Apply to unfinished sets' }).click()
-    await expect(page.getByText(/applied to unfinished sets/i)).toBeVisible()
-  } else {
-    await expect(path).toContainText(/Review only|Set-count changes stay manual|Progress controls are paused/)
-    const after = await page.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state.sessions.find((session: { status: string }) => session.status === 'active')))
-    expect(after).toBe(before)
-  }
+  await expect(path.getByRole('button', { name: 'Apply to unfinished sets' })).toHaveCount(0)
+  await expect(path).toContainText(/Guide only|guidance is paused/)
+  const after = await page.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state.sessions.find((session: { status: string }) => session.status === 'active')))
+  expect(after).toBe(before)
   if (testInfo.project.name === 'mobile-chromium') await path.screenshot({ path: 'output/playwright/movement-progress-path-mobile.png' })
   expect(browserErrors).toEqual([])
 })
@@ -658,6 +675,8 @@ test('validates an athlete-controlled PR without changing the prescription', asy
 
   const firstLoad = page.getByLabel('Set 1 load').first()
   await firstLoad.fill('185')
+  await page.getByLabel('Set 1 repetitions').first().fill('9')
+  await page.getByLabel('Set 1 repetitions in reserve').first().selectOption('2')
   await expect(page.locator('.pr-opportunity').first()).toContainText('This is already prescribed. Do not add work to chase it.')
   await page.getByRole('button', { name: 'Log set' }).first().click()
   await expect(page.getByText('Provisional until the workout is finished and saved.').first()).toBeVisible()
@@ -672,6 +691,8 @@ test('validates an athlete-controlled PR without changing the prescription', asy
   await expect(page.getByText('Strength PR').first()).toBeVisible()
   await openPanel(page, 'records for this period')
   await expect(page.getByText('185 heaviest completed load', { exact: false }).first()).toBeVisible()
+  const enteredSet = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1') ?? '{}').state.history.find((workSet: { load: number; reps: number; numbersEntered?: boolean }) => workSet.load === 185 && workSet.reps === 9 && workSet.numbersEntered === true))
+  expect(enteredSet).toMatchObject({ rir: 2, rirKnown: true, numbersEntered: true })
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth)
   if (testInfo.project.name === 'mobile-chromium') await page.screenshot({ path: 'output/playwright/progress-achievements-mobile.png', fullPage: true })
@@ -786,6 +807,8 @@ test('defers optional feedback without blocking training and replays quality evi
   await enterRecommendedProfile(page)
   await page.getByRole('button', { name: 'Start without check-in' }).click()
   await page.getByLabel('Set 1 load').first().fill('185')
+  await page.getByLabel('Set 1 repetitions').first().fill('9')
+  await page.getByLabel('Set 1 repetitions in reserve').first().selectOption('2')
   await page.getByRole('button', { name: 'Log set' }).first().click()
   await finishWorkout(page)
   await page.getByRole('button', { name: /Minimal.*Difficulty, technique, and pain only/ }).click()
@@ -1803,6 +1826,7 @@ test('lets the athlete add sets and movements on a good day without rewriting th
   await expect(page.locator('.add-movement-list')).not.toContainText(addedMovementName)
   await page.getByRole('button', { name: 'Close' }).click()
 
+  await enterFirstMovementSetValues(page)
   const logSets = page.getByRole('button', { name: 'Log set' })
   for (let remaining = await logSets.count(); remaining > 0; remaining = await logSets.count()) {
     await logSets.first().click()

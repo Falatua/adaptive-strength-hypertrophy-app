@@ -3,7 +3,7 @@ type: requirements-register
 aliases: [Adaptive Training App Requirements, App Requirements Register]
 tags: [fitness, app, requirements, source-of-truth, continuity]
 created: 2026-08-09
-updated: 2026-08-31
+updated: 2026-09-04
 status: active
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: from-user
@@ -3096,8 +3096,8 @@ This is the canonical traceability index for every durable requirement JB states
 ### R-495 Athlete-Controlled Workout Suggestions
 - Status: implemented-first-slice
 - Provenance: from-user
-- Requirement: ForgePath may suggest load, repetition, or set directions from completed performance, effort, movement feedback, continuity, readiness, safety, equipment increments, and the current plan. Only explicit athlete approval may apply a load or repetition suggestion to unfinished sets. Completed sets are immutable and set-count suggestions remain manual.
-- Detail: `src/domain/progression-insight-engine.ts`, `src/store/useAppStore.ts`, `src/screens/WorkoutScreen.tsx`, and Build Bible Chapter 107
+- Requirement: ForgePath may show load, repetition, or set directions from completed performance, effort, movement feedback, continuity, readiness, safety, equipment increments, and the current plan. In-workout progression guidance is display-only and cannot bulk-edit current set rows. The athlete's set entries remain authoritative, completed sets remain immutable, and set-count changes remain manual.
+- Detail: `src/domain/progression-insight-engine.ts`, `src/screens/WorkoutScreen.tsx`, and Build Bible Chapters 107 and 110
 
 ### R-496 Scoped Personal Records
 - Status: implemented-first-slice
@@ -3126,7 +3126,7 @@ This is the canonical traceability index for every durable requirement JB states
 ### R-500 Progression Operating System Acceptance
 - Status: implemented-first-slice
 - Provenance: product-decision
-- Requirement: Deterministic and browser acceptance must cover exact source identity, all bodyweight modes, lower-is-better assistance, scope recomputation, safety precedence, explicit suggestion application, completed-set immutability, round reporting, ledger provenance, momentum language, mobile containment, console integrity, and desktop Chromium, Android-style mobile Chromium, and iPhone WebKit.
+- Requirement: Deterministic and browser acceptance must cover exact source identity, all bodyweight modes, lower-is-better assistance, scope recomputation, safety precedence, display-only workout guidance, completed-set immutability, round reporting, ledger provenance, momentum language, mobile containment, console integrity, and desktop Chromium, Android-style mobile Chromium, and iPhone WebKit.
 - Detail: `src/domain/progression-insight-engine.test.ts`, `src/domain/progress-operating-system.test.ts`, `src/domain/history-engine.test.ts`, `src/store/useAppStore.test.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 107
 
 ### R-501 Clean Unstarted Workout State
@@ -3159,7 +3159,30 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Deterministic and browser acceptance must cover false open-session completion, schema migration, active-data preservation, deferred check-ins, full-queue retirement, replacement-primary placement, current-round retention, RIR floors, two-exposure confirmation, load-jump bounds, one-set limits, and year-scale pacing.
 - Detail: `src/domain/effort-progression-engine.test.ts`, `src/domain/backup.test.ts`, `src/domain/longitudinal-athlete-simulation.test.ts`, `src/store/useAppStore.test.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 109
 
+### R-506 Remove In-Workout Bulk Progression Editing
+- Status: implemented
+- Provenance: from-user
+- Requirement: Remove `Apply to unfinished sets` from active workouts. Last, Today, Next, and What earns it may remain visible, but progression guidance must not rewrite current workout rows or compete with the athlete's actual set entry.
+- Detail: `src/screens/WorkoutScreen.tsx`, `src/store/useAppStore.ts`, `src/domain/progression-insight-engine.ts`, and Build Bible Chapter 110
+
+### R-507 Entered RIR Is the Effort Source of Truth
+- Status: implemented
+- Provenance: from-user
+- Requirement: RIR progression and exact-movement guidance must use the RIR the athlete entered or accepted through the Set 1 template. A displayed target must remain unknown actual effort when the athlete did not enter it.
+- Detail: `src/domain/set-entry-autofill.ts`, `src/store/useAppStore.ts`, `src/domain/training-engine.ts`, `src/domain/effort-progression-engine.ts`, and Build Bible Chapter 110
+
+### R-508 Entered-Set Authority Acceptance
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Preserve completed history and current active work while proving that the removed bulk action cannot mutate a workout, entered load, repetitions, and RIR become the source evidence, unentered values cannot earn records, progression, or first-set placement conclusions, Set 1 autofill remains editable, and desktop, Android-style mobile, and iPhone WebKit flows remain contained and error-free.
+- Detail: `src/store/useAppStore.test.ts`, `src/domain/training-engine.test.ts`, `src/domain/effort-progression-engine.test.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 110
+
 ## Thread Coverage Audit
+
+### 2026-09-04 Entered-Set Authority
+- Scope: JB reported that pressing `Apply to unfinished sets` repeatedly during Safety Squat Bar work changed the exercise unexpectedly and asked for the action to be removed. JB also directed ForgePath to work from the entered sets, repetitions, load, and RIR.
+- Result: Added R-506 through R-508 and Build Bible Chapter 110. Private alpha 0.81.1 removes the bulk-edit action, makes progress paths display-only, records actual RIR only from an entered field, and excludes newly assumed load and repetition values from records and progression.
+- Status: Implemented with 560 deterministic tests and all 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys passing locally. Workflow, deployment, and live-source verification remain release gates.
 
 ### 2026-09-02 Conservative Progression and Block Integrity
 - Scope: JB reported that a new workout opened with completed boxes, asked every downstream system to follow a block exercise change, and rejected a week 1 to week 2 jump from 3 to 4 RIR directly to 1 RIR plus overly fast load, repetition, and set progression.
@@ -3585,6 +3608,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-09-04: Added R-506 through R-508 and Build Bible Chapter 110 after JB asked to remove the confusing in-workout bulk progression action and make entered sets, repetitions, load, and RIR authoritative. Private alpha 0.81.1 removes the action and store mutation, advances movement progress path v3, preserves editable Set 1 autofill, records unentered RIR as unknown, and excludes newly assumed load or repetition values from records and progression without rewriting completed history.
 - 2026-09-02: Added R-501 through R-505 and Build Bible Chapter 109 for clean unstarted workout state, complete block-change propagation, replacement movement check-ins and progression ownership, gradual RIR, slower load, repetition, and set progression, and preservation-safe acceptance. Private alpha 0.81.0 advances progression v3, movement progress path v2, RIR progression v1, volume progression v3, backup schema 32, and local persistence 33.
 - 2026-09-01: Released private alpha 0.80.1 with PR v3, backup schema 31, local persistence 32, and narrow version 30 cloud record-projection recovery. Completed training and history snapshots remain authoritative and unchanged; arbitrary record mismatches remain blocked.
 - 2026-08-31: Added R-489 through R-493 and Build Bible Chapter 106 for active-workout scope choice, bodyweight logging and records, phase-safe progress cues, quiet autofill presentation, shared workout previews, preservation rules, and cross-device acceptance. Private alpha 0.79.0 preserves backup schema 30, local persistence 31, completed work, prior plan versions, and Supabase authority.

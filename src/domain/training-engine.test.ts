@@ -220,6 +220,20 @@ describe('load-first progression hierarchy', () => {
     expect(decision.evidence.unknownInputs).toContain('actual RIR')
   })
 
+  it('does not progress from a set whose displayed numbers were never entered', () => {
+    const history = Array.from({ length: 8 }, (_, index) => set({
+      id: `assumed-${index}`,
+      sessionId: index < 4 ? 'assumed-one' : 'assumed-two',
+      setIndex: index % 4,
+      qualityConfirmed: true,
+      rirKnown: true,
+      numbersEntered: false
+    }))
+    const decision = recommendProgression({ history, targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'normal' })
+    expect(decision.action).toBe('hold')
+    expect(decision.evidence.sourceSetIds).toHaveLength(0)
+  })
+
   it('holds rather than escalating when multiple current readiness signals require protection', () => {
     const history = Array.from({ length: 4 }, (_, index) => set({ id: `protect-${index}`, setIndex: index, qualityConfirmed: true }))
     const decision = recommendProgression({ history, targetLoad: 175, targetReps: 6, targetSets: 4, repRange: [4, 6], increment: 5, continuity: 'stable', readiness: 'protect' })

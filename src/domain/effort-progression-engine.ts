@@ -33,7 +33,7 @@ export function recommendNextTargetRir(input: {
   if (input.nextMicrocycleNumber <= 2) return hold('Round two repeats the effort target so the first week is confirmed before training moves closer to failure.')
 
   const exact = input.history
-    .filter((workSet) => workSet.exerciseId === input.priorPlanned?.exerciseId && workSet.plannedExerciseId)
+    .filter((workSet) => workSet.exerciseId === input.priorPlanned?.exerciseId && workSet.plannedExerciseId && workSet.numbersEntered !== false)
     .sort((left, right) => new Date(left.completedAt).getTime() - new Date(right.completedAt).getTime() || left.setIndex - right.setIndex)
   const sessionIds = [...new Set(exact.map((workSet) => workSet.sessionId))]
   if (sessionIds.length < 2) return hold('Two completed exact exposures are required before RIR becomes more demanding.')

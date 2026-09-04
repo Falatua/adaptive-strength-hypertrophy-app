@@ -720,7 +720,7 @@ export interface PersonalRecord {
 export type RecordScope = 'all-time' | 'current-block' | 'rolling-12-months' | 'since-return' | 'current-phase'
 
 export interface MovementProgressPath {
-  ruleVersion: 'movement-progress-path-v2'
+  ruleVersion: 'movement-progress-path-v3'
   exerciseId: string
   plannedExerciseId: string
   loadMode: LoadMode
@@ -734,8 +734,6 @@ export interface MovementProgressPath {
   confidence: EvidenceConfidence
   sourceSetIds: string[]
   unknownInputs: string[]
-  proposed: { load: number; reps: number; sets: number; loadMode: LoadMode }
-  canApply: boolean
 }
 
 export interface TrainingMomentum {

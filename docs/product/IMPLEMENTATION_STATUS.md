@@ -3,14 +3,24 @@ type: implementation-status
 aliases: [ForgePath Private Alpha, Adaptive Training App Private Alpha]
 tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
-updated: 2026-09-02
+updated: 2026-09-04
 status: working-private-alpha
-app_version: 0.81.0
+app_version: 0.81.1
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.81.1 Entered-Set Authority Delta
+
+- Removes the `Apply to unfinished sets` bulk-edit action from active workouts and from the workout store. Last, Today, Next, and What earns it remain display-only guidance.
+- Keeps the Set 1 convenience template because it copies only athlete-entered fields into untouched later straight sets, remains editable, and never logs or completes work.
+- Marks RIR known only when the athlete entered or accepted that field. A visible target no longer becomes actual RIR evidence merely because the set was logged.
+- Excludes newly completed sets whose load and repetitions were never entered from records and load, repetition, set, or RIR progression while retaining their planned values for honest session recall. Legacy completed history remains trusted and unchanged.
+- Withholds placement's first-set conclusion unless the actual first primary set has entered load, repetitions, and RIR. A later set never stands in for missing first-set evidence.
+- Advances `movement-progress-path-v3` and app version 0.81.1 without changing backup schema 32, local persistence 33, completed history, or Supabase authority.
+- Local acceptance covers 560 deterministic tests and all 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys. Workflow, deployment, and live-source verification remain release gates.
 
 ## Private Alpha 0.81.0 Conservative Progression and Block Integrity Delta
 

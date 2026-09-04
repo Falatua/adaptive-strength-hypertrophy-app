@@ -22,7 +22,7 @@ import { buildAddedMovement, buildAddedSet, sessionExtensionGate } from '../doma
 import { buildDropSet, buildMyoReps, canPairForSuperset, structureAllowedForRole } from '../domain/set-structure-engine'
 import { sameJsonValue } from '../domain/stable-json'
 import { buildHistoricalPerformance, type HistoricalPerformanceInput } from '../domain/history-entry-engine'
-import { applyWorkoutSetEntry } from '../domain/set-entry-autofill'
+import { applyWorkoutSetEntry, hasEnteredLoadAndReps, hasEnteredRir } from '../domain/set-entry-autofill'
 import { latestMovementFeedback, movementFeedbackMode, movementFeedbackPreview, movementFeedbackValue } from '../domain/movement-feedback-engine'
 import { loadModeForSet } from '../domain/load-mode'
 import { hasUnstartedSessionTrainingState, resetUnstartedSessionTrainingState } from '../domain/planned-session-state'
@@ -43,7 +43,6 @@ import type {
   MesocyclePlan,
   MissedOpportunityEvent,
   MissedOpportunityInput,
-  MovementProgressPath,
   MovementNoteRecord,
   NavKey,
   PersonalRecord,
@@ -109,7 +108,6 @@ interface AppState {
   setReadiness: (sessionId: string, answers: SurveyAnswer[], skipped: boolean, mode: EffectiveSurveyMode) => void
   updateSet: (sessionId: string, plannedExerciseId: string, setId: string, data: { reps?: number; load?: number; rir?: number; benchAngleDeg?: number | null }) => void
   setExerciseLoadMode: (sessionId: string, plannedExerciseId: string, loadMode: LoadMode) => void
-  applyProgressSuggestion: (sessionId: string, path: MovementProgressPath) => { ok: boolean; error?: string }
   updateBenchAnglePlan: (sessionId: string, plannedExerciseId: string, angles: Array<number | undefined>) => void
   updateMovementNote: (sessionId: string, plannedExerciseId: string, body: string) => void
   toggleSetComplete: (sessionId: string, plannedExerciseId: string, setId: string) => void
@@ -452,30 +450,6 @@ export const useAppStore = create<AppState>()(
           })
         })
       })),
-      applyProgressSuggestion: (sessionId, path) => {
-        const session = get().sessions.find((candidate) => candidate.id === sessionId)
-        const planned = session?.exercises.find((candidate) => candidate.id === path.plannedExerciseId)
-        if (!session || !planned) return { ok: false, error: 'That workout movement is no longer available.' }
-        if (!path.canApply || path.status === 'protect') return { ok: false, error: 'This suggestion is for review only.' }
-        if (path.proposed.sets !== planned.sets.length) return { ok: false, error: 'Set-count suggestions stay review-only. Use Add a set if you choose that path.' }
-        if (planned.sets.every((workSet) => workSet.completed)) return { ok: false, error: 'Completed sets are never rewritten.' }
-        set((state) => ({
-          sessions: state.sessions.map((candidate) => candidate.id !== sessionId ? candidate : {
-            ...candidate,
-            exercises: candidate.exercises.map((movement) => movement.id !== path.plannedExerciseId ? movement : {
-              ...movement,
-              sets: movement.sets.map((workSet) => workSet.completed ? workSet : {
-                ...workSet,
-                loadMode: path.proposed.loadMode,
-                targetLoad: path.proposed.loadMode === 'bodyweight' ? 0 : path.proposed.load,
-                targetReps: path.proposed.reps
-              })
-            })
-          }),
-          notice: `${path.title} applied to unfinished sets. Review every number before logging.`
-        }))
-        return { ok: true }
-      },
       updateBenchAnglePlan: (sessionId, plannedExerciseId, angles) => set((state) => ({
         sessions: state.sessions.map((session) => session.id !== sessionId ? session : {
           ...session,
@@ -817,20 +791,25 @@ export const useAppStore = create<AppState>()(
             : !sessionHasMovementFeedback && !feedback.deferred && typeof postTechniqueAnswer?.value === 'number' && typeof postPainAnswer?.value === 'number'
           const technique = qualityConfirmed ? Number(movementTechnique ?? postTechniqueAnswer?.value ?? 0) : 0
           const pain = qualityConfirmed ? Number(movementPain ?? postPainAnswer?.value ?? 0) : 0
-          return plannedExercise.sets.flatMap((workSet, setIndex) => workSet.completed ? [{
-            id: nanoid(), sessionId, exerciseId: exercise.id, exerciseName: exercise.name, family: exercise.family,
-            primaryRegion: exercise.primaryRegion, completedAt, reps: workSet.completedReps ?? workSet.targetReps,
-            load: loadModeForSet(workSet, exercise) === 'bodyweight' ? 0 : workSet.completedLoad ?? workSet.targetLoad,
-            loadMode: loadModeForSet(workSet, exercise), rir: workSet.actualRir ?? workSet.targetRir,
-            technique, pain, qualityConfirmed, setIndex, plannedExerciseId: plannedExercise.id, benchAngleDeg: workSet.benchAngleDeg,
-            // A set completed without the athlete typing anything keeps the planned numbers, but it is
-            // recorded as not entered so records and progression never treat it as measured work.
-            numbersEntered: workSet.valuesEntered === true,
-            athleteAdded: workSet.athleteAdded || plannedExercise.athleteAdded ? true : undefined,
-            grouping: workSet.grouping,
-            originalExerciseId: original?.id, originalExerciseName: original?.name, originalFamily: original?.family,
-            originalPrimaryRegion: original?.primaryRegion
-          }] : [])
+          return plannedExercise.sets.flatMap((workSet, setIndex) => {
+            if (!workSet.completed) return []
+            const loadMode = loadModeForSet(workSet, exercise)
+            const rirKnown = hasEnteredRir(workSet)
+            return [{
+              id: nanoid(), sessionId, exerciseId: exercise.id, exerciseName: exercise.name, family: exercise.family,
+              primaryRegion: exercise.primaryRegion, completedAt, reps: workSet.completedReps ?? workSet.targetReps,
+              load: loadMode === 'bodyweight' ? 0 : workSet.completedLoad ?? workSet.targetLoad,
+              loadMode, rir: rirKnown ? workSet.actualRir! : 0, rirKnown,
+              technique, pain, qualityConfirmed, setIndex, plannedExerciseId: plannedExercise.id, benchAngleDeg: workSet.benchAngleDeg,
+              // Planned values remain useful session context, but only athlete-entered load and
+              // repetitions become measured evidence for records and progression.
+              numbersEntered: hasEnteredLoadAndReps(workSet, loadMode),
+              athleteAdded: workSet.athleteAdded || plannedExercise.athleteAdded ? true : undefined,
+              grouping: workSet.grouping,
+              originalExerciseId: original?.id, originalExerciseName: original?.name, originalFamily: original?.family,
+              originalPrimaryRegion: original?.primaryRegion
+            }]
+          })
         })
         const status = sessionCompletionStatus(session)
         const surveyEvidence = summarizeSurveyEvidence(feedback.answers, feedback.skipped)
@@ -846,20 +825,24 @@ export const useAppStore = create<AppState>()(
           : null
         const placementEvent = state.placementVerifications.find((event) => event.sessionId === sessionId && event.placementCreatedAt === state.athlete.placement.createdAt && event.status === 'active')
         const primary = session.exercises.find((plannedExercise) => plannedExercise.role === 'primary')
+        const primaryExercise = primary ? state.exercises.find((exercise) => exercise.id === primary.exerciseId) : undefined
         // Placement verification rests on the prescribed anchor. An athlete-added set is not evidence
-        // about whether the assigned route fits, so it can never become the first source set.
+        // about whether the assigned route fits, so it can never become the first source set. Displayed
+        // targets are also not observations: load, repetitions, and RIR all have to be athlete-entered.
         const firstPrimarySet = primary?.sets.find((workSet) => workSet.completed && !workSet.athleteAdded)
+        const firstPrimarySetHasEnteredEvidence = Boolean(firstPrimarySet && primaryExercise
+          && hasEnteredLoadAndReps(firstPrimarySet, loadModeForSet(firstPrimarySet, primaryExercise))
+          && hasEnteredRir(firstPrimarySet))
         const firstPrimarySetIndex = primary && firstPrimarySet ? primary.sets.findIndex((workSet) => workSet.id === firstPrimarySet.id) : -1
         const firstSourceSet = primary && firstPrimarySetIndex >= 0
           ? newHistory.find((workSet) => workSet.plannedExerciseId === primary.id && workSet.setIndex === firstPrimarySetIndex)
           : undefined
-        const primaryExercise = primary ? state.exercises.find((exercise) => exercise.id === primary.exerciseId) : undefined
         const prescribedSets = session.exercises.flatMap((plannedExercise) => plannedExercise.sets).filter((workSet) => !workSet.athleteAdded)
         const plannedSets = prescribedSets.length
         const completedPrescribedSets = prescribedSets.filter((workSet) => workSet.completed).length
         const actualMinutes = sessionTrainedMinutes(session, completedAt)
         const completedPlacementEvent = placementEvent ? completePlacementVerification(placementEvent, {
-          firstSet: firstPrimarySet && firstSourceSet && primary && primaryExercise ? {
+          firstSet: firstPrimarySetHasEnteredEvidence && firstPrimarySet && firstSourceSet && primary && primaryExercise ? {
             sourceSetId: firstSourceSet.id,
             plannedExerciseId: primary.id,
             exerciseId: primaryExercise.id,

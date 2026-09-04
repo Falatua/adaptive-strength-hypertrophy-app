@@ -44,6 +44,8 @@ Autofill is field-specific and protective. A value the athlete already changed o
 
 Copied values are draft data only. Autofill never completes a set, marks success or failure, creates a record, changes a target, or earns progression. Every set still requires its own explicit `Log set` action, and every copied field remains editable before or after logging.
 
+Entered workout numbers are the evidence boundary. A displayed prescription remains a target, not proof of what happened. Load and repetitions affect records and progression only after the athlete enters them, and RIR is known only after the athlete enters or accepts it through the Set 1 template. Missing RIR stays unknown rather than silently becoming the target RIR.
+
 The workout keeps this convenience visually quiet. The set table demonstrates the behavior directly, so ForgePath does not repeat an explainer above every movement while the athlete is trying to log work.
 
 ## Bodyweight Logging and Progress
@@ -179,7 +181,7 @@ Every planned movement exposes one exact-movement path with four durable facts: 
 
 ForgePath considers load first, repetitions second, and working sets last. Plain bodyweight movements progress through repetitions and completed set totals. Weighted bodyweight stores added load. Assisted bodyweight stores assistance and treats less assistance as improvement. The three identities never share records or progression evidence. Body mass is not invented, so weighted-bodyweight records do not claim total-system estimated strength.
 
-An actionable load or repetition suggestion may be applied only to unfinished sets after the athlete presses the written action. Completed sets never change. Set-count suggestions remain review-only and use the existing deliberate Add a set control. Protect, pain-aware, irritating, avoid, and live pain-changing signals pause application and record pursuit.
+In-workout progression paths are guidance only. They never rewrite the current workout. The athlete enters each actual load, repetition count, and RIR through the set table; the Set 1 convenience template remains the only bounded way those entered values can pre-fill untouched later straight sets. Set-count changes continue through the deliberate Add a set control. Protect, pain-aware, irritating, avoid, and live pain-changing signals pause progression guidance and record pursuit.
 
 Progress records can be recomputed for all time, the current training block, the current training round, a rolling twelve months, or the latest return period after a fourteen-day training gap. The progress event ledger reconstructs earned PR and micro-win events from completed source sets and joins them with append-only athlete-approved training-round decisions. A training-round field report summarizes qualified priority workouts, completed sets, earned events, the next suggested decision, and its evidence. Schedule-aware momentum measures completed priorities and recorded constraints, never consecutive calendar days, shame, punishment, or catch-up debt.
 

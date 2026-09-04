@@ -26,7 +26,7 @@ export function buildMovementProgressPath(input: {
   const { athlete, session, planned, exercise, history, surveys, equipmentProfile, units } = input
   const first = planned.sets[0]
   const mode = loadModeForSet(first ?? {}, exercise)
-  const exact = comparableAngleHistory(history.filter((workSet) => workSet.exerciseId === exercise.id), planned)
+  const exact = comparableAngleHistory(history.filter((workSet) => workSet.exerciseId === exercise.id && workSet.numbersEntered !== false), planned)
     .filter((workSet) => (workSet.loadMode ?? (mode === 'bodyweight' ? 'bodyweight' : 'external')) === mode)
   const prior = latestSessionSets(exact)
   const targetLoad = first?.targetLoad ?? 0
@@ -64,26 +64,17 @@ export function buildMovementProgressPath(input: {
 
   let status: MovementProgressPath['status'] = exact.length ? 'hold' : 'baseline'
   let title = exact.length ? 'Own today’s prescription' : 'Establish an exact baseline'
-  let nextLoad = decision.nextLoad
-  let nextReps = decision.nextReps
-  let nextSets = decision.nextSets
   let next = today
   let toProgress = exact.length ? 'Complete the planned work with honest effort and clean execution.' : 'Log the load mode, repetitions, effort, and any setup details you track.'
 
   if (protection || decision.action === 'reduce') {
     status = 'protect'
     title = 'Protect the useful work'
-    nextLoad = targetLoad
-    nextReps = targetReps
-    nextSets = targetSets
     next = 'Hold or reduce after athlete review'
     toProgress = 'Do not chase a record. Modify or stop if pain changes training.'
   } else if (roundHold) {
     status = 'hold'
     title = latestRoundDecision.decision === 'recover' ? 'Recovery decision holds progression' : 'The training-round decision holds today'
-    nextLoad = targetLoad
-    nextReps = targetReps
-    nextSets = targetSets
     next = today
     toProgress = latestRoundDecision.reason || 'Complete the held prescription and review the next round from finished work.'
   } else if (decision.action === 'reacclimate') {
@@ -92,7 +83,6 @@ export function buildMovementProgressPath(input: {
     next = `${decision.nextSets} sets · ${decision.nextReps} reps · ${compactLoadLabel(mode, decision.nextLoad, units)}`
     toProgress = 'Complete one easier, pain-free exact exposure before pursuing the prior progression path.'
   } else if (mode === 'bodyweight') {
-    nextLoad = 0
     if (decision.action === 'sets') {
       status = 'push-sets'
       title = 'One set is the last progression lever'
@@ -101,14 +91,14 @@ export function buildMovementProgressPath(input: {
     } else if (exact.length) {
       status = 'push-reps'
       title = 'Build the bodyweight rep path'
-      nextReps = Math.max(targetReps, decision.nextReps, Math.max(...prior.map((workSet) => workSet.reps)) + 1)
+      const nextReps = Math.max(targetReps, decision.nextReps, Math.max(...prior.map((workSet) => workSet.reps)) + 1)
       next = `${nextReps} reps in the lead set or ${Math.max(todayTotal, priorTotal + 1)} total reps`
       toProgress = `Add one clean repetition inside the planned sets before adding another set.`
     }
   } else if (mode === 'assisted-bodyweight') {
     const leastAssistance = exact.filter((workSet) => workSet.loadMode === mode).reduce((minimum, workSet) => Math.min(minimum, workSet.load), Number.POSITIVE_INFINITY)
     const increment = loadIncrementFor(exercise, equipmentProfile).value
-    nextLoad = Number.isFinite(leastAssistance) ? Math.max(0, leastAssistance - increment) : targetLoad
+    const nextLoad = Number.isFinite(leastAssistance) ? Math.max(0, leastAssistance - increment) : targetLoad
     status = exact.length ? 'reduce-assistance' : 'baseline'
     title = exact.length ? 'Earn less assistance' : 'Establish an assisted baseline'
     next = `${compactLoadLabel(mode, nextLoad, units)} for ${targetReps} reps`
@@ -131,12 +121,10 @@ export function buildMovementProgressPath(input: {
   }
 
   return {
-    ruleVersion: 'movement-progress-path-v2', exerciseId: exercise.id, plannedExerciseId: planned.id, loadMode: mode,
+    ruleVersion: 'movement-progress-path-v3', exerciseId: exercise.id, plannedExerciseId: planned.id, loadMode: mode,
     status, title, last, today, next, toProgress,
     explanation: protection ? 'Safety and the athlete’s current signal outrank progression.' : decision.explanation,
     confidence: decision.confidence, sourceSetIds: decision.evidence.sourceSetIds,
-    unknownInputs: decision.evidence.unknownInputs,
-    proposed: { load: nextLoad, reps: nextReps, sets: nextSets, loadMode: mode },
-    canApply: status !== 'protect' && exact.length > 0 && nextSets === targetSets && (nextLoad !== targetLoad || nextReps !== targetReps)
+    unknownInputs: decision.evidence.unknownInputs
   }
 }

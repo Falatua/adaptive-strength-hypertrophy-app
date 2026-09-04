@@ -26,7 +26,7 @@ describe('movement progress paths', () => {
     const planned = session.exercises[0]
     const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)!
     const path = buildMovementProgressPath({ athlete, session, planned, exercise, history, surveys: [], equipmentProfile: equipmentProfiles[1], units: 'lb' })
-    expect(path).toMatchObject({ status: 'protect', canApply: false })
+    expect(path).toMatchObject({ ruleVersion: 'movement-progress-path-v3', status: 'protect' })
     expect(path.toProgress).toMatch(/do not chase a record/i)
 
     const heldSession = { ...structuredClone(sessions[0]), mesocycleId: 'held-block', plannedDate: '2026-08-10T12:00:00.000Z' }
@@ -39,13 +39,24 @@ describe('movement progress paths', () => {
       generatedSessionIds: [], expiredSessionIds: []
     }
     const held = buildMovementProgressPath({ athlete, session: heldSession, planned: heldPlanned, exercise: heldExercise, history, surveys: [], cycleReviews: [heldReview], equipmentProfile: equipmentProfiles[1], units: 'lb' })
-    expect(held).toMatchObject({ status: 'hold', canApply: false })
+    expect(held).toMatchObject({ status: 'hold' })
     expect(held.toProgress).toMatch(/quality evidence remains incomplete/i)
 
     const returning = buildMovementProgressPath({ athlete: { ...athlete, continuity: 'returning' }, session: heldSession, planned: heldPlanned, exercise: heldExercise, history, surveys: [], equipmentProfile: equipmentProfiles[1], units: 'lb' })
     expect(returning.status).toBe('hold')
     expect(returning.title).toContain('Rebuild')
     expect(returning.next).toContain('sets')
-    expect(returning.canApply).toBe(false)
+  })
+
+  it('does not present displayed-only workout numbers as an exact completed exposure', () => {
+    const session = structuredClone(sessions[0])
+    const planned = session.exercises[0]
+    const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)!
+    const assumed = history
+      .filter((workSet) => workSet.exerciseId === exercise.id)
+      .map((workSet) => ({ ...workSet, numbersEntered: false }))
+    const path = buildMovementProgressPath({ athlete, session, planned, exercise, history: assumed, surveys: [], equipmentProfile: equipmentProfiles[1], units: 'lb' })
+    expect(path.last).toBe('No exact completed exposure')
+    expect(path.sourceSetIds).toHaveLength(0)
   })
 })

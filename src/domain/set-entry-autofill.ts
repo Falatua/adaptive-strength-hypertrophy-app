@@ -1,6 +1,20 @@
-import type { SetEntryField, SetEntryOrigin, SetPrescription } from './types'
+import type { LoadMode, SetEntryField, SetEntryOrigin, SetPrescription } from './types'
 
 export type WorkoutSetEntry = Partial<Record<SetEntryField, number>>
+
+const legacyEntry = (workSet: SetPrescription) => workSet.valuesEntered === true && workSet.entryOrigins === undefined
+
+/** A displayed prescription is not athlete-entered evidence. */
+export function hasEnteredLoadAndReps(workSet: SetPrescription, loadMode: LoadMode): boolean {
+  const legacy = legacyEntry(workSet)
+  const repetitionsEntered = workSet.entryOrigins?.reps !== undefined || (legacy && workSet.completedReps !== undefined)
+  const loadEntered = loadMode === 'bodyweight' || workSet.entryOrigins?.load !== undefined || (legacy && workSet.completedLoad !== undefined)
+  return repetitionsEntered && loadEntered
+}
+
+export function hasEnteredRir(workSet: SetPrescription): boolean {
+  return workSet.entryOrigins?.rir !== undefined || (legacyEntry(workSet) && workSet.actualRir !== undefined)
+}
 
 const actualValueKey: Record<SetEntryField, 'completedLoad' | 'completedReps' | 'actualRir'> = {
   load: 'completedLoad',

@@ -118,23 +118,27 @@ describe('clean first-use state', () => {
     expect(restored.backup.data.history[0]).toMatchObject({ load: 0, reps: 8, loadMode: 'bodyweight' })
   })
 
-  it('applies an evidence-backed suggestion only to unfinished sets after explicit approval', () => {
+  it('records only athlete-entered RIR as known progression evidence', () => {
     const session = structuredClone(sessions[0])
-    session.status = 'active'
-    session.exercises[0].sets[0].completed = true
-    useAppStore.setState({ sessions: [session], activeSessionId: session.id, workoutVisible: true })
+    session.status = 'planned'
+    useAppStore.setState({ sessions: [session], activeSessionId: null, workoutVisible: false })
+    useAppStore.getState().startSession(session.id)
     const planned = session.exercises[0]
-    const result = useAppStore.getState().applyProgressSuggestion(session.id, {
-      ruleVersion: 'movement-progress-path-v2', exerciseId: planned.exerciseId, plannedExerciseId: planned.id,
-      loadMode: 'external', status: 'push-reps', title: 'A repetition is the next useful win',
-      last: '4 × 6', today: '4 × 6', next: '4 × 7', toProgress: 'Add a repetition.', explanation: 'Completed evidence supports it.',
-      confidence: 'high', sourceSetIds: ['source-set'], unknownInputs: [], proposed: { load: planned.sets[0].targetLoad, reps: 7, sets: planned.sets.length, loadMode: 'external' }, canApply: true
+    const [unknownSet, knownSet] = planned.sets
+    useAppStore.getState().updateSet(session.id, planned.id, unknownSet.id, { load: 135, reps: 8 })
+    useAppStore.getState().toggleSetComplete(session.id, planned.id, unknownSet.id)
+    useAppStore.getState().updateSet(session.id, planned.id, knownSet.id, { rir: 3 })
+    useAppStore.getState().toggleSetComplete(session.id, planned.id, knownSet.id)
+    useAppStore.getState().finishSession(session.id, { answers: [], skipped: true, mode: 'off' })
+
+    const recorded = useAppStore.getState().history.filter((workSet) => workSet.sessionId === session.id)
+    expect(recorded[0]).toMatchObject({ load: 135, reps: 8, rir: 0, rirKnown: false, numbersEntered: true })
+    expect(recorded[1]).toMatchObject({ load: 135, reps: 8, rir: 3, rirKnown: true, numbersEntered: true })
+    expect(useAppStore.getState().placementVerifications.at(-1)).toMatchObject({
+      sessionId: session.id,
+      firstSet: null,
+      verdict: 'needs-more-evidence'
     })
-    const updated = useAppStore.getState().sessions[0].exercises[0].sets
-    expect(result.ok).toBe(true)
-    expect(updated[0].targetReps).toBe(session.exercises[0].sets[0].targetReps)
-    expect(updated.slice(1).every((workSet) => workSet.targetReps === 7 && !workSet.completed)).toBe(true)
-    expect(useAppStore.getState().notice).toMatch(/unfinished sets/i)
   })
 
   it('versions a movement change across the remaining block while preserving the active workout and history', () => {
