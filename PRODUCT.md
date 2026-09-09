@@ -185,6 +185,12 @@ In-workout progression paths are guidance only. They never rewrite the current w
 
 Progress records can be recomputed for all time, the current training block, the current training round, a rolling twelve months, or the latest return period after a fourteen-day training gap. The progress event ledger reconstructs earned PR and micro-win events from completed source sets and joins them with append-only athlete-approved training-round decisions. A training-round field report summarizes qualified priority workouts, completed sets, earned events, the next suggested decision, and its evidence. Schedule-aware momentum measures completed priorities and recorded constraints, never consecutive calendar days, shame, punishment, or catch-up debt.
 
+Progress also keeps a neutral record of training rhythm. It counts distinct completed calendar days, calculates the latest, average, and longest gaps between those days, and shows a recent day-by-day sequence. These are descriptive spacing facts, not streaks, missed-day judgments, or proof of recovery.
+
+Muscle recency comes only from completed sets with a known exercise-to-muscle mapping. Each muscle shows its last direct or assisting exposure, how long ago it occurred, the latest and average gaps between mapped exposures, and separate direct and assisting set counts. Unmapped completed work stays visible as unknown rather than being assigned to a muscle by guesswork.
+
+Plan execution compares actual entered load, repetitions, and RIR only with the exact original planned set. Athlete-added sets and ambiguous legacy links remain real completed dose but are reported separately from original-plan completion. Load-to-establish targets and bodyweight work do not create false load deltas. A single better-looking session can support review, but progression still requires repeated comparable evidence, known effort, recovery support, executable increments, and athlete approval. Higher load with materially lower RIR is harder-than-planned execution, not clean progression proof. Pain or protective evidence always blocks an overload interpretation.
+
 ## Ongoing Calibration and Confidence
 
 Calibration is a permanent learning loop, not a one-time onboarding gate. Confidence describes how much relevant evidence ForgePath has for one decision, never how capable or compliant the athlete is.

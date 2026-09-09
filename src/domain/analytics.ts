@@ -1,4 +1,5 @@
 import type { BodyRegion, CompletedSetRecord, Exercise, TrainingSession } from './types'
+import { isOriginalPlannedSet, plannedSetLinkForRecord } from './planned-set-link'
 
 export type ProgressRange = 'today' | '7d' | '28d' | 'month' | 'quarter' | 'year' | 'all'
 export type BodyLens = 'region' | 'area'
@@ -318,9 +319,14 @@ export function plannedVsCompletedDoseFor(input: {
     return !Number.isNaN(timestamp) && timestamp <= window.end.getTime() && (window.start === null || timestamp >= window.start.getTime())
   })
   const plannedSessionIds = new Set(plannedSessions.map((session) => session.id))
+  const plannedSessionById = new Map(plannedSessions.map((session) => [session.id, session]))
   const selectedHistory = historyInRange(input.history, input.range, now)
-  const linkedHistory = selectedHistory.filter((workSet) => plannedSessionIds.has(workSet.sessionId))
-  const unlinkedHistory = selectedHistory.filter((workSet) => !plannedSessionIds.has(workSet.sessionId))
+  const linkedHistory = selectedHistory.filter((workSet) => {
+    const session = plannedSessionById.get(workSet.sessionId)
+    return Boolean(session && plannedSetLinkForRecord(session, workSet))
+  })
+  const linkedSetIds = new Set(linkedHistory.map((workSet) => workSet.id))
+  const unlinkedHistory = selectedHistory.filter((workSet) => !linkedSetIds.has(workSet.id))
   const exerciseById = new Map(input.exercises.map((exercise) => [exercise.id, exercise]))
   const regions = new Map<BodyRegion, Omit<PlannedDoseRegionPoint, 'completionRate' | 'status'>>()
   const ensureRegion = (region: BodyRegion) => {
@@ -334,6 +340,7 @@ export function plannedVsCompletedDoseFor(input: {
     if (!region) return
     const point = ensureRegion(region)
     planned.sets.forEach((workSet) => {
+      if (!isOriginalPlannedSet(planned, workSet)) return
       point.plannedSets += 1
       if (workSet.targetLoad > 0) point.plannedVolumeKnown += workSet.targetLoad * workSet.targetReps
       else point.unknownLoadSets += 1

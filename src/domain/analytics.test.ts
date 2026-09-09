@@ -118,4 +118,22 @@ describe('multi-horizon source-set analytics', () => {
     expect(dose).toMatchObject({ plannedSets: 1, plannedVolumeKnown: 0, unknownLoadSets: 1, linkedCompletedSets: 0 })
     expect(dose.regions[0]).toMatchObject({ status: 'below-plan', unknownLoadSets: 1 })
   })
+
+  it('keeps athlete-added sets outside the original plan comparison', () => {
+    const exercise: Exercise = {
+      id: 'planned-chest', name: 'Planned Chest', family: 'Press', aliases: [], pattern: 'horizontal-push', regions: ['chest'], primaryRegion: 'chest',
+      equipment: ['barbell'], description: 'Test movement', roleTags: [], favorite: false, jointFeeling: 'neutral'
+    }
+    const session: TrainingSession = {
+      id: 'planned-session', title: 'Plan', objective: 'Test dose', dayLabel: 'Today', plannedDate: now.toISOString(), status: 'completed', durationMinutes: 30,
+      exercises: [{ id: 'planned-exercise', exerciseId: exercise.id, role: 'primary', purpose: 'Test', restSeconds: 90, estimatedMinutes: 10, optional: false, sets: [
+        { id: 'target-1', targetReps: 10, targetLoad: 100, targetRir: 2, completed: true },
+        { id: 'bonus', targetReps: 10, targetLoad: 100, targetRir: 2, completed: true, athleteAdded: true }
+      ] }]
+    }
+    const planned = { ...workSet('planned', now, 'chest'), sessionId: session.id, exerciseId: exercise.id, plannedExerciseId: 'planned-exercise', setIndex: 0 }
+    const bonus = { ...workSet('bonus', now, 'chest'), sessionId: session.id, exerciseId: exercise.id, plannedExerciseId: 'planned-exercise', setIndex: 1, athleteAdded: true }
+    const dose = plannedVsCompletedDoseFor({ sessions: [session], history: [planned, bonus], exercises: [exercise], range: 'today', now })
+    expect(dose).toMatchObject({ plannedSets: 1, linkedCompletedSets: 1, unlinkedCompletedSets: 1 })
+  })
 })

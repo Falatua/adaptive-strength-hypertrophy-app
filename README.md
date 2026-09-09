@@ -1,10 +1,10 @@
-# ForgePath Private Alpha 0.81.1
+# ForgePath Private Alpha 0.82.0
 
 ForgePath is an athlete-controlled adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed. The hosted private alpha uses Supabase as the authoritative training store; local development keeps a browser-only test mode.
 
-Private alpha 0.81.1 removes the confusing `Apply to unfinished sets` bulk-edit control. Last, Today, Next, and What earns it remain visible as display-only guidance, while the set table is the sole authority for today's actual workout. Completed history marks RIR known only when the athlete entered or accepted that field, and load or repetition progression ignores newly completed sets whose displayed values were never entered. The one-time Set 1 convenience autofill remains editable and does not log or complete later sets. Backup schema 32, local persistence 33, completed history, and Supabase authority are unchanged.
+Private alpha 0.82.0 adds a completed-training rhythm and muscle-recency view to Progress. It shows distinct training days, the latest, average, and longest gaps between them, recent day spacing, and the last direct or assisting exposure for each mapped muscle. Exact original plan targets are compared with athlete-entered load, repetitions, and RIR, while athlete-added or ambiguous work stays visible as real dose without being misclassified as plan completion. The interpretation layer distinguishes stronger, as-planned, harder-than-planned, below-plan, protective, mixed, and incomplete evidence without silently changing a workout or promising progression from one exposure. Backup schema 32, local persistence 33, completed history, and Supabase authority are unchanged.
 
-The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 508 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
+The public source repository includes a [complete product-specification snapshot](docs/product/README.md) containing the Build Bible, all 513 requirements, traceability matrix, verified implementation status, cross-device and functional UX audits, hosting contract, exercise-library and recommendation specification, cloud-sync and backend specification, longitudinal product simulation audit, and pixel training-adventure specification. Obsidian remains the editable source of truth.
 
 ## Run locally
 
@@ -49,9 +49,9 @@ npm run check:pages
 
 ## Current verification
 
-- 557 deterministic domain, persistence, and cloud-boundary tests
+- 569 deterministic domain, persistence, and cloud-boundary tests
 - deterministic domain and cloud-boundary tests, including corrupted outbox, network retry, pending-state replay, stale conflict, response tampering, and restore acceptance
-- 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys covering clean starts, evidence-backed workout suggestions, scoped records, training-round reports, schedule-aware momentum, the progress ledger, weighted and assisted bodyweight modes, active-workout replacement scope, workout previews, exact-movement completion feedback, quiet Set 1 autofill, cloud boundaries, console integrity, and horizontal containment
+- 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys covering training rhythm, exact plan execution, clean starts, evidence-backed workout suggestions, scoped records, training-round reports, schedule-aware momentum, the progress ledger, weighted and assisted bodyweight modes, active-workout replacement scope, workout previews, exact-movement completion feedback, quiet Set 1 autofill, cloud boundaries, console integrity, and horizontal containment
 - automated UI boundary QC for original game-inspired expression, the technique-video exclusion, readable typography, focus and reduced-motion support, compact mobile coverage, and required product-design context
 - lint clean
 - production PWA build clean

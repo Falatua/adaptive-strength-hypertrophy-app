@@ -1,4 +1,5 @@
 import { historyInRange, rangeWindow, type ProgressRange } from './analytics'
+import { isOriginalPlannedSet, plannedSetLinkForRecord } from './planned-set-link'
 import type { CompletedSetRecord, Exercise, ExerciseMuscleMapping, MuscleId, TrainingSession } from './types'
 
 export const muscleDoseRuleVersion = 'muscle-dose-v1' as const
@@ -357,8 +358,12 @@ export function plannedMuscleDoseFor(input: {
     return !Number.isNaN(timestamp) && timestamp <= window.end.getTime() && (window.start === null || timestamp >= window.start.getTime())
   })
   const plannedSessionIds = new Set(plannedSessions.map((session) => session.id))
+  const plannedSessionById = new Map(plannedSessions.map((session) => [session.id, session]))
   const selectedHistory = historyInRange(input.history, input.range, now)
-  const linkedHistory = selectedHistory.filter((workSet) => plannedSessionIds.has(workSet.sessionId))
+  const linkedHistory = selectedHistory.filter((workSet) => {
+    const session = plannedSessionById.get(workSet.sessionId)
+    return Boolean(session && plannedSetLinkForRecord(session, workSet))
+  })
   const points = new Map<MuscleId, PlannedMuscleDosePoint>()
   const plannedMappedSetIds = new Set<string>()
   const plannedUnmappedSetIds = new Set<string>()
@@ -391,6 +396,7 @@ export function plannedMuscleDoseFor(input: {
     const credits = muscleCreditsFor(planned.exerciseId, input.exercises)
     const exerciseName = exerciseById.get(planned.exerciseId)?.name ?? planned.exerciseId
     planned.sets.forEach((workSet) => {
+      if (!isOriginalPlannedSet(planned, workSet)) return
       const plannedSourceId = `${session.id}:${planned.id}:${workSet.id}`
       if (!credits || Object.keys(credits).length === 0) {
         plannedUnmappedSetIds.add(plannedSourceId)
@@ -436,7 +442,7 @@ export function plannedMuscleDoseFor(input: {
   return {
     ruleVersion: 'muscle-plan-dose-v1',
     plannedSessionIds: [...plannedSessionIds],
-    plannedSourceSetCount: plannedSessions.reduce((sum, session) => sum + session.exercises.reduce((exerciseSum, planned) => exerciseSum + planned.sets.length, 0), 0),
+    plannedSourceSetCount: plannedSessions.reduce((sum, session) => sum + session.exercises.reduce((exerciseSum, planned) => exerciseSum + planned.sets.filter((workSet) => isOriginalPlannedSet(planned, workSet)).length, 0), 0),
     plannedMappedSetCount: plannedMappedSetIds.size,
     plannedUnmappedSetCount: plannedUnmappedSetIds.size,
     plannedUnmappedExerciseNames: [...plannedUnmappedExerciseNames].sort(),

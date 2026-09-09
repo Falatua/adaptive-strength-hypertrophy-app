@@ -123,4 +123,19 @@ describe('muscle-dose-v1', () => {
     expect(dose.points.find((point) => point.muscle === 'triceps')).toMatchObject({ plannedTotal: 1.5, completedTotal: 1, status: 'below-plan' })
     expect(dose.plannedUnmappedExerciseNames).toEqual(['Unknown Custom'])
   })
+
+  it('keeps athlete-added muscle dose outside the original muscle plan', () => {
+    const bench = exercises.find((exercise) => exercise.id === 'competition-bench')!
+    const session: TrainingSession = {
+      id: 'planned-muscle-session', title: 'Muscle plan', objective: 'Test', dayLabel: 'Today', plannedDate: '2026-08-10T12:00:00.000Z', status: 'completed', durationMinutes: 30,
+      exercises: [{ id: 'planned-bench', exerciseId: bench.id, role: 'primary', purpose: 'Test', restSeconds: 90, estimatedMinutes: 10, optional: false, sets: [
+        { id: 'planned', targetReps: 5, targetLoad: 100, targetRir: 2, completed: true },
+        { id: 'added', targetReps: 5, targetLoad: 100, targetRir: 2, completed: true, athleteAdded: true }
+      ] }]
+    }
+    const planned = { ...setFor('planned-set', bench.id, bench.name), sessionId: session.id, plannedExerciseId: 'planned-bench', setIndex: 0 }
+    const added = { ...setFor('added-set', bench.id, bench.name), sessionId: session.id, plannedExerciseId: 'planned-bench', setIndex: 1, athleteAdded: true }
+    const dose = plannedMuscleDoseFor({ sessions: [session], history: [planned, added], exercises, range: 'today', now: new Date('2026-08-10T18:00:00.000Z') })
+    expect(dose).toMatchObject({ plannedSourceSetCount: 1, linkedCompletedSetCount: 1, unlinkedCompletedSetCount: 1 })
+  })
 })

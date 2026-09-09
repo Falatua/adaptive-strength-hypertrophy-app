@@ -3,14 +3,25 @@ type: implementation-status
 aliases: [ForgePath Private Alpha, Adaptive Training App Private Alpha]
 tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
-updated: 2026-09-04
+updated: 2026-09-08
 status: working-private-alpha
-app_version: 0.81.1
+app_version: 0.82.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.82.0 Training Analysis Delta
+
+- Adds a default-open Progress panel with distinct recorded training days, last trained, days since training, latest, average, and longest gaps, and a recent training-day sequence.
+- Adds per-muscle recency from canonical completed-set mappings with separate direct and assisting counts, latest exposure credit, and gap context. Unmapped work remains explicitly unknown.
+- Adds exact original-plan versus actual comparison for athlete-entered load, repetitions, and RIR with comparable-set denominators and field-level unknowns.
+- Keeps athlete-added or ambiguous legacy work in completed dose while excluding it from original-plan completion and target comparison.
+- Adds cautious movement-level execution signals that distinguish supported review, as-planned work, harder-than-planned effort, below-plan results, protective evidence, mixed evidence, and insufficient evidence.
+- Preserves athlete authority: one exposure does not apply progression, harder execution does not earn a harder target, and pain or protective evidence blocks overload language.
+- Advances app version to 0.82.0 with training rhythm v1 and plan execution v1. Backup schema 32, local persistence 33, completed history, and Supabase authority are unchanged.
+- Local acceptance covers 569 deterministic tests, lint, production and Pages compilation, responsive desktop, 390 by 844, and 320-wide browser inspection, zero console errors, exact linked-versus-added fixture review, and all 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys. One unrelated iPhone bench-angle seed journey passed on isolated retry after the complete run reached 167. Workflows, deployment, and live-source verification remain release gates.
 
 ## Private Alpha 0.81.1 Entered-Set Authority Delta
 

@@ -145,6 +145,12 @@ Progress begins with a paired operating row: schedule-aware momentum and the cur
 
 Responsive layouts stack Last / Today / Next, momentum/report cards, and ledger metadata below 620 to 880 pixels without horizontal page overflow. Record-scope controls may scroll inside their own row. Every state remains written; color never carries meaning alone.
 
+The Progress rhythm panel opens by default because it answers immediate recall questions. Four compact summary facts show recorded training days, last trained, latest gap, and average gap with the longest gap as context. A recent training-day strip preserves calendar spacing without framing it as a streak. Muscle recency rows keep the written muscle name, days since exposure, last date, direct and assisting set counts, and gap context together. Direct and assisting filters narrow the list without hiding unknown mappings. Empty history shows a short explanation instead of an empty grid.
+
+The plan comparison adds an exact execution layer beneath planned and completed dose. Its summary separates original planned sets, exact linked completions, athlete-added or unlinked completions, and unknown comparisons. Load, repetition, and RIR deltas always include the comparable-set denominator. Movement cards carry a written evidence state such as Supports review, As planned, Harder than planned, Below plan, Protect, Mixed, or More evidence needed. No color-only signal or one-session recommendation is allowed.
+
+At compact widths the rhythm facts, day sequence, muscle rows, execution summaries, and movement cards stack inside their own panels. Dates and values wrap rather than forcing page overflow. The persistent section navigation may remain sticky, but it cannot obscure the selected filter, the panel disclosure, or the written interpretation.
+
 ## Training-Block Blueprint
 
 The Plan screen presents one readable route before the detailed workout queue. A horizontal round route establishes duration and the final block review. Compact facts distinguish weekly days, estimated time, planned sets, and recovery checkpoints. Each day then uses a stable movement table with written Primary, Secondary, Accessory, and Tertiary roles, exact movement name, purpose, set and repetition target, optional incline angle, and Suggested or Your choice status.

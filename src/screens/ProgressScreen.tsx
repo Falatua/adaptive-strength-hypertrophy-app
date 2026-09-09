@@ -30,11 +30,16 @@ import { buildOngoingConfidenceModel } from '../domain/ongoing-confidence-engine
 import { currentMicrocycleNumber } from '../domain/cycle-review-engine'
 import { buildTrainingMomentum } from '../domain/momentum-engine'
 import { buildTrainingRoundReport } from '../domain/round-report-engine'
+import { buildPlanExecutionAnalysis, buildTrainingRhythm } from '../domain/training-analysis-engine'
 
 type TimelineAxis = 'calendar' | 'exposure'
 const primaryProgressRangeIds: ProgressRange[] = ['today', '7d', '28d']
 const primaryProgressRanges = progressRanges.filter((item) => primaryProgressRangeIds.includes(item.id))
 const secondaryProgressRanges = progressRanges.filter((item) => !primaryProgressRangeIds.includes(item.id))
+
+const daysAgoLabel = (days: number | null) => days === null ? 'Never' : days === 0 ? 'Today' : days === 1 ? '1 day ago' : `${days} days ago`
+const dayGapLabel = (days: number | null) => days === null ? 'Not enough history' : `${days} calendar ${days === 1 ? 'day' : 'days'}`
+const signedAverage = (value: number | null, suffix = '') => value === null ? 'Unknown' : `${value > 0 ? '+' : ''}${value.toFixed(Number.isInteger(value) ? 0 : 1)}${suffix}`
 
 export function ProgressScreen() {
   const { history, records, athlete, settings, sessions, surveys, mesocycles, cycleReviews, missedOpportunityEvents, placementVerifications, exercises: exerciseCatalog, setNav } = useAppStore()
@@ -85,6 +90,12 @@ export function ProgressScreen() {
   const visiblePlannedMuscles = useMemo(() => filterPlannedMuscleDose(plannedMuscleDose.points, muscleLens).filter((point) => point.plannedTotal > 0 || point.completedTotal > 0), [muscleLens, plannedMuscleDose.points])
   const muscleDetail = selectedMuscle ? visibleMuscles.find((point) => point.muscle === selectedMuscle) ?? null : null
   const maxMuscleDose = Math.max(1, ...visibleMuscles.map((point) => point.totalDose))
+  const trainingRhythm = useMemo(() => buildTrainingRhythm({ history, exercises: exerciseCatalog, now: new Date(nowMs) }), [exerciseCatalog, history, nowMs])
+  const visibleMuscleRecency = useMemo(() => {
+    const included = new Set(visibleMuscles.map((point) => point.muscle))
+    return trainingRhythm.muscles.filter((point) => included.has(point.muscle))
+  }, [trainingRhythm.muscles, visibleMuscles])
+  const planExecution = useMemo(() => buildPlanExecutionAnalysis({ sessions, history, exercises: exerciseCatalog, range, now: new Date(nowMs) }), [exerciseCatalog, history, nowMs, range, sessions])
 
   // Volume progression reads the feedback the athlete already gives and turns it into next week's set
   // count, which is the whole point of collecting it. Decisions are proposals: nothing is applied
@@ -259,6 +270,28 @@ export function ProgressScreen() {
         <div><Dumbbell size={17} /><span><small>Average set load</small><strong>{Math.round(summary.averageLoad).toLocaleString()} {settings.units}</strong></span></div>
       </section>
 
+      <CollapsiblePanel className="panel training-rhythm-panel" label="training rhythm and muscle recency" defaultOpen header={<div className="panel__header training-rhythm-header"><div><p className="eyebrow">Training rhythm · completed work only</p><h3>Days trained and time between exposures</h3></div><CalendarClock size={20} /></div>}>
+        <div className="rhythm-summary">
+          <div><small>Lifetime training days</small><strong>{trainingRhythm.totalTrainingDays}</strong><span>Distinct calendar days with completed sets</span></div>
+          <div><small>Last trained</small><strong>{daysAgoLabel(trainingRhythm.daysSinceLastTraining)}</strong><span>{trainingRhythm.lastTrainingAt ? new Date(trainingRhythm.lastTrainingAt).toLocaleDateString() : 'No completed training yet'}</span></div>
+          <div><small>Latest day split</small><strong>{dayGapLabel(trainingRhythm.latestGapDays)}</strong><span>Between your two most recent training days</span></div>
+          <div><small>Average day split</small><strong>{dayGapLabel(trainingRhythm.averageGapDays)}</strong><span>{trainingRhythm.longestGapDays === null ? 'One training day cannot create a gap' : `Longest recorded gap · ${trainingRhythm.longestGapDays} days`}</span></div>
+        </div>
+        {trainingRhythm.recentTrainingDays.length ? <div className="training-day-sequence" aria-label="Recent training day gaps">
+          {trainingRhythm.recentTrainingDays.map((day) => <div key={day.dayKey}><span><strong>{new Date(day.completedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</strong><small>{day.completedSets} sets · {day.sessionCount} {day.sessionCount === 1 ? 'session' : 'sessions'}</small></span><b>{day.gapFromPriorDays === null ? 'First recorded day' : `${day.gapFromPriorDays}-day split`}</b></div>)}
+        </div> : <div className="compact-empty"><CalendarDays size={24} /><strong>No completed training days yet</strong><p>Your first completed set will start the training-day clock.</p></div>}
+        <div className="muscle-recency-heading"><div><p className="eyebrow">Muscle recency</p><h4>Last time each muscle received mapped work</h4></div><div className="mini-toggle" aria-label="Muscle recency grouping">{(['all', 'upper', 'lower', 'arms', 'trunk'] as const).map((lens) => <button key={lens} aria-pressed={muscleLens === lens} className={muscleLens === lens ? 'selected' : ''} onClick={() => { setMuscleLens(lens); setSelectedMuscle(null) }}>{lens}</button>)}</div></div>
+        {trainingRhythm.mappedSetCount > 0 ? <div className="muscle-recency-list" aria-label={`${muscleLens} muscle recency`}>
+          {visibleMuscleRecency.map((point) => <div key={point.muscle} className={point.lastCompletedAt ? '' : 'is-empty'}>
+            <span><strong>{point.label}</strong><small>{point.latestCredit ? `Latest was ${point.latestCredit} · ${point.directSetCount} direct · ${point.secondarySetCount} assisting` : 'No mapped completed work'}</small></span>
+            <span><b>{daysAgoLabel(point.daysSinceLastExposure)}</b><small>{point.lastCompletedAt ? new Date(point.lastCompletedAt).toLocaleDateString() : 'Never trained in mapped history'}</small></span>
+            <span><b>{point.latestGapDays === null ? 'No prior split' : `${point.latestGapDays} days`}</b><small>{point.averageGapDays === null ? `${point.exposureDays} exposure ${point.exposureDays === 1 ? 'day' : 'days'}` : `${point.averageGapDays}-day average · ${point.exposureDays} days`}</small></span>
+          </div>)}
+        </div> : <div className="compact-empty"><Layers3 size={24} /><strong>No mapped muscle history yet</strong><p>Completed sets still start the training-day clock. Muscle recency begins when a completed movement has a reviewed mapping.</p></div>}
+        {trainingRhythm.unmappedSetCount > 0 && <div className="muscle-unmapped" role="note"><strong>{trainingRhythm.unmappedSetCount} unmapped {trainingRhythm.unmappedSetCount === 1 ? 'set' : 'sets'}</strong><span>They count as training days and completed work, but ForgePath does not guess which muscles they trained.</span></div>}
+        <p className="chart-note">A split is the calendar-day distance between completed exposures. Direct and assisting work both update muscle recency, but they remain labeled separately. Recency is context for programming, not proof of recovery or a command to train a muscle.</p>
+      </CollapsiblePanel>
+
       <div id="progress-timeline"><CollapsiblePanel className="panel training-timeline" ariaLabel="Calendar and what you actually trained" label="the calendar view" defaultOpen header={<>
         <div className="panel__header training-timeline__header">
           <div><p className="eyebrow">Two clocks</p><h3>When you trained versus what moved forward</h3></div>
@@ -329,14 +362,25 @@ export function ProgressScreen() {
           <div><small>Stored plans in window</small><strong>{plannedDose.plannedSessionIds.length}</strong><span>{plannedDose.plannedSets} intended sets</span></div>
           <div><small>Linked completion</small><strong>{plannedDose.linkedCompletedSets} / {plannedDose.plannedSets}</strong><span>{plannedDose.plannedSets ? `${Math.round(plannedDose.linkedCompletedSets / plannedDose.plannedSets * 100)}% of stored set dose` : 'No stored set dose'}</span></div>
           <div><small>Known planned volume</small><strong>{plannedDose.plannedVolumeKnown.toLocaleString()}</strong><span>{settings.units} · {plannedDose.unknownLoadSets} planned {plannedDose.unknownLoadSets === 1 ? 'set has' : 'sets have'} unknown load</span></div>
-          <div><small>Completed without stored plan</small><strong>{plannedDose.unlinkedCompletedSets}</strong><span>{plannedDose.unlinkedCompletedVolume.toLocaleString()} {settings.units} volume kept separate</span></div>
+          <div><small>Added or unlinked completion</small><strong>{plannedDose.unlinkedCompletedSets}</strong><span>{plannedDose.unlinkedCompletedVolume.toLocaleString()} {settings.units} volume kept outside the original plan</span></div>
         </div>
+        <div className="execution-summary" aria-label="Entered performance compared with targets">
+          <div><small>Entered target matches</small><strong>{planExecution.enteredNumberSets} / {planExecution.targetMatchedSets}</strong><span>{planExecution.unknownNumberSets} matched {planExecution.unknownNumberSets === 1 ? 'set stays' : 'sets stay'} unknown</span></div>
+          <div><small>Average load difference</small><strong>{signedAverage(planExecution.load.averageDelta, ` ${settings.units}`)}</strong><span>{planExecution.load.higher} heavier · {planExecution.load.same} same · {planExecution.load.lower} lighter</span></div>
+          <div><small>Average rep difference</small><strong>{signedAverage(planExecution.reps.averageDelta)}</strong><span>{planExecution.reps.higher} more · {planExecution.reps.same} same · {planExecution.reps.lower} fewer</span></div>
+          <div><small>Average RIR difference</small><strong>{signedAverage(planExecution.rir.averageDelta)}</strong><span>{planExecution.rir.higher} easier · {planExecution.rir.same} same · {planExecution.rir.lower} harder</span></div>
+        </div>
+        {planExecution.movements.length ? <div className="movement-execution-list" aria-label="Plan execution by movement">{planExecution.movements.map((point) => <article key={point.exerciseId} className={`movement-execution movement-execution--${point.signal}`}>
+          <div className="movement-execution__heading"><span><strong>{point.exerciseName}</strong><small>{point.plannedSessions} planned {point.plannedSessions === 1 ? 'session' : 'sessions'} · {point.completedPlannedSets}/{point.plannedSets} planned sets completed{point.pendingPlannedSets ? ` · ${point.pendingPlannedSets} still open` : ''}{point.unplannedCompletedSets ? ` · ${point.unplannedCompletedSets} added or unlinked` : ''}</small></span><b>{point.signal.replaceAll('-', ' ')}</b></div>
+          <dl><div><dt>Load</dt><dd>{signedAverage(point.load.averageDelta, ` ${settings.units}`)} avg</dd></div><div><dt>Reps</dt><dd>{signedAverage(point.reps.averageDelta)} avg</dd></div><div><dt>RIR</dt><dd>{signedAverage(point.rir.averageDelta)} avg</dd></div><div><dt>Evidence</dt><dd>{point.enteredNumberSets} numbers · {point.rirKnownSets} RIR</dd></div></dl>
+          <p>{point.interpretation}</p>
+        </article>)}</div> : <div className="compact-empty"><CheckCircle2 size={24} /><strong>No plan execution to compare</strong><p>Choose a range with a stored plan or complete entered sets inside one.</p></div>}
         {plannedDose.regions.length ? <div className="dose-regions">{plannedDose.regions.map((point) => <div key={point.region}>
           <span><strong>{point.region}</strong><small>{point.plannedSets} planned · {point.completedSets} linked completed{point.unknownLoadSets ? ` · ${point.unknownLoadSets} unknown-load` : ''}</small></span>
           <i aria-hidden="true"><b style={{ width: `${point.plannedSets ? Math.min(100, point.completedSets / point.plannedSets * 100) : point.completedSets ? 100 : 0}%` }} /></i>
           <span className={`dose-status dose-status--${point.status}`}><b>{point.completionRate === null ? point.status.replace('-', ' ') : `${Math.round(point.completionRate * 100)}%`}</b><small>{point.status.replace('-', ' ')}</small></span>
         </div>)}</div> : <div className="compact-empty"><Target size={24} /><strong>Nothing recorded in this window</strong><p>Completed history remains visible above, but no dated plan is available for an honest plan comparison.</p></div>}
-        <p className="chart-note">Only sets you completed inside a saved session can count toward a plan. The {plannedDose.unlinkedCompletedSets} other completed {plannedDose.unlinkedCompletedSets === 1 ? 'set still counts' : 'sets still count'} in your totals, they just have no plan to match. Below plan means what happened, not a scolding or a cue to add catch-up work.</p>
+        <p className="chart-note">Only exact set targets with athlete-entered numbers can compare load and repetitions. Unentered values stay unknown, unentered RIR stays unknown, and added work remains real dose without becoming automatic progression evidence. A stronger result only supports the existing progression review; it never changes the plan by itself.</p>
       </CollapsiblePanel>
 
       <CollapsiblePanel className="panel muscle-dose-panel" label="muscle by muscle" header={<div className="panel__header muscle-dose-header"><div><p className="eyebrow">Muscle by muscle</p><h3>Direct work and assisting work</h3></div><div className="mini-toggle" aria-label="Group muscles by">{(['all', 'upper', 'lower', 'arms', 'trunk'] as const).map((lens) => <button key={lens} aria-pressed={muscleLens === lens} className={muscleLens === lens ? 'selected' : ''} onClick={() => { setMuscleLens(lens); setSelectedMuscle(null) }}>{lens}</button>)}</div></div>}>
@@ -397,7 +441,7 @@ export function ProgressScreen() {
           <div><small>Stored plans in window</small><strong>{plannedMuscleDose.plannedSessionIds.length}</strong><span>{plannedMuscleDose.plannedSourceSetCount} planned sets</span></div>
           <div><small>Mapped planned sets</small><strong>{plannedMuscleDose.plannedMappedSetCount}</strong><span>{plannedMuscleDose.plannedUnmappedSetCount} planned sets unmapped</span></div>
           <div><small>Linked mapped completion</small><strong>{plannedMuscleDose.linkedCompletedMappedSetCount}</strong><span>{plannedMuscleDose.linkedCompletedSetCount} matched to a plan</span></div>
-          <div><small>Completed without stored plan</small><strong>{plannedMuscleDose.unlinkedCompletedSetCount}</strong><span>Preserved outside compliance</span></div>
+          <div><small>Added or unlinked completion</small><strong>{plannedMuscleDose.unlinkedCompletedSetCount}</strong><span>Preserved outside the original plan</span></div>
         </div>
         {visiblePlannedMuscles.length ? <div className="muscle-plan-list" aria-label={`${muscleLens} planned work per muscle`}>
           {visiblePlannedMuscles.map((point) => <div key={point.muscle}>
@@ -407,7 +451,7 @@ export function ProgressScreen() {
           </div>)}
         </div> : <div className="compact-empty"><Target size={24} /><strong>No planned work for this view</strong><p>Choose another body-area lens or a range containing stored sessions.</p></div>}
         {(plannedMuscleDose.plannedUnmappedSetCount > 0 || plannedMuscleDose.linkedCompletedUnmappedSetCount > 0) && <div className="muscle-unmapped" role="note"><strong>Mapping gap</strong><span>{plannedMuscleDose.plannedUnmappedSetCount} planned and {plannedMuscleDose.linkedCompletedUnmappedSetCount} completed {plannedMuscleDose.plannedUnmappedSetCount + plannedMuscleDose.linkedCompletedUnmappedSetCount === 1 ? 'set has' : 'sets have'} no muscle mapping, so they earn no muscle credit.{plannedMuscleDose.plannedUnmappedExerciseNames.length ? ` Review: ${plannedMuscleDose.plannedUnmappedExerciseNames.join(', ')}.` : ''}</span></div>}
-        <p className="chart-note">This compares saved planned sets against the completed sets from those same sessions. It counts set-equivalents per muscle, not volume load or measured stimulus. Sets outside a saved plan are still real progress, and coming in under plan never creates catch-up work.</p>
+        <p className="chart-note">This compares original saved targets with exact linked completion from those sessions. Added sets and unlinked history stay real completed dose outside the original plan. Muscle set-equivalents are planning estimates, not measured stimulus, and coming in under plan never creates catch-up work.</p>
       </CollapsiblePanel>
 
       <div className="insight-grid" id="progress-records">

@@ -3,14 +3,45 @@ type: product-build-bible
 aliases: [Adaptive Training App Build Bible, App Build Bible]
 tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
-updated: 2026-09-04
+updated: 2026-09-08
 status: canonical-build-reference-and-active-implementation
-version: 1.79.0
+version: 1.80.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.80.0 Change Entry
+
+- Advanced the working application to private alpha 0.82.0 with training rhythm v1 and plan execution v1 without changing backup schema 32, local persistence 33, completed history, or Supabase authority.
+- Added distinct completed training days, the last trained date, latest, average, and longest gaps, and a recent training-day sequence without streak or compliance framing.
+- Added last-exposure and gap context for each specifically mapped muscle while keeping direct, assisting, and unknown work distinct.
+- Compared athlete-entered load, repetitions, and RIR with exact original planned sets, keeping athlete-added and ambiguously linked work as real dose outside original-plan completion.
+- Added cautious exact-movement interpretations for stronger, as-planned, harder, below-plan, protective, mixed, and incomplete evidence. One exposure never silently earns progression.
+- Verified 569 deterministic tests, lint, production and Pages compilation, and all 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys locally. One unrelated iPhone bench-angle seed journey passed on isolated retry after the complete run reached 167. Workflows, deployment, and live-source checks remain release gates.
+
+## 111. Training Rhythm, Muscle Recency, and Plan Execution
+
+### 111.1 Completed Training-Day Rhythm
+
+A training day exists when at least one completed set has a valid completion timestamp on that local calendar date. Multiple sessions or sets on the same date count as one day. Progress shows the latest training day, days since that day, the latest inter-day gap, average gap, longest gap, and a recent sequence with the gap from the preceding recorded day. These numbers describe spacing only. They do not create a streak, missed-day debt, adherence score, or recovery conclusion.
+
+### 111.2 Muscle Recency
+
+Muscle exposure comes only from the canonical exercise-to-muscle mapping attached to a completed set. The latest direct or assisting exposure establishes recency for that muscle. Direct and assisting set counts remain separate, and the most recent credit states which relationship supplied it. Unmapped completed sets remain an explicit unknown count and cannot be assigned by name matching or neighboring movement inference. A recent exposure is context, not proof that a muscle is recovered or unrecovered.
+
+### 111.3 Exact Plan Execution
+
+Plan execution links a completed set only to an original planned set in its source session. Athlete-added rows never satisfy an original target, and ambiguous legacy identifiers remain unlinked rather than guessed. Completed dose still includes that work. Load, repetition, and RIR deltas require the corresponding athlete-entered actual value and a concrete original target. Zero load used to establish a baseline, bodyweight mode, and unknown targets do not create a load delta.
+
+### 111.4 Progression Interpretation
+
+Each exact movement may summarize execution as supports review, as planned, harder than planned, below plan, protect, mixed, or insufficient evidence. A stronger load or repetition result supports later review only when effort did not become materially harder. Lower actual RIR than planned indicates harder execution and cannot justify making the next target harder. Pain or protective evidence overrides overload language. Repeated comparable exposures, known effort, recovery and feedback support, safe increments, and athlete approval remain required before progression.
+
+### 111.5 Acceptance
+
+Acceptance covers distinct calendar-day calculation, latest and average gaps, direct and assisting muscle exposure, unmapped work, exact target linkage, added and unlinked dose, zero-load baseline exclusion, field-level unknowns, harder-than-planned effort, protective precedence, pending-session handling, empty history, written non-color signals, desktop and compact containment, backup compatibility, and live release identity.
 
 ### Version 1.79.0 Change Entry
 

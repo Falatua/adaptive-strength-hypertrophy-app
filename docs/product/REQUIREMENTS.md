@@ -3,7 +3,7 @@ type: requirements-register
 aliases: [Adaptive Training App Requirements, App Requirements Register]
 tags: [fitness, app, requirements, source-of-truth, continuity]
 created: 2026-08-09
-updated: 2026-09-04
+updated: 2026-09-08
 status: active
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: from-user
@@ -3177,7 +3177,42 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Preserve completed history and current active work while proving that the removed bulk action cannot mutate a workout, entered load, repetitions, and RIR become the source evidence, unentered values cannot earn records, progression, or first-set placement conclusions, Set 1 autofill remains editable, and desktop, Android-style mobile, and iPhone WebKit flows remain contained and error-free.
 - Detail: `src/store/useAppStore.test.ts`, `src/domain/training-engine.test.ts`, `src/domain/effort-progression-engine.test.ts`, `tests/e2e/private-alpha-gamification.spec.ts`, and Build Bible Chapter 110
 
+### R-509 Completed Training-Day Rhythm
+- Status: implemented
+- Provenance: from-user
+- Requirement: Progress must count distinct completed training days and show the last trained date, days since the latest training day, the latest gap between training days, average gap, longest gap, and a recent training-day sequence. Calendar spacing is descriptive context, never a streak, debt, compliance judgment, or proof of recovery.
+- Detail: `src/domain/training-analysis-engine.ts`, `src/screens/ProgressScreen.tsx`, and Build Bible Chapter 111
+
+### R-510 Muscle Recency and Exposure Gaps
+- Status: implemented
+- Provenance: from-user
+- Requirement: For every muscle with mapped completed work, show the latest direct or assisting exposure, days since that exposure, direct and assisting set counts, and available latest and average gaps between exposure days. Keep unknown exercise mappings visible rather than assigning muscle work by inference.
+- Detail: `src/domain/training-analysis-engine.ts`, `src/domain/muscle-dose.ts`, `src/screens/ProgressScreen.tsx`, and Build Bible Chapter 111
+
+### R-511 Exact Original Plan Versus Actual Entry
+- Status: implemented
+- Provenance: from-user
+- Requirement: Compare completed load, repetitions, and RIR with the exact original planned set only when the athlete entered the relevant actual field. Athlete-added sets and ambiguous legacy links remain completed dose but are separated from original-plan completion. Bodyweight work and load-to-establish targets cannot create false load deltas.
+- Detail: `src/domain/planned-set-link.ts`, `src/domain/training-analysis-engine.ts`, `src/domain/analytics.ts`, `src/domain/muscle-dose.ts`, and Build Bible Chapter 111
+
+### R-512 Cautious Progression Interpretation
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Summarize exact-movement execution as supports review, as planned, harder than planned, below plan, protect, mixed, or insufficient evidence. Higher load or repetitions with materially lower RIR is harder execution, not clean progression proof. Pain and protective evidence take precedence, and no single exposure silently changes a plan.
+- Detail: `src/domain/training-analysis-engine.ts`, `src/screens/ProgressScreen.tsx`, and Build Bible Chapter 111
+
+### R-513 Training Analysis Acceptance
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Deterministic and browser acceptance must cover distinct-day gaps, direct and assisting muscle recency, unmapped work, exact target matching, added and unlinked work, load-to-establish exclusions, harder-than-planned effort, incomplete actual fields, pending sessions, empty history, written signal states, and compact layout containment.
+- Detail: `src/domain/training-analysis-engine.test.ts`, `src/domain/analytics.test.ts`, `src/domain/muscle-dose.test.ts`, browser inspection, and Build Bible Chapter 111
+
 ## Thread Coverage Audit
+
+### 2026-09-08 Training Rhythm and Plan Execution
+- Scope: JB asked ForgePath to track training days and the spacing between them, provide the same recency context for specific muscle groups, preserve planned versus actual differences, and analyze entered load, repetitions, and RIR for proper progression.
+- Result: Added R-509 through R-513 and Build Bible Chapter 111. Private alpha 0.82.0 adds completed training-day rhythm, direct and assisting muscle recency, exact original-plan execution comparisons, and cautious movement-level interpretations that preserve athlete-added dose without misclassifying adherence.
+- Status: Implemented with 569 deterministic tests, lint, production and Pages compilation, responsive browser inspection, and all 168 cross-browser journeys passing locally. One unrelated iPhone bench-angle seed journey passed on isolated retry after the complete run reached 167. Workflows, deployment, and live-source verification remain release gates.
 
 ### 2026-09-04 Entered-Set Authority
 - Scope: JB reported that pressing `Apply to unfinished sets` repeatedly during Safety Squat Bar work changed the exercise unexpectedly and asked for the action to be removed. JB also directed ForgePath to work from the entered sets, repetitions, load, and RIR.
@@ -3608,6 +3643,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-09-08: Added R-509 through R-513 and Build Bible Chapter 111 for completed training-day rhythm, muscle recency and exposure gaps, exact original-plan versus entered-actual comparisons, athlete-added dose isolation, and conservative movement-level progression interpretation. Private alpha 0.82.0 adds training rhythm v1 and plan execution v1 without changing backup schema 32, local persistence 33, completed history, or Supabase authority.
 - 2026-09-04: Added R-506 through R-508 and Build Bible Chapter 110 after JB asked to remove the confusing in-workout bulk progression action and make entered sets, repetitions, load, and RIR authoritative. Private alpha 0.81.1 removes the action and store mutation, advances movement progress path v3, preserves editable Set 1 autofill, records unentered RIR as unknown, and excludes newly assumed load or repetition values from records and progression without rewriting completed history.
 - 2026-09-02: Added R-501 through R-505 and Build Bible Chapter 109 for clean unstarted workout state, complete block-change propagation, replacement movement check-ins and progression ownership, gradual RIR, slower load, repetition, and set progression, and preservation-safe acceptance. Private alpha 0.81.0 advances progression v3, movement progress path v2, RIR progression v1, volume progression v3, backup schema 32, and local persistence 33.
 - 2026-09-01: Released private alpha 0.80.1 with PR v3, backup schema 31, local persistence 32, and narrow version 30 cloud record-projection recovery. Completed training and history snapshots remain authoritative and unchanged; arbitrary record mismatches remain blocked.
