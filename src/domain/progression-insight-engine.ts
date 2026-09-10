@@ -2,7 +2,7 @@ import { comparableAngleHistory } from './bench-angle-engine'
 import { loadIncrementFor } from './equipment-engine'
 import { compactLoadLabel, loadModeForSet } from './load-mode'
 import { latestMovementFeedback } from './movement-feedback-engine'
-import { recommendProgression } from './training-engine'
+import { estimatedOneRepMax, recommendProgression } from './training-engine'
 import type { AthleteProfile, CompletedSetRecord, CycleReviewEvent, EquipmentProfile, Exercise, MovementProgressPath, PlannedExercise, SurveyRecord, TrainingSession } from './types'
 
 const latestSessionSets = (sets: CompletedSetRecord[]) => {
@@ -41,7 +41,8 @@ export function buildMovementProgressPath(input: {
     repRange: planned.role === 'primary' ? [Math.max(1, targetReps - 2), targetReps + 2] : [Math.max(1, targetReps - 3), targetReps + 3],
     increment: loadIncrementFor(exercise, equipmentProfile).value,
     continuity: athlete.continuity,
-    readiness: session.readiness ?? 'confirm'
+    readiness: session.readiness ?? 'confirm',
+    asOf: session.startedAt ?? session.plannedDate
   })
   const feedback = latestMovementFeedback(surveys, session.id, planned.id)
   const painAnswer = feedback?.answers.find((answer) => answer.id === 'pain' && answer.status === 'answered')
@@ -61,6 +62,14 @@ export function buildMovementProgressPath(input: {
     ? `${prior.length} sets · ${scheme(prior)} reps · ${compactLoadLabel(priorMode, priorLoad, units)}`
     : 'No exact completed exposure'
   const today = `${targetSets} sets · ${scheme(planned.sets.map((workSet) => ({ reps: workSet.targetReps })))} reps · ${compactLoadLabel(mode, targetLoad, units)}`
+  const priorBestReps = prior.length ? Math.max(...prior.map((workSet) => workSet.reps)) : 0
+  const priorBestStrength = prior.reduce((best, workSet) => Math.max(best, estimatedOneRepMax(workSet.load, workSet.reps)), 0)
+  const plannedStrength = targetLoad > 0 ? estimatedOneRepMax(targetLoad, targetReps) : 0
+  const plannedMismatch = prior.length > 0 && (
+    mode === 'bodyweight'
+      ? targetReps > priorBestReps + 1 || todayTotal > priorTotal + 1
+      : mode !== 'assisted-bodyweight' && targetLoad > 0 && plannedStrength < priorBestStrength * 0.95
+  )
 
   let status: MovementProgressPath['status'] = exact.length ? 'hold' : 'baseline'
   let title = exact.length ? 'Own today’s prescription' : 'Establish an exact baseline'
@@ -77,6 +86,13 @@ export function buildMovementProgressPath(input: {
     title = latestRoundDecision.decision === 'recover' ? 'Recovery decision holds progression' : 'The training-round decision holds today'
     next = today
     toProgress = latestRoundDecision.reason || 'Complete the held prescription and review the next round from finished work.'
+  } else if (plannedMismatch) {
+    status = 'hold'
+    title = mode === 'bodyweight' ? 'Use the last completed rep path' : 'Return to your proven performance'
+    next = `${prior.length} sets · ${scheme(prior)} reps · ${compactLoadLabel(priorMode, priorLoad, units)}`
+    toProgress = mode === 'bodyweight'
+      ? 'Repeat the last completed set scheme. Add only one total repetition after comparable effort and recovery support it.'
+      : 'Use today’s entered load, repetitions, and RIR. A lighter load needs enough repetitions to match the last performance unless this is intentional recovery.'
   } else if (decision.action === 'reacclimate') {
     status = 'hold'
     title = 'Rebuild the exact movement first'
@@ -88,12 +104,17 @@ export function buildMovementProgressPath(input: {
       title = 'One set is the last progression lever'
       next = `${Math.max(targetSets, decision.nextSets)} bodyweight sets`
       toProgress = `First own ${todayTotal} total reps. Add a set only when reps and execution have no better path.`
-    } else if (exact.length) {
+    } else if (decision.action === 'reps') {
       status = 'push-reps'
       title = 'Build the bodyweight rep path'
       const nextReps = Math.max(targetReps, decision.nextReps, Math.max(...prior.map((workSet) => workSet.reps)) + 1)
       next = `${nextReps} reps in the lead set or ${Math.max(todayTotal, priorTotal + 1)} total reps`
       toProgress = `Add one clean repetition inside the planned sets before adding another set.`
+    } else if (exact.length) {
+      status = 'hold'
+      title = 'Repeat the completed bodyweight path'
+      next = `${prior.length} sets · ${scheme(prior)} reps · BW`
+      toProgress = 'Repeat the last completed scheme with comparable effort. A larger target waits for another supported exposure.'
     }
   } else if (mode === 'assisted-bodyweight') {
     const leastAssistance = exact.filter((workSet) => workSet.loadMode === mode).reduce((minimum, workSet) => Math.min(minimum, workSet.load), Number.POSITIVE_INFINITY)
@@ -121,7 +142,7 @@ export function buildMovementProgressPath(input: {
   }
 
   return {
-    ruleVersion: 'movement-progress-path-v3', exerciseId: exercise.id, plannedExerciseId: planned.id, loadMode: mode,
+    ruleVersion: 'movement-progress-path-v4', exerciseId: exercise.id, plannedExerciseId: planned.id, loadMode: mode,
     status, title, last, today, next, toProgress,
     explanation: protection ? 'Safety and the athlete’s current signal outrank progression.' : decision.explanation,
     confidence: decision.confidence, sourceSetIds: decision.evidence.sourceSetIds,

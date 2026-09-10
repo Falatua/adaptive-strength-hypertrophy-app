@@ -4,6 +4,8 @@ import { buildMesocyclePreview, draftFromPlan } from './mesocycle-engine'
 import { loadIncrementFor } from './equipment-engine'
 import { makeSets, recommendProgression } from './training-engine'
 import { recommendNextTargetRir } from './effort-progression-engine'
+import { loadModeForSet } from './load-mode'
+import { isComparableExposure } from './set-structure-engine'
 import type {
   CompletedSetRecord,
   CycleReviewDecision,
@@ -162,31 +164,56 @@ export function buildNextMicrocycle(input: NextRoundInput) {
       const exercise = input.exercises.find((candidate) => candidate.id === planned.exerciseId)
       const exactHistory = input.history.filter((workSet) => workSet.exerciseId === planned.exerciseId)
       const comparable = exercise && supportsBenchAngle(exercise) ? comparableAngleHistory(exactHistory, planned) : exactHistory
+      const progressionHistory = comparable.filter((workSet) => workSet.numbersEntered !== false && !workSet.athleteAdded && isComparableExposure(workSet.grouping))
+      const latestCompleted = [...progressionHistory]
+        .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0]
+      const latestCompletedSets = latestCompleted
+        ? progressionHistory.filter((workSet) => workSet.sessionId === latestCompleted.sessionId).sort((a, b) => a.setIndex - b.setIndex)
+        : []
+      const mode = exercise ? loadModeForSet(first, exercise) : 'external'
+      const bodyweightScheme = mode === 'bodyweight' ? latestCompletedSets.map((workSet) => workSet.reps) : []
+      const progressionTargetLoad = latestCompletedSets[0]?.load ?? first.targetLoad
+      const progressionTargetReps = bodyweightScheme.length ? Math.min(...bodyweightScheme) : latestCompletedSets[0]?.reps ?? first.targetReps
+      const progressionTargetSets = latestCompletedSets.length || planned.sets.length
       const priorPlanned = input.sessions
         .filter((candidate) => candidate.mesocycleId === input.plan.id && (candidate.microcycleNumber ?? 1) === input.nextMicrocycleNumber - 1)
         .flatMap((candidate) => candidate.exercises)
         .find((candidate) => candidate.exerciseId === planned.exerciseId)
       const decision = recommendProgression({
-        history: comparable,
+        history: progressionHistory,
         surveys: input.surveys,
-        targetLoad: first.targetLoad,
-        targetReps: first.targetReps,
-        targetSets: planned.sets.length,
-        repRange: [Math.max(1, first.targetReps - 2), first.targetReps + 2],
+        targetLoad: progressionTargetLoad,
+        targetReps: progressionTargetReps,
+        targetSets: progressionTargetSets,
+        repRange: [Math.max(1, progressionTargetReps - 2), progressionTargetReps + 2],
         increment: exercise ? loadIncrementFor(exercise, input.equipmentProfile).value : 5,
         continuity: 'stable' satisfies ContinuityState,
-        readiness: 'normal'
+        readiness: 'normal',
+        asOf: input.startsAt.toISOString()
       })
       const effort = recommendNextTargetRir({
         currentTargetRir: priorPlanned?.sets[0]?.targetRir ?? first.targetRir,
         nextMicrocycleNumber: input.nextMicrocycleNumber,
         priorPlanned,
-        history: comparable,
+        history: progressionHistory,
         surveys: input.surveys ?? []
       })
+      const progressedSets = mode === 'bodyweight' && bodyweightScheme.length
+        ? (() => {
+            const nextScheme = [...bodyweightScheme]
+            if (decision.action === 'reps') {
+              const lowest = Math.min(...nextScheme)
+              const index = nextScheme.indexOf(lowest)
+              nextScheme[index] += 1
+            }
+            if (decision.action === 'sets') nextScheme.push(nextScheme.at(-1) ?? progressionTargetReps)
+            return makeSets(nextScheme.length, progressionTargetReps, 0, effort.targetRir)
+              .map((workSet, index) => ({ ...workSet, targetReps: nextScheme[index], loadMode: 'bodyweight' as const }))
+          })()
+        : makeSets(decision.nextSets, decision.nextReps, decision.nextLoad, effort.targetRir)
       return {
         ...planned,
-        sets: makeSets(decision.nextSets, decision.nextReps, decision.nextLoad, effort.targetRir)
+        sets: progressedSets
           .map((workSet, index) => ({ ...workSet, id: `${planned.id}-review-set-${index + 1}` }))
       }
     })

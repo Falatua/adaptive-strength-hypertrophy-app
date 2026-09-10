@@ -112,7 +112,8 @@ export function TodayScreen() {
     repRange: [4, 6],
     increment: primaryExercise ? loadIncrementFor(primaryExercise, activeEquipmentProfile).value : 5,
     continuity: athlete.continuity,
-    readiness: nextSession?.readiness ?? 'confirm'
+    readiness: nextSession?.readiness ?? 'confirm',
+    asOf: nextSession?.plannedDate
   })
   const routeLabel = nextSession?.generation?.route ? placementRouteLabels[nextSession.generation.route] : undefined
   const progressionTarget = progression.action === 'load'

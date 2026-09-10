@@ -111,4 +111,20 @@ describe('criterion-based cycle review', () => {
     expect(review.evidence.maximumPain).toBe(5)
     expect(review.eligible['continue-progress']).toBe(false)
   })
+
+  it('adds only one total bodyweight repetition from the latest 6 / 5 / 5 scheme', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const pullUpHistory = ['first-pull-ups', 'latest-pull-ups'].flatMap((sessionId, exposure) => [6, 5, 5].map((reps, setIndex): CompletedSetRecord => ({
+      id: `${sessionId}-${setIndex}`, sessionId, exerciseId: 'pull-up', exerciseName: 'Pull-Up', family: 'Vertical Pull', primaryRegion: 'back',
+      completedAt: `2026-09-0${exposure + 7}T12:00:00.000Z`, reps, load: 0, rir: 2, technique: 4, pain: 0,
+      qualityConfirmed: true, numbersEntered: true, setIndex, loadMode: 'bodyweight'
+    })))
+    const next = buildNextMicrocycle({
+      plan, sessions: datedSessions('completed'), history: pullUpHistory, exercises, decision: 'continue-progress', nextMicrocycleNumber: 2,
+      startsAt: new Date('2026-09-10T12:00:00.000Z'), key: 'bodyweight', equipmentProfile: home
+    })
+    const pullUp = next.flatMap((session) => session.exercises).find((planned) => planned.exerciseId === 'pull-up')!
+
+    expect(pullUp.sets.map((workSet) => workSet.targetReps)).toEqual([6, 6, 5])
+  })
 })

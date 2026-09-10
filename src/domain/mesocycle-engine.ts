@@ -3,8 +3,9 @@ import { makeSets } from './training-engine'
 import { equipmentGenerationEvidence, exerciseEquipmentFit, loadIncrementFor, nearestExecutableLoad } from './equipment-engine'
 import { isEquipmentRouteSessionRuleVersion, isMovementRouteSessionRuleVersion, prescriptionForRole, routeSessionProfile, type RouteSessionProfile } from './route-session-engine'
 import { applyRepPrescriptionPolicy } from './rep-prescription-policy'
-import { defaultLoadModeFor } from './load-mode'
+import { defaultLoadModeFor, loadModeForSet } from './load-mode'
 import { isOpenUnstartedSession } from './planned-session-state'
+import { isComparableExposure } from './set-structure-engine'
 import {
   HOME_GYM_TRICEPS_PRESS_IDS,
   homeGymAccessoryRegionAllowed,
@@ -98,7 +99,7 @@ const exerciseScore = (exercise: Exercise, role: 'secondary' | 'accessory', prio
 
 function latestCompletedSet(history: CompletedSetRecord[], exerciseId: string) {
   return history
-    .filter((record) => record.exerciseId === exerciseId)
+    .filter((record) => record.exerciseId === exerciseId && record.numbersEntered !== false && !record.athleteAdded && isComparableExposure(record.grouping))
     .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0]
 }
 
@@ -106,15 +107,28 @@ function priorPrescription(currentSessions: TrainingSession[], history: Complete
   const latest = latestCompletedSet(history, exercise.id)
   if (latest) {
     const latestSessionSets = history
-      .filter((record) => record.exerciseId === exercise.id && record.sessionId === latest.sessionId)
+      .filter((record) => record.exerciseId === exercise.id && record.sessionId === latest.sessionId && record.numbersEntered !== false && !record.athleteAdded && isComparableExposure(record.grouping))
       .sort((a, b) => a.setIndex - b.setIndex)
     const sourcePlan = currentSessions
       .find((session) => session.id === latest.sessionId)
       ?.exercises.find((planned) => planned.id === latest.plannedExerciseId || planned.exerciseId === exercise.id)
     // Actual RIR describes what happened. It is never copied forward as the next prescription.
-    // Direct history has no prescribed effort, so it starts from a conservative 3 RIR baseline.
+    // It still belongs in the performance estimate used to translate load and repetitions.
+    // Direct history has no prescribed effort, so its future effort target starts from a conservative 3 RIR baseline.
     const prescribedRir = sourcePlan?.sets[0]?.targetRir ?? 3
-    return { sets: latestSessionSets.length || 3, reps: latest.reps, load: latest.load, rir: Math.max(1, prescribedRir), angles: latestSessionSets.map((workSet) => workSet.benchAngleDeg), source: 'completed-history' as const }
+    const knownRir = latestSessionSets.filter((workSet) => workSet.rirKnown !== false).map((workSet) => workSet.rir)
+    const performanceRir = knownRir.length ? knownRir.reduce((sum, value) => sum + value, 0) / knownRir.length : prescribedRir
+    return {
+      sets: latestSessionSets.length || 3,
+      reps: latestSessionSets[0]?.reps ?? latest.reps,
+      repsBySet: latestSessionSets.map((workSet) => workSet.reps),
+      load: latestSessionSets[0]?.load ?? latest.load,
+      rir: Math.max(1, prescribedRir),
+      performanceRir,
+      angles: latestSessionSets.map((workSet) => workSet.benchAngleDeg),
+      loadMode: loadModeForSet(latestSessionSets[0] ?? latest, exercise),
+      source: 'completed-history' as const
+    }
   }
   const planned = currentSessions
     .flatMap((session) => session.exercises)
@@ -123,21 +137,25 @@ function priorPrescription(currentSessions: TrainingSession[], history: Complete
     return {
       sets: planned.sets.length,
       reps: planned.sets[0].targetReps,
+      repsBySet: planned.sets.map((workSet) => workSet.targetReps),
       load: planned.sets[0].targetLoad,
       rir: planned.sets[0].targetRir,
+      performanceRir: planned.sets[0].targetRir,
       angles: planned.sets.map((workSet) => workSet.benchAngleDeg),
+      loadMode: loadModeForSet(planned.sets[0], exercise),
       source: 'existing-plan' as const
     }
   }
   const homeGymInitial = homeGymInitialPrescription(exercise, equipmentProfile)
-  if (homeGymInitial) return { ...homeGymInitial, load: 0, rir: 3, angles: [] as Array<number | undefined>, source: 'home-gym-provisional' as const }
-  return { sets: 3, reps: 10, load: 0, rir: 3, angles: [] as Array<number | undefined>, source: 'calibration' as const }
+  if (homeGymInitial) return { ...homeGymInitial, repsBySet: Array(homeGymInitial.sets).fill(homeGymInitial.reps), load: 0, rir: 3, performanceRir: 3, angles: [] as Array<number | undefined>, loadMode: defaultLoadModeFor(exercise), source: 'home-gym-provisional' as const }
+  return { sets: 3, reps: 10, repsBySet: [10, 10, 10], load: 0, rir: 3, performanceRir: 3, angles: [] as Array<number | undefined>, loadMode: defaultLoadModeFor(exercise), source: 'calibration' as const }
 }
 
-function routeLoad(prior: ReturnType<typeof priorPrescription>, intensity: number, increment: number) {
+function routeLoad(prior: ReturnType<typeof priorPrescription>, intensity: number, targetReps: number, targetRir: number, increment: number) {
   if (prior.load <= 0 || intensity <= 0) return 0
-  const estimatedMaximum = prior.load * (1 + (prior.reps + prior.rir) / 30)
-  return nearestExecutableLoad(estimatedMaximum * intensity, increment)
+  const estimatedMaximum = prior.load * (1 + (prior.reps + prior.performanceRir) / 30)
+  const matchedToEnteredPerformance = estimatedMaximum / (1 + (targetReps + targetRir) / 30)
+  return nearestExecutableLoad(prior.source === 'completed-history' ? matchedToEnteredPerformance : estimatedMaximum * intensity, increment)
 }
 
 function plannedExercise(
@@ -154,10 +172,11 @@ function plannedExercise(
   const reacclimating = adaptation === 'reacclimation'
   const routePrescription = routeProfile ? prescriptionForRole(routeProfile, role) : null
   const homeGymProvisional = prior.source === 'home-gym-provisional'
-  const setCount = homeGymProvisional
+  const exactBodyweight = prior.source === 'completed-history' && prior.loadMode === 'bodyweight'
+  const setCount = homeGymProvisional || exactBodyweight
     ? prior.sets
     : routePrescription?.sets ?? Math.max(2, prior.sets - (reacclimating ? 1 : 0))
-  const targetReps = homeGymProvisional ? prior.reps : applyRepPrescriptionPolicy({
+  const targetReps = homeGymProvisional || exactBodyweight ? prior.reps : applyRepPrescriptionPolicy({
     exercise,
     role,
     suggestedReps: routePrescription?.reps ?? prior.reps,
@@ -167,7 +186,11 @@ function plannedExercise(
   })
   const targetRir = routePrescription?.rir ?? (reacclimating ? Math.max(3, prior.rir) : prior.rir)
   const increment = context.equipmentProfile ? loadIncrementFor(exercise, context.equipmentProfile).value : 5
-  const targetLoad = routePrescription ? routeLoad(prior, routePrescription.intensity, increment) : reacclimating ? nearestExecutableLoad(prior.load * 0.9, increment) : nearestExecutableLoad(prior.load, increment)
+  const targetLoad = routePrescription
+    ? routeLoad(prior, routePrescription.intensity, targetReps, targetRir, increment)
+    : reacclimating && prior.source === 'completed-history'
+      ? routeLoad(prior, 1, targetReps, targetRir, increment)
+      : reacclimating ? nearestExecutableLoad(prior.load * 0.9, increment) : nearestExecutableLoad(prior.load, increment)
   const restSeconds = routePrescription?.restSeconds ?? (isPrimary ? 180 : role === 'secondary' ? 135 : 75)
   const setupMinutes = isPrimary ? 7 : role === 'secondary' ? 4 : 3
   const estimatedMinutes = Math.max(4, Math.round(setupMinutes + (setCount * 0.75) + Math.max(0, setCount - 1) * restSeconds / 60))
@@ -179,7 +202,13 @@ function plannedExercise(
     sets: makeSets(setCount, targetReps, targetLoad, targetRir)
       .map((workSet, index) => {
         const benchAngleDeg = prior.angles[index] ?? (prior.angles.length === 1 ? prior.angles[0] : undefined)
-        return { ...workSet, id: `${sessionKey}-${exercise.id}-set-${index + 1}`, loadMode: defaultLoadModeFor(exercise), ...(benchAngleDeg === undefined ? {} : { benchAngleDeg }) }
+        return {
+          ...workSet,
+          id: `${sessionKey}-${exercise.id}-set-${index + 1}`,
+          targetReps: exactBodyweight ? prior.repsBySet[index] ?? prior.repsBySet.at(-1) ?? targetReps : targetReps,
+          loadMode: exactBodyweight ? 'bodyweight' : defaultLoadModeFor(exercise),
+          ...(benchAngleDeg === undefined ? {} : { benchAngleDeg })
+        }
       }),
     restSeconds,
     estimatedMinutes: Math.round(estimatedMinutes),

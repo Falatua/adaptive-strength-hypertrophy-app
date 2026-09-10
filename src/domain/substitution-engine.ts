@@ -81,7 +81,8 @@ function replacementPrescription(input: {
     repRange,
     increment,
     continuity: athlete.continuity,
-    readiness
+    readiness,
+    asOf: new Date().toISOString()
   })
   const count = Math.max(1, Math.min(planned.sets.length, decision.nextSets))
   const sets = planned.sets.slice(0, count).map((workSet) => ({

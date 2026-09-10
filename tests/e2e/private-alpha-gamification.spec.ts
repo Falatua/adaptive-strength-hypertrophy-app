@@ -1905,6 +1905,13 @@ test('withholds a load target until the exact movement has logged history', asyn
   const anchorLoad = await anchorCard.locator('.set-row input[type="number"]').first().inputValue()
   expect(Number(anchorLoad)).toBeGreaterThan(0)
 
+  const movementHistory = anchorCard.getByRole('group', { name: /completed history/ })
+  await expect(movementHistory).toContainText(/recent exact exposure/)
+  await movementHistory.locator('summary').click()
+  await expect(movementHistory).toContainText('Use these entered sets to check today’s target')
+  await expect(movementHistory.locator('.workout-movement-history__list article').first()).toContainText(/reps/)
+  await expect(movementHistory.locator('.workout-movement-history__list article').first()).toContainText(/RIR/)
+
   expect(browserErrors).toEqual([])
 })
 

@@ -3,14 +3,48 @@ type: product-build-bible
 aliases: [Adaptive Training App Build Bible, App Build Bible]
 tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
-updated: 2026-09-08
+updated: 2026-09-10
 status: canonical-build-reference-and-active-implementation
-version: 1.80.0
+version: 1.81.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.81.0 Change Entry
+
+- Advanced the working application to private alpha 0.83.0, `progression-v4`, and `movement-progress-path-v4` without changing backup schema 32, local persistence 33, completed history, or Supabase authority.
+- Replaced repeated returning reductions and unrelated route-intensity load cuts with targets anchored to the latest comparable athlete-entered exact performance.
+- Preserved exact bodyweight set schemes and limited a supported increase to one total repetition rather than imposing a generic repetition floor.
+- Added a read-only exact-movement history inside every active workout so the athlete can verify load, repetitions, RIR, and recent work while training.
+- Verified 578 deterministic tests, lint, production and Pages compilation, headed-browser visual inspection, and all 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys locally. Workflows, deployment, and live-source checks remain release gates.
+
+## 112. Performance-Anchored Progression and In-Workout Recall
+
+### 112.1 Completed Performance Is the Anchor
+
+The latest comparable exact session with athlete-entered numbers establishes the performance anchor for the next generated prescription. A route may select a target repetition and RIR lane, but its load must be translated from that completed performance and rounded to an executable equipment increment. It may not apply an unrelated percentage that lowers load and productive output together without a current protective reason.
+
+### 112.2 Re-entry Happens Once Per Genuine Gap
+
+Returning and reacclimation are transition states. When the athlete has completed a recent exact exposure within fourteen days of the target workout, that exposure satisfies the re-entry step and the engine returns to ordinary confirmation rules. A new long gap, pain, illness, or an athlete-approved recovery decision can create a new conservative step and must preserve its source reason.
+
+### 112.3 Bodyweight Schemes Stay Exact
+
+Plain bodyweight programming carries forward the completed set count and nonuniform repetition scheme. A 6 / 5 / 5 pull-up session remains 6 / 5 / 5 until progression is earned. After repeated supported comparable exposures, one decision may add only one total repetition to the lowest set. Plain, weighted, assisted, and external-load modes remain separate evidence lanes.
+
+### 112.4 Approved-Plan Mismatch Detection
+
+An active or approved workout is historical plan truth and is not silently rewritten. Its display-only movement path must nevertheless identify when an external-load prescription has less than ninety-five percent of the latest completed estimated performance or when a bodyweight prescription exceeds the prior best set or session total by more than one repetition. The path points back to the proven completed performance and explains the mismatch while leaving every set row under athlete control.
+
+### 112.5 Movement History During Training
+
+Every active-workout movement includes a collapsed read-only history. It groups up to five newest sessions from the same exact exercise, comparable setup, and load mode, excludes athlete-added and structured fatigue work from the progression lane, and shows date, set count, load, exact repetition scheme, entered RIR, and volume or total bodyweight repetitions. Empty history remains explicit.
+
+### 112.6 Acceptance
+
+Acceptance reproduces the reported 185-pound completed performance against a 150-pound saved target and proves that the next path does not descend to 135. It reproduces a 6 / 5 / 5 bodyweight exposure against 12 / 12 and proves the app returns to the completed scheme. It also covers recent-return suppression, genuine-gap reacclimation, equipment rounding, exact-mode isolation, history grouping, empty history, compact containment, current-workout immutability, and release identity.
 
 ### Version 1.80.0 Change Entry
 

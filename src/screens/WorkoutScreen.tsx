@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, Info, Layers, MoveRight, Pause, Play, Plus, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, TrendingUp, Trophy } from 'lucide-react'
-import { estimatedOneRepMax, recommendProgression, volumeLoad } from '../domain/training-engine'
+import { AlertTriangle, ArrowLeft, BookOpen, Check, CheckCircle2, ChevronDown, Clock3, History, Info, Layers, MoveRight, Pause, Play, Plus, RefreshCcw, Search, SkipForward, Sparkles, TimerReset, TrendingUp, Trophy } from 'lucide-react'
+import { estimatedOneRepMax, recommendProgression } from '../domain/training-engine'
 import { deriveAchievementEvents, deriveRecordOpportunities } from '../domain/history-engine'
 import { rankExerciseSubstitutions } from '../domain/substitution-engine'
 import type { CompletedSetRecord, EffectiveSurveyMode, EvidenceConfidence, PlannedExercise, ProgressionAction, SubstitutionReason } from '../domain/types'
@@ -26,6 +26,7 @@ import { latestMovementFeedback, movementFeedbackMatchesCompletedSets, movementF
 import { loadModeForSet, supportsBodyweightMode } from '../domain/load-mode'
 import { buildMovementProgressPath } from '../domain/progression-insight-engine'
 import { hasEnteredLoadAndReps, hasEnteredRir } from '../domain/set-entry-autofill'
+import { buildWorkoutMovementHistory } from '../domain/movement-history-engine'
 
 const roleLabel: Record<PlannedExercise['role'], string> = {
   primary: 'Primary movement',
@@ -382,8 +383,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
             const exactHistory = history.filter((set) => set.exerciseId === exercise.id)
             const angleCapable = supportsBenchAngle(exercise)
             const progressionHistory = angleCapable ? comparableAngleHistory(exactHistory, planned) : exactHistory
-            const recent = progressionHistory.slice(-planned.sets.length)
-            const lastVolume = volumeLoad(recent)
+            const movementHistory = buildWorkoutMovementHistory({ history, planned, exercise, units: settings.units })
+            const latestMovementHistory = movementHistory[0]
             const recommendation = recommendProgression({
               history: progressionHistory,
               surveys,
@@ -393,7 +394,8 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
               repRange: planned.role === 'primary' ? [4, 6] : [8, 12],
               increment: loadIncrementFor(exercise, activeEquipmentProfile).value,
               continuity: useAppStore.getState().athlete.continuity,
-              readiness: session.readiness ?? 'confirm'
+              readiness: session.readiness ?? 'confirm',
+              asOf: session.startedAt ?? session.plannedDate
             })
             const opportunities = deriveRecordOpportunities({ history, planned, exercise, readiness: session.readiness ?? 'confirm' })
             const bodyweightCapable = supportsBodyweightMode(exercise)
@@ -426,7 +428,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                 </div>
                 {!equipmentFit.available && <div className="equipment-block"><AlertTriangle size={18} /><span><strong>Unavailable at {activeEquipmentProfile.name}</strong><small>Missing {equipmentFit.missing.join(', ')}. Change this movement before logging a set. ForgePath will show only alternatives available in the active profile.</small></span><button onClick={() => openSwap(planned)}>Resolve</button></div>}
                 <div className="exercise-context">
-                  <div><small>Last exact exposure</small><strong>{recent.length ? `${recent[0].load} × ${recent[0].reps}` : 'No exact history'}</strong><span>{lastVolume.toLocaleString()} volume load</span></div>
+                  <div><small>Last exact exposure</small><strong>{latestMovementHistory ? `${latestMovementHistory.loadLabel} · ${latestMovementHistory.repetitionScheme.join(' / ')}` : 'No exact history'}</strong><span>{latestMovementHistory ? latestMovementHistory.volumeLoad === null ? `${latestMovementHistory.totalRepetitions} completed reps` : `${latestMovementHistory.volumeLoad.toLocaleString()} volume load` : 'Complete entered sets to establish it'}</span></div>
                   <div><small>How this was set</small><strong>{recommendation.title}</strong><span>{evidenceStrengthLabels[recommendation.confidence]} · {progressionActionLabels[recommendation.action]}</span></div>
                   <div><small>Joint response</small><strong className={`joint joint--${exercise.jointFeeling}`}>{exercise.jointFeeling}</strong><span>{exercise.favorite ? 'Preferred movement' : 'Neutral preference'}</span></div>
                   <button className="info-button" onClick={() => setDecisionInfo({ name: exercise.name, title: recommendation.title, action: recommendation.action, confidence: recommendation.confidence, explanation: recommendation.explanation, reasons: recommendation.reasons, sourceSets: recommendation.evidence.sourceSetIds.length, unknownInputs: recommendation.evidence.unknownInputs, athleteAddedExcluded: recommendation.evidence.athleteAddedSetsExcluded })} aria-label={`More information about ${exercise.name}`} aria-haspopup="dialog"><Info size={17} /></button>
@@ -442,6 +444,17 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
                   <div className="movement-progress-path__evidence"><span>{progressPath.sourceSetIds.length} exact source set{progressPath.sourceSetIds.length === 1 ? '' : 's'}</span><span>{progressPath.unknownInputs.length ? `${progressPath.unknownInputs.length} unknown input${progressPath.unknownInputs.length === 1 ? '' : 's'}` : 'No required input missing'}</span><span>Load → reps → sets</span></div>
                   <small>{progressPath.status === 'protect' ? 'Progress guidance is paused by the current safety signal.' : 'Guide only. Your entered load, repetitions, and RIR decide what is recorded.'}</small>
                 </section>
+                <details className="workout-movement-history" aria-label={`${exercise.name} completed history`}>
+                  <summary className="workout-movement-history__heading"><History size={18} /><span><strong>Movement history</strong><small>{latestMovementHistory ? `${movementHistory.length} recent exact exposure${movementHistory.length === 1 ? '' : 's'} · last ${new Date(latestMovementHistory.completedAt).toLocaleDateString()}` : 'No completed exact-setup history yet'}</small></span><ChevronDown size={17} /></summary>
+                  <div className="workout-movement-history__body">
+                    <p>Use these entered sets to check today’s target. Only this exact movement, setup, and load mode are shown.</p>
+                    {movementHistory.length ? <div className="workout-movement-history__list">{movementHistory.map((entry) => <article key={entry.sessionId}>
+                      <div><strong>{new Date(entry.completedAt).toLocaleDateString()}</strong><small>{entry.setCount} set{entry.setCount === 1 ? '' : 's'} · {entry.loadLabel}</small></div>
+                      <div><strong>{entry.repetitionScheme.join(' / ')} reps</strong><small>{entry.effortLabel} · {entry.setupLabel}</small></div>
+                      <span>{entry.volumeLoad === null ? `${entry.totalRepetitions} total reps` : `${entry.volumeLoad.toLocaleString()} volume`}</span>
+                    </article>)}</div> : <div className="compact-empty"><History size={23} /><strong>No exact history yet</strong><p>Your entered sets from this movement will appear here after the workout is finished.</p></div>}
+                  </div>
+                </details>
                 {planned.prescriptionNote && <div className="substitution-prescription"><RefreshCcw size={16} /><span><strong>{planned.prescriptionMethod === 'exact-history' ? 'Exact-history replacement' : 'Baseline calibration'}</strong>{planned.prescriptionNote}</span></div>}
                 {techniqueSuggestion && <div className="technique-prescription"><Layers size={16} /><span><strong>Purposeful technique suggestion</strong>{techniqueSuggestion}<small>Athlete approval required · maximum two technique blocks in this session</small></span><button type="button" onClick={() => { setStructureTarget(planned); setStructureError(null) }}>Review</button></div>}
                 <details className="movement-note-editor" aria-label={`${exercise.name} movement notebook`}>

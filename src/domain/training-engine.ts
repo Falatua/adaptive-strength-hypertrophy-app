@@ -58,6 +58,8 @@ interface ProgressionInput {
   increment: number
   continuity: ContinuityState
   readiness: ReadinessOutcome
+  /** Current decision time. A recent exact exposure closes a one-session return check. */
+  asOf?: string
 }
 
 export function recommendProgression(input: ProgressionInput): ProgressionDecision {
@@ -107,7 +109,7 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
     unknownInputs
   }
   const result = (decision: Omit<ProgressionDecision, 'ruleVersion' | 'evidence'>): ProgressionDecision => ({
-    ruleVersion: 'progression-v3',
+    ruleVersion: 'progression-v4',
     evidence,
     ...decision
   })
@@ -160,7 +162,15 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
     })
   }
 
-  if (continuity === 'returning' || readiness === 'reacclimate') {
+  const latestExposureAt = recent.reduce<number | null>((latest, workSet) => {
+    const completedAt = new Date(workSet.completedAt).getTime()
+    return Number.isFinite(completedAt) && (latest === null || completedAt > latest) ? completedAt : latest
+  }, null)
+  const asOf = input.asOf ? new Date(input.asOf).getTime() : null
+  const recentReturnExposure = latestExposureAt !== null && asOf !== null && Number.isFinite(asOf)
+    && asOf >= latestExposureAt && asOf - latestExposureAt <= 14 * 86_400_000
+
+  if ((continuity === 'returning' || readiness === 'reacclimate') && !recentReturnExposure) {
     return result({
       action: 'reacclimate',
       title: 'Rebuild this lift',

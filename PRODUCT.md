@@ -74,6 +74,16 @@ Progression is deliberately confirmatory. Load or repetition targets require two
 
 RIR is progressed from the prior prescription, never copied from how hard the athlete happened to train. Round two repeats the opening RIR target. Later rounds may move only one RIR closer to failure after two exact exposures with known pain, technique, load fit, set fit, recovery, and completed-set RIR. Rounds three and four keep at least 2 RIR, and 1 RIR is available only from round five onward. Harder-than-prescribed execution holds the next effort target instead of making it harder again.
 
+## Performance-Anchored Progression
+
+The latest comparable athlete-entered performance is the starting point for the next exact-movement target. Route templates may choose a repetition and RIR lane, but they must translate the completed load and repetitions into a roughly equivalent executable target before proposing overload. They may not apply an unrelated intensity percentage that makes both load and productive output fall without an explicit recovery or safety reason.
+
+A return-to-training reduction is a re-entry event, not a permanent ratchet. Once the athlete has completed a recent exact exposure, ForgePath must stop repeatedly reducing that movement merely because the broader continuity profile still says returning. Pain, illness, a genuinely long new gap, or an athlete-approved recovery decision may still justify an easier target and must state that reason.
+
+Plain bodyweight performance is preserved as the actual set scheme. A completed 6 / 5 / 5 pull-up exposure does not become 12 / 12. After repeated supported exposures, bodyweight progression adds at most one total repetition to the lowest set before later load or set changes are considered. Weighted, assisted, and external-load identities remain separate.
+
+An approved workout may predate this correction. When its saved target is materially below recent completed weighted performance or asks for an implausible bodyweight increase, the display-only progress path calls out the mismatch and returns the next useful target to the proven performance. It never edits active set rows. Every active movement also exposes a collapsible history of the five latest comparable sessions for the same exact exercise, setup, and load mode, including load, repetition scheme, RIR, and volume or total bodyweight repetitions.
+
 ## Register
 
 product

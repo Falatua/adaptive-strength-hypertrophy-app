@@ -3,14 +3,24 @@ type: implementation-status
 aliases: [ForgePath Private Alpha, Adaptive Training App Private Alpha]
 tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
-updated: 2026-09-08
+updated: 2026-09-10
 status: working-private-alpha
-app_version: 0.82.0
+app_version: 0.83.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.83.0 Performance-Anchored Progression Delta
+
+- Makes the latest comparable athlete-entered exact performance the anchor for future route generation instead of reducing completed load and productive output through a generic intensity percentage.
+- Stops a broad returning or reacclimation state from repeatedly lowering the same movement after a recent exact exposure has already completed its re-entry step.
+- Detects an approved workout whose weighted target is materially below proven performance or whose bodyweight target jumps beyond one total repetition, then shows a display-only path back to the actual completed result.
+- Preserves exact plain-bodyweight set schemes such as 6 / 5 / 5 during generation and adds at most one total repetition after repeated supported exposures.
+- Adds a collapsed exact-movement history to every active-workout movement with the five latest same-setup, same-load-mode sessions, load, repetitions, RIR, and volume or total repetitions.
+- Advances to `progression-v4`, `movement-progress-path-v4`, and app version 0.83.0. Backup schema 32, local persistence 33, completed history, and Supabase authority are unchanged.
+- Local acceptance covers 578 deterministic tests, lint, production and Pages compilation, a real headed-browser review with zero current console errors, and all 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys. Workflows, deployment, and live-source verification remain release gates.
 
 ## Private Alpha 0.82.0 Training Analysis Delta
 

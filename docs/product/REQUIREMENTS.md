@@ -3,7 +3,7 @@ type: requirements-register
 aliases: [Adaptive Training App Requirements, App Requirements Register]
 tags: [fitness, app, requirements, source-of-truth, continuity]
 created: 2026-08-09
-updated: 2026-09-08
+updated: 2026-09-10
 status: active
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: from-user
@@ -3207,7 +3207,48 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Deterministic and browser acceptance must cover distinct-day gaps, direct and assisting muscle recency, unmapped work, exact target matching, added and unlinked work, load-to-establish exclusions, harder-than-planned effort, incomplete actual fields, pending sessions, empty history, written signal states, and compact layout containment.
 - Detail: `src/domain/training-analysis-engine.test.ts`, `src/domain/analytics.test.ts`, `src/domain/muscle-dose.test.ts`, browser inspection, and Build Bible Chapter 111
 
+### R-514 Completed Performance Anchors Progression
+- Status: implemented
+- Provenance: from-user and research-supported
+- Requirement: Future targets for every exact movement must start from the athlete's latest comparable entered load, repetitions, and RIR evidence. A route may translate load and repetitions together, but it must not reduce both productive output and load through an unrelated generic percentage without a current recovery or safety reason.
+- Detail: `src/domain/mesocycle-engine.ts`, `src/domain/cycle-review-engine.ts`, `src/domain/progression-insight-engine.ts`, and Build Bible Chapter 112
+
+### R-515 Re-entry Reduction Cannot Repeat Indefinitely
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: Returning or reacclimation may create one conservative exact-movement re-entry step after a genuine gap. A recent completed exact exposure satisfies that step, so a broad continuity label cannot keep ratcheting the same target downward.
+- Detail: `src/domain/training-engine.ts` and Build Bible Chapter 112
+
+### R-516 Bodyweight Progression Preserves Capacity
+- Status: implemented
+- Provenance: from-user and research-supported
+- Requirement: Plain bodyweight programming must preserve the latest exact set scheme instead of imposing a generic repetition floor. A completed 6 / 5 / 5 pull-up session cannot become 12 / 12; after repeated supportive comparable evidence, one progression decision may add at most one total repetition to the lowest set.
+- Detail: `src/domain/mesocycle-engine.ts`, `src/domain/cycle-review-engine.ts`, and Build Bible Chapter 112
+
+### R-517 Approved-Workout Mismatch Warning
+- Status: implemented
+- Provenance: from-user and product-decision
+- Requirement: If an already approved workout contains a weighted target materially below recent proven performance or a bodyweight target beyond one plausible total repetition, the display-only progress path must call out the mismatch and point back to the completed result without mutating active rows.
+- Detail: `src/domain/progression-insight-engine.ts`, `src/screens/WorkoutScreen.tsx`, and Build Bible Chapter 112
+
+### R-518 In-Workout Exact Movement History
+- Status: implemented
+- Provenance: from-user
+- Requirement: While performing an exercise, the athlete must be able to open its recent exact movement history and verify the date, load mode, load, exact repetition scheme, entered RIR, and volume or total bodyweight repetitions. Only comparable setup and load-mode history belongs in this view.
+- Detail: `src/domain/movement-history-engine.ts`, `src/screens/WorkoutScreen.tsx`, and Build Bible Chapter 112
+
+### R-519 Performance-Anchored Progression Acceptance
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Acceptance must reproduce the reported 185-pound versus 150-pound regression and 6 / 5 / 5 versus 12 / 12 pull-up jump, prove the corrected future target, preserve current-workout athlete authority, verify exact-mode history, and pass deterministic, cross-device, production, Pages, and live-source release gates.
+- Detail: progression, cycle-review, mesocycle, movement-history, and browser tests plus Build Bible Chapter 112
+
 ## Thread Coverage Audit
+
+### 2026-09-10 Performance-Anchored Progression and In-Workout History
+- Scope: JB reported that ForgePath repeatedly made weighted movements easier despite stronger athlete-entered work, prescribed 12 / 12 pull-ups after a 6 / 5 / 5 exposure, and did not expose the exact movement's history during a workout. JB requested an RP Hypertrophy and Mike Israetel grounded correction across movement families.
+- Result: Added R-514 through R-519 and Build Bible Chapter 112. Private alpha 0.83.0 anchors generated targets to completed exact performance, makes reacclimation a bounded re-entry event, preserves bodyweight schemes, detects stale approved-target mismatches, and adds in-workout exact movement history.
+- Status: Implemented with 578 deterministic tests, headed-browser visual review, and the complete local release gate. Workflows, deployment, and live-source verification remain release gates.
 
 ### 2026-09-08 Training Rhythm and Plan Execution
 - Scope: JB asked ForgePath to track training days and the spacing between them, provide the same recency context for specific muscle groups, preserve planned versus actual differences, and analyze entered load, repetitions, and RIR for proper progression.
@@ -3642,6 +3683,8 @@ This is the canonical traceability index for every durable requirement JB states
 - Exact boundary and default setting for focused-training or low-decoration mode.
 
 ## Change Log
+
+- 2026-09-10: Added R-514 through R-519 and Build Bible Chapter 112 after JB reported repeated weighted regression, a 6 / 5 / 5 to 12 / 12 pull-up jump, and missing in-workout movement recall. Private alpha 0.83.0 advances `progression-v4` and `movement-progress-path-v4`, anchors future targets to comparable athlete-entered performance, bounds re-entry and bodyweight progression, and adds exact movement history without changing backup schema 32, local persistence 33, completed history, or Supabase authority.
 
 - 2026-09-08: Added R-509 through R-513 and Build Bible Chapter 111 for completed training-day rhythm, muscle recency and exposure gaps, exact original-plan versus entered-actual comparisons, athlete-added dose isolation, and conservative movement-level progression interpretation. Private alpha 0.82.0 adds training rhythm v1 and plan execution v1 without changing backup schema 32, local persistence 33, completed history, or Supabase authority.
 - 2026-09-04: Added R-506 through R-508 and Build Bible Chapter 110 after JB asked to remove the confusing in-workout bulk progression action and make entered sets, repetitions, load, and RIR authoritative. Private alpha 0.81.1 removes the action and store mutation, advances movement progress path v3, preserves editable Set 1 autofill, records unentered RIR as unknown, and excludes newly assumed load or repetition values from records and progression without rewriting completed history.

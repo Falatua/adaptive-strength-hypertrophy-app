@@ -170,6 +170,56 @@ describe('criterion-driven mesocycle planning', () => {
     expect(pullUp.sets.every((workSet) => workSet.targetReps === 6 && workSet.targetRir === 3)).toBe(true)
   })
 
+  it('preserves a nonuniform entered pull-up scheme instead of forcing the route repetition floor', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const pullUpHistory = [6, 5, 5].map((reps, setIndex): CompletedSetRecord => ({
+      id: `pull-up-scheme-${setIndex}`, sessionId: 'pull-up-scheme-session', exerciseId: 'pull-up', exerciseName: 'Pull-Up',
+      family: 'Vertical Pull', primaryRegion: 'back', completedAt: '2026-09-08T12:00:00.000Z', reps, load: 0, rir: 2,
+      technique: 4, pain: 0, qualityConfirmed: true, numbersEntered: true, setIndex, loadMode: 'bodyweight'
+    }))
+    const next = {
+      ...draft(), defaultMinutes: 60, entryRoute: 'reacclimation' as const,
+      generationRuleVersion: 'route-session-v2' as const, placementCreatedAt: '2026-09-09T12:00:00.000Z'
+    }
+    const preview = buildMesocyclePreview(next, { exercises, currentSessions: [], history: pullUpHistory, planId: 'home-pull-up-scheme', planVersion: 2, equipmentProfile: home })
+    const pullUp = preview.sessions.flatMap((session) => session.exercises).find((planned) => planned.exerciseId === 'pull-up')!
+
+    expect(pullUp.sets.map((workSet) => workSet.targetReps)).toEqual([6, 5, 5])
+    expect(pullUp.sets.every((workSet) => workSet.loadMode === 'bodyweight' && workSet.targetLoad === 0)).toBe(true)
+  })
+
+  it('matches a new route load to entered performance when the repetition target stays the same', () => {
+    const benchHistory = [0, 1].map((setIndex): CompletedSetRecord => ({
+      id: `bench-performance-${setIndex}`, sessionId: 'bench-performance', exerciseId: 'competition-bench', exerciseName: 'Competition Bench Press',
+      family: 'Bench Press', primaryRegion: 'chest', completedAt: '2026-09-08T12:00:00.000Z', reps: 8, load: 185, rir: 3,
+      technique: 4, pain: 0, qualityConfirmed: true, numbersEntered: true, setIndex
+    }))
+    const next = {
+      ...draft(), strengthAnchors: ['competition-bench'], weeklyOpportunities: 1, entryRoute: 'hypertrophy' as const,
+      generationRuleVersion: 'route-session-v2' as const, placementCreatedAt: '2026-09-09T12:00:00.000Z'
+    }
+    const preview = buildMesocyclePreview(next, { exercises, currentSessions: [], history: benchHistory, planId: 'performance-matched-route', planVersion: 2, equipmentProfile: equipmentProfiles[0] })
+    const bench = preview.sessions[0].exercises[0]
+
+    expect(bench.sets[0]).toMatchObject({ targetLoad: 185, targetReps: 8 })
+  })
+
+  it('uses entered RIR to translate performance without copying it into the next effort target', () => {
+    const benchHistory = [0, 1].map((setIndex): CompletedSetRecord => ({
+      id: `hard-bench-performance-${setIndex}`, sessionId: 'hard-bench-performance', exerciseId: 'competition-bench', exerciseName: 'Competition Bench Press',
+      family: 'Bench Press', primaryRegion: 'chest', completedAt: '2026-09-08T12:00:00.000Z', reps: 8, load: 185, rir: 0, rirKnown: true,
+      technique: 4, pain: 0, qualityConfirmed: true, numbersEntered: true, setIndex
+    }))
+    const next = {
+      ...draft(), strengthAnchors: ['competition-bench'], weeklyOpportunities: 1, entryRoute: 'hypertrophy' as const,
+      generationRuleVersion: 'route-session-v2' as const, placementCreatedAt: '2026-09-09T12:00:00.000Z'
+    }
+    const preview = buildMesocyclePreview(next, { exercises, currentSessions: [], history: benchHistory, planId: 'rir-matched-route', planVersion: 2, equipmentProfile: equipmentProfiles[0] })
+    const bench = preview.sessions[0].exercises[0]
+
+    expect(bench.sets[0]).toMatchObject({ targetLoad: 170, targetReps: 8, targetRir: 3 })
+  })
+
   it('keeps an explicitly protected low-bar anchor while excluding it from automatic support work', () => {
     const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
     const next = { ...draft(), strengthAnchors: ['low-bar-squat'], priorityRegions: ['quadriceps' as const], maintenanceRegions: [] }
@@ -205,7 +255,7 @@ describe('criterion-driven mesocycle planning', () => {
     const oldBench = sessions[0].exercises.find((item) => item.exerciseId === 'competition-bench')!
     const newBench = preview.sessions.flatMap((session) => session.exercises).find((item) => item.exerciseId === 'competition-bench')!
     expect(newBench.sets.length).toBeLessThan(oldBench.sets.length)
-    expect(newBench.sets[0].targetLoad).toBeLessThan(oldBench.sets[0].targetLoad)
+    expect(newBench.sets[0].targetLoad * newBench.sets[0].targetReps).toBeGreaterThanOrEqual(oldBench.sets[0].targetLoad * oldBench.sets[0].targetReps)
   })
 
   it('replaces future planned work while preserving completed and partial truth', () => {

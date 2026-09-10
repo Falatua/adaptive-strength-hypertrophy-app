@@ -105,6 +105,15 @@ describe('load-first progression hierarchy', () => {
     expect(decision.nextLoad).toBeLessThan(175)
   })
 
+  it('stops repeating the return reduction after a recent exact exposure', () => {
+    const decision = recommendProgression({
+      history: [set({ completedAt: '2026-09-08T12:00:00.000Z' })], targetLoad: 175, targetReps: 6, targetSets: 1,
+      repRange: [4, 6], increment: 5, continuity: 'returning', readiness: 'reacclimate', asOf: '2026-09-10T12:00:00.000Z'
+    })
+    expect(decision.action).not.toBe('reacclimate')
+    expect(decision.nextLoad).toBe(175)
+  })
+
   it('does not reinterpret skipped technique and pain as poor technique', () => {
     const history = ['first', 'second'].flatMap((sessionId, exposure) => Array.from({ length: 4 }, (_, setIndex) => set({
       id: `unknown-${exposure}-${setIndex}`,

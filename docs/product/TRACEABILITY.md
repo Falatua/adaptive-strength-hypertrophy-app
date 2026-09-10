@@ -3,7 +3,7 @@ type: product-traceability-matrix
 aliases: [App Build Bible Traceability, Requirement Coverage Matrix]
 tags: [fitness, app, requirements, traceability, build, qa]
 created: 2026-08-10
-updated: 2026-09-08
+updated: 2026-09-10
 status: canonical-build-reference
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
@@ -17,16 +17,16 @@ This matrix proves that every requirement in [[App Requirements Register]] is ro
 
 ## Coverage Summary
 
-- Total requirement headings: 513.
-- Sequential range: R-001 through R-513.
-- Missing IDs: none after the 2026-09-08 verification.
-- Duplicate IDs: none after the 2026-09-08 verification.
+- Total requirement headings: 519.
+- Sequential range: R-001 through R-519.
+- Missing IDs: none after the 2026-09-10 verification.
+- Duplicate IDs: none after the 2026-09-10 verification.
 - Primary implementation authority: [[Adaptive Strength and Hypertrophy App Build Bible]].
 - Requirement wording and provenance authority: [[App Requirements Register]].
 
 ## Current Implementation Evidence
 
-Private alpha 0.82.0 and Build Bible 1.80.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/CONSERVATIVE_PROGRESSION_AND_BLOCK_INTEGRITY_AUDIT_2026-09-02.md`, and the prior progression audits. The current local gate includes 569 deterministic tests, production and Pages builds, responsive browser inspection, and all 168 cross-browser journeys covering training-day gaps, muscle recency, exact original-plan versus actual execution, display-only guidance, entered RIR evidence, first-set placement integrity, clean workout starts, conservative progression, cloud recovery, exact record projection, bodyweight identities, reports, previews, Supabase authority, and prior regression boundaries. One unrelated iPhone bench-angle seed journey passed on isolated retry after the complete run reached 167. Live release verification remains a release gate. Backup schema is 32 and local persistence is 33. Dedicated-origin hosting, custom SMTP, complete offline startup, real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
+Private alpha 0.83.0 and Build Bible 1.81.0 are the current boundary. Evidence is recorded in [[Private Alpha Implementation 2026-08-10]], [[GitHub Pages Deployment 2026-08-10]], [[ForgePath Supabase Backend Runbook]], `docs/research/PERFORMANCE_ANCHORED_PROGRESSION_AUDIT_2026-09-10.md`, and the prior progression audits. The current local gate includes 578 deterministic tests, production and Pages builds, headed responsive browser inspection, and all 168 cross-browser journeys covering performance-anchored weighted progression, exact bodyweight schemes, bounded re-entry, in-workout exact movement history, training-day gaps, muscle recency, exact original-plan versus actual execution, entered-set authority, conservative progression, cloud recovery, Supabase authority, and prior regression boundaries. Live release verification remains a release gate. Backup schema is 32 and local persistence is 33. Dedicated-origin hosting, custom SMTP, complete offline startup, real invited-athlete physical phone-to-laptop restore, automatic normalized entity merge, and active-workout handoff remain separate open acceptance gates.
 
 ## Product and Training Traceability
 
@@ -127,6 +127,7 @@ Private alpha 0.82.0 and Build Bible 1.80.0 are the current boundary. Evidence i
 | R-501 to R-505 | Clean unstarted workouts, complete block-change propagation, movement-specific checks, gradual RIR, slower overload, and acceptance | 8, 10, 12, 13, 20, 22, 24, 27, 109 | `PRODUCT.md`, `DESIGN.md`, `docs/research/CONSERVATIVE_PROGRESSION_AND_BLOCK_INTEGRITY_AUDIT_2026-09-02.md`, `src/domain/planned-session-state.ts`, `src/domain/effort-progression-engine.ts`, `src/domain/training-engine.ts`, `src/domain/mesocycle-engine.ts`, `src/store/useAppStore.ts` | 1A to 1C | schema migration, clean-start browser, active-data preservation, queue retirement, check-in provenance, current-round retention, primary placement, RIR floors, two-exposure confirmation, load ceiling, one-set limit, 52-week replay, cross-browser, and Pages tests |
 | R-506 to R-508 | Removed workout bulk editing, entered RIR authority, measured-set eligibility, preservation, and acceptance | 10, 18, 20, 22, 24, 27, 107, 110 | `PRODUCT.md`, `DESIGN.md`, `src/domain/set-entry-autofill.ts`, `src/domain/progression-insight-engine.ts`, `src/domain/training-engine.ts`, `src/domain/effort-progression-engine.ts`, `src/screens/WorkoutScreen.tsx`, `src/store/useAppStore.ts` | 1A to 1B | absent bulk action and mutation route, display-only state check, entered and unknown RIR fixtures, assumed-number exclusion, Set 1 preservation, completed-history preservation, desktop Chromium, mobile Chromium, iPhone WebKit, console, and containment tests |
 | R-509 to R-513 | Training-day rhythm, muscle recency, exact original-plan execution, cautious progression interpretation, and acceptance | 10, 11, 12, 18, 20, 22, 24, 27, 107, 111 | `PRODUCT.md`, `DESIGN.md`, `src/domain/training-analysis-engine.ts`, `src/domain/planned-set-link.ts`, `src/domain/analytics.ts`, `src/domain/muscle-dose.ts`, `src/screens/ProgressScreen.tsx` | 1A to 1C | distinct-day and gap fixtures, direct and assisting muscle mappings, unmapped work, exact target linkage, added and unlinked isolation, entered load, repetition, and RIR deltas, protective precedence, responsive browser, console, and containment checks |
+| R-514 to R-519 | Completed-performance anchoring, bounded re-entry, exact bodyweight schemes, approved-target mismatch detection, in-workout movement history, and acceptance | 10, 12, 15, 20, 22, 24, 72, 107, 109, 112 | `PRODUCT.md`, `DESIGN.md`, `docs/research/PERFORMANCE_ANCHORED_PROGRESSION_AUDIT_2026-09-10.md`, `src/domain/training-engine.ts`, `src/domain/mesocycle-engine.ts`, `src/domain/cycle-review-engine.ts`, `src/domain/progression-insight-engine.ts`, `src/domain/movement-history-engine.ts`, `src/screens/WorkoutScreen.tsx` | 1A to 1C | 185-pound regression fixture, 6 / 5 / 5 bodyweight fixture, recent and stale return clocks, same-mode history grouping, current-row immutability, desktop Chromium, mobile Chromium, iPhone WebKit, console, and containment tests |
 
 ## Delivery Phase Key
 
