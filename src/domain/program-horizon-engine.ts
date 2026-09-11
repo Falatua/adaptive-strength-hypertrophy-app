@@ -41,8 +41,9 @@ export function buildProgramHorizon(input: {
   now?: Date
 }): ProgramHorizon {
   const now = input.now ?? new Date()
+  const sessionsForPlan = (plan: MesocyclePlan) => input.sessions.filter((session) => session.mesocycleId === plan.id || plan.sessionIds.includes(session.id))
   const currentRound = input.plan
-    ? Math.max(1, ...input.sessions.filter((session) => session.mesocycleId === input.plan!.id).map((session) => session.microcycleNumber ?? 1))
+    ? Math.max(1, ...sessionsForPlan(input.plan).map((session) => session.microcycleNumber ?? 1))
     : 1
   const targetRounds = input.plan?.targetMicrocycles ?? 4
   const stage = !input.plan || input.plan.status === 'completed'
@@ -71,7 +72,15 @@ export function buildProgramHorizon(input: {
     }
   } as const
   const oneYearAgo = new Date(now.getTime() - 365 * 86_400_000).getTime()
-  const completedBlocksLastYear = input.plans.filter((plan) => plan.status === 'completed' && new Date(plan.effectiveAt).getTime() >= oneYearAgo).length
+  const completedBlocksLastYear = input.plans.filter((plan) => {
+    if (plan.status !== 'completed') return false
+    const linkedCompletionTimes = sessionsForPlan(plan)
+      .filter((session) => session.status === 'completed' && session.completedAt)
+      .map((session) => new Date(session.completedAt!).getTime())
+      .filter(Number.isFinite)
+    const evidenceAt = linkedCompletionTimes.length ? Math.max(...linkedCompletionTimes) : new Date(plan.effectiveAt).getTime()
+    return Number.isFinite(evidenceAt) && evidenceAt >= oneYearAgo
+  }).length
   const recoveryDecisionsLastYear = input.cycleReviews.filter((review) => review.decision === 'recover' && new Date(review.createdAt).getTime() >= oneYearAgo).length
   const yearlyEvidence = completedBlocksLastYear || recoveryDecisionsLastYear
     ? `${completedBlocksLastYear} completed training block${completedBlocksLastYear === 1 ? '' : 's'} and ${recoveryDecisionsLastYear} recovery decision${recoveryDecisionsLastYear === 1 ? '' : 's'} are recorded in the last 12 months.`

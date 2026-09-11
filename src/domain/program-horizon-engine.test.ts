@@ -32,14 +32,15 @@ describe('buildProgramHorizon', () => {
   })
 
   it('counts completed blocks and recovery decisions in the rolling year', () => {
-    const plan = { ...structuredClone(mesocycles[0]), status: 'completed' as const, effectiveAt: '2026-08-01T12:00:00.000Z' }
+    const plan = { ...structuredClone(mesocycles[0]), status: 'completed' as const, effectiveAt: '2025-01-01T12:00:00.000Z' }
+    const completedSession = { ...structuredClone(sessions[0]), mesocycleId: plan.id, status: 'completed' as const, completedAt: '2026-08-01T12:00:00.000Z' }
     const review = {
       id: 'review', mesocycleId: plan.id, planVersion: plan.version, microcycleNumber: 4, decision: 'recover', createdAt: '2026-09-01T12:00:00.000Z',
       reason: 'Fatigue accumulated.', recommendation: 'recover', recommendationReasons: ['Recovery supported.'],
       evidence: { requiredSessions: 3, qualifiedSessions: 3, unresolvedSessions: 0, totalQualifiedExposures: 12, completedSets: 24, volumeLoad: 20_000, averageSessionRpe: 8, maximumPain: 0, calendarDays: 28 },
       generatedSessionIds: [], expiredSessionIds: []
     } satisfies CycleReviewEvent
-    const result = buildProgramHorizon({ plan, plans: [plan], sessions: [], cycleReviews: [review], now: new Date('2026-09-10T12:00:00.000Z') })
+    const result = buildProgramHorizon({ plan, plans: [plan], sessions: [completedSession], cycleReviews: [review], now: new Date('2026-09-10T12:00:00.000Z') })
     expect(result).toMatchObject({ completedBlocksLastYear: 1, recoveryDecisionsLastYear: 1 })
   })
 
