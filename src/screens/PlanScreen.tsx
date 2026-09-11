@@ -33,7 +33,9 @@ import { EQUIPMENT_ROUTE_SESSION_RULE_VERSION, ROUTE_SESSION_RULE_VERSION } from
 import { buildMovementPlacementExitAssessment, buildPlacementExitAssessment } from '../domain/placement-exit-engine'
 import { exerciseEquipmentFit } from '../domain/equipment-engine'
 import { benchAngleLabel, normalizeBenchAngle, supportsBenchAngle } from '../domain/bench-angle-engine'
-import type { BodyRegion, CycleReviewDecision, Exercise, ExerciseRole, MesocycleDraft, MesocyclePlan, PlannedExercise } from '../domain/types'
+import { assessExerciseDevelopment, exerciseDevelopmentScore } from '../domain/exercise-development-engine'
+import { buildProgramHorizon, recommendedTrainingRounds } from '../domain/program-horizon-engine'
+import type { BodyRegion, CycleReviewDecision, ExerciseRole, MesocycleDraft, MesocyclePlan, PlannedExercise } from '../domain/types'
 
 const regions: BodyRegion[] = ['chest', 'back', 'traps', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'forearms', 'calves', 'trunk']
 
@@ -44,13 +46,6 @@ const roleLabels: Record<ExerciseRole, string> = {
   secondary: 'Secondary',
   accessory: 'Accessory',
   tertiary: 'Tertiary'
-}
-
-interface NextBlockMovementRecommendation {
-  exercise: Exercise
-  recommendation: string
-  tone: 'warning' | 'review' | 'keep' | 'neutral'
-  reason: string
 }
 
 const prescriptionSummary = (planned: PlannedExercise) => {
@@ -94,7 +89,7 @@ export function PlanScreen() {
     revisionReason: '',
     entryCriteria: 'Current athlete profile, available equipment, recent continuity, and usable training history reviewed.',
     progressionModel: 'Progress load first, then repetitions, then a working set only when recovery and continuity support more dose.',
-    targetMicrocycles: 4,
+    targetMicrocycles: recommendedTrainingRounds(athlete),
     minimumProductiveExposures: Math.max(6, athlete.strengthAnchors.length * 3),
     successCriteria: 'Complete productive training rounds with steady technique, manageable pain, and recoverable fatigue.',
     exitPlan: 'Review performance and recovery, then continue, recover, pivot, or enter a more specific phase.',
@@ -136,18 +131,20 @@ export function PlanScreen() {
     exercises,
     currentSessions: sessions,
     history,
+    surveys,
     planId: 'preview',
     planVersion: nextVersion,
     equipmentProfile: activeEquipmentProfile
-  }), [draft, exercises, sessions, history, nextVersion, activeEquipmentProfile])
+  }), [draft, exercises, sessions, history, surveys, nextVersion, activeEquipmentProfile])
   const sourcePreview = useMemo(() => sourcePlan ? buildMesocyclePreview(revisionDraft(sourcePlan), {
     exercises,
     currentSessions: sessions,
     history,
+    surveys,
     planId: sourcePlan.id,
     planVersion: sourcePlan.version,
     equipmentProfile: activeEquipmentProfile
-  }) : null, [activeEquipmentProfile, exercises, history, sessions, sourcePlan])
+  }) : null, [activeEquipmentProfile, exercises, history, surveys, sessions, sourcePlan])
 
   const planSessions = sourcePlan
     ? sessions.filter((session) => session.mesocycleId === sourcePlan.id || sourcePlan.sessionIds.includes(session.id))
@@ -170,6 +167,17 @@ export function PlanScreen() {
   const expectedBlockReviewDate = sourcePlan?.status === 'active' && cycleReview
     ? addDays(cycleReview.targetDate, Math.max(0, sourcePlan.targetMicrocycles - currentBlockRound) * 7)
     : null
+  const programHorizon = useMemo(() => buildProgramHorizon({
+    plan: sourcePlan,
+    plans: mesocycles,
+    sessions,
+    cycleReviews
+  }), [sourcePlan, mesocycles, sessions, cycleReviews])
+  const exerciseDevelopment = useMemo(() => new Map(exercises.map((exercise) => [exercise.id, assessExerciseDevelopment({
+    exercise,
+    history,
+    surveys
+  })])), [exercises, history, surveys])
   const blueprintSessions = planSessions.filter((session) => (session.microcycleNumber ?? 1) === blueprintRound)
   const blueprintSetsPerRound = blueprintSessions.flatMap((session) => session.exercises).reduce((total, planned) => total + planned.sets.length, 0)
   const blueprintMinutesPerRound = blueprintSessions.reduce((total, session) => total + session.durationMinutes, 0)
@@ -186,30 +194,19 @@ export function PlanScreen() {
   const repetitionPolicyReviewAvailable = Boolean(sourcePlan?.generationRuleVersion
     && sourcePlan.generationRuleVersion !== ROUTE_SESSION_RULE_VERSION
     && sourcePlan.strengthAnchors.every((exerciseId) => sourcePlan.movementPlacements?.some((placement) => placement.exerciseId === exerciseId)))
-  const nextBlockMovementRecommendations = useMemo<NextBlockMovementRecommendation[]>(() => {
+  const nextBlockMovementRecommendations = useMemo(() => {
     if (sourcePlan?.status !== 'completed') return []
     const sourceSessionIds = new Set(planSessions.map((session) => session.id))
     const seen = new Set<string>()
-    return blueprintSessions.flatMap((session) => session.exercises).flatMap<NextBlockMovementRecommendation>((planned) => {
+    return blueprintSessions.flatMap((session) => session.exercises).flatMap((planned) => {
       if (seen.has(planned.exerciseId)) return []
       seen.add(planned.exerciseId)
       const exercise = exercises.find((candidate) => candidate.id === planned.exerciseId)
       if (!exercise) return []
-      const feedback = history.filter((record) => sourceSessionIds.has(record.sessionId) && record.exerciseId === planned.exerciseId)
-      const maximumPain = feedback.length ? Math.max(...feedback.map((record) => record.pain)) : null
-      const averageTechnique = feedback.length ? feedback.reduce((total, record) => total + record.technique, 0) / feedback.length : null
-      if (exercise.disliked || exercise.jointFeeling === 'avoid' || (maximumPain !== null && maximumPain >= 4)) {
-        return [{ exercise, recommendation: 'Change suggested', tone: 'warning' as const, reason: exercise.disliked || exercise.jointFeeling === 'avoid' ? 'Your saved movement preference says to avoid this one.' : `Recorded pain reached ${maximumPain}/5. Choose a different setup or movement before the next block.` }]
-      }
-      if ((maximumPain !== null && maximumPain >= 2) || (averageTechnique !== null && averageTechnique < 3)) {
-        return [{ exercise, recommendation: 'Review suggested', tone: 'review' as const, reason: 'Completed-set feedback was mixed. Keep it only if the setup still feels appropriate.' }]
-      }
-      if (feedback.length) {
-        return [{ exercise, recommendation: 'Keep suggested', tone: 'keep' as const, reason: `${feedback.length} completed set${feedback.length === 1 ? '' : 's'} support reusing this exact movement.` }]
-      }
-      return [{ exercise, recommendation: 'Keep or change', tone: 'neutral' as const, reason: 'There is not enough completed feedback yet, so this remains your choice.' }]
+      const assessment = assessExerciseDevelopment({ exercise, history, surveys, sessionIds: sourceSessionIds })
+      return [{ exercise, recommendation: assessment.label, tone: assessment.tone, reason: assessment.reason }]
     })
-  }, [sourcePlan?.status, planSessions, blueprintSessions, exercises, history])
+  }, [sourcePlan?.status, planSessions, blueprintSessions, exercises, history, surveys])
 
   const openReview = () => {
     if (!cycleReview) return
@@ -374,7 +371,7 @@ export function PlanScreen() {
             <div><span>Weekly layout</span><strong>{blueprintSessions.length} training days</strong><small>{blueprintMinutesPerRound} estimated minutes</small></div>
             <div><span>Block length</span><strong>{sourcePlan.targetMicrocycles} planned rounds</strong><small>Completion follows training, not dates alone</small></div>
             <div><span>Planned working sets</span><strong>About {blueprintSetsPerRound * sourcePlan.targetMicrocycles}</strong><small>{blueprintSetsPerRound} per round before adaptations</small></div>
-            <div><span>Recovery checkpoint</span><strong>After every round</strong><small>Deload is proposed from evidence</small></div>
+            <div><span>Recovery checkpoint</span><strong>After every round</strong><small>Recovery is proposed from evidence</small></div>
           </div>
 
           <div className="block-blueprint__sessions">
@@ -420,6 +417,18 @@ export function PlanScreen() {
             <div><Shield size={18} /><span><strong>Stable across the block</strong><small>Movement choices, roles, setup angles, priorities, and the weekly route stay fixed until you approve a revision.</small></span></div>
             <div><RefreshCcw size={18} /><span><strong>Allowed to adapt</strong><small>Load, repetitions, recoverable dose, scheduling, and the deload recommendation respond to completed work and feedback.</small></span></div>
           </div>
+
+          <section className="program-horizon" aria-labelledby="program-horizon-title">
+            <div className="program-horizon__header">
+              <div><p className="eyebrow">Monthly to yearly programming</p><h3 id="program-horizon-title">See this block inside the longer plan.</h3><p>{programHorizon.stageGuidance}</p></div>
+              <span className="status-chip status-chip--lime">{programHorizon.stageLabel}</span>
+            </div>
+            <div className="program-horizon__timeline">{programHorizon.horizons.map((horizon) => <article key={horizon.id}>
+              <span className="program-horizon__icon">{horizon.id === 'mesocycle' ? <CalendarDays size={18} /> : horizon.id === 'development-phase' ? <Layers3 size={18} /> : <Flag size={18} />}</span>
+              <div><small>{horizon.label} · {horizon.duration}</small><strong>{horizon.title}</strong><p>{horizon.detail}</p></div>
+            </article>)}</div>
+            <div className="program-horizon__evidence"><History size={17} /><span><strong>Last 12 months in ForgePath</strong><small>{programHorizon.yearlyEvidence}</small></span></div>
+          </section>
 
           {sourcePlan.status === 'completed' && <section className="next-block-review" aria-labelledby="next-block-review-title">
             <div className="next-block-review__header"><div><p className="eyebrow">Next-block movement review</p><h3 id="next-block-review-title">Start from what worked. Change what needs attention.</h3><p>ForgePath carries this blueprint forward, then uses your saved preferences and completed-set feedback to flag movement choices. These are suggestions only. You approve the next block.</p></div><RefreshCcw size={20} /></div>
@@ -621,7 +630,7 @@ export function PlanScreen() {
             <div className="plan-editor__numbers">
               <label><span className="field-label">Opportunities / week</span><input type="number" min="2" max="7" value={draft.weeklyOpportunities} onChange={(event) => setDraft({ ...draft, weeklyOpportunities: Math.min(7, Math.max(2, Number(event.target.value))) })} /></label>
               <label><span className="field-label">Minutes / session</span><select value={draft.defaultMinutes} onChange={(event) => setDraft({ ...draft, defaultMinutes: Number(event.target.value) })}>{[30, 45, 60, 75, 90].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}</select></label>
-              <label><span className="field-label">Number of training rounds</span><input type="number" min="3" max="8" value={draft.targetMicrocycles} onChange={(event) => setDraft({ ...draft, targetMicrocycles: Math.min(8, Math.max(3, Number(event.target.value))) })} /></label>
+              <label><span className="field-label">Number of training rounds <small>Suggested: {recommendedTrainingRounds(athlete)}</small></span><input type="number" min="3" max="8" value={draft.targetMicrocycles} onChange={(event) => setDraft({ ...draft, targetMicrocycles: Math.min(8, Math.max(3, Number(event.target.value))) })} /></label>
             </div>
 
             <fieldset className="plan-fieldset"><legend>Your main lifts</legend><div className="anchor-selects">{anchorGroups.map((group, index) => <label key={group.label}><span>{group.label}</span><select value={draft.strengthAnchors[index] ?? ''} onChange={(event) => updateAnchor(index, event.target.value)}>{group.options.map((exercise) => <option value={exercise.id} key={exercise.id}>{exercise.name}</option>)}</select></label>)}</div></fieldset>
@@ -656,9 +665,10 @@ export function PlanScreen() {
                       ? exercise.pattern === currentExercise.pattern
                       : exercise.pattern === currentExercise.pattern || exercise.primaryRegion === currentExercise.primaryRegion || exercise.family === currentExercise.family)
                     .sort((a, b) => {
+                      const learnedDifference = exerciseDevelopmentScore(exerciseDevelopment.get(b.id)!) - exerciseDevelopmentScore(exerciseDevelopment.get(a.id)!)
                       const aPreferred = Number(a.favorite) + Number(a.jointFeeling === 'great')
                       const bPreferred = Number(b.favorite) + Number(b.jointFeeling === 'great')
-                      return bPreferred - aPreferred || a.name.localeCompare(b.name)
+                      return learnedDifference || bPreferred - aPreferred || a.name.localeCompare(b.name)
                     })
                   const carriedAngles = [...new Set(planned.sets.map((workSet) => workSet.benchAngleDeg).filter((angle): angle is number => angle !== undefined))]
                   const angleValue = override?.benchAngleDeg === null ? '' : override?.benchAngleDeg ?? (carriedAngles.length === 1 ? carriedAngles[0] : '')
@@ -681,7 +691,7 @@ export function PlanScreen() {
               <label><input type="checkbox" checked={blockMovementChangeConfirmed} onChange={(event) => setBlockMovementChangeConfirmed(event.target.checked)} /><span><strong>Apply these changes to future planned workouts</strong><small>I understand this creates a new training-block version and changes which movement ForgePath progresses in these recurring slots.</small></span></label>
             </section>}
             <div className="preview-rationale"><strong>Why this queue</strong>{preview.explanations.map((explanation) => <p key={explanation}><Check size={14} />{explanation}</p>)}</div>
-            <p className="modal-note">Block totals are estimates, not completed volume. ForgePath reviews recovery after each round and proposes a deload, extension, or next block only from completed work and feedback. You approve the decision.</p>
+            <p className="modal-note">Block totals are estimates, not completed volume. The final planned round remains an accumulation round. ForgePath then opens an outcome and recovery review from completed work and feedback. You approve the decision.</p>
           </aside>
         </div>
         <div className="modal__actions"><button className="button button--ghost" onClick={() => setEditorOpen(false)}>Cancel</button><button className="button button--primary" disabled={Boolean(activeSessionId) || !draft.revisionReason.trim() || (movementChanges.length > 0 && !blockMovementChangeConfirmed)} onClick={saveRevision}>Apply version {nextVersion}</button></div>

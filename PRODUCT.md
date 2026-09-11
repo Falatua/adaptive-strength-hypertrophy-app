@@ -1,5 +1,15 @@
 # Product
 
+## Long-Term Programming and Exercise Development
+
+ForgePath treats its active training block as a mesocycle-scale accumulation contract inside a longer development phase. The Plan screen must show three connected horizons: the current mesocycle, several mesocycles serving one larger purpose, and the training year. The yearly view starts with a needs analysis and a real goal or endpoint, then works backward. It never invents future phases, dates, competitions, cuts, or recovery periods from missing information.
+
+The first round establishes a recoverable baseline. Middle rounds make the smallest supported load, repetition, effort, or volume changes from completed exact work. The final planned round remains an accumulation round, not a hidden calendar deload. After it is completed, ForgePath opens an explicit outcome and recovery review. Pain, a learned recoverable ceiling, poor recovery, or declining performance can still support an earlier recovery proposal, but the athlete approves it.
+
+New blocks use training age and recent continuity only as a conservative starting suggestion for round count. Interrupted or returning continuity suggests three rounds, stable athletes under two years suggest six, stable athletes under seven years suggest five, and stable advanced athletes suggest four. These are editable planning defaults, never capability labels or guaranteed durations.
+
+Exercise development uses the exact movement's repeated completed performance, target stimulus, between-session recovery, technique, joint response, preference, equipment fit, and enjoyment signals. Productive movements stay stable for several weeks so ForgePath can learn them. Intermediates need roughly three exact sessions spanning at least three weeks before low stimulus alone can justify exercise review. Pain, avoid status, or a clear technique problem can trigger review sooner. Exercise choices change only at an athlete-approved block boundary or through an explicit scoped replacement.
+
 ## Freak Athlete Home Gym
 
 The default new-athlete environment is the Home Gym. Its first-party profile explicitly represents the Freak Athlete Hyper Pro, ABX adjustable bench, and Leg Developer while retaining generic capability tags so programming remains compatible with equivalent equipment.

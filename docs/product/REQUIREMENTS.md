@@ -3243,7 +3243,54 @@ This is the canonical traceability index for every durable requirement JB states
 - Requirement: Acceptance must reproduce the reported 185-pound versus 150-pound regression and 6 / 5 / 5 versus 12 / 12 pull-up jump, prove the corrected future target, preserve current-workout athlete authority, verify exact-mode history, and pass deterministic, cross-device, production, Pages, and live-source release gates.
 - Detail: progression, cycle-review, mesocycle, movement-history, and browser tests plus Build Bible Chapter 112
 
+### R-520 Monthly, Multi-Block, and Yearly Programming Horizon
+- Status: implemented
+- Provenance: from-user and research-supported
+- Requirement: Plan must connect the current mesocycle-scale block to a multi-block development purpose and a training-year horizon, with plain definitions and the current accumulation or review stage visible to the athlete.
+- Detail: `src/domain/program-horizon-engine.ts`, `src/screens/PlanScreen.tsx`, the long-term programming audit, and Build Bible Chapter 113
+
+### R-521 Endpoint-First Annual Planning
+- Status: implemented
+- Provenance: from-user and research-supported
+- Requirement: Annual planning must begin with the athlete's real needs, goal, and endpoint and work backward. When those inputs are absent, the system must state the limitation and must not invent a phase sequence, event date, recovery calendar, or promise.
+- Detail: `src/domain/program-horizon-engine.ts` and Build Bible Chapter 113
+
+### R-522 Final Accumulation Round and Explicit Recovery Review
+- Status: implemented
+- Provenance: from-user and research-supported
+- Requirement: The final planned training round remains an accumulation round. It must not automatically become a deload solely because of its ordinal position. Completed fatigue, pain, performance, learned ceiling, and recovery evidence may support recovery, but the athlete approves that decision in the existing review flow.
+- Detail: `src/domain/volume-progression-engine.ts`, `src/domain/cycle-review-engine.ts`, and Build Bible Chapter 113
+
+### R-523 Stable Exercise Development Trial
+- Status: implemented
+- Provenance: from-user and research-supported
+- Requirement: Exercise development must keep productive movements stable long enough to learn from repeated exact exposures. Low stimulus alone cannot justify novelty before at least three exact sessions spanning three weeks, while pain, avoid status, and technique problems may trigger earlier review.
+- Detail: `src/domain/exercise-development-engine.ts` and Build Bible Chapter 113
+
+### R-524 Personal Exercise Evidence Ranks Future Suggestions
+- Status: implemented
+- Provenance: from-user and research-supported
+- Requirement: Future builder and accessory suggestions must combine exact movement performance, stimulus, recovery, technique, joint response, preference, equipment fit, role, and goal region. The assessment may rank or flag a suggestion but cannot silently replace the active block.
+- Detail: `src/domain/exercise-development-engine.ts`, `src/domain/mesocycle-engine.ts`, `src/screens/PlanScreen.tsx`, and Build Bible Chapter 113
+
+### R-525 Continuity and Training-Age Round Default
+- Status: implemented
+- Provenance: research-supported and product-decision
+- Requirement: New blocks may use training age and continuity for an editable conservative round-count suggestion. This default is planning assistance only and cannot label capability, claim an exact duration, or override an athlete-selected value.
+- Detail: `src/domain/program-horizon-engine.ts`, `src/screens/PlanScreen.tsx`, and Build Bible Chapter 113
+
+### R-526 Long-Term Programming Preservation and Acceptance
+- Status: implemented
+- Provenance: product-decision
+- Requirement: Acceptance must cover hierarchy, missing annual inputs, stage transitions, final accumulation without hidden deload, exact movement learning thresholds, safety precedence, bodyweight recovery without repetition inflation, athlete approval, responsive Plan presentation, and preservation of schema 32, persistence 33, completed history, and Supabase authority.
+- Detail: program-horizon, exercise-development, volume-progression, mesocycle, cycle-review, Plan component, cross-browser, Pages, and live-source tests plus Build Bible Chapter 113
+
 ## Thread Coverage Audit
+
+### 2026-09-10 Mike Israetel Long-Term Programming
+- Scope: JB asked ForgePath to study how Mike Israetel develops programs at monthly and yearly scales and implement the useful mesocycle, exercise-development, and long-horizon principles.
+- Result: Added R-520 through R-526 and Build Bible Chapter 113. Private alpha 0.84.0 adds a transparent three-horizon Plan view, endpoint-first annual boundaries, final accumulation without a hidden deload, evidence-ranked future exercise suggestions, stable several-week movement trials, editable round-count defaults, and bodyweight-safe recovery rounds.
+- Status: Implemented locally from four primary videos totaling 91 minutes 52 seconds. Deterministic and full cross-browser acceptance pass locally; deployment and live-source evidence remain release gates.
 
 ### 2026-09-10 Performance-Anchored Progression and In-Workout History
 - Scope: JB reported that ForgePath repeatedly made weighted movements easier despite stronger athlete-entered work, prescribed 12 / 12 pull-ups after a 6 / 5 / 5 exposure, and did not expose the exact movement's history during a workout. JB requested an RP Hypertrophy and Mike Israetel grounded correction across movement families.
@@ -3684,6 +3731,7 @@ This is the canonical traceability index for every durable requirement JB states
 
 ## Change Log
 
+- 2026-09-10: Added R-520 through R-526 and Build Bible Chapter 113 after JB requested a Mike Israetel-informed monthly and yearly programming model. Private alpha 0.84.0 adds program horizon v1, exercise development v1, volume progression v4, explicit final accumulation and recovery review, editable continuity and training-age round defaults, and evidence-ranked future movement suggestions without changing backup schema 32, local persistence 33, completed history, or Supabase authority.
 - 2026-09-10: Added R-514 through R-519 and Build Bible Chapter 112 after JB reported repeated weighted regression, a 6 / 5 / 5 to 12 / 12 pull-up jump, and missing in-workout movement recall. Private alpha 0.83.0 advances `progression-v4` and `movement-progress-path-v4`, anchors future targets to comparable athlete-entered performance, bounds re-entry and bodyweight progression, and adds exact movement history without changing backup schema 32, local persistence 33, completed history, or Supabase authority.
 
 - 2026-09-08: Added R-509 through R-513 and Build Bible Chapter 111 for completed training-day rhythm, muscle recency and exposure gaps, exact original-plan versus entered-actual comparisons, athlete-added dose isolation, and conservative movement-level progression interpretation. Private alpha 0.82.0 adds training rhythm v1 and plan execution v1 without changing backup schema 32, local persistence 33, completed history, or Supabase authority.

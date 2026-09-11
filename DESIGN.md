@@ -173,7 +173,15 @@ Bodyweight-capable movement cards keep the load-mode control immediately above t
 
 Workout preview uses the same component from Today and Plan so future targets cannot disagree by entry point. Every movement row presents Planned, Last, and the nearest evidence-backed cue in that order. The final boundary says preview only and prevents any start, plan mutation, progression, or completion side effect.
 
-Movement identity, role, setup angle, and the weekly route are labeled as stable until athlete approval. Load, repetitions, recoverable dose, scheduling, and recovery recommendations are labeled separately as adaptive. Planned block totals always say they are estimates. A completed-block review may label movements Keep suggested, Review suggested, Change suggested, or Keep or change, with a written evidence reason and no automatic replacement.
+Movement identity, role, setup angle, and the weekly route are labeled as stable until athlete approval. Load, repetitions, recoverable dose, scheduling, and recovery recommendations are labeled separately as adaptive. Planned block totals always say they are estimates. A completed-block review may label movements Keep suggested, Keep learning, Review suggested, or Change suggested, with a written evidence reason and no automatic replacement.
+
+# Long-Term Programming Horizon
+
+The Plan blueprint includes one compact `Monthly to yearly programming` section after the stable-versus-adaptive contract. Its three-column desktop timeline becomes one readable column on compact screens. Each horizon uses a written label, duration frame, purpose, and explanation: current mesocycle, multi-block development phase, and training year. The section also states the current mesocycle stage and summarizes actual completed-block and recovery decisions from the last twelve months.
+
+The interface must not imply that a planned final round is a deload. The route ends in a separately styled review node, and recovery copy says the athlete chooses after completed evidence is reviewed. In the block editor, the round-count control shows the continuity and training-age-informed suggestion while remaining editable.
+
+Completed-block movement review uses four states: Keep suggested, Keep learning, Review suggested, and Change suggested. Every state names the exact evidence span or the safety and preference reason. Candidate ordering may use the same learned assessment, but the current block remains visually and behaviorally stable until the athlete confirms a new version.
 
 # Motion and Generated Visual Assets
 

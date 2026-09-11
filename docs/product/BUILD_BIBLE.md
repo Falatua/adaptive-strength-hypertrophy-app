@@ -5,12 +5,50 @@ tags: [fitness, app, product, architecture, requirements, build]
 created: 2026-08-10
 updated: 2026-09-10
 status: canonical-build-reference-and-active-implementation
-version: 1.81.0
+version: 1.82.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: product-decision
 ---
 
 # Adaptive Strength and Hypertrophy App Build Bible
+
+### Version 1.82.0 Change Entry
+
+- Advanced the working application to private alpha 0.84.0, `volume-progression-v4`, `exercise-development-v1`, and `program-horizon-v1` without changing backup schema 32, local persistence 33, completed history, or Supabase authority.
+- Added a visible current-mesocycle, multi-block development, and training-year horizon while refusing to fabricate an annual calendar without a real goal and endpoint.
+- Corrected the final planned round so it remains accumulation and opens a separate athlete-approved outcome and recovery review afterward.
+- Added exact-movement development assessment from repeated performance, stimulus, recovery, technique, pain, preferences, and observation span to rank future exercise suggestions while preserving the active block.
+- Added continuity and training-age-informed editable round defaults plus recovery-round bodyweight set reduction that preserves the real repetition scheme.
+
+## 113. Long-Term Programming and Exercise Development
+
+### 113.1 Connected Planning Horizons
+
+ForgePath presents the active training block as a mesocycle-scale accumulation contract. Several mesocycles may share one development purpose, and the training year may sequence larger phases only after the athlete supplies a needs analysis, goal, and real endpoint. Missing long-range inputs stay explicit. The app never manufactures dates, competitions, massing or cutting phases, or active-rest periods to make the calendar look complete.
+
+### 113.2 Accumulation and Recovery Are Separate Decisions
+
+The first round establishes a recoverable baseline, middle rounds progress the smallest useful variable from completed evidence, and the final planned round remains accumulation. Its ordinal position cannot silently reduce sets. Pain, a learned ceiling, poor recovery, or performance decline can support an earlier hold, reduction, or recovery proposal. After the planned rounds are completed, the existing append-only review records whether the athlete continues, holds, recovers, completes, or changes focus.
+
+### 113.3 Editable Round Defaults
+
+Interrupted and returning continuity defaults to three planned rounds. Stable athletes with less than two years of training default to six, stable athletes with less than seven years default to five, and stable advanced athletes default to four. This is conservative planning assistance, not a capability label, fixed duration, or authority over the athlete's edit.
+
+### 113.4 Exercise Development Evidence
+
+`exercise-development-v1` uses only exact comparable completed work for its stable trial. Athlete-added work and reduced-load structured fatigue work remain real dose but cannot establish progression. An assessment names exact sessions, observed days, maximum pain, technique, target stimulus, recovery, and performance trend. Pain, avoid status, and repeatable technique problems can trigger immediate review. Low stimulus requires at least three exact sessions spanning three weeks before it can support a change discussion. Otherwise the movement stays in a learning state until enough evidence exists.
+
+### 113.5 Selection and Athlete Authority
+
+Suggested secondary and accessory movements combine role, priority region, equipment fit, saved preference, joint response, and the exercise-development assessment. Productive exact history is a modest positive signal. Pain or review evidence excludes a movement from automatic generation while keeping it visible for athlete review and explicit selection. The completed-block review exposes Keep suggested, Keep learning, Review suggested, and Change suggested with reasons. No score, forecast, or research heuristic replaces an exercise inside an active block without athlete confirmation.
+
+### 113.6 Bodyweight Recovery
+
+An athlete-approved recovery round may reduce the number of bodyweight sets while preserving the completed repetition order. A 6 / 5 / 5 exposure can become 6 / 5 in a reduced-dose round, not 12 / 12. Plain, weighted, assisted, and external-load evidence remain separate.
+
+### 113.7 Acceptance
+
+Acceptance covers program hierarchy, absent annual inputs, stage transitions, final-round volume behavior, exact movement observation thresholds, pain and low-stimulus review, athlete-added and structured-fatigue exclusions, learned suggestion ranking, bodyweight recovery, Plan accessibility and responsive containment, and all earlier progression regressions. Production, Pages, source-marker, workflow, security, and live behavior checks remain release gates.
 
 ### Version 1.81.0 Change Entry
 

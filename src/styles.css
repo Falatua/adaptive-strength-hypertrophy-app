@@ -531,6 +531,24 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .block-blueprint__contract > div:last-child svg { color: var(--orange); }
 .block-blueprint__contract strong, .block-blueprint__contract small { display: block; }
 .block-blueprint__contract small { margin-top: 4px; color: var(--muted); font-size: .65rem; line-height: 1.45; }
+.program-horizon { margin-top: 14px; overflow: hidden; border: 1px solid rgb(182 238 80 / 24%); border-radius: 12px; background: rgb(182 238 80 / 4%); }
+.program-horizon__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 15px; border-bottom: 1px solid var(--line); }
+.program-horizon__header h3 { margin: 4px 0 8px; font-size: .95rem; }
+.program-horizon__header p:last-child { max-width: 780px; margin: 0; color: var(--muted); font-size: .68rem; line-height: 1.5; }
+.program-horizon__header > span { flex: none; }
+.program-horizon__timeline { display: grid; grid-template-columns: repeat(3, 1fr); }
+.program-horizon__timeline article { display: grid; grid-template-columns: auto minmax(0, 1fr); align-content: start; gap: 10px; padding: 15px; border-left: 1px solid var(--line); }
+.program-horizon__timeline article:first-child { border-left: 0; }
+.program-horizon__icon { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid rgb(97 200 255 / 24%); border-radius: 8px; color: var(--blue); background: rgb(97 200 255 / 5%); }
+.program-horizon__timeline small, .program-horizon__timeline strong { display: block; }
+.program-horizon__timeline small { color: var(--muted); font: 700 .55rem/1.35 ui-monospace, monospace; text-transform: uppercase; }
+.program-horizon__timeline strong { margin-top: 7px; font-size: .74rem; }
+.program-horizon__timeline p { margin: 5px 0 0; color: var(--muted); font-size: .62rem; line-height: 1.45; }
+.program-horizon__evidence { display: grid; grid-template-columns: auto 1fr; gap: 10px; padding: 12px 15px; border-top: 1px solid var(--line); background: rgb(0 0 0 / 12%); }
+.program-horizon__evidence svg { color: var(--lime); }
+.program-horizon__evidence strong, .program-horizon__evidence small { display: block; }
+.program-horizon__evidence strong { font-size: .7rem; }
+.program-horizon__evidence small { margin-top: 4px; color: var(--muted); font-size: .62rem; line-height: 1.45; }
 .next-block-review { margin-top: 14px; overflow: hidden; border: 1px solid rgb(97 200 255 / 30%); border-radius: 12px; background: rgb(97 200 255 / 5%); }
 .next-block-review__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 15px; border-bottom: 1px solid var(--line); }
 .next-block-review__header h3 { margin: 4px 0 6px; font-size: .95rem; }
@@ -1808,6 +1826,10 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .blueprint-movement > .status-chip { grid-column: 2; justify-self: start; }
   .blueprint-movement__change { grid-column: 2; justify-self: start; }
   .block-blueprint__contract { grid-template-columns: 1fr; }
+  .program-horizon__header { flex-direction: column; }
+  .program-horizon__timeline { grid-template-columns: 1fr; }
+  .program-horizon__timeline article { border-left: 0; border-top: 1px solid var(--line); }
+  .program-horizon__timeline article:first-child { border-top: 0; }
   .next-block-review__list { grid-template-columns: 1fr; }
   .next-block-review__list article, .next-block-review__list article:nth-child(-n + 2) { border-top: 1px solid var(--line); }
   .next-block-review__list article:first-child { border-top: 0; }

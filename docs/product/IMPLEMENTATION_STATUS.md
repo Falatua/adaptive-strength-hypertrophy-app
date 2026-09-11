@@ -5,12 +5,22 @@ tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
 updated: 2026-09-10
 status: working-private-alpha
-app_version: 0.83.0
+app_version: 0.84.0
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.84.0 Long-Term Programming Delta
+
+- Adds `program-horizon-v1` with an athlete-facing current mesocycle, multi-block development phase, and training-year framework plus the actual completed-block and recovery decisions recorded in the last twelve months.
+- Keeps annual planning honest by requiring a needs analysis and real endpoint before future phases or dates can be sequenced.
+- Advances `volume-progression-v4` so the final planned round remains accumulation instead of becoming an automatic deload. Recovery still opens through the athlete-approved review flow, while pain and learned ceiling rules retain precedence.
+- Adds `exercise-development-v1` from exact completed performance, stimulus, recovery, technique, pain, and several-week observation. The result ranks future builders and accessories and powers the completed-block movement review without silently changing the active block.
+- Uses continuity and training age for an editable conservative new-block round default and allows an approved recovery round to reduce bodyweight sets without changing the real repetition scheme.
+- Backup schema 32, local persistence 33, completed history, and Supabase authority remain unchanged.
+- Local acceptance covers 591 deterministic tests, all quality and build gates, Pages artifact validation, headed desktop, 390, and 320-wide inspection, zero browser errors or horizontal overflow, and all 168 desktop Chromium, Android-style mobile Chromium, and iPhone WebKit journeys. Workflow, deployment, and live-source verification remain release gates.
 
 ## Private Alpha 0.83.0 Performance-Anchored Progression Delta
 

@@ -149,12 +149,14 @@ export function buildNextMicrocycle(input: NextRoundInput) {
     exercises: input.exercises,
     currentSessions: input.sessions,
     history: input.history,
+    surveys: input.surveys,
     planId: input.plan.id,
     planVersion: input.plan.version,
     startsAt: input.startsAt,
     sessionKeyPrefix: `${input.plan.id}-round-${input.nextMicrocycleNumber}-${input.key}`,
     microcycleNumber: input.nextMicrocycleNumber,
-    equipmentProfile: input.equipmentProfile
+    equipmentProfile: input.equipmentProfile,
+    recoveryRound: input.decision === 'recover'
   })
   if (input.decision !== 'continue-progress') return preview.sessions
   return preview.sessions.map((session) => ({

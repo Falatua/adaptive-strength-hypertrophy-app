@@ -127,4 +127,20 @@ describe('criterion-based cycle review', () => {
 
     expect(pullUp.sets.map((workSet) => workSet.targetReps)).toEqual([6, 6, 5])
   })
+
+  it('reduces bodyweight set count without inventing a repetition jump in an approved recovery round', () => {
+    const home = equipmentProfiles.find((profile) => profile.id === 'equipment-home-gym')!
+    const pullUpHistory = [6, 5, 5].map((reps, setIndex): CompletedSetRecord => ({
+      id: `recovery-pull-ups-${setIndex}`, sessionId: 'recovery-pull-ups', exerciseId: 'pull-up', exerciseName: 'Pull-Up',
+      family: 'Vertical Pull', primaryRegion: 'back', completedAt: '2026-09-08T12:00:00.000Z', reps, load: 0, rir: 2,
+      technique: 4, pain: 0, qualityConfirmed: true, numbersEntered: true, setIndex, loadMode: 'bodyweight'
+    }))
+    const next = buildNextMicrocycle({
+      plan, sessions: datedSessions('completed'), history: pullUpHistory, exercises, decision: 'recover', nextMicrocycleNumber: 2,
+      startsAt: new Date('2026-09-10T12:00:00.000Z'), key: 'bodyweight-recovery', equipmentProfile: home
+    })
+    const pullUp = next.flatMap((session) => session.exercises).find((planned) => planned.exerciseId === 'pull-up')!
+
+    expect(pullUp.sets.map((workSet) => workSet.targetReps)).toEqual([6, 5])
+  })
 })

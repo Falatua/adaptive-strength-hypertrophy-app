@@ -6,6 +6,7 @@ import { applyRepPrescriptionPolicy } from './rep-prescription-policy'
 import { defaultLoadModeFor, loadModeForSet } from './load-mode'
 import { isOpenUnstartedSession } from './planned-session-state'
 import { isComparableExposure } from './set-structure-engine'
+import { assessExerciseDevelopment, exerciseDevelopmentScore } from './exercise-development-engine'
 import {
   HOME_GYM_TRICEPS_PRESS_IDS,
   homeGymAccessoryRegionAllowed,
@@ -26,6 +27,7 @@ import type {
   MesocycleDraft,
   MesocyclePlan,
   PlannedExercise,
+  SurveyRecord,
   TrainingSession
 } from './types'
 
@@ -45,6 +47,7 @@ export interface GenerationContext {
   exercises: Exercise[]
   currentSessions: TrainingSession[]
   history: CompletedSetRecord[]
+  surveys?: SurveyRecord[]
   planId: string
   planVersion: number
   startsAt?: Date
@@ -52,6 +55,7 @@ export interface GenerationContext {
   microcycleNumber?: number
   placementCreatedAt?: string
   equipmentProfile?: EquipmentProfile
+  recoveryRound?: boolean
 }
 
 const adaptationCopy = {
@@ -84,7 +88,17 @@ const homeEquipmentPreferenceScore = (exercise: Exercise, equipmentProfile?: Equ
   return homeGymProgrammingPreference(exercise, equipmentProfile).score
 }
 
-const exerciseScore = (exercise: Exercise, role: 'secondary' | 'accessory', priorityRegions: BodyRegion[], equipmentProfile?: EquipmentProfile) => {
+type ExerciseDevelopmentSelection = Map<string, { score: number; automaticEligible: boolean }>
+
+const exerciseScore = (
+  exercise: Exercise,
+  role: 'secondary' | 'accessory',
+  priorityRegions: BodyRegion[],
+  equipmentProfile?: EquipmentProfile,
+  history: CompletedSetRecord[] = [],
+  surveys: SurveyRecord[] = [],
+  development?: ExerciseDevelopmentSelection
+) => {
   let score = 0
   if (exercise.jointFeeling === 'great') score += 5
   if (exercise.jointFeeling === 'good') score += 3
@@ -94,7 +108,12 @@ const exerciseScore = (exercise: Exercise, role: 'secondary' | 'accessory', prio
   if (role === 'accessory' && exercise.roleTags.includes('accessory')) score += 4
   if (priorityRegions.includes(exercise.primaryRegion)) score += 6
   score += homeEquipmentPreferenceScore(exercise, equipmentProfile)
+  score += development?.get(exercise.id)?.score ?? exerciseDevelopmentScore(assessExerciseDevelopment({ exercise, history, surveys }))
   return score
+}
+
+const automaticExerciseDevelopmentEligible = (exercise: Exercise, history: CompletedSetRecord[], surveys: SurveyRecord[], development?: ExerciseDevelopmentSelection) => {
+  return development?.get(exercise.id)?.automaticEligible ?? !['review', 'change'].includes(assessExerciseDevelopment({ exercise, history, surveys }).action)
 }
 
 function latestCompletedSet(history: CompletedSetRecord[], exerciseId: string) {
@@ -173,7 +192,7 @@ function plannedExercise(
   const routePrescription = routeProfile ? prescriptionForRole(routeProfile, role) : null
   const homeGymProvisional = prior.source === 'home-gym-provisional'
   const exactBodyweight = prior.source === 'completed-history' && prior.loadMode === 'bodyweight'
-  const setCount = homeGymProvisional || exactBodyweight
+  const setCount = homeGymProvisional || (exactBodyweight && !context.recoveryRound)
     ? prior.sets
     : routePrescription?.sets ?? Math.max(2, prior.sets - (reacclimating ? 1 : 0))
   const targetReps = homeGymProvisional || exactBodyweight ? prior.reps : applyRepPrescriptionPolicy({
@@ -216,16 +235,17 @@ function plannedExercise(
   }
 }
 
-function chooseSecondary(anchor: Exercise, exercises: Exercise[], excluded: Set<string>, priorityRegions: BodyRegion[], equipmentProfile?: EquipmentProfile) {
+function chooseSecondary(anchor: Exercise, exercises: Exercise[], excluded: Set<string>, priorityRegions: BodyRegion[], equipmentProfile?: EquipmentProfile, history: CompletedSetRecord[] = [], surveys: SurveyRecord[] = [], development?: ExerciseDevelopmentSelection) {
   return exercises
     .filter((exercise) => !excluded.has(exercise.id) && exercise.jointFeeling !== 'avoid' && !exercise.disliked)
+    .filter((exercise) => automaticExerciseDevelopmentEligible(exercise, history, surveys, development))
     .filter((exercise) => homeGymProgrammingPreference(exercise, equipmentProfile).automaticEligible)
     .filter((exercise) => !equipmentProfile || exerciseEquipmentFit(exercise, equipmentProfile).available)
     .filter((exercise) => exercise.pattern === anchor.pattern || exercise.family === anchor.family)
-    .sort((a, b) => exerciseScore(b, 'secondary', priorityRegions, equipmentProfile) - exerciseScore(a, 'secondary', priorityRegions, equipmentProfile) || a.name.localeCompare(b.name))[0]
+    .sort((a, b) => exerciseScore(b, 'secondary', priorityRegions, equipmentProfile, history, surveys, development) - exerciseScore(a, 'secondary', priorityRegions, equipmentProfile, history, surveys, development) || a.name.localeCompare(b.name))[0]
 }
 
-function chooseAccessories(exercises: Exercise[], excluded: Set<string>, regions: BodyRegion[], count: number, offset: number, equipmentProfile?: EquipmentProfile) {
+function chooseAccessories(exercises: Exercise[], excluded: Set<string>, regions: BodyRegion[], count: number, offset: number, equipmentProfile?: EquipmentProfile, history: CompletedSetRecord[] = [], surveys: SurveyRecord[] = [], development?: ExerciseDevelopmentSelection) {
   if (regions.length === 0 || count === 0) return []
   const rotated = [...regions.slice(offset % regions.length), ...regions.slice(0, offset % regions.length)]
   const selected: Exercise[] = []
@@ -233,29 +253,40 @@ function chooseAccessories(exercises: Exercise[], excluded: Set<string>, regions
     if (selected.length >= count) return
     const match = exercises
       .filter((exercise) => !excluded.has(exercise.id) && !selected.some((item) => item.id === exercise.id) && exercise.jointFeeling !== 'avoid' && !exercise.disliked && exercise.primaryRegion === region)
+      .filter((exercise) => automaticExerciseDevelopmentEligible(exercise, history, surveys, development))
       .filter((exercise) => homeGymProgrammingPreference(exercise, equipmentProfile).automaticEligible)
       .filter((exercise) => !equipmentProfile || exerciseEquipmentFit(exercise, equipmentProfile).available)
-      .sort((a, b) => exerciseScore(b, 'accessory', regions, equipmentProfile) - exerciseScore(a, 'accessory', regions, equipmentProfile) || a.name.localeCompare(b.name))[0]
+      .sort((a, b) => exerciseScore(b, 'accessory', regions, equipmentProfile, history, surveys, development) - exerciseScore(a, 'accessory', regions, equipmentProfile, history, surveys, development) || a.name.localeCompare(b.name))[0]
     if (match) selected.push(match)
   })
   return selected
 }
 
-function chooseNamedHomeGymMovement(exercises: Exercise[], excluded: Set<string>, exerciseId: string, equipmentProfile?: EquipmentProfile) {
+function chooseNamedHomeGymMovement(
+  exercises: Exercise[],
+  excluded: Set<string>,
+  exerciseId: string,
+  equipmentProfile?: EquipmentProfile,
+  history: CompletedSetRecord[] = [],
+  surveys: SurveyRecord[] = [],
+  development?: ExerciseDevelopmentSelection
+) {
   return exercises.find((exercise) => exercise.id === exerciseId
     && !excluded.has(exercise.id)
     && exercise.jointFeeling !== 'avoid'
     && !exercise.disliked
+    && automaticExerciseDevelopmentEligible(exercise, history, surveys, development)
     && homeGymProgrammingPreference(exercise, equipmentProfile).automaticEligible
     && (!equipmentProfile || exerciseEquipmentFit(exercise, equipmentProfile).available))
 }
 
-function chooseHomeGymRow(exercises: Exercise[], excluded: Set<string>, priorityRegions: BodyRegion[], equipmentProfile?: EquipmentProfile) {
+function chooseHomeGymRow(exercises: Exercise[], excluded: Set<string>, priorityRegions: BodyRegion[], equipmentProfile?: EquipmentProfile, history: CompletedSetRecord[] = [], surveys: SurveyRecord[] = [], development?: ExerciseDevelopmentSelection) {
   return exercises
     .filter((exercise) => !excluded.has(exercise.id) && exercise.pattern === 'horizontal-pull' && exercise.primaryRegion === 'back' && exercise.jointFeeling !== 'avoid' && !exercise.disliked)
+    .filter((exercise) => automaticExerciseDevelopmentEligible(exercise, history, surveys, development))
     .filter((exercise) => homeGymProgrammingPreference(exercise, equipmentProfile).automaticEligible)
     .filter((exercise) => !equipmentProfile || exerciseEquipmentFit(exercise, equipmentProfile).available)
-    .sort((a, b) => exerciseScore(b, 'accessory', priorityRegions, equipmentProfile) - exerciseScore(a, 'accessory', priorityRegions, equipmentProfile) || a.name.localeCompare(b.name))[0]
+    .sort((a, b) => exerciseScore(b, 'accessory', priorityRegions, equipmentProfile, history, surveys, development) - exerciseScore(a, 'accessory', priorityRegions, equipmentProfile, history, surveys, development) || a.name.localeCompare(b.name))[0]
 }
 
 function fitToTime(exercises: PlannedExercise[], minutes: number, reservedExerciseIds: Set<string> = new Set()) {
@@ -325,6 +356,10 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     .filter((exercise): exercise is Exercise => Boolean(exercise))
   const requiredExposureCount = Math.max(anchors.length, draft.weeklyOpportunities)
   const startsAt = context.startsAt ?? new Date()
+  const development = new Map(context.exercises.map((exercise) => {
+    const assessment = assessExerciseDevelopment({ exercise, history: context.history, surveys: context.surveys ?? [] })
+    return [exercise.id, { score: exerciseDevelopmentScore(assessment), automaticEligible: !['review', 'change'].includes(assessment.action) }]
+  }))
   const sessions = Array.from({ length: requiredExposureCount }, (_, index) => {
     const anchor = anchors[index % Math.max(1, anchors.length)] ?? context.exercises.find((exercise) => exercise.jointFeeling !== 'avoid')!
     const movementPlacement = isMovementRouteSessionRuleVersion(draft.generationRuleVersion)
@@ -339,7 +374,7 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     draft.movementOverrides
       ?.filter((choice) => choice.sessionIndex === index && choice.slotIndex > 0)
       .forEach((choice) => excluded.add(choice.exerciseId))
-    const secondary = chooseSecondary(anchor, context.exercises, excluded, draft.priorityRegions, context.equipmentProfile)
+    const secondary = chooseSecondary(anchor, context.exercises, excluded, draft.priorityRegions, context.equipmentProfile, context.history, context.surveys, development)
     if (secondary) excluded.add(secondary.id)
     const timeAccessoryCount = draft.defaultMinutes <= 30 ? 1 : draft.defaultMinutes <= 45 ? 2 : 3
     const accessoryCount = routeProfile ? Math.min(timeAccessoryCount, routeProfile.maximumAccessories) : timeAccessoryCount
@@ -347,7 +382,7 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     const automaticPreferenceSlotsOpen = !draft.movementOverrides?.length
     const hasRow = [anchor, secondary].some((exercise) => exercise?.pattern === 'horizontal-pull' && exercise.primaryRegion === 'back')
     if (automaticPreferenceSlotsOpen && !hasRow && homeGymFrequentRowTarget(index, requiredExposureCount, context.equipmentProfile)) {
-      const row = chooseHomeGymRow(context.exercises, excluded, draft.priorityRegions, context.equipmentProfile)
+      const row = chooseHomeGymRow(context.exercises, excluded, draft.priorityRegions, context.equipmentProfile, context.history, context.surveys, development)
       if (row) {
         reservedAccessories.push(row)
         excluded.add(row.id)
@@ -355,7 +390,7 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     }
     const hasInclinePress = [anchor, secondary, ...reservedAccessories].some((exercise) => exercise?.family === 'Incline Press')
     if (automaticPreferenceSlotsOpen && !hasInclinePress && reservedAccessories.length < accessoryCount && homeGymInclinePressTarget(index, requiredExposureCount, context.equipmentProfile)) {
-      const inclinePress = chooseNamedHomeGymMovement(context.exercises, excluded, 'incline-barbell-press', context.equipmentProfile)
+      const inclinePress = chooseNamedHomeGymMovement(context.exercises, excluded, 'incline-barbell-press', context.equipmentProfile, context.history, context.surveys, development)
       if (inclinePress) {
         reservedAccessories.push(inclinePress)
         excluded.add(inclinePress.id)
@@ -363,7 +398,7 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     }
     const hasPullUp = [anchor, secondary, ...reservedAccessories].some((exercise) => exercise?.id === 'pull-up')
     if (automaticPreferenceSlotsOpen && !hasPullUp && reservedAccessories.length < accessoryCount && homeGymPullUpTarget(index, requiredExposureCount, context.equipmentProfile)) {
-      const pullUp = chooseNamedHomeGymMovement(context.exercises, excluded, 'pull-up', context.equipmentProfile)
+      const pullUp = chooseNamedHomeGymMovement(context.exercises, excluded, 'pull-up', context.equipmentProfile, context.history, context.surveys, development)
       if (pullUp) {
         reservedAccessories.push(pullUp)
         excluded.add(pullUp.id)
@@ -372,7 +407,7 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     const tricepsPressId = homeGymTricepsPressId(context.planVersion)
     const hasTricepsPress = [anchor, secondary, ...reservedAccessories].some((exercise) => exercise?.id === tricepsPressId)
     if (automaticPreferenceSlotsOpen && !hasTricepsPress && reservedAccessories.length < accessoryCount && homeGymTricepsPressTarget(index, requiredExposureCount, context.equipmentProfile)) {
-      const tricepsPress = chooseNamedHomeGymMovement(context.exercises, excluded, tricepsPressId, context.equipmentProfile)
+      const tricepsPress = chooseNamedHomeGymMovement(context.exercises, excluded, tricepsPressId, context.equipmentProfile, context.history, context.surveys, development)
       if (tricepsPress) {
         reservedAccessories.push(tricepsPress)
         HOME_GYM_TRICEPS_PRESS_IDS.forEach((exerciseId) => excluded.add(exerciseId))
@@ -382,9 +417,9 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
     const allowedPriorityRegions = draft.priorityRegions.filter((region) => homeGymAccessoryRegionAllowed(region, index, requiredExposureCount, context.equipmentProfile))
     const allowedMaintenanceRegions = draft.maintenanceRegions.filter((region) => homeGymAccessoryRegionAllowed(region, index, requiredExposureCount, context.equipmentProfile))
     const priorityCount = Math.min(remainingAccessoryCount, Math.max(1, remainingAccessoryCount - 1))
-    const priorityAccessories = chooseAccessories(context.exercises, excluded, allowedPriorityRegions, priorityCount, index, context.equipmentProfile)
+    const priorityAccessories = chooseAccessories(context.exercises, excluded, allowedPriorityRegions, priorityCount, index, context.equipmentProfile, context.history, context.surveys, development)
     priorityAccessories.forEach((exercise) => excluded.add(exercise.id))
-    const maintenanceAccessories = chooseAccessories(context.exercises, excluded, allowedMaintenanceRegions, remainingAccessoryCount - priorityAccessories.length, index, context.equipmentProfile)
+    const maintenanceAccessories = chooseAccessories(context.exercises, excluded, allowedMaintenanceRegions, remainingAccessoryCount - priorityAccessories.length, index, context.equipmentProfile, context.history, context.surveys, development)
     const accessories = [...reservedAccessories, ...priorityAccessories, ...maintenanceAccessories]
     const suggestedExercisePlan = [
       plannedExercise(anchor, 'primary', routeProfile?.strategy ?? adaptationCopy[draft.dominantAdaptation].primary, sessionKey, context, draft.dominantAdaptation, routeProfile),
@@ -487,6 +522,7 @@ export function buildMesocyclePreview(draft: MesocycleDraft, context: Generation
         `Home Gym pressing favors ABX incline work over general flat assistance and rotates one targeted triceps exception by block: ${context.exercises.find((exercise) => exercise.id === homeGymTricepsPressId(context.planVersion))?.name ?? 'Two-Board, Close-Grip, or Spoto Press'}.`
       ] : []),
       ...(draft.movementOverrides?.length ? [`${draft.movementOverrides.length} athlete-approved movement or incline choice${draft.movementOverrides.length === 1 ? '' : 's'} will repeat in each generated training round until the block is revised.`] : []),
+      'Completed stimulus, recovery, joint response, technique, and performance evidence rank suggested builders and accessories. Movements remain stable during the block, and only athlete approval changes them.',
       ...(context.equipmentProfile ? [
         `${context.equipmentProfile.name} filters secondary and accessory choices before generation and supplies executable ${context.equipmentProfile.incrementUnit} load increments.`,
         ...anchors.filter((anchor) => !exerciseEquipmentFit(anchor, context.equipmentProfile!).available).map((anchor) => `${anchor.name} remains protected but needs equipment review: ${exerciseEquipmentFit(anchor, context.equipmentProfile!).missing.join(', ')}.`)

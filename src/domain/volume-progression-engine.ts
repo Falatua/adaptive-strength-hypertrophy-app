@@ -3,7 +3,7 @@ import { muscleQuestionId } from './survey-engine'
 import { isComparableExposure } from './set-structure-engine'
 import type { CompletedSetRecord, Exercise, MuscleId, SurveyRecord } from './types'
 
-export const VOLUME_PROGRESSION_RULE = 'volume-progression-v3'
+export const VOLUME_PROGRESSION_RULE = 'volume-progression-v4'
 
 /**
  * Weekly working-set landmarks per muscle, in the Renaissance Periodization sense:
@@ -133,20 +133,23 @@ export function decideMuscleVolume(input: {
     return decision('reduce-sets', Math.min(input.currentSets, Math.max(landmarks.mv, input.currentSets - 2)), 'high')
   }
 
-  // The last planned week of a mesocycle is the deload, and the ceiling forces one early.
+  // A recoverable ceiling can force an early deload. The final planned accumulation round cannot:
+  // recovery is an explicit athlete-approved decision after the round, not a hidden calendar rule.
   const atCeiling = input.currentSets >= landmarks.mrv
-  const finalWeek = input.microcycleNumber >= input.targetMicrocycles && input.currentSets > 0
-  if (atCeiling || finalWeek) {
+  if (atCeiling) {
     const deloadSets = Math.min(input.currentSets, landmarks.mev)
-    reasons.push(atCeiling
-      ? `Weekly sets reached the provisional ${landmarks.mrv} ceiling. The deload suggestion falls to ${deloadSets} sets so the next block starts productive rather than buried.`
-      : `This is the last planned round of the block. The deload suggestion falls to ${deloadSets} sets so accumulated fatigue can clear without adding work.`)
+    reasons.push(`Weekly sets reached the provisional ${landmarks.mrv} ceiling. The deload suggestion falls to ${deloadSets} sets so the next block starts productive rather than buried.`)
     return decision('deload', deloadSets, 'high')
   }
 
   if (volumeFit !== null && volumeFit >= 4) {
     reasons.push('The athlete marked the completed movement volume as too much, so the next suggestion removes one set while keeping the decision available for review.')
     return decision('reduce-sets', Math.min(input.currentSets, Math.max(landmarks.mv, input.currentSets - 1)), 'high')
+  }
+
+  if (input.microcycleNumber >= input.targetMicrocycles && input.currentSets > 0) {
+    reasons.push('This is the final planned accumulation round. Set volume holds instead of becoming a hidden deload; the completed round then opens an explicit outcome and recovery review.')
+    return decision('hold', input.currentSets, 'high')
   }
 
   if (unknownInputs.length >= 3) {

@@ -135,16 +135,16 @@ describe('decideMuscleVolume', () => {
     expect(result.nextSets).toBe(landmarks.mev)
   })
 
-  it('deloads on the final planned week of the block', () => {
+  it('holds the final planned accumulation round and opens recovery review afterward', () => {
     const result = decide({ microcycleNumber: 4, targetMicrocycles: 4 })
-    expect(result.action).toBe('deload')
-    expect(result.reasons[0]).toContain('last planned round')
+    expect(result.action).toBe('hold')
+    expect(result.reasons[0]).toContain('final planned accumulation round')
   })
 
-  it('never turns a deload into added sets when the final week was already light', () => {
+  it('never turns a light final accumulation round into added sets', () => {
     const result = decide({ currentSets: 4, microcycleNumber: 4, targetMicrocycles: 4 })
-    expect(result.action).toBe('deload')
-    expect(result.nextSets).toBeLessThanOrEqual(4)
+    expect(result.action).toBe('hold')
+    expect(result.nextSets).toBe(4)
   })
 
   it('does not manufacture a deload from a missed final round with zero completed sets', () => {
@@ -187,7 +187,7 @@ describe('decideMuscleVolume', () => {
   it('always explains itself and never returns a bare number', () => {
     const result = decide()
     expect(result.reasons.length).toBeGreaterThan(0)
-    expect(result.ruleVersion).toBe('volume-progression-v3')
+    expect(result.ruleVersion).toBe('volume-progression-v4')
   })
 })
 
