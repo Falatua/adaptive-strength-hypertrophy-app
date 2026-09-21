@@ -22,7 +22,7 @@
     "check": "npm run qc:ui && npm run qc:images && npm run qc:backend && npm run qc:cloud-data && npm run qc:cloud-release && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.112.3",
+    "@supabase/supabase-js": "^2.116.0",
     "@vitejs/plugin-react": "latest",
     "date-fns": "latest",
     "lucide-react": "latest",
@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@eslint/js": "latest",
-    "@playwright/test": "^1.62.1",
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "latest",
     "@testing-library/react": "latest",
     "@types/node": "latest",
