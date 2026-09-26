@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { backupStateFrom, createBackup, parseBackup } from '../domain/backup'
 import { athlete, equipmentProfiles, exercises, history, mesocycles, records, sessions } from '../domain/seed'
 import { useAppStore } from './useAppStore'
+import { parseCloudSnapshotRow } from '../services/cloud-sync'
+import type { Json } from '../services/supabase.types'
 
 describe('clean first-use state', () => {
   beforeEach(() => useAppStore.getState().resetForTesting())
@@ -247,6 +249,46 @@ describe('clean first-use state', () => {
     useAppStore.getState().finishSession(session.id, { answers: [], skipped: true, mode: 'off' })
     expect(useAppStore.getState().history).toHaveLength(2)
     expect(useAppStore.getState().history.every((workSet) => workSet.qualityConfirmed && workSet.technique === 5 && workSet.pain === 4)).toBe(true)
+    expect(() => parseBackup(JSON.stringify(createBackup(backupStateFrom(useAppStore.getState()))))).not.toThrow()
+  })
+
+  it.each(['unlog', 'skip'] as const)('reloads feedback after a set correction (%s) without applying stale quality evidence', (correction) => {
+    const session = {
+      id: 'movement-feedback-session', title: 'Movement feedback session', objective: 'Keep feedback exact.', dayLabel: 'Today',
+      plannedDate: '2026-08-27T12:00:00.000Z', status: 'active' as const, durationMinutes: 45,
+      exercises: [{
+        id: 'movement-feedback-bench', exerciseId: 'competition-bench', role: 'primary' as const, purpose: 'Bench.', restSeconds: 180, estimatedMinutes: 15, optional: false,
+        sets: Array.from({ length: 2 }, (_, index) => ({ id: `movement-feedback-set-${index + 1}`, targetLoad: 135, targetReps: 8, targetRir: 2, completed: true, completedLoad: 135, completedReps: 8, actualRir: 2, valuesEntered: true }))
+      }]
+    }
+    useAppStore.setState({ sessions: [session], activeSessionId: session.id, workoutVisible: true })
+    const result = useAppStore.getState().recordMovementFeedback(session.id, session.exercises[0].id, [
+      { id: 'movementPain', value: 4, status: 'answered' },
+      { id: 'movementTechnique', value: 5, status: 'answered' },
+      { id: 'volumeFit', value: 3, status: 'answered' }
+    ], 'Shoulder changed the setup.', false)
+
+    expect(result.ok).toBe(true)
+    expect(useAppStore.getState().sessions[0].painStatus).toBe('changed-training')
+    expect(useAppStore.getState().surveys[0]).toMatchObject({
+      type: 'movement', plannedExerciseId: session.exercises[0].id, exerciseId: 'competition-bench',
+      sourceSetIds: ['movement-feedback-set-1', 'movement-feedback-set-2'], note: 'Shoulder changed the setup.'
+    })
+
+    if (correction === 'unlog') useAppStore.getState().toggleSetComplete(session.id, session.exercises[0].id, session.exercises[0].sets[0].id)
+    else useAppStore.getState().skipSet(session.id, session.exercises[0].id, session.exercises[0].sets[0].id, true)
+    const before = backupStateFrom(useAppStore.getState())
+    const backup = createBackup(before)
+    const restored = parseCloudSnapshotRow({
+      payload: backup as unknown as Json, version: 7, updated_at: backup.exportedAt,
+      checksum: backup.integrity.value, schema_version: backup.schemaVersion, app_version: backup.appVersion
+    }).backup.data
+    expect(restored.sessions).toEqual(before.sessions)
+    expect(restored.surveys).toEqual(before.surveys)
+    expect(restored.history).toEqual(before.history)
+    useAppStore.getState().finishSession(session.id, { answers: [], skipped: true, mode: 'off' })
+    expect(useAppStore.getState().history).toHaveLength(1)
+    expect(useAppStore.getState().history.every((workSet) => !workSet.qualityConfirmed)).toBe(true)
     expect(() => parseBackup(JSON.stringify(createBackup(backupStateFrom(useAppStore.getState()))))).not.toThrow()
   })
 

@@ -3,14 +3,24 @@ type: implementation-status
 aliases: [ForgePath Private Alpha, Adaptive Training App Private Alpha]
 tags: [fitness, app, private-alpha, implementation, qa]
 created: 2026-08-10
-updated: 2026-09-10
+updated: 2026-09-26
 status: working-private-alpha
-app_version: 0.84.0
+app_version: 0.84.1
 project: "[[Adaptive Strength and Hypertrophy App]]"
 confidence: verified
 ---
 
 # Private Alpha Implementation 2026-08-10
+
+## Private Alpha 0.84.1 Movement Feedback Restore Fix
+
+- Reproduced the reported exact-movement provenance error by saving movement feedback and then unlogging or skipping a referenced set.
+- Validates immutable set ownership independently of the current completion checkbox, retaining original feedback, session state, history, and checksums. Unknown set IDs and cross-movement feedback remain rejected.
+- Requires feedback to match current completed sets before it can confirm quality at workout completion.
+- Replaces speculative stale-installation guidance with accurate retry/update guidance. Inactivity is not a validation failure.
+- Regression coverage exercises the real store actions, cloud snapshot parser, preservation of original state, and stale-quality boundary.
+- Corrects an unrelated backup test that compared date-relative seed history against an expired fixed assessment date.
+- The user's exact private cloud record and installed phone remain unverified because the available Mac browser is signed out. Do not represent the reproduction as proof of the user's exact preceding action.
 
 ## Private Alpha 0.84.0 Long-Term Programming Delta
 

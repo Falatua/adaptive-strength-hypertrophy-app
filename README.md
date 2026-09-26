@@ -1,6 +1,8 @@
-# ForgePath Private Alpha 0.84.0
+# ForgePath Private Alpha 0.84.1
 
 ForgePath is an athlete-controlled adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed. The hosted private alpha uses Supabase as the authoritative training store; local development keeps a browser-only test mode.
+
+Private alpha 0.84.1 fixes cloud reload after a logged set is unchecked or skipped following movement feedback. The loader retains the original feedback and set identities without requiring every referenced set to remain completed. Stale feedback cannot confirm completed-set quality, and the load-error guidance no longer assumes inactivity or an outdated installation caused the problem. Backup schema 32 and stored training are unchanged.
 
 Private alpha 0.84.0 connects the current training block to multi-block and yearly planning without inventing a calendar the athlete has not chosen. The Plan view now explains the current mesocycle stage, the purpose of a multi-block development phase, and the training-year rule to work backward from a real endpoint. The final planned round remains an accumulation round instead of silently becoming a deload, after which ForgePath opens an athlete-approved outcome and recovery review. Exercise development now uses repeated exact movement performance, stimulus, recovery, technique, joint response, preferences, and equipment fit to rank future builders and accessories while keeping the active block stable. A new block defaults to a conservative training-age and continuity-informed round count, and an approved recovery round can reduce bodyweight set count without inventing a repetition jump. Backup schema 32, local persistence 33, completed history, and Supabase authority are unchanged.
 

@@ -68,6 +68,8 @@ Bodyweight records use repetitions and completed set totals. The product shows t
 
 When the athlete logs the final set of an exact movement, ForgePath opens a short inline check inside that movement card. It asks about joint response, technique consistency, target stimulus, load and repetition fit, and hard-set volume. Recovery from the last exact exposure appears only when that exact movement has prior history. The check is optional, may be skipped, and preserves every unanswered item as unknown.
 
+Saved movement feedback remains readable when its referenced sets are later unchecked or skipped. Restore validates the identities of the referenced sets, while feedback freshness is checked separately before confirming completed-set quality. A stale feedback report must never block the entire training journal from loading.
+
 Movement feedback is attached to the exact planned movement, canonical exercise, completed source-set IDs, and one common recorded bench angle when the completed sets share it. A response about leg press never becomes squat evidence, and feedback from one incline angle never silently validates another setup. Adding work after answering makes the prior response visibly stale and offers an update.
 
 The completed set remains the primary progression signal. Pain that changed training blocks overload and added volume for the affected movement. A load marked too heavy or technique marked broken down holds the next load or repetition increase. `At my limit` caps set increases, `Too much` supports a one-set reduction, and `Could do more` supports an added-set proposal only when comparable performance and later recovery also agree. `Just right` holds set count while load or repetition progression may continue separately.

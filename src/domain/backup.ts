@@ -34,7 +34,7 @@ import { hasUnstartedSessionTrainingState, resetUnstartedSessionTrainingState } 
 
 export const BACKUP_FORMAT = 'forgepath-backup'
 export const BACKUP_SCHEMA_VERSION = 32
-export const BACKUP_APP_VERSION = '0.84.0'
+export const BACKUP_APP_VERSION = '0.84.1'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',
@@ -550,7 +550,10 @@ function validateState(candidate: unknown, migrateLegacyState = false): asserts 
         ? sourceSession.exercises.find((candidate) => isRecord(candidate) && candidate.id === survey.plannedExerciseId)
         : undefined
       const plannedSets = isRecord(planned) && Array.isArray(planned.sets) ? planned.sets : []
-      const plannedSetIds = new Set(plannedSets.flatMap((workSet) => isRecord(workSet) && workSet.completed === true && typeof workSet.id === 'string' ? [workSet.id] : []))
+      // Feedback is an immutable report about these set identities at save time.
+      // Unlogging/skipping a set later makes that report stale, not corrupt.
+      // Freshness belongs to the feedback consumer, not whole-journal restore.
+      const plannedSetIds = new Set(plannedSets.flatMap((workSet) => isRecord(workSet) && typeof workSet.id === 'string' ? [workSet.id] : []))
       if (survey.ruleVersion !== 'movement-feedback-v1' || !isRecord(planned) || survey.exerciseId !== planned.exerciseId || typeof survey.exerciseName !== 'string' || !Array.isArray(survey.sourceSetIds) || survey.sourceSetIds.length === 0 || new Set(survey.sourceSetIds).size !== survey.sourceSetIds.length || survey.sourceSetIds.some((id) => typeof id !== 'string' || !plannedSetIds.has(id))) errors.push('A movement feedback record has invalid exact-movement provenance.')
       if (survey.benchAngleDeg !== undefined && survey.benchAngleDeg !== null && (!Number.isFinite(survey.benchAngleDeg) || Number(survey.benchAngleDeg) < 0 || Number(survey.benchAngleDeg) > 90)) errors.push('A movement feedback record has an invalid bench angle.')
       if (survey.note !== undefined && (typeof survey.note !== 'string' || survey.note.length > 500)) errors.push('A movement feedback record has an invalid note.')

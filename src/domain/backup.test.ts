@@ -223,6 +223,15 @@ describe('versioned backup and restore', () => {
     }]
     const parsed = parseBackup(JSON.stringify(createBackup(current)))
     expect(parsed.backup.data.surveys[0]).toMatchObject({ type: 'movement', exerciseId: exercise.id, note: 'Repeat this setup.' })
+    // Feedback describes work as recorded at the time, even if a set is later unlogged.
+    planned.sets[0].completed = false
+    const corrected = parseBackup(JSON.stringify(createBackup(current)))
+    expect(corrected.backup.data.surveys).toEqual(current.surveys)
+    expect(corrected.backup.data.sessions).toEqual(current.sessions)
+    expect(corrected.backup.data.history).toEqual(current.history)
+    current.surveys[0].exerciseId = current.exercises.find((item) => item.id !== exercise.id)!.id
+    expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/exact-movement provenance/i)
+    current.surveys[0].exerciseId = exercise.id
     current.surveys[0].sourceSetIds = ['forged-set']
     expect(() => parseBackup(JSON.stringify(createBackup(current)))).toThrow(/exact-movement provenance/i)
   })
@@ -839,7 +848,7 @@ describe('versioned backup and restore', () => {
   it('round-trips athlete-reviewed history placement and rejects unknown or cross-movement source evidence', () => {
     const current = state()
     const bench = current.exercises.find((exercise) => exercise.id === 'competition-bench')!
-    const evidence = buildPlacementHistoryEvidence({ exercise: bench, history: current.history, assessedAt: '2026-08-10T18:00:00.000Z' })
+    const evidence = buildPlacementHistoryEvidence({ exercise: bench, history: current.history, assessedAt: new Date().toISOString() })
     const priorProfiles = current.athlete.placement.inputs.movementProfiles!
     const placement = buildPlacementAssessment({
       ...current.athlete.placement.inputs,

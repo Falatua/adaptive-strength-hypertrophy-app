@@ -23,7 +23,7 @@ import { buildDropSet, buildMyoReps, canPairForSuperset, structureAllowedForRole
 import { sameJsonValue } from '../domain/stable-json'
 import { buildHistoricalPerformance, type HistoricalPerformanceInput } from '../domain/history-entry-engine'
 import { applyWorkoutSetEntry, hasEnteredLoadAndReps, hasEnteredRir } from '../domain/set-entry-autofill'
-import { latestMovementFeedback, movementFeedbackMode, movementFeedbackPreview, movementFeedbackValue } from '../domain/movement-feedback-engine'
+import { latestMovementFeedback, movementFeedbackMatchesCompletedSets, movementFeedbackMode, movementFeedbackPreview, movementFeedbackValue } from '../domain/movement-feedback-engine'
 import { loadModeForSet } from '../domain/load-mode'
 import { hasUnstartedSessionTrainingState, resetUnstartedSessionTrainingState } from '../domain/planned-session-state'
 import type {
@@ -789,7 +789,7 @@ export const useAppStore = create<AppState>()(
           // The older broad post-session quality answer remains a fallback only for sessions that never
           // entered the movement-feedback flow at all.
           const qualityConfirmed = movementFeedback
-            ? !movementFeedback.skipped && movementTechnique !== null && movementPain !== null
+            ? !movementFeedback.skipped && movementFeedbackMatchesCompletedSets(movementFeedback, plannedExercise) && movementTechnique !== null && movementPain !== null
             : !sessionHasMovementFeedback && !feedback.deferred && typeof postTechniqueAnswer?.value === 'number' && typeof postPainAnswer?.value === 'number'
           const technique = qualityConfirmed ? Number(movementTechnique ?? postTechniqueAnswer?.value ?? 0) : 0
           const pain = qualityConfirmed ? Number(movementPain ?? postPainAnswer?.value ?? 0) : 0

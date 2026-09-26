@@ -91,7 +91,7 @@ describe('cloud load failure recovery', () => {
     render(<CloudLoading error="Athlete placement is invalid." retry={retry} refresh={refresh} signOut={signOut} recover={recover} />)
 
     expect(screen.getByRole('heading', { name: 'Cloud data did not load' })).toBeInTheDocument()
-    expect(screen.getByText(/older copy of ForgePath/i)).toBeInTheDocument()
+    expect(screen.getByText(/saved data needs a compatibility fix/i)).toBeInTheDocument()
     expect(screen.getByText(/saved training is not touched/i)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
