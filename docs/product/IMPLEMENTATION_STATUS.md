@@ -19,7 +19,7 @@ confidence: verified
 - Requires feedback to match current completed sets before it can confirm quality at workout completion.
 - Replaces speculative stale-installation guidance with accurate retry/update guidance. Inactivity is not a validation failure.
 - Regression coverage exercises the real store actions, cloud snapshot parser, preservation of original state, and stale-quality boundary.
-- Corrects an unrelated backup test that compared date-relative seed history against an expired fixed assessment date.
+- Corrects unrelated backup and browser-test fixtures whose fixed August dates had aged outside the recent-history window. Local validation passed 593 deterministic tests and all 168 browser journeys across the full run plus the three corrected-fixture reruns; production and Pages artifact gates passed.
 - The user's exact private cloud record and installed phone remain unverified because the available Mac browser is signed out. Do not represent the reproduction as proof of the user's exact preceding action.
 
 ## Private Alpha 0.84.0 Long-Term Programming Delta

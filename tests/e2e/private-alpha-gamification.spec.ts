@@ -1278,11 +1278,13 @@ test('turns imported exact history into athlete-reviewed placement evidence with
   await page.reload()
   await page.getByRole('button', { name: 'Library' }).click()
   await page.getByRole('button', { name: 'Import history' }).click()
+  // Keep the recent-history fixture inside the 42-day window as the calendar advances.
+  const recentDate = (daysAgo: number) => new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10)
   const csv = [
     'date,exercise,load,reps,rir,session',
-    '2026-08-01,Bench,185,5,2,Upper A', '2026-08-01,Bench,185,5,2,Upper A',
-    '2026-08-04,Bench,190,5,2,Upper A', '2026-08-04,Bench,190,5,2,Upper A',
-    '2026-08-07,Bench,195,5,2,Upper A', '2026-08-07,Bench,195,5,2,Upper A'
+    `${recentDate(9)},Bench,185,5,2,Upper A`, `${recentDate(9)},Bench,185,5,2,Upper A`,
+    `${recentDate(6)},Bench,190,5,2,Upper A`, `${recentDate(6)},Bench,190,5,2,Upper A`,
+    `${recentDate(3)},Bench,195,5,2,Upper A`, `${recentDate(3)},Bench,195,5,2,Upper A`
   ].join('\n')
   await page.getByLabel('Training history CSV').setInputFiles({ name: 'recent-bench.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) })
   await page.getByRole('button', { name: 'Import validated sets' }).click()
