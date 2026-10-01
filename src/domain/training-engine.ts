@@ -83,7 +83,7 @@ export function recommendProgression(input: ProgressionInput): ProgressionDecisi
     .filter((survey) => survey.type === 'post' && survey.sessionId === sourceSessionId)
     .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0]
   const movementFeedback = sourcePlannedExerciseId ? [...(input.surveys ?? [])]
-    .filter((survey) => survey.type === 'movement' && survey.sessionId === sourceSessionId && survey.plannedExerciseId === sourcePlannedExerciseId)
+    .filter((survey) => survey.type === 'movement' && survey.sessionId === sourceSessionId && survey.plannedExerciseId === sourcePlannedExerciseId && survey.exerciseId === recent[0]?.exerciseId)
     .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0] : undefined
   const answerFrom = (survey: SurveyRecord | undefined, id: string) => {
     const found = survey?.answers.find((candidate) => candidate.id === id && candidate.status === 'answered')

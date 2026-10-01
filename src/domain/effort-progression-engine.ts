@@ -42,7 +42,7 @@ export function recommendNextTargetRir(input: {
   const latest = exact.filter((workSet) => workSet.sessionId === latestSessionId)
   const plannedExerciseId = latest[0]?.plannedExerciseId
   const feedback = [...input.surveys]
-    .filter((survey) => survey.type === 'movement' && survey.sessionId === latestSessionId && survey.plannedExerciseId === plannedExerciseId)
+    .filter((survey) => survey.type === 'movement' && survey.sessionId === latestSessionId && survey.plannedExerciseId === plannedExerciseId && survey.exerciseId === input.priorPlanned?.exerciseId)
     .sort((left, right) => new Date(left.completedAt).getTime() - new Date(right.completedAt).getTime())
     .at(-1)
   if (!feedback || feedback.skipped) return hold('Exact-movement feedback is still unknown, so the effort target holds.')

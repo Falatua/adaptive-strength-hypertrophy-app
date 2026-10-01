@@ -32,10 +32,17 @@ describe('movement feedback provenance', () => {
     ruleVersion: 'movement-feedback-v1', plannedExerciseId: 'planned-1', exerciseId: 'bench', exerciseName: 'Bench Press', sourceSetIds
   })
 
+  it('does not apply feedback to a different movement using the same workout slot', () => {
+    const original = survey('original', '2026-08-27T12:00:00.000Z', ['set-1', 'set-2'])
+    const replacement = { ...planned, exerciseId: 'incline-bench' }
+    expect(latestMovementFeedback([original], 'session-1', 'planned-1', 'incline-bench')).toBeUndefined()
+    expect(movementFeedbackMatchesCompletedSets(original, replacement)).toBe(false)
+  })
+
   it('selects the latest response and proves which completed set list it described', () => {
     const first = survey('first', '2026-08-27T12:00:00.000Z', ['set-1'])
     const latest = survey('latest', '2026-08-27T12:01:00.000Z', ['set-1', 'set-2'])
-    expect(latestMovementFeedback([latest, first], 'session-1', 'planned-1')?.id).toBe('latest')
+    expect(latestMovementFeedback([latest, first], 'session-1', 'planned-1', 'bench')?.id).toBe('latest')
     expect(movementFeedbackMatchesCompletedSets(latest, planned)).toBe(true)
     expect(movementFeedbackMatchesCompletedSets(first, planned)).toBe(false)
   })

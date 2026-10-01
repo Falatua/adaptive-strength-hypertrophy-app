@@ -44,7 +44,7 @@ export function buildMovementProgressPath(input: {
     readiness: session.readiness ?? 'confirm',
     asOf: session.startedAt ?? session.plannedDate
   })
-  const feedback = latestMovementFeedback(surveys, session.id, planned.id)
+  const feedback = latestMovementFeedback(surveys, session.id, planned.id, planned.exerciseId)
   const painAnswer = feedback?.answers.find((answer) => answer.id === 'pain' && answer.status === 'answered')
   const protection = session.painStatus === 'changed-training'
     || ['protect', 'pain-aware'].includes(session.readiness ?? '')

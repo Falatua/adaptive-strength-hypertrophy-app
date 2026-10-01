@@ -405,7 +405,7 @@ export function WorkoutScreen({ sessionId }: { sessionId: string }) {
             const currentMovementNote = movementNotes.find((note) => note.sessionId === session.id && note.plannedExerciseId === planned.id && note.exerciseId === exercise.id)
             const priorMovementNote = movementNotesForExercise(movementNotes, exercise.id).find((note) => note.id !== currentMovementNote?.id)
             const movementComplete = planned.sets.length > 0 && planned.sets.every((workSet) => workSet.completed)
-            const savedMovementFeedback = latestMovementFeedback(surveys, session.id, planned.id)
+            const savedMovementFeedback = latestMovementFeedback(surveys, session.id, planned.id, planned.exerciseId)
             const feedbackMatchesCurrentSets = movementFeedbackMatchesCompletedSets(savedMovementFeedback, planned)
             const techniqueSuggestion = techniqueCandidateIds.has(planned.id)
               ? settings.availableMinutes <= 45

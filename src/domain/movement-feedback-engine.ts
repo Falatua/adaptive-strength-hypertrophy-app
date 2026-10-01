@@ -102,10 +102,11 @@ export function movementFeedbackMode(mode: EffectiveSurveyMode | 'ask'): Effecti
 export function latestMovementFeedback(
   surveys: SurveyRecord[],
   sessionId: string,
-  plannedExerciseId: string
+  plannedExerciseId: string,
+  exerciseId: string
 ): SurveyRecord | undefined {
   return surveys
-    .filter((survey) => survey.type === 'movement' && survey.sessionId === sessionId && survey.plannedExerciseId === plannedExerciseId)
+    .filter((survey) => survey.type === 'movement' && survey.sessionId === sessionId && survey.plannedExerciseId === plannedExerciseId && survey.exerciseId === exerciseId)
     .sort((a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime())
     .at(-1)
 }
@@ -116,7 +117,7 @@ export function movementFeedbackValue(survey: SurveyRecord | undefined, id: Move
 }
 
 export function movementFeedbackMatchesCompletedSets(survey: SurveyRecord | undefined, planned: PlannedExercise): boolean {
-  if (!survey?.sourceSetIds) return false
+  if (!survey?.sourceSetIds || survey.exerciseId !== planned.exerciseId || survey.plannedExerciseId !== planned.id) return false
   const completed = planned.sets.filter((workSet) => workSet.completed).map((workSet) => workSet.id).sort()
   return completed.length > 0 && completed.join('|') === [...survey.sourceSetIds].sort().join('|')
 }

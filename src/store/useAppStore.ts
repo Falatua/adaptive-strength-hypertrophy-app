@@ -782,7 +782,7 @@ export const useAppStore = create<AppState>()(
           const exercise = state.exercises.find((candidate) => candidate.id === plannedExercise.exerciseId)
           const original = plannedExercise.substitutedFrom ? state.exercises.find((candidate) => candidate.id === plannedExercise.substitutedFrom) : undefined
           if (!exercise) return []
-          const movementFeedback = latestMovementFeedback(state.surveys, sessionId, plannedExercise.id)
+          const movementFeedback = latestMovementFeedback(state.surveys, sessionId, plannedExercise.id, plannedExercise.exerciseId)
           const movementTechnique = movementFeedbackValue(movementFeedback, 'movementTechnique')
           const movementPain = movementFeedbackValue(movementFeedback, 'movementPain')
           // Once any exact-movement feedback is used, missing or skipped movement answers remain unknown.

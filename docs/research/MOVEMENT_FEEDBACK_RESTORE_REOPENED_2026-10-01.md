@@ -1,0 +1,9 @@
+# Reopened movement-feedback cloud-load incident, 2026-10-01
+
+The user reports the same blocking error after the 0.84.1 release. The live source marker still matches `0fcf73f7a18986654e9f2b563633ae8fa7e95c72`. Whether the phone installed that version is not yet confirmed. The actual account snapshot has not been inspected because the Supabase management login has expired. The user was asked to finish the Supabase GitHub sign-in in Chrome. Do not describe the account as repaired based on synthetic tests.
+
+A second real store-action reproduction saves movement feedback, substitutes the exercise occupying that workout slot, and restores through `parseCloudSnapshotRow`. The current release rejects the feedback with the exact reported provenance error, although the substitution ledger retains its original prescription.
+
+The prepared correction accepts only an exact original prescription with the same session, planned slot, exercise, and complete source-set membership, recorded no earlier than the feedback. It neither combines source snapshots nor changes the feedback. Forged identity, missing sets, and invalid chronology remain rejected. Feedback selection now also requires the canonical exercise identity, so a reused slot cannot apply the original movement's answers to its replacement.
+
+Validation: six focused suites passed before the expanded adversarial tests. The full run passed 593 of 595 tests with two PlanScreen timeouts; all five PlanScreen tests passed in the isolated rerun. Boundary checks, lint, TypeScript, and production build passed. No schema change, backend write, account reset, or deletion was performed. Browser release gates and actual-snapshot validation remain pending. This branch is a prepared repair, not a verified resolution of the user's account.
