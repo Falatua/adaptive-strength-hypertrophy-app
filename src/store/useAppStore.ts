@@ -351,6 +351,7 @@ export const useAppStore = create<AppState>()(
         const equipmentProfile = state.equipmentProfiles.find((candidate) => candidate.id === state.settings.activeEquipmentProfileId) ?? state.equipmentProfiles[0]
         const startedAt = new Date().toISOString()
         const sourceSession = state.sessions.find((session) => session.id === sessionId)
+        if (!sourceSession || !['planned', 'deferred', 'active'].includes(sourceSession.status)) return {}
         const repairedUnstartedState = sourceSession ? hasUnstartedSessionTrainingState(sourceSession) : false
         const movementPlacement = sourceSession?.generation?.movementPlacement
         const laneKey = movementPlacement?.exerciseId ?? 'plan'
@@ -413,6 +414,7 @@ export const useAppStore = create<AppState>()(
         return { ok: true }
       },
       setReadiness: (sessionId, answers, skipped, mode) => set((state) => {
+        if (!state.sessions.some((session) => session.id === sessionId && ['planned', 'deferred', 'active'].includes(session.status))) return {}
         const evidence = summarizeSurveyEvidence(answers, skipped)
         const readiness = skipped || evidence.answeredCount === 0 ? undefined : readinessFromSurvey(answers, state.athlete.continuity)
         return {

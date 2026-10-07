@@ -2146,3 +2146,25 @@ test('warns before finishing with unlogged work and records a deliberate skip', 
   await page.getByRole('button', { name: 'Finish anyway' }).click()
   await expect(page.getByRole('heading', { name: 'Before you finish' })).toBeHidden()
 })
+
+
+test('an exhausted queue opens plan review without restarting completed workouts', async ({ page }) => {
+  await enterRecommendedProfile(page)
+  await page.evaluate(() => {
+    const key = 'forgepath-private-alpha-v1'
+    const persisted = JSON.parse(localStorage.getItem(key) ?? '{}')
+    persisted.state.activeSessionId = null
+    persisted.state.sessions.forEach((session: { status: string }) => { session.status = 'completed' })
+    localStorage.setItem(key, JSON.stringify(persisted))
+  })
+  await page.reload()
+  const before = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1')!).state)
+  await expect(page.getByRole('heading', { name: 'No unfinished workouts remain.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Start without check-in' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Plan my next workouts' }).click()
+  await expect(page.getByRole('button', { name: 'Review this training round' })).toBeVisible()
+  const after = await page.evaluate(() => JSON.parse(localStorage.getItem('forgepath-private-alpha-v1')!).state)
+  expect(after.sessions).toEqual(before.sessions)
+  expect(after.history).toEqual(before.history)
+  expect(after.activeSessionId).toBeNull()
+})

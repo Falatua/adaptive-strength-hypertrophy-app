@@ -48,15 +48,15 @@ export function TodayScreen() {
   const [placementExitAssessedAt] = useState(() => new Date().toISOString())
   const [missReason, setMissReason] = useState<MissedOpportunityInput>({ reason: 'family', trainingOutcome: 'no-training', nextOpportunityAt: dateInputFor(1), nextMinutes: 45, constraintState: 'continuing', note: '', preferredNextSessionId: null })
   const [missError, setMissError] = useState<string | null>(null)
-  const activeSession = activeSessionId ? sessions.find((session) => session.id === activeSessionId) : undefined
-  const nextSession = activeSession ?? sessions.find((session) => ['planned', 'deferred'].includes(session.status)) ?? sessions[0]
+  const activeSession = activeSessionId ? sessions.find((session) => session.id === activeSessionId && session.status === 'active') : undefined
+  const nextSession = activeSession ?? sessions.find((session) => ['planned', 'deferred'].includes(session.status))
   const primaryPlan = nextSession?.exercises.find((exercise) => exercise.role === 'primary')
   const primaryExercise = exercises.find((exercise) => exercise.id === primaryPlan?.exerciseId)
   const primaryHistory = history.filter((set) => set.exerciseId === primaryExercise?.id)
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const activePlan = mesocycles.find((plan) => plan.status === 'active')
   const momentum = useMemo(() => buildTrainingMomentum({ sessions, history, missedEvents: missedOpportunityEvents, activePlan }), [activePlan, history, missedOpportunityEvents, sessions])
-  const equipmentGaps = nextSession ? sessionEquipmentGaps(nextSession, exercises, activeEquipmentProfile) : []
+  const equipmentGaps = useMemo(() => nextSession ? sessionEquipmentGaps(nextSession, exercises, activeEquipmentProfile) : [], [nextSession, exercises, activeEquipmentProfile])
   const openScheduleEligibility = useMemo(() => sessions.filter((session) => ['planned', 'deferred'].includes(session.status)).map((session) => ({ session, evidence: scheduleSessionEligibility(session, exercises, activeEquipmentProfile) })), [sessions, exercises, activeEquipmentProfile])
   const latestScheduleChange = missedOpportunityEvents.at(-1)
   const latestRebuiltSession = latestScheduleChange ? sessions.find((session) => session.id === latestScheduleChange.nextSessionId) : null
@@ -249,7 +249,12 @@ export function TodayScreen() {
         <Footprints size={21} /><span><small>Training momentum · {momentum.status.replaceAll('-', ' ')}</small><strong>{momentum.title}</strong><p>{momentum.explanation}</p></span><b>{momentum.completedPriorities}/{momentum.plannedPriorities}<small>priorities</small></b>
       </section>
 
-      <section className="hero-workout">
+      {!nextSession ? <section className="panel" aria-label="Next workout">
+        <p className="eyebrow">Your next training round</p>
+        <h2>No unfinished workouts remain.</h2>
+        <p>Your completed workouts are saved. Review your plan to choose the next round or adjust your training before starting again.</p>
+        <button className="button button--primary" onClick={() => setNav('plan')}>Plan my next workouts <ArrowRight size={18} /></button>
+      </section> : <section className="hero-workout">
         <div className="hero-workout__content">
           <div className="hero-workout__meta">
             <span className={`status-chip ${athlete.continuity === 'stable' ? 'status-chip--lime' : 'status-chip--default'}`}><BatteryCharging size={14} /> {continuityLabels[athlete.continuity]}</span>
@@ -284,7 +289,7 @@ export function TodayScreen() {
           <PixelAvatar mood="strong" size="large" form={athleteProgress.form} level={athleteProgress.level} />
           <TrainingFieldGuide route={routeLabel ?? 'Evidence-led'} nextWin={progressionTarget} evidence={progressionEvidence} onOpen={() => setWhyOpen(true)} />
         </div>
-      </section>
+      </section>}
 
       <section className="today-evidence-strip" aria-label="Where you stand now">
         <div className="today-evidence-strip__lead"><ForgeGlyph name="evidence" size={20} /><span><small>Last exact exposure</small><strong>{recentPrimary.length ? `${lastVolume.toLocaleString()} ${settings.units} volume` : 'No completed baseline yet'}</strong><em>{recentPrimary.length} completed set{recentPrimary.length === 1 ? '' : 's'}</em></span></div>

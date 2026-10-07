@@ -61,6 +61,16 @@ describe('clean first-use state', () => {
     expect(restored.backup.data.sessions[0].exercises[0].sets[1]).toMatchObject({ completed: false, entryOrigins: { load: 'top-set-autofill', reps: 'top-set-autofill', rir: 'top-set-autofill' } })
   })
 
+  it.each(['completed', 'expired', 'stopped', 'partial-primary', 'partial-no-primary'] as const)('never restarts or adds readiness to a %s workout', (status) => {
+    const session = { ...structuredClone(sessions[0]), status }
+    useAppStore.setState({ sessions: [session], activeSessionId: null, workoutVisible: false })
+    const before = backupStateFrom(useAppStore.getState())
+    useAppStore.getState().setReadiness(session.id, [], true, 'off')
+    useAppStore.getState().startSession(session.id)
+    expect(backupStateFrom(useAppStore.getState())).toEqual(before)
+    expect(useAppStore.getState().workoutVisible).toBe(false)
+  })
+
   it('clears inherited completion fields when a genuinely unstarted workout begins', () => {
     const session = structuredClone(sessions[0])
     session.status = 'planned'
