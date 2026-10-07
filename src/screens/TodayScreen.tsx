@@ -56,8 +56,8 @@ export function TodayScreen() {
   const activeEquipmentProfile = equipmentProfiles.find((profile) => profile.id === settings.activeEquipmentProfileId) ?? equipmentProfiles[0]
   const activePlan = mesocycles.find((plan) => plan.status === 'active')
   const momentum = useMemo(() => buildTrainingMomentum({ sessions, history, missedEvents: missedOpportunityEvents, activePlan }), [activePlan, history, missedOpportunityEvents, sessions])
-  const equipmentGaps = useMemo(() => nextSession ? sessionEquipmentGaps(nextSession, exercises, activeEquipmentProfile) : [], [nextSession, exercises, activeEquipmentProfile])
-  const openScheduleEligibility = useMemo(() => sessions.filter((session) => ['planned', 'deferred'].includes(session.status)).map((session) => ({ session, evidence: scheduleSessionEligibility(session, exercises, activeEquipmentProfile) })), [sessions, exercises, activeEquipmentProfile])
+  const equipmentGaps = nextSession ? sessionEquipmentGaps(nextSession, exercises, activeEquipmentProfile) : []
+  const openScheduleEligibility = sessions.filter((session) => ['planned', 'deferred'].includes(session.status)).map((session) => ({ session, evidence: scheduleSessionEligibility(session, exercises, activeEquipmentProfile) }))
   const latestScheduleChange = missedOpportunityEvents.at(-1)
   const latestRebuiltSession = latestScheduleChange ? sessions.find((session) => session.id === latestScheduleChange.nextSessionId) : null
   const latestRebuiltPrimary = latestScheduleChange?.nextPrimaryExerciseId ? exercises.find((exercise) => exercise.id === latestScheduleChange.nextPrimaryExerciseId) : null
