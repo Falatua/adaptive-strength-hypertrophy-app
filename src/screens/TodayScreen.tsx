@@ -249,7 +249,7 @@ export function TodayScreen() {
         <Footprints size={21} /><span><small>Training momentum · {momentum.status.replaceAll('-', ' ')}</small><strong>{momentum.title}</strong><p>{momentum.explanation}</p></span><b>{momentum.completedPriorities}/{momentum.plannedPriorities}<small>priorities</small></b>
       </section>
 
-      {!nextSession ? <section className="panel" aria-label="Next workout">
+      {!nextSession && !placementBlocked ? <section className="panel" aria-label="Next workout">
         <p className="eyebrow">Your next training round</p>
         <h2>No unfinished workouts remain.</h2>
         <p>Your completed workouts are saved. Review your plan to choose the next round or adjust your training before starting again.</p>
