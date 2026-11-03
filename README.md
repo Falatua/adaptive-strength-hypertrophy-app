@@ -1,4 +1,4 @@
-# ForgePath Private Alpha 0.84.3
+# ForgePath Private Alpha 0.85.0
 
 ## Device-local release 0.85.0 (2026-11-02)
 
@@ -11,7 +11,7 @@ Existing cloud users can explicitly preview an interrupted device save or read t
 Save errors show an emergency-download action and prevent app-update refresh until storage succeeds. A successful retry clears the warning. Physical phone acceptance remains a separate check from automated mobile browser testing.
 
 
-ForgePath is an athlete-controlled adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed. The hosted private alpha uses Supabase as the authoritative training store; local development keeps a browser-only test mode.
+ForgePath is an athlete-controlled adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed. The hosted and installed app both save training on the current device and work offline after the first load.
 
 Private alpha 0.84.3 prevents an exhausted workout queue from reopening completed training. Today directs the athlete to plan review, and terminal sessions cannot be restarted or receive new readiness surveys.
 
@@ -34,7 +34,7 @@ Open the local address printed by Vite. The app can be installed as a PWA and pe
 
 The working interface name is ForgePath. It remains a private-alpha label until JB approves the final product name.
 
-The current PWA is responsive on phone and laptop and runs an invite-only, Supabase-authoritative cloud release. The dedicated ForgePath Supabase project, checksum-locked migration ledger, forced Row Level Security, snapshot RPC, account reset, and server-only account deletion have passed live transactional and security acceptance. Public signup and anonymous data access are disabled. Invited athletes enter only their email and press `Log in with email`. A new or signed-out browser receives one private confirmation link. Opening it in the same normal browser profile, not Incognito or an email-app preview, creates a durable, automatically renewed Supabase session that survives refreshes and app updates until the athlete signs out or clears that browser's site data. Phone users may submit login and Home Screen codes with the keyboard action key, and the sixty-second send cooldown survives refreshes and browser restarts. Because iOS does not copy browser local storage into a newly installed Home Screen web app, ForgePath provides a server-mediated five-minute, single-use code after the default browser verifies the email link. An athlete already signed in in that browser can reopen the transfer page without requesting another email. The installed app redeems the code into its own durable session without copying access or refresh tokens. Rate-limit messages distinguish temporary email delivery throttling from an account lock. There is no athlete-facing password path, and knowledge of an invited address alone never creates an authenticated session. Permanent account actions require a link opened within five minutes and are independently checked by Supabase. Exact deployed-source checks, cloud save, conflict preservation, reviewed restore, old-schema snapshot migration, save-before-sign-out, and durable interrupted-save recovery are implemented. When a newer build is published, every open page checks immediately, once per minute while visible, and again after focus or reconnection. A persistent Update ready notice saves pending training changes before its refresh action and remains visible until the athlete updates. The release gate runs the complete interface suite in desktop Chromium, Android-style mobile Chromium, and an iPhone WebKit engine because iPhone Chrome uses the iOS browser platform. Automatic entity merging and active-workout handoff remain governed by [Build Bible Chapter 68](docs/product/BUILD_BIBLE.md#68-phone-laptop-and-cloud-synchronization), [Chapter 78](docs/product/BUILD_BIBLE.md#78-private-cloud-foundation-and-activation-contract), and [Chapter 80](docs/product/BUILD_BIBLE.md#80-supabase-reliability-and-release-evidence-contract).
+The PWA is responsive on phone and laptop. App updates remain available from the hosted site, with an Update ready notice that refreshes only when device storage is healthy. The release gate exercises desktop Chromium, Android-style Chromium and iPhone WebKit, plus an installed-service-worker offline journey. Existing cloud authentication and backend modules remain solely for legacy recovery and historical verification; they do not gate normal app use.
 
 For repeatable personal testing, You now includes a true clean-data reset. It removes every local completed set, session, plan, survey, note, record, feedback item, correction, and testing event from the current browser, then restarts onboarding. It retains only the canonical exercise catalog and equipment templates required to create a new plan. It does not alter Supabase or another browser.
 
@@ -44,7 +44,7 @@ The built-in exercise catalog now contains 251 canonical movements. Traps is sep
 
 Every push to the public source repository's `main` runs the deterministic checks, all desktop and mobile browser journeys, and a GitHub Pages-specific PWA build before publishing only the compiled artifact to the public `Falatua/adaptive-strength-hypertrophy-app-pages` repository. A failed gate blocks the release. The hosted preview lives at `https://falatua.github.io/adaptive-strength-hypertrophy-app-pages/`.
 
-The source repository and Pages URL are both public, but the hosted app opens only for invited private-alpha accounts. Supabase remains the system of record. The browser retains the signed-in session, account-scoped device/version metadata, and only the newest unconfirmed recovery snapshot while a cloud save is pending or interrupted. A confirmed save removes that local recovery payload. The compiled browser key is publishable and constrained by invite-only Auth, grants, and Row Level Security. GitHub project sites share their parent browser origin, so this URL remains limited to the owner-controlled test group; ForgePath requires a dedicated origin before any external athlete is invited. Automatic entity merging and active-workout handoff are not yet enabled. A real invited-athlete phone-to-laptop acceptance drill remains required before broadening the release.
+The source repository and Pages URL are public. No account is required to use the device-local app. Training is stored in this browser or installed PWA, and is not sent to Supabase during normal use. Old cloud data remains protected by its existing account permissions and is read only when the athlete requests recovery. A physical handset check remains separate from automated browser evidence.
 
 ## Verify
 
@@ -58,8 +58,8 @@ npm run check:pages
 
 - React and TypeScript
 - Vite and PWA service worker
-- Zustand local test persistence plus an account-scoped interrupted-save recovery outbox
-- Supabase Auth and Postgres client foundation with Row Level Security migrations
+- Zustand device persistence with validated backup import, export and restore undo
+- Optional legacy Supabase recovery, with the original Row Level Security migrations retained
 - Deterministic domain engine separated from UI
 - Recharts for progress views
 - No AI dependency; training decisions remain deterministic and usable without Supabase

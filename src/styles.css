@@ -85,7 +85,10 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 .screen-header__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--text); font-weight: 790; transition: transform .15s, border-color .15s, background .15s; }
-.button:hover { transform: translateY(-1px); border-color: var(--line-bright); }
+.button:hover { border-color: var(--line-bright); }
+@media (hover: hover) and (pointer: fine) {
+  .button:hover { transform: translateY(-1px); }
+}
 .button--primary { border-color: var(--lime); background: var(--lime); color: #11140d; box-shadow: 4px 4px 0 #3b4520; }
 .button--secondary { background: #242a20; }
 .button--ghost { background: transparent; }
@@ -1735,6 +1738,8 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 }
 
 @media (max-width: 880px) {
+  html { scroll-padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+  button, input, select, textarea, a { scroll-margin-bottom: calc(90px + env(safe-area-inset-bottom)); }
   .progress-operating-grid { grid-template-columns: 1fr; }
   .sidebar { display: none; }
   .main-content { margin-left: 0; }
