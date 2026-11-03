@@ -42,6 +42,14 @@ jobs:
         env:
           VITE_FORGEPATH_LOCAL_E2E: true
         run: npm run test:e2e
+      - name: Preserve browser failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-test-evidence
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Build and verify the GitHub Pages artifact
         run: npm run check:pages
       - name: Verify installed mobile app without a network
