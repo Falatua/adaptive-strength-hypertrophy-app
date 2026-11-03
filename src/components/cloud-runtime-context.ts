@@ -28,5 +28,5 @@ export function cloudSaveCopy(saveState: SaveState | null) {
   if (saveState === 'loading') return { short: 'Checking private cloud', detail: 'Verifying the newest saved copy' }
   if (saveState === 'saved') return { short: 'Saved to private cloud', detail: 'Cloud account is up to date' }
   if (localStorageError()) return { short: 'Device save needs attention', detail: 'Download an emergency backup before closing' }
-  return { short: 'Saved on this device', detail: 'Works offline · export backups to keep a separate copy' }
+  return { short: 'Saved on this device', detail: 'Works offline' }
 }

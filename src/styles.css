@@ -1791,7 +1791,10 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .header-actions { width: 100%; }
   .header-actions .button { flex: 1; }
   .hero-workout { min-height: 0; border-radius: 18px; }
-  .hero-workout__content { padding: 18px; }
+  .hero-workout__content { display: flex; flex-direction: column; padding: 18px; }
+  .hero-workout__content > .hero-workout__actions { order: 1; }
+  .hero-workout__content > .anchor-prescription { order: 2; }
+  .hero-workout__content > .time-budget { order: 3; }
   .hero-workout__meta { margin-bottom: 12px; }
   .hero-workout h2 { font-size: 2.2rem; }
   .hero-workout__objective { margin-bottom: 16px; }
