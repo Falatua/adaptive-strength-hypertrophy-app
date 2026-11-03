@@ -32,7 +32,7 @@
     "react-dom": "latest",
     "react-router-dom": "latest",
     "recharts": "latest",
-    "vite": "latest",
+    "vite": "8.2.4",
     "vite-plugin-pwa": "latest",
     "zustand": "latest"
   },

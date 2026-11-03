@@ -1,10 +1,11 @@
-import { chromium, devices } from '@playwright/test'
+import { chromium, webkit, devices } from '@playwright/test'
 import assert from 'node:assert/strict'
 
 const url = process.env.FORGEPATH_OFFLINE_URL || 'http://127.0.0.1:4173/adaptive-strength-hypertrophy-app-pages/'
-const browser = await chromium.launch()
+const iphone = process.env.FORGEPATH_OFFLINE_ENGINE === 'webkit'
+const browser = await (iphone ? webkit : chromium).launch()
 try {
-  const context = await browser.newContext({ ...devices['Pixel 5'] })
+  const context = await browser.newContext({ ...devices[iphone ? 'iPhone 13' : 'Pixel 5'] })
   const page = await context.newPage()
   page.setDefaultTimeout(30000)
   const cloudRequests = []
@@ -38,7 +39,7 @@ try {
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Download device backup' }).click()
   assert.match((await download).suggestedFilename(), /forgepath-device-backup/)
-  await page.screenshot({ path: 'output/playwright/local-offline-mobile.png', fullPage: true })
+  await page.screenshot({ path: `output/playwright/local-offline-${iphone ? 'iphone' : 'android'}.png`, fullPage: true })
   await page.getByRole('button', { name: 'Today', exact: true }).click()
   await page.getByRole('button', { name: 'Start without check-in' }).click()
   const row = page.locator('.set-row').first()

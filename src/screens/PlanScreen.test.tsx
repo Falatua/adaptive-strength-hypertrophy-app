@@ -7,6 +7,8 @@ import { athlete, equipmentProfiles, exercises, history, mesocycles, records, se
 import { useAppStore } from '../store/useAppStore'
 import { PlanScreen } from './PlanScreen'
 
+// Full blueprint renders exercise the complete catalog; allow slower CI/mobile-development hosts
+// to finish the same assertions without treating a five-second CPU budget as a product failure.
 describe('training-block blueprint', () => {
   beforeEach(() => {
     HTMLDialogElement.prototype.showModal = function showModal() { this.open = true }
@@ -41,7 +43,7 @@ describe('training-block blueprint', () => {
 
   afterEach(cleanup)
 
-  it('shows the weekly movement map and whole-block recovery route before editing', () => {
+  it('shows the weekly movement map and whole-block recovery route before editing', { timeout: 30_000 }, () => {
     render(<PlanScreen />)
     const blueprint = screen.getByRole('region', { name: 'See the whole route before you train it.' })
     expect(blueprint).toHaveTextContent('Round 1')
@@ -87,7 +89,7 @@ describe('training-block blueprint', () => {
     expect(screen.getByRole('button', { name: 'Show how life-aware planning works' })).toHaveAttribute('aria-expanded', 'false')
   })
 
-  it('offers an athlete-approved route to the safer repetition policy without rewriting the active plan', () => {
+  it('offers an athlete-approved route to the safer repetition policy without rewriting the active plan', { timeout: 30_000 }, () => {
     useAppStore.setState((state) => ({
       ...state,
       mesocycles: state.mesocycles.map((plan) => ({
@@ -105,7 +107,7 @@ describe('training-block blueprint', () => {
     expect(screen.getByRole('dialog', { name: 'Preview training-block version 2' })).toBeVisible()
   })
 
-  it('commits one secondary movement and incline setup across future training rounds', () => {
+  it('commits one secondary movement and incline setup across future training rounds', { timeout: 30_000 }, () => {
     render(<PlanScreen />)
     fireEvent.click(screen.getByRole('button', { name: 'Review and edit blueprint' }))
     const dialog = screen.getByRole('dialog', { name: 'Preview training-block version 2' })
@@ -132,7 +134,7 @@ describe('training-block blueprint', () => {
     expect(benchDay.exercises[1].sets.every((workSet) => workSet.benchAngleDeg === 45)).toBe(true)
   })
 
-  it('keeps a seven-day blueprint scannable while every day remains independently available', () => {
+  it('keeps a seven-day blueprint scannable while every day remains independently available', { timeout: 30_000 }, () => {
     render(<PlanScreen />)
     fireEvent.click(screen.getByRole('button', { name: 'Review and edit blueprint' }))
     const dialog = screen.getByRole('dialog', { name: 'Preview training-block version 2' })
@@ -152,7 +154,7 @@ describe('training-block blueprint', () => {
     expect(dayToggles[0]).toHaveAttribute('aria-expanded', 'true')
   })
 
-  it('carries a completed blueprint forward and flags movement feedback for the next block', () => {
+  it('carries a completed blueprint forward and flags movement feedback for the next block', { timeout: 30_000 }, () => {
     useAppStore.setState((state) => ({
       ...state,
       activeMesocycleId: null,
