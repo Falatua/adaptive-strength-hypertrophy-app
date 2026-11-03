@@ -1739,7 +1739,7 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
 
 @media (max-width: 880px) {
   html { scroll-padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
-  button, input, select, textarea, a { scroll-margin-bottom: calc(90px + env(safe-area-inset-bottom)); }
+  .hero-workout__actions .button { scroll-margin-bottom: calc(90px + env(safe-area-inset-bottom)); }
   .progress-operating-grid { grid-template-columns: 1fr; }
   .sidebar { display: none; }
   .main-content { margin-left: 0; }
