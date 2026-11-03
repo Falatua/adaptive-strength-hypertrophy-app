@@ -44,6 +44,16 @@ jobs:
         run: npm run test:e2e
       - name: Build and verify the GitHub Pages artifact
         run: npm run check:pages
+      - name: Verify installed mobile app without a network
+        run: |
+          VITE_BASE_PATH=/adaptive-strength-hypertrophy-app-pages/ npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/forgepath-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid"' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/adaptive-strength-hypertrophy-app-pages/ > /dev/null; then break; fi
+            sleep 1
+          done
+          npm run test:offline
       - name: Configure artifact-repository deploy key
         if: github.event_name != 'pull_request'
         env:

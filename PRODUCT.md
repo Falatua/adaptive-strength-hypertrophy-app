@@ -1,5 +1,16 @@
 # Product
 
+## Device-local release 0.85.0 (2026-11-02)
+
+This decision supersedes the older cloud-authoritative architecture below. Training runs without Supabase or an account. The existing version-33 device store is authoritative and preserves the existing storage key and backup schema 32. All training, plans, settings, surveys and restore points persist on this device. The installed PWA caches the app for offline use after its first successful online load. Hosting still delivers app updates; it is not a training-data backend.
+
+Use **You → Download device backup** regularly and **Recover existing training** to preview and import a file on another device. Clearing site data or removing the app can lose device storage. Safari browser and installed Home Screen storage may be separate. There is no automatic multi-device sync.
+
+Existing cloud users can explicitly preview an interrupted device save or read their old cloud snapshot, then confirm a local restore. Recovery is also available before onboarding. Optional existing Supabase configuration enables this one-time read path only; normal startup and training never create a client or contact Supabase. Original cloud rows and pending recovery payloads are retained. If the session has expired, request a recovery email in the browser, recover and export there, then import into the installed app. Supabase downtime does not block local training or file recovery, but it can block retrieving cloud-only data.
+
+Save errors show an emergency-download action and prevent app-update refresh until storage succeeds. A successful retry clears the warning. Physical phone acceptance remains a separate check from automated mobile browser testing.
+
+
 ## Long-Term Programming and Exercise Development
 
 ForgePath treats its active training block as a mesocycle-scale accumulation contract inside a longer development phase. The Plan screen must show three connected horizons: the current mesocycle, several mesocycles serving one larger purpose, and the training year. The yearly view starts with a needs analysis and a real goal or endpoint, then works backward. It never invents future phases, dates, competitions, cuts, or recovery periods from missing information.

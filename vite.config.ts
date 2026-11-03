@@ -24,7 +24,7 @@ export default defineConfig({
       manifest: {
         name: 'ForgePath Private Alpha',
         short_name: 'ForgePath',
-        description: 'A private cloud-backed adaptive strength and hypertrophy coach.',
+        description: 'An offline-capable strength and hypertrophy coach with training saved on your device.',
         theme_color: '#111410',
         background_color: '#111410',
         display: 'standalone',
@@ -42,6 +42,7 @@ export default defineConfig({
       },
       workbox: {
         cacheId: 'forgepath',
+        clientsClaim: true,
         navigateFallback: 'index.html',
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}']
       }

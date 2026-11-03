@@ -2549,3 +2549,12 @@ input[type="checkbox"] { width: 42px; height: 23px; accent-color: var(--lime); }
   .workout-movement-history__list article { grid-template-columns: 1fr 1fr; }
   .workout-movement-history__list > article > span { grid-column: 1 / -1; text-align: left; }
 }
+
+.local-recovery { width: min(100% - 2rem, 42rem); margin: 1rem auto; }
+.local-recovery input[type="file"], .settings-aside input[type="file"] { max-width: 100%; min-width: 0; }
+
+.local-data-panel .full-row-button { flex-wrap: wrap; }
+.local-data-panel input { max-width: 100%; min-width: 0; }
+.local-data-panel .recovery-callout { flex-direction: column; align-items: flex-start; }
+
+.local-save-error { position: relative; z-index: 101; width: min(calc(100% - 2rem), 42rem); margin: 1rem auto; }

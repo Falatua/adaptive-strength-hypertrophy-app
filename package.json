@@ -1,7 +1,7 @@
 {
   "name": "adaptive-strength-hypertrophy-app",
   "private": true,
-  "version": "0.84.3",
+  "version": "0.85.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -19,7 +19,8 @@
     "qc:cloud-data": "node scripts/qc-cloud-data-boundary.mjs",
     "qc:cloud-release": "node scripts/qc-cloud-release-env.mjs",
     "check:pages": "npm run build:pages && npm run qc:pages",
-    "check": "npm run qc:ui && npm run qc:images && npm run qc:backend && npm run qc:cloud-data && npm run qc:cloud-release && npm run lint && npm run test && npm run build"
+    "check": "npm run qc:ui && npm run qc:images && npm run qc:backend && npm run qc:cloud-data && npm run qc:cloud-release && npm run lint && npm run test && npm run build",
+    "test:offline": "node scripts/test-local-offline.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

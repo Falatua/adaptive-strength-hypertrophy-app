@@ -1,5 +1,16 @@
 # ForgePath Private Alpha 0.84.3
 
+## Device-local release 0.85.0 (2026-11-02)
+
+This decision supersedes the older cloud-authoritative architecture below. Training runs without Supabase or an account. The existing version-33 device store is authoritative and preserves the existing storage key and backup schema 32. All training, plans, settings, surveys and restore points persist on this device. The installed PWA caches the app for offline use after its first successful online load. Hosting still delivers app updates; it is not a training-data backend.
+
+Use **You → Download device backup** regularly and **Recover existing training** to preview and import a file on another device. Clearing site data or removing the app can lose device storage. Safari browser and installed Home Screen storage may be separate. There is no automatic multi-device sync.
+
+Existing cloud users can explicitly preview an interrupted device save or read their old cloud snapshot, then confirm a local restore. Recovery is also available before onboarding. Optional existing Supabase configuration enables this one-time read path only; normal startup and training never create a client or contact Supabase. Original cloud rows and pending recovery payloads are retained. If the session has expired, request a recovery email in the browser, recover and export there, then import into the installed app. Supabase downtime does not block local training or file recovery, but it can block retrieving cloud-only data.
+
+Save errors show an emergency-download action and prevent app-update refresh until storage succeeds. A successful retry clears the warning. Physical phone acceptance remains a separate check from automated mobile browser testing.
+
+
 ForgePath is an athlete-controlled adaptive strength and hypertrophy coach built from JB's Obsidian Build Bible. It keeps selected strength anchors progressing while allocating recoverable hypertrophy work around real time, equipment, readiness, joint response, and the training actually completed. The hosted private alpha uses Supabase as the authoritative training store; local development keeps a browser-only test mode.
 
 Private alpha 0.84.3 prevents an exhausted workout queue from reopening completed training. Today directs the athlete to plan review, and terminal sessions cannot be restarted or receive new readiness surveys.

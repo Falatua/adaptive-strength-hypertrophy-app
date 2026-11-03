@@ -1,3 +1,4 @@
+import { reportLocalStorageError } from '../services/local-storage'
 import { nanoid } from 'nanoid'
 import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
@@ -151,9 +152,15 @@ interface AppState {
 }
 
 const browserStateStorage: StateStorage = {
-  getItem: (name) => typeof window === 'undefined' ? null : window.localStorage.getItem(name),
+  getItem: (name) => {
+    try { return typeof window === 'undefined' ? null : window.localStorage.getItem(name) }
+    catch (cause) { reportLocalStorageError(cause); return null }
+  },
   setItem: (name, value) => {
-    if (typeof window !== 'undefined' && !cloudAuthoritativeBuild) window.localStorage.setItem(name, value)
+    try {
+      if (typeof window !== 'undefined' && !cloudAuthoritativeBuild) window.localStorage.setItem(name, value)
+      reportLocalStorageError(null)
+    } catch (cause) { reportLocalStorageError(cause) }
   },
   removeItem: (name) => {
     if (typeof window !== 'undefined') window.localStorage.removeItem(name)

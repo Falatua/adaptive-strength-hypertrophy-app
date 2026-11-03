@@ -1,3 +1,4 @@
+import { localStorageError } from '../services/local-storage'
 import { createContext, useContext } from 'react'
 import type { Session } from '@supabase/supabase-js'
 
@@ -26,5 +27,6 @@ export function cloudSaveCopy(saveState: SaveState | null) {
   if (saveState === 'error') return { short: 'Cloud save needs attention', detail: 'Pending change is protected on this device' }
   if (saveState === 'loading') return { short: 'Checking private cloud', detail: 'Verifying the newest saved copy' }
   if (saveState === 'saved') return { short: 'Saved to private cloud', detail: 'Cloud account is up to date' }
-  return { short: 'Local test mode', detail: 'Saved on this test device' }
+  if (localStorageError()) return { short: 'Device save needs attention', detail: 'Download an emergency backup before closing' }
+  return { short: 'Saved on this device', detail: 'Works offline · export backups to keep a separate copy' }
 }

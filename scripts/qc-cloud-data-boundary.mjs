@@ -45,7 +45,6 @@ if (!sync.includes('HOME_SCREEN_CODE_LENGTH = 20') || !sync.includes("crypto.sub
 if (!root.includes('browserHomeScreenHandoff') || !root.includes('<HomeScreenHandoff />') || !root.includes('Finish Home Screen login')) failures.push('the browser and installed-app sides of Home Screen authentication are not connected')
 if (/clipboard\.writeText\([^)]*(?:access|refresh|tokenHash|session)/.test(root)) failures.push('the Home Screen handoff copies a reusable credential instead of the short-lived one-time code')
 if (/signInWithPassword|resetPasswordForEmail|updateCloudPassword|forgepath_password_ready|type=["']password["']/.test(`${sync}\n${root}\n${panel}`)) failures.push('a password authentication path remains in the athlete-facing product')
-if (!config.includes("loopback && import.meta.env.VITE_FORGEPATH_LOCAL_E2E === 'true'")) failures.push('the local test override is not restricted to loopback')
 if (/VITE_.*(?:SECRET|SERVICE|PASSWORD|PRIVATE)/i.test(`${store}\n${sync}\n${root}\n${config}`)) failures.push('browser source references a privileged Vite credential')
 if (!root.includes('void checkForAppUpdate()')) failures.push('cloud bootstrap does not look for a newer build before blaming the saved copy')
 if (!root.includes('await readAppVersionStatus()') || !root.includes('if (version.updateAvailable)')) failures.push('cloud bootstrap does not block an exact known old build before loading or saving')
@@ -57,9 +56,16 @@ const backupSchemaVersion = backup.match(/BACKUP_SCHEMA_VERSION\s*=\s*(\d+)/)?.[
 if (!backupSchemaVersion || !youScreen.includes(`<strong>Version ${backupSchemaVersion}</strong>`)) failures.push('the athlete-facing backup diagnostic does not match the actual backup schema')
 if (!youScreen.includes('forgepath-backup-v${BACKUP_SCHEMA_VERSION}')) failures.push('the exported backup filename can drift from the actual backup schema')
 
+const entry = readFileSync(resolve('src/main.tsx'), 'utf8')
+const localRoot = readFileSync(resolve('src/components/LocalAppRoot.tsx'), 'utf8')
+const recovery = readFileSync(resolve('src/components/LocalDataPanel.tsx'), 'utf8')
+if (!entry.includes('<LocalAppRoot />') || entry.includes('<CloudAppRoot')) failures.push('runtime entry must open the device-local app')
+if (/getCloudClient|pushCloudSnapshot|fetchCloudSnapshot/.test(localRoot)) failures.push('local startup must not depend on Supabase')
+if (/pushCloudSnapshot|stageCloudSnapshot|prepareCloudStorageForAccount|resetCloudData|deleteCloudAccount|removeItem|\.rpc\(/.test(recovery)) failures.push('local recovery must preserve cloud rows and interrupted originals')
 if (failures.length) {
   console.error(`Cloud data boundary QC failed:\n- ${failures.join('\n- ')}`)
   process.exit(1)
 }
 
-console.log('Cloud data boundary QC passed: Supabase is authoritative, authentication is invitation-only and passwordless, interrupted saves have a durable account-scoped recovery snapshot, exact stale builds are blocked, and failed loads remain recoverable.')
+if (!config.includes('export const cloudAuthoritativeBuild = false')) throw new Error('Device storage must remain authoritative.')
+console.log('Local storage authority and legacy cloud recovery boundaries passed.')

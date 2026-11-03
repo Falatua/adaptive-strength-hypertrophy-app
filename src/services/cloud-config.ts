@@ -34,8 +34,6 @@ export function evaluateCloudConfiguration(url: string, publishableKey: string):
 
 export const cloudConfiguration = evaluateCloudConfiguration(configuredUrl, configuredPublishableKey)
 
-// The local E2E override is accepted only on loopback. It keeps the existing deterministic
-// browser suite useful without creating a production switch back to local athlete storage.
-const loopback = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)
-export const cloudAuthoritativeBuild = cloudConfiguration.status === 'ready'
-  && !(loopback && import.meta.env.VITE_FORGEPATH_LOCAL_E2E === 'true')
+// Device storage is authoritative even when legacy recovery credentials are configured.
+// Supabase is contacted only when the athlete explicitly requests an old copy.
+export const cloudAuthoritativeBuild = false

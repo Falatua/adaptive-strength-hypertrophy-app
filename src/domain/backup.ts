@@ -34,7 +34,7 @@ import { hasUnstartedSessionTrainingState, resetUnstartedSessionTrainingState } 
 
 export const BACKUP_FORMAT = 'forgepath-backup'
 export const BACKUP_SCHEMA_VERSION = 32
-export const BACKUP_APP_VERSION = '0.84.3'
+export const BACKUP_APP_VERSION = '0.85.0'
 
 const settingsDefaults: Pick<AppSettings, 'celebrationLevel' | 'opportunityPrompts' | 'sessionAchievements' | 'confetti' | 'quietMode' | 'activeEquipmentProfileId'> = {
   celebrationLevel: 'subtle',

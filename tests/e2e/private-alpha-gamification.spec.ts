@@ -426,7 +426,7 @@ test('keeps heading, subheading, and supporting copy rhythm readable across dest
   expect(modalRhythm.supportingCopyGap).toBeGreaterThanOrEqual(8)
 })
 
-test('shows an honest local test boundary without weakening backup or responsive containment', async ({ page }, testInfo) => {
+test('shows device storage and recovery without weakening backup or responsive containment', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
   page.on('pageerror', (error) => browserErrors.push(error.message))
@@ -434,16 +434,15 @@ test('shows an honest local test boundary without weakening backup or responsive
   await page.getByRole('button', { name: 'Dismiss message' }).click()
   await page.getByRole('button', { name: 'You', exact: true }).click()
 
-  const cloudPanel = page.getByLabel('Cloud account')
+  const cloudPanel = page.getByLabel('Device storage and recovery')
   await expect(cloudPanel).toBeVisible()
-  await expect(cloudPanel.getByRole('heading', { name: 'Cloud access is unavailable' })).toBeVisible()
-  await expect(cloudPanel).toContainText('This build is not cloud-authoritative')
-  await expect(cloudPanel).toContainText(/The local test override is active\.|Private cloud access is not enabled in this build\./)
-  await expect(cloudPanel.getByRole('button')).toHaveCount(0)
+  await expect(cloudPanel.getByRole('heading', { name: 'Your training stays on this device' })).toBeVisible()
+  await expect(cloudPanel).toContainText('Devices do not sync automatically')
+  await expect(cloudPanel.getByRole('button', { name: 'Download device backup' })).toBeEnabled()
   await expect(page.getByRole('heading', { name: 'Backup and recovery' })).toBeVisible()
   await openPanel(page, 'backup and recovery')
   await expect(page.getByRole('button', { name: 'Export verified backup' })).toBeEnabled()
-  await expect(page.getByText('Local test state v33')).toBeVisible()
+  await expect(page.getByText('Device storage v33')).toBeVisible()
 
   await cloudPanel.screenshot({ path: `output/playwright/cloud-foundation-${testInfo.project.name === 'mobile-chromium' ? 'mobile' : 'desktop'}.png` })
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
